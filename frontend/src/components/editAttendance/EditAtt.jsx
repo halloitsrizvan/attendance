@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { TfiLayoutGrid3,TfiLayoutGrid2  } from "react-icons/tfi";
 import { FaHome } from "react-icons/fa";
 import StudentsLoad from '../load-UI/StudentsLoad';
+import { API_PORT } from '../../Constants';
 
 function EditAtt() {
     const [students,setStudents] = useState([])
@@ -15,12 +16,15 @@ function EditAtt() {
     const navigate=useNavigate()
     const [summaryLoad,setSummaryLoad] = useState(false)
     const [load,setLoad] = useState(false)
-    const [cards,setCards] = useState('No')
-    
+    const [cards,setCards] = useState('No') 
+    const latestDate=students[0]?.attentenceDate
+    const latestTime=students[0]?.attentenceTime
     useEffect(() => {
       setLoad(true)
+      console.log(latestDate,latestTime);
+      
       axios
-        .get("https://clg-project-hsns.onrender.com/set-attentence")
+        .get(`${API_PORT}/set-attendance`)
         .then((res) => {
           const filteredData = res.data.filter(
             (student) => student.class === Number(id)
@@ -40,7 +44,8 @@ function EditAtt() {
             const latestData = Object.values(latestByStudent).sort(
               (a, b) => a.SL - b.SL
             );
-    
+            console.log("data",latestData);
+            
             setStudents(latestData);
     
             // initial status
@@ -80,12 +85,12 @@ function EditAtt() {
           class: student.class,
           status: status[student.ad] || student.status, 
           SL: student.SL,
-          attentenceTime: student.attentenceTime,
-          attentenceDate: student.attentenceDate,
+          attendanceTime: student.attentenceTime,
+          attendanceDate: student.attentenceDate,
           
         }));
 
-        await axios.patch("https://clg-project-hsns.onrender.com/set-attentence",{updates:updatedData})
+        await axios.patch(`${API_PORT}/set-attendance`,{updates:updatedData})
 
         const strength = students.length;
         const present = updatedData.filter((s) => s.status === "Present").length;
@@ -95,15 +100,15 @@ function EditAtt() {
         setSummary({ strength, present, absent, percent });
         setShowSummary(true);
 
-        await axios.patch(`https://clg-project-hsns.onrender.com/classes/by-number/${id}`, {
-          totalstudents: strength,
-          presentstudents: present,
-          absentstudents: absent,
+        await axios.patch(`${API_PORT}/classes/by-number/${id}`, {
+          totalStudents: strength,
+          presentStudents: present,
+          absentStudents: absent,
           percentage: percent,
         });
 
         const payload2 = students.map((student) => {
-          // attendance record keys: ad, nameOfStd, SL, class, status, attentenceTime, attentenceDate
+          // attendance record keys: ad, nameOfStd, SL, class, status, attendanceTime, attendanceDate
           const ad = student.ad ?? student.ADNO; // prefer attendance 'ad'
           const fullName = student.nameOfStd ?? student["FULL NAME"] ?? "";
           const shortName = student.nameOfStd ?? student["SHORT NAME"] ?? "";
@@ -123,7 +128,7 @@ function EditAtt() {
         // debug log (temporarily) — check payload in browser console
         console.log("students bulk payload:", payload2);
   
-        await axios.patch("https://clg-project-hsns.onrender.com/students/bulk-update/students",{updates:payload2})
+        await axios.patch(`${API_PORT}/students/bulk-update/students`,{updates:payload2})
         setSummaryLoad(false)
       }catch(err){
         console.log(err)
@@ -133,7 +138,7 @@ function EditAtt() {
     
   const handleOk = () => {
     setShowSummary(false);
-    navigate("/edit-attentence-classes");
+    navigate("/edit-attendance-classes");
   };
   return (
     <div className='p-4' style={{"marginTop":"4.2rem"}}>
@@ -148,9 +153,10 @@ function EditAtt() {
           {students[0]?.attentenceDate
             ? new Date(students[0].attentenceDate).toLocaleString("en-US", {
                 dateStyle: "medium",
-                timeStyle: "short",
+                
               })
             : "N/A"} ({students[0]?.attentenceTime || "N/A"})
+            
         </span>
 
   
@@ -185,7 +191,7 @@ function EditAtt() {
 
         
           <button
-            onClick={() => navigate("/edit-attentence-classes")}
+            onClick={() => navigate("/edit-attendance-classes")}
             type="button"
             className="block md:hidden ml-14 flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm transition bg-green-500 text-white"
           >

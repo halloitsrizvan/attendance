@@ -11,15 +11,15 @@ const classSchema = new Schema({
         type: Number,
         required: true
     },
-    totalstudents: {
+    totalStudents: {
         type: Number,
         required: true
     },
-    presentstudents: {
+    presentStudents: {
         type: Number,
         required: true
     },
-    absentstudents: {
+    absentStudents: {
         type: Number,
         required: true
     },

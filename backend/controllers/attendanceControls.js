@@ -1,70 +1,70 @@
-const Attentence = require('../models/attentenceModel');
+const Attendance = require('../models/attendanceModel');
 const mongoose = require('mongoose')
 
-//get all attentence
-const getAllAttentence=async(req,res)=>{
-    const attentence= await Attentence.find({}).sort({createdAt:-1})
+//get all attendance
+const getAllAttendance=async(req,res)=>{
+    const attendance= await Attendance.find({}).sort({createdAt:-1})
 
-    res.status(200).json(attentence)
+    res.status(200).json(attendance)
 }
 
-//get a single attentence
-const getSingleAttentence=async(req,res)=>{
+//get a single attendance
+const getSingleAttendance=async(req,res)=>{
     const {id} = req.params
     if(!mongoose.Types.ObjectId.isValid(id)){
         return res.status(404).json({error:'such document not fount'})
     }
-    const attentence= await Attentence.findById(id)
-    if(!attentence){
+    const attendance= await Attendance.findById(id)
+    if(!attendance){
         return res.status(404).json({error:'such document not fount'})
     }
-    res.status(200).json(attentence)
+    res.status(200).json(attendance)
 }
 
 
-//create a attentence db
-const createAttentence=async(req,res)=>{
+//create a attendance db
+const createAttendance=async(req,res)=>{
     
     try{
-        const attentence = await Attentence.create(req.body);
-        res.status(200).json(attentence);
-        console.log(attentence);
+        const attendance = await Attendance.create(req.body);
+        res.status(200).json(attendance);
+        console.log(attendance);
     }catch(err){
         res.status(400).json({error:err.message});
     }
 }
 
-//delete a attentence
-const deleteAttentence =async(req,res)=>{
+//delete a attendance
+const deleteAttendance =async(req,res)=>{
     const {id}= req.params
     if(!mongoose.Types.ObjectId.isValid(id)){
         return res.status(404).json({error:'such document not fount'})
     }
-    const attentence=await Attentence.findByIdAndDelete(id)
+    const attendance=await Attendance.findByIdAndDelete(id)
 
-    if(!attentence){
+    if(!attendance){
         return res.status(404).json({error:'such document not fount'})
     }
-    res.status(200).json(attentence)
+    res.status(200).json(attendance)
 
 
 }
 
-//update attentence
-const updateAttentence = async(req,res)=>{
+//update attendance
+const updateAttendance = async(req,res)=>{
     const {id} = req.params
     if(!mongoose.Types.ObjectId.isValid(id)){
         return res.status(404).json({error:'such document not fount'})
     }
 
-    const attentence=await Attentence.findByIdAndUpdate({_id:id},{
+    const attendance=await Attendance.findByIdAndUpdate({_id:id},{
         ...req.body
     })
 
-    if(!attentence){
+    if(!attendance){
         return res.status(404).json({error:'such document not fount'})
     }
-    res.status(200).json(attentence)
+    res.status(200).json(attendance)
 }
 
 const updateManyDocs=async(req,res)=>{
@@ -82,7 +82,7 @@ const updateManyDocs=async(req,res)=>{
           },
         }));
     
-        await Attentence.bulkWrite(bulkOps);
+        await Attendance.bulkWrite(bulkOps);
     
         res.status(200).json({ message: "Attendance updated successfully" });
       } catch (err) {
@@ -92,10 +92,10 @@ const updateManyDocs=async(req,res)=>{
 }
 
 module.exports = {
-    createAttentence,
-    getAllAttentence,
-    getSingleAttentence,
-    deleteAttentence,
-    updateAttentence,
+    createAttendance,
+    getAllAttendance,
+    getSingleAttendance,
+    deleteAttendance,
+    updateAttendance,
     updateManyDocs
 }

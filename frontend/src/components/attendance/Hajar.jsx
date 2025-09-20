@@ -4,6 +4,7 @@ import { useNavigate, useParams,useLocation, data  } from "react-router-dom";
 import { TfiLayoutGrid3,TfiLayoutGrid2  } from "react-icons/tfi";
 import { FaHome, FaSadCry } from "react-icons/fa";
 import StudentsLoad from "../load-UI/StudentsLoad";
+import { API_PORT } from "../../Constants";
 function Hajar() {
   const [students, setStudents] = useState([]);
   const [attendance, setAttendance] = useState({});
@@ -25,7 +26,7 @@ function Hajar() {
   useEffect(() => {
     setDataLoad(true)
     axios
-      .get(`https://clg-project-hsns.onrender.com/students/`)
+      .get(`${API_PORT}/students/`)
       .then((res) => {
         const filtered = res.data
           .filter((student) => student.CLASS === Number(id))
@@ -72,13 +73,13 @@ function Hajar() {
       class: student.CLASS,
       status: attendance[student.ADNO] || "Absent",
       SL:student.SL,
-      attentenceTime: time,
-      attentenceDate:date ||new Date()
+      attendanceTime: time,
+      attendanceDate:date ||new Date()
     }));
 
     try {
       
-      await axios.post("https://clg-project-hsns.onrender.com/set-attentence", payload);
+      await axios.post(`${API_PORT}/set-attendance`, payload);
 
       //  calculate summary
       const strength = students.length;
@@ -91,10 +92,10 @@ function Hajar() {
       setSummary({ strength, present, absent, percent });
       setShowSummary(true);
 
-      await axios.patch(`https://clg-project-hsns.onrender.com/classes/by-number/${id}`, {
-        totalstudents: strength,
-        presentstudents: present,
-        absentstudents: absent,
+      await axios.patch(`${API_PORT}/classes/by-number/${id}`, {
+        totalStudents: strength,
+        presentStudents: present,
+        absentStudents: absent,
         percentage: percent,
       });
 
@@ -111,7 +112,7 @@ function Hajar() {
         
       }));
 
-      await axios.patch("https://clg-project-hsns.onrender.com/students/bulk-update/students",{updates:payload2})
+      await axios.patch(`${API_PORT}/students/bulk-update/students`,{updates:payload2})
       setLoad(false)
     } catch (err) {
       console.error(err);
@@ -125,6 +126,32 @@ function Hajar() {
     setShowSummary(false);
     navigate("/");
   };
+
+    const [copy,setCopy] = useState(false)
+
+  const handleCopyAbsentees = () => {
+    
+    if (absentees.length > 0) {
+      const text = absentees
+        .map((s) => `${s["SHORT NAME"]} (AdNo: ${s.ADNO})`)
+        .join("\n");
+  
+      navigator.clipboard.writeText(text)
+        .then(() => {
+          setCopy(true)
+        })
+        .catch((err) => {
+          console.error("Failed to copy: ", err);
+        });
+    } else {
+      navigator.clipboard.writeText("No absentees 🎉");
+      setCopy(true)
+    }
+    setTimeout(()=>{
+      setCopy(false)
+    },4000)
+  };
+  
 
   return (
     <div className="p-6 mt-12">
@@ -205,7 +232,14 @@ function Hajar() {
           <tbody>
             {students.length > 0 ? (
               students.map((student, index) => (
-                <tr key={index}>
+                <tr key={index} 
+                onClick={() =>
+                  handleCheckboxChange(
+                    student.ADNO,
+                    attendance[student.ADNO] !== "Present"
+                  )
+                }
+                >
                   <td className="border border-gray-300 px-4 py-2">
                     {student.SL}
                   </td>
@@ -337,6 +371,13 @@ function Hajar() {
             <p className="text-green-600 mb-4">No absentees 🎉</p>
           )}
           <div className="flex justify-end gap-3">
+            <button
+              onClick={handleCopyAbsentees}
+              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 mr-14"
+            >
+              {copy? "Copied":"Copy"}
+            </button>
+
             <button
               onClick={() => setConfirmAttendance(false)}
               className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"

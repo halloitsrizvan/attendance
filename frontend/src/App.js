@@ -3,11 +3,11 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home'
 import Login from './pages/Login';
 import Signup from './pages/Signup'
-import Attentence from './pages/Attentence'
+import Attendance from './pages/Attendance'
 import ClassWIsePriv from './pages/ClassWIsePriv';
-import TestAtt from './components/attentence/TestAtt';
+import TestAtt from './components/attendance/TestAtt';
 import EditClassPage from './pages/EditClassPage';
-import EditAttentence from './pages/EditAttetence'
+import Editattendance from './pages/EditAttedance'
 import AllClassLoad from './components/load-UI/AllClassLoad';
 function App() {
   
@@ -18,11 +18,11 @@ function App() {
           <Route path='/' element={<Home/>}/>
           <Route path='/signup' element={<Signup/>}/>
           <Route path='/login' element={<Login/>}/>
-          <Route path='/attentence/:id' element={<Attentence/>}/>
+          <Route path='/attendance/:id' element={<Attendance/>}/>
           <Route path='/class-wise' element={<ClassWIsePriv/>}/>
           <Route path='/test' element={<AllClassLoad/>}/>
-          <Route path='/edit-attentence-classes' element={<EditClassPage/>}/>
-          <Route path='/edit-attentence/:id' element={<EditAttentence/>}/>
+          <Route path='/edit-attendance-classes' element={<EditClassPage/>}/>
+          <Route path='/edit-attendance/:id' element={<Editattendance/>}/>
         </Routes>
       </BrowserRouter>
     </div>

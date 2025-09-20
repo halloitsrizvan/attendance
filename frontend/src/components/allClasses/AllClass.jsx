@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import AllClassLoad from '../load-UI/AllClassLoad';
-
+import { API_PORT } from '../../Constants';
 function AllClass({edit}) {
 
     const navigate = useNavigate()
@@ -10,7 +10,7 @@ function AllClass({edit}) {
     const [load,setLoad] = useState(false)
     useEffect(()=>{
         setLoad(true)
-        axios.get("https://clg-project-hsns.onrender.com/classes")
+        axios.get(`${API_PORT}/classes`)
 
         .then((res)=>{
             const filter=res.data.sort((a, b) => a.class - b.class);
@@ -63,9 +63,9 @@ function AllClass({edit}) {
                         <div key={index} className={` rounded-lg shadow-lg p-4 text-center cursor-pointer transition-transform transform hover:scale-105 hover:shadow-xl bg-green-100 text-green-800`}
                         onClick={()=>{
                             if(edit){
-                                navigate(`/edit-attentence/${cls.class}`)
+                                navigate(`/edit-attendance/${cls.class}`)
                             }else{
-                                navigate(`/attentence/${cls.class}?date=${date}&time=${time}`)
+                                navigate(`/attendance/${cls.class}?date=${date}&time=${time}`)
                             }
                             
                         }}
@@ -76,7 +76,7 @@ function AllClass({edit}) {
                             </div>
                             
                             <div>
-                                <p className="text-sm text-gray-500">Strength: <span className="font-bold text-gray-700">{cls.totalstudents}</span></p>
+                                <p className="text-sm text-gray-500">Strength: <span className="font-bold text-gray-700">{cls.totalStudents}</span></p>
                             </div>
                         </div>
                     ))}

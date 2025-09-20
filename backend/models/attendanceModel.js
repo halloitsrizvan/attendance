@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const Schema = mongoose.Schema
 
-const attentenceSchema = new Schema({
+const attendanceSchema = new Schema({
     nameOfStd: {
         type: String,
         required: true
@@ -24,14 +24,18 @@ const attentenceSchema = new Schema({
         type:Number,
         required:true
     },
-    attentenceTime: {
+    attendanceTime: {
         type: String,
         required: true
     },
-    attentenceDate: {
+    attendanceDate: {
+        type: String,
+        required: true
+    },
+    teacher: {
         type: String,
         required: true
     }
 },{timestamps:true})
 
-module.exports = mongoose.model('Attentence',attentenceSchema);
+module.exports = mongoose.model('Attendance',attendanceSchema);

@@ -6,25 +6,25 @@ const core = require('cors')
 const classesRoutes = require('./routes/classes');
 const techersRoutes = require('./routes/teachers')
 const studentsRoutes = require('./routes/students')
-const attentenceRoutes = require('./routes/attentence')
+const attendanceRoutes = require('./routes/attendance')
 
 const app = express();
 const port = process.env.PORT || 4000;
 
 //middleware
 app.use(express.json());
-app.use(core())
+app.use(core()) 
 
 app.use((req,res,next)=>{
     console.log(req.method,req.path);
-    next();
+    next(); 
 })
 
 //Routes    
 app.use('/classes',classesRoutes);
-app.use('/register',techersRoutes);
+app.use('/teachers',techersRoutes);
 app.use('/students',studentsRoutes)
-app.use('/set-attentence',attentenceRoutes)
+app.use('/set-attendance',attendanceRoutes)
 
 //connect to db
 mongoose.connect(process.env.MONGO_URI)

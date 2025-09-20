@@ -1,8 +1,8 @@
 import React from 'react'
 import Header from '../components/Header/Header'
-import Hajar from '../components/attentence/Hajar'
+import Hajar from '../components/attendance/Hajar'
 
-function Attentence() {
+function Attendance() {
   return (
     <div>
         <Header/>
@@ -11,4 +11,4 @@ function Attentence() {
   )
 }
 
-export default Attentence
+export default Attendance

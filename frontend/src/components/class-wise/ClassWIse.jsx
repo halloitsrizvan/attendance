@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import ClassWiseLoad from '../load-UI/ClassWiseLoad';
-
+import { API_PORT } from '../../Constants';
 
 function ClassWIse() {
     const navigate = useNavigate()
@@ -10,7 +10,7 @@ function ClassWIse() {
     const [load,setLoad] = useState(false)
     useEffect(()=>{
         setLoad(true)
-        axios.get("https://clg-project-hsns.onrender.com/classes")
+        axios.get(`${API_PORT}/classes`)
         .then((res)=>{
           const filter=res.data.sort((a, b) => a.class - b.class);
           setClass(filter)
@@ -50,15 +50,15 @@ function ClassWIse() {
       <div className="space-y-3 text-sm">
         <p className="text-gray-700">
           👥 Strength:{" "}
-          <span className="font-bold text-gray-900">{cls.totalstudents}</span>
+          <span className="font-bold text-gray-900">{cls.totalStudents}</span>
         </p>
         <p className="text-gray-700">
           ✅ Present:{" "}
-          <span className="font-bold text-green-600">{cls.presentstudents}</span>
+          <span className="font-bold text-green-600">{cls.presentStudents}</span>
         </p>
         <p className="text-gray-700">
           ❌ Absent:{" "}
-          <span className="font-bold text-red-600">{cls.absentstudents}</span>
+          <span className="font-bold text-red-600">{cls.absentStudents}</span>
         </p>
         <p className="text-gray-700">
           📊 Percent:{" "}

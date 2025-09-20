@@ -2,6 +2,7 @@ import React,{useState} from 'react'
 import { Link, useNavigate } from 'react-router-dom';
 import {EmailIcon,UserIcon,LockIcon} from '../../public/Icons'
 import axios from 'axios'
+import { API_PORT } from '../../Constants'
   
 function SignupP() {
     const [name, setName] = useState('');
@@ -15,7 +16,7 @@ function SignupP() {
 
     const handleSubmit=(e)=>{
         e.preventDefault()
-        axios.post('https://clg-project-hsns.onrender.com/register',{name,email,password})
+        axios.post(`${API_PORT}/register`,{name,email,password})
         .then((result)=>{
             console.log(result)
             navigate('/login');
@@ -32,7 +33,7 @@ function SignupP() {
     <div className="relative mx-auto w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-800">Teacher Registration</h1>
-        <p className="mt-2 text-gray-500">Darul Irfan Attentence</p>
+        <p className="mt-2 text-gray-500">Darul Irfan attendance</p>
       </div>
 
     

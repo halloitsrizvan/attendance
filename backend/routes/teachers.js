@@ -10,7 +10,7 @@ router.get('/',getAllTeacher)
 router.get('/:id',getSingleTeacher)
 
 //add a Teacher
-router.post('/',createTeacher)
+router.post('/signup',createTeacher)
 
 //delete Teacher
 router.delete('/:id',deleteTeacher)
