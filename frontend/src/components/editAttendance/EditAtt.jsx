@@ -17,6 +17,9 @@ function EditAtt() {
     const [summaryLoad,setSummaryLoad] = useState(false)
     const [load,setLoad] = useState(false)
     const [cards,setCards] = useState('No') 
+  const [confirmAttendance, setConfirmAttendance] = useState(false)
+  const [absentees, setAbsentees] = useState([])
+  const [copy, setCopy] = useState(false)
     const latestDate=students[0]?.attentenceDate
     const latestTime=students[0]?.attentenceTime
     useEffect(() => {
@@ -74,8 +77,31 @@ function EditAtt() {
         [ad]: isChecked ? "Present" : "Absent",
       }));
     };
+
+  const preSubmit = (e) => {
+    e.preventDefault()
+    const absentList = students.filter((s) => (status[s.ad] ?? s.status) !== "Present")
+    setAbsentees(absentList)
+    setConfirmAttendance(true)
+  }
+  
+  const handleCopyAbsentees = () => {
+    if (absentees.length > 0) {
+      const text = absentees
+        .map((s) => `${s.nameOfStd} (AdNo: ${s.ad})`)
+        .join("\n");
+      navigator.clipboard.writeText("Class :"+absentees[0].class+"\n"+text)
+        .then(() => setCopy(true))
+        .catch((err) => console.error("Failed to copy: ", err));
+    } else {
+      navigator.clipboard.writeText("No absentees 🎉");
+      setCopy(true)
+    }
+    setTimeout(() => setCopy(false), 4000)
+  }
+  
     const handleSubmit=async(e)=>{
-      e.preventDefault();
+      if (e) e.preventDefault();
       try{
         setSummaryLoad(true)
         const updatedData = students.map((student) => ({
@@ -205,7 +231,7 @@ function EditAtt() {
       {load &&<StudentsLoad/>}
       {cards==="No"&&!load &&
         <div className='p-2'>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={preSubmit}>
         <table className="table-auto border-collapse border border-gray-300 w-full">
           <thead>
             <tr>
@@ -220,7 +246,11 @@ function EditAtt() {
               students.map((student, index) => {
                 const currentStatus= status[student.ad] !== undefined ? status[student.ad] : student.status;
                 return(
-                <tr key={index}>
+                <tr key={index}
+                onClick={() =>
+                  handleCheckboxChange(student.ad, currentStatus !== 'Present')
+                }
+                >
                   <td className="border border-gray-300 px-4 py-2">
                     {student.SL}
                   </td>
@@ -271,7 +301,7 @@ function EditAtt() {
 
       {cards==="Cards" &&!load&&
       <div>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={preSubmit}>
         <main>
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-6">
               {students.length > 0 ? (
@@ -338,6 +368,48 @@ function EditAtt() {
 
       }
       
+      {confirmAttendance && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+            <h3 className="text-lg font-bold mb-4 text-center">
+              Confirm Submission
+            </h3>
+            <p className="mb-2">The following students are absent:</p>
+            {absentees.length > 0 ? (
+              <ul className="list-disc list-inside mb-4 text-red-600">
+                {absentees.map((s) => (
+                  <li key={s.ad}>
+                    {s.nameOfStd} (AdNo: {s.ad})
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-green-600 mb-4">No absentees 🎉</p>
+            )}
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={handleCopyAbsentees}
+                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 mr-14"
+              >
+                {copy ? "Copied" : "Copy"}
+              </button>
+              <button
+                onClick={() => setConfirmAttendance(false)}
+                className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showSummary && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
           {summaryLoad &&(

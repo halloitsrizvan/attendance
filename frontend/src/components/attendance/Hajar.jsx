@@ -35,7 +35,7 @@ function Hajar() {
         // set all to Present initially
         const initialAttendance = {};
         filtered.forEach((s) => {
-          initialAttendance[s.ADNO] = "Present";
+          initialAttendance[s.ADNO] = s.Status;
         });
 
         setStudents(filtered);
@@ -74,7 +74,8 @@ function Hajar() {
       status: attendance[student.ADNO] || "Absent",
       SL:student.SL,
       attendanceTime: time,
-      attendanceDate:date ||new Date()
+      attendanceDate:(date || new Date().toISOString().split("T")[0]),
+      teacher:"Not Setted"
     }));
 
     try {
@@ -151,7 +152,8 @@ function Hajar() {
       setCopy(false)
     },4000)
   };
-  
+
+   
 
   return (
     <div className="p-6 mt-12">
@@ -262,12 +264,13 @@ function Hajar() {
                         attendance[student.ADNO] === "Present"
                           ? "bg-green-500 text-white hover:bg-green-600"
                           : "bg-red-500 text-white hover:bg-red-600"
-                      }`}
+                      } ${student.Status=="Absent"?"border-4 border-green-600":""}`}
                     >
                       {attendance[student.ADNO] === "Present"
                         ? "Present"
                         : "Absent"}
                     </button>
+                   {/* {student.Status =="Absent" && <span class="bg-red-100 text-red-800 text-xs  me-2 px-2.5 py-0.5 rounded-full dark:bg-red-900 dark:text-red-300"></span>} */}
                   </td>
                 </tr>
               ))
