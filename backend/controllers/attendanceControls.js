@@ -4,7 +4,7 @@ const mongoose = require('mongoose')
 // get monthly report
 const getMonthlyReport = async (req, res) => {
     try {
-        const { month, year, class: classNumber } = req.query;
+        const { month, year, class: classNumber, attendanceTime } = req.query;
 
         if (!month || !year) {
             return res.status(400).json({ error: 'month and year are required' });
@@ -27,6 +27,9 @@ const getMonthlyReport = async (req, res) => {
             if (!Number.isNaN(parsedClass)) {
                 matchFilter.class = parsedClass;
             }
+        }
+        if (attendanceTime) {
+            matchFilter.attendanceTime = attendanceTime;
         }
 
         const pipeline = [
