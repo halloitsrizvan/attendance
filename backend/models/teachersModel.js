@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-
+const bcrypt = require('bcrypt')
 const Schema = mongoose.Schema
 
 const teacherSchema = new Schema({
@@ -22,12 +22,12 @@ const teacherSchema = new Schema({
     },
     joinedAt:{
         type: String,
-        required:true,
+        
         defalut:new Date()
     },
     active:{
         type:Boolean,
-        required:true,
+        
         default:true
     },
     tId:{
@@ -35,7 +35,7 @@ const teacherSchema = new Schema({
     },
     role:{
         type:String,
-        required:true,
+        
         default:"teacher"
     },
     subjectsTaught:[
@@ -43,12 +43,13 @@ const teacherSchema = new Schema({
             class:{
                 type:Number
             },
-            subject:{
+            subject:{ 
                 type:String
             }
         }
     ]
 
 },{timestamps:true})
+
 
 module.exports = mongoose.model('Teacher',teacherSchema);
