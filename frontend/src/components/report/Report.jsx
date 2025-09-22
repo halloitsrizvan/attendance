@@ -24,7 +24,7 @@ function Report() {
       const params = new URLSearchParams({ month, year })
       if (classNumber) params.append('class', classNumber)
       if (attendanceTime) params.append('attendanceTime', attendanceTime)
-      const res = await fetch(`http://localhost:4000/set-attendance/report/monthly?${params.toString()}`)
+      const res = await fetch(`${API_PORT}/set-attendance/report/monthly?${params.toString()}`)
     
       if (!res.ok) {
         const j = await res.json().catch(() => ({}))

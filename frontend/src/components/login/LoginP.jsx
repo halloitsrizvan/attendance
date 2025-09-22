@@ -25,7 +25,7 @@ function LoginP() {
       e.preventDefault()
       setLoad(true)
       try{
-        const res=await axios.post(`http://localhost:4000/teachers/login`,{email,password})
+        const res=await axios.post(`${API_PORT}/teachers/login`,{email,password})
         const { token, teacher } = res.data || {}
         if (token && teacher) {
           localStorage.setItem('token', token)

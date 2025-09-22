@@ -87,7 +87,7 @@ function Hajar() {
 
     try {
       
-      await axios.post(`http://localhost:4000/set-attendance`, payload);
+      await axios.post(`${API_PORT}/set-attendance`, payload);
 
       //  calculate summary
       const strength = students.length;
