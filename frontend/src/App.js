@@ -9,20 +9,23 @@ import TestAtt from './components/attendance/TestAtt';
 import EditClassPage from './pages/EditClassPage';
 import Editattendance from './pages/EditAttedance'
 import AllClassLoad from './components/load-UI/AllClassLoad';
+import ReportMain from './pages/ReportMain';
 function App() {
-  
+  const token = localStorage.getItem("token")
+  const teacher = localStorage.getItem("teacher")
   return (
     <div className="App">
       <BrowserRouter>
         <Routes>
-          <Route path='/' element={<Home/>}/>
-          <Route path='/signup' element={<Signup/>}/>
+          <Route path='/' element={teacher?<Home/>:<Login/>}/>
+          {/* <Route path='/signup' element={<Signup/>}/> */}
           <Route path='/login' element={<Login/>}/>
-          <Route path='/attendance/:id' element={<Attendance/>}/>
-          <Route path='/class-wise' element={<ClassWIsePriv/>}/>
-          <Route path='/test' element={<AllClassLoad/>}/>
-          <Route path='/edit-attendance-classes' element={<EditClassPage/>}/>
-          <Route path='/edit-attendance/:id' element={<Editattendance/>}/>
+          <Route path='/attendance/:id' element={teacher?<Attendance/>:<Login/>}/>
+         <Route path='/class-wise' element={teacher?<ClassWIsePriv/>:<Login/>}/>
+          <Route path='/test' element={teacher?<AllClassLoad/>:<Login/>}/>
+          <Route path='/edit-attendance-classes' element={teacher?<EditClassPage/>:<Login/>}/>
+          <Route path='/edit-attendance/:id' element={teacher?<Editattendance/>:<Login/>}/>
+          <Route path='/report' element={teacher?<ReportMain/>:<Login/>}/>
         </Routes>
       </BrowserRouter>
     </div>

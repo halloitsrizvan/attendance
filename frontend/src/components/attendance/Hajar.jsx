@@ -19,11 +19,17 @@ function Hajar() {
   const queryParams = new URLSearchParams(location.search);
   const date = queryParams.get("date") || "";
   const time = queryParams.get("time") || "Night";
+  const period = queryParams.get("period") ;
   //confirm attendance
   const [absentees,setAbsenties] = useState([])
   const [confirmAttendance,setConfirmAttendance] = useState(false)
  
+  //teacher data
+  const token = localStorage.getItem("token")
+  const teacher = localStorage.getItem("teacher") ? JSON.parse(localStorage.getItem("teacher")) : 'Teacher Panel';
   useEffect(() => {
+    console.log(period);
+    
     setDataLoad(true)
     axios
       .get(`${API_PORT}/students/`)
@@ -46,7 +52,7 @@ function Hajar() {
         console.error(err);
         setDataLoad(false)
       });
-  }, [id]);
+  }, [id,period]);
 
   const handleCheckboxChange = (ad, isChecked) => {
     setAttendance((prev) => ({
@@ -75,12 +81,13 @@ function Hajar() {
       SL:student.SL,
       attendanceTime: time,
       attendanceDate:(date || new Date().toISOString().split("T")[0]),
-      teacher:"Not Setted"
+      teacher:teacher.name,
+      period:period
     }));
 
     try {
       
-      await axios.post(`${API_PORT}/set-attendance`, payload);
+      await axios.post(`http://localhost:4000/set-attendance`, payload);
 
       //  calculate summary
       const strength = students.length;

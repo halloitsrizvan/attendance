@@ -70,6 +70,14 @@ function ClassWIse() {
             {cls.percentage}%
           </span>
         </p>
+        <p className="text-gray-600">
+          {cls.updatedAt
+            ? new Date(cls.updatedAt).toLocaleString("en-US", {
+                dateStyle: "medium",
+                
+              })
+            : "N/A"}
+            </p>
       </div>
     </div>
     

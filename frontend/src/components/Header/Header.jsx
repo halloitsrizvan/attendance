@@ -3,9 +3,20 @@ import { useNavigate } from 'react-router-dom';
 
 function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const username=`Teacher Panel`
-    const userInitial = username ? username.charAt(0).toUpperCase() : '?';
+    
     const navigate = useNavigate()
+    const token = localStorage.getItem("token")
+    const teacher = localStorage.getItem("teacher") ? JSON.parse(localStorage.getItem("teacher")) : 'Teacher Panel';
+    const username=teacher.name
+    const userInitial = username 
+    ? username.slice(0, 2).toUpperCase() 
+    : '?';
+
+    const handleLogout = ()=>{
+      localStorage.removeItem('token')
+      localStorage.removeItem('teacher')
+      navigate('/login')
+    }
   return (
     <>
       <header className="bg-white shadow-md fixed top-0 left-0 w-full z-50">
@@ -42,8 +53,9 @@ function Header() {
             {/* Center: Desktop Navigation Links */}
             <nav className="hidden md:flex md:items-center md:space-x-8">
               <a href="#" className="text-gray-600 hover:text-indigo-600 transition-colors duration-200" onClick={()=>{navigate('/')}}>Home</a>
-              <a href="#" className="text-gray-600 hover:text-indigo-600 transition-colors duration-200"  onClick={()=>{navigate('/class-wise')}}>Report</a>
+              <a href="#" className="text-gray-600 hover:text-indigo-600 transition-colors duration-200"  onClick={()=>{navigate('/class-wise')}}>Latest</a>
               <a href="#" className="text-gray-600 hover:text-indigo-600 transition-colors duration-200"  onClick={()=>{navigate('/edit-attendance-classes')}}>Edit</a>
+              <a href="#" className="text-gray-600 hover:text-indigo-600 transition-colors duration-200"  onClick={()=>{navigate('/report')}}>Report</a>
             </nav>
 
             {/* Right side: User Info */}
@@ -74,8 +86,10 @@ function Header() {
             >Menu</h2>
             <nav className="flex flex-col space-y-2">
                 <a href="#" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-white hover:bg-indigo-500 transition-colors duration-200" onClick={()=>{navigate('/')}}>Home</a>
-                <a href="#" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-white hover:bg-indigo-500 transition-colors duration-200"  onClick={()=>{navigate('/class-wise')}}>Report</a>
+                <a href="#" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-white hover:bg-indigo-500 transition-colors duration-200"  onClick={()=>{navigate('/class-wise')}}>Latest</a>
                 <a href="#" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-white hover:bg-indigo-500 transition-colors duration-200"  onClick={()=>{navigate('/edit-attendance-classes')}}>Edit</a>
+                <a href="#" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-white hover:bg-indigo-500 transition-colors duration-200"  onClick={()=>{navigate('/report')}}>Report</a>
+                {teacher &&<a href="#" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-white hover:bg-indigo-500 transition-colors duration-200"  onClick={()=>{handleLogout()}}>Logout</a>}
                 
             </nav>
         </div>

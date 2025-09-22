@@ -176,13 +176,13 @@ function EditAtt() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-gray-100 p-3 rounded-lg shadow-sm mb-1">
         <span className="text-sm md:text-base text-gray-700">
            Date & Time:{" "}
-          {students[0]?.attentenceDate
-            ? new Date(students[0].attentenceDate).toLocaleString("en-US", {
+          {students[0]?.attendanceDate
+            ? new Date(students[0].attendanceDate).toLocaleString("en-US", {
                 dateStyle: "medium",
                 
               })
-            : "N/A"} ({students[0]?.attentenceTime || "N/A"})
-            
+            : "N/A"} ({students[0]?.attendanceTime || "N/A"})
+           
         </span>
 
   

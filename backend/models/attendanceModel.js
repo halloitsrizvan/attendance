@@ -35,6 +35,9 @@ const attendanceSchema = new Schema({
     teacher: {
         type: String,
         required: true
+    },
+    period: {
+        type: Number
     }
 },{timestamps:true})
 
