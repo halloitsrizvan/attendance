@@ -56,6 +56,7 @@ function Header() {
               <a href="#" className="text-gray-600 hover:text-indigo-600 transition-colors duration-200"  onClick={()=>{navigate('/class-wise')}}>Latest</a>
               <a href="#" className="text-gray-600 hover:text-indigo-600 transition-colors duration-200"  onClick={()=>{navigate('/edit-attendance-classes')}}>Edit</a>
               <a href="#" className="text-gray-600 hover:text-indigo-600 transition-colors duration-200"  onClick={()=>{navigate('/report')}}>Report</a>
+              <a href="#" className="text-gray-600 hover:text-indigo-600 transition-colors duration-200"  onClick={()=>handleLogout()}>Logout</a>
             </nav>
 
             {/* Right side: User Info */}
