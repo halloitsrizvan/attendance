@@ -1,16 +1,17 @@
-import React,{useState} from 'react'
+import React,{useEffect, useState} from 'react'
 import { useNavigate } from 'react-router-dom';
 
 function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     
     const navigate = useNavigate()
-    const token = localStorage.getItem("token")
+    
     const teacher = localStorage.getItem("teacher") ? JSON.parse(localStorage.getItem("teacher")) : 'Teacher Panel';
     const username=teacher.name
     const userInitial = username 
     ? username.slice(0, 2).toUpperCase() 
     : '?';
+  
 
     const handleLogout = ()=>{
       localStorage.removeItem('token')

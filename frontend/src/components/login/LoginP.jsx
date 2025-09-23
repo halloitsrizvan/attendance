@@ -65,7 +65,7 @@ function LoginP() {
           <div className="relative">
             <EmailIcon />
             <input 
-              type="tel"
+              type="email"
               value={email}
               onChange={(e)=>setEmail(e.target.value)}
               placeholder="name@gmail.com"
