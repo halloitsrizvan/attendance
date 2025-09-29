@@ -160,6 +160,7 @@ function Hajar() {
     },4000)
   };
 
+  const [preAtt,setPreAtt]  = useState([])
    
 
   return (
@@ -271,7 +272,7 @@ function Hajar() {
                         attendance[student.ADNO] === "Present"
                           ? "bg-green-500 text-white hover:bg-green-600"
                           : "bg-red-500 text-white hover:bg-red-600"
-                      } ${student.Status=="Absent"?"border-4 border-green-600":""}`}
+                      } ${student.Status=="Absent"&& attendance[student.ADNO] === "Absent"    &&   "border-4 border-green-600"}`}
                     >
                       {attendance[student.ADNO] === "Present"
                         ? "Present"
