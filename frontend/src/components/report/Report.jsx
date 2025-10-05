@@ -16,28 +16,36 @@ function Report() {
     return [y - 1, y, y + 1]
   }, [now])
 
-  const handleFetch = async () => {
-    try {
-      setLoading(true)
-      setError('')
-      setData([])
-      const params = new URLSearchParams({ month, year })
-      if (classNumber) params.append('class', classNumber)
-      if (attendanceTime) params.append('attendanceTime', attendanceTime)
-      const res = await fetch(`${API_PORT}/set-attendance/report/monthly?${params.toString()}`)
-    
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}))
-        throw new Error(j.error || 'Failed to fetch report')
-      }
-      const j = await res.json()
-      setData(j.results || [])
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
+ const handleFetch = async () => {
+  try {
+    setLoading(true);
+    setError('');
+    setData([]);
+    const params = new URLSearchParams({ month, year });
+    if (classNumber) params.append('class', classNumber);
+    if (attendanceTime) params.append('attendanceTime', attendanceTime);
+
+    const res = await fetch(`${API_PORT}/set-attendance/report/monthly?${params.toString()}`);
+
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      throw new Error(j.error || 'Failed to fetch report');
     }
+
+    const j = await res.json();
+    const results = j.results || [];
+
+    // Sort by 'ad' in ascending order
+    results.sort((a, b) => a.ad - b.ad);
+
+    setData(results);
+  } catch (e) {
+    setError(e.message);
+  } finally {
+    setLoading(false);
   }
+};
+
     const handleDownload = () => {
     if (!data.length) return;
     const header = ['AD', 'Name', 'Class', 'Present', 'Absent'];

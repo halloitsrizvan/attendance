@@ -36,15 +36,17 @@ const getMonthlyReport = async (req, res) => {
             { $match: matchFilter },
             {
                 $group: {
-                    _id: { ad: '$ad', nameOfStd: '$nameOfStd', class: '$class' },
-                    total: { $sum: 1 },
+                    _id: { ad: '$ad', nameOfStd: '$nameOfStd', class: '$class', SL: '$SL' },
+                    // NEW: Use $push to get an array of { date, status } pairs
+                    attendances: { $push: { date: '$attendanceDate', status: '$status' } },
+                    // The counts below are for recorded days only, we'll calculate final totals on frontend
                     present: { $sum: { $cond: [{ $eq: ['$status', 'Present'] }, 1, 0] } },
                     absent: { $sum: { $cond: [{ $eq: ['$status', 'Absent'] }, 1, 0] } },
                     late: { $sum: { $cond: [{ $eq: ['$status', 'Late'] }, 1, 0] } },
-                    dates: { $addToSet: '$attendanceDate' }
                 }
             },
-            { $project: { _id: 0, ad: '$_id.ad', nameOfStd: '$_id.nameOfStd', class: '$_id.class', total: 1, present: 1, absent: 1, late: 1, dates: 1 } },
+            // Update the projection to include the new 'attendances' field
+            { $project: { _id: 0, ad: '$_id.ad',  SL: '$_id.SL',nameOfStd: '$_id.nameOfStd', class: '$_id.class', present: 1, absent: 1, late: 1, attendances: 1 } },
             { $sort: { class: 1, nameOfStd: 1 } }
         ];
 

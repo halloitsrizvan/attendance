@@ -10,6 +10,7 @@ import EditClassPage from './pages/EditClassPage';
 import Editattendance from './pages/EditAttedance'
 import AllClassLoad from './components/load-UI/AllClassLoad';
 import ReportMain from './pages/ReportMain';
+import DailyReport from './components/report/DailyReport';
 function App() {
   const token = localStorage.getItem("token")
   const teacher = localStorage.getItem("teacher")
@@ -26,6 +27,7 @@ function App() {
           <Route path='/edit-attendance-classes' element={teacher?<EditClassPage/>:<Login/>}/>
           <Route path='/edit-attendance/:id' element={teacher?<Editattendance/>:<Login/>}/>
           <Route path='/report' element={teacher?<ReportMain/>:<Login/>}/>
+          <Route path='/monthly-daily-report' element={teacher?<DailyReport/>:<Login/>}/>
         </Routes>
       </BrowserRouter>
     </div>
