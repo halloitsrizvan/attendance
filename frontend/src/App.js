@@ -1,6 +1,7 @@
+import React, { useEffect, useState } from 'react';
 import './App.css';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Home from './pages/Home'
+import Home from './pages/Home' 
 import Login from './pages/Login';
 import Signup from './pages/Signup'
 import Attendance from './pages/Attendance'
@@ -12,8 +13,16 @@ import AllClassLoad from './components/load-UI/AllClassLoad';
 import ReportMain from './pages/ReportMain';
 import DailyReport from './components/report/DailyReport';
 function App() {
-  const token = localStorage.getItem("token")
-  const teacher = localStorage.getItem("teacher")
+   const [teacher, setTeacher] = useState(localStorage.getItem("teacher"));
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setTeacher(localStorage.getItem("teacher"));
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
   return (
     <div className="App">
       <BrowserRouter>
