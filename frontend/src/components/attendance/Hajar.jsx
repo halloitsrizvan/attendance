@@ -20,6 +20,7 @@ function Hajar() {
   const date = queryParams.get("date") || "";
   const time = queryParams.get("time") || "Night";
   const period = queryParams.get("period") ;
+  const more = queryParams.get("more") ;
   //confirm attendance
   const [absentees,setAbsenties] = useState([])
   const [confirmAttendance,setConfirmAttendance] = useState(false)
@@ -27,6 +28,9 @@ function Hajar() {
   //teacher data
   const token = localStorage.getItem("token")
   const teacher = localStorage.getItem("teacher") ? JSON.parse(localStorage.getItem("teacher")) : 'Teacher Panel';
+
+  const initialAttendance = {}
+
   useEffect(() => {
     console.log(period);
     
@@ -38,8 +42,7 @@ function Hajar() {
           .filter((student) => student.CLASS === Number(id))
           .sort((a, b) => a.SL - b.SL);
 
-        // set all to Present initially
-        const initialAttendance = {};
+        // set all initially
         filtered.forEach((s) => {
           initialAttendance[s.ADNO] = s.Status;
         });
@@ -82,7 +85,8 @@ function Hajar() {
       attendanceTime: time,
       attendanceDate:(date || new Date().toISOString().split("T")[0]),
       teacher:teacher.name,
-      period:period
+      ...(period && {period:period}),
+      ...(more && {more:more})
     }));
 
     try {
@@ -116,7 +120,8 @@ function Hajar() {
         CLASS: student.CLASS,
         Status: attendance[student.ADNO] || "Absent",
         Time: time,
-        Date:date ||new Date().toISOString().split("T")[0]
+        Date:date ||new Date().toISOString().split("T")[0],
+        
         
       }));
 
@@ -160,70 +165,106 @@ function Hajar() {
     },4000)
   };
 
-  const [preAtt,setPreAtt]  = useState([])
    
 
   return (
     <div className="p-6 mt-12">
-    <div >
-     <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-2 text-center ">
-         Attendance || Class: {id}
-      </h2>
+   <div className="space-y-3">
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-gray-100 p-3 rounded-lg shadow-sm mb-1">
-        <span className="text-sm md:text-base text-gray-700">
-           Date & Time:{" "}
-          {date
-            ? new Date(date).toLocaleString("en-US", {
-                dateStyle: "medium",
-                
-              })
-            : "N/A"} ({time || "N/A"})
-        </span>
+   
 
-      </div>
+    {/* Date and Time */}
+        <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg shadow-sm flex-wrap">
+      <span className="text-sm md:text-base text-gray-700">
+        📅 {date
+          ? new Date(date).toLocaleDateString("en-US", { dateStyle: "medium" })
+          : "N/A"}{" "}
+      ||  ⏰ {time || "N/A"}
+      </span>
 
-
-
-      <div className="flex gap-3 p-2 mb-1">
-          <button
-            onClick={() => setCards("Cards")}
-            type="button"
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm transition ${
-              cards === "Cards"
-                ? "bg-indigo-600 text-white"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-            }`}
-          >
-            <TfiLayoutGrid2 className="text-lg" />
-            Cards
-          </button>
-
-          <button
-            onClick={() => setCards("No")}
-            type="button"
-            className={`flex items-center  gap-2 px-4 py-2 rounded-lg shadow-sm transition ${
-              cards === "No"
-                ? "bg-indigo-600 text-white"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-            }`}
-          >
-            <TfiLayoutGrid3 className="text-lg" />
-            Table
-          </button>
-
+      <button
         
-          <button
-            onClick={() => navigate("/")}
-            type="button"
-            className="block md:hidden ml-10 flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm transition bg-green-500 text-white"
-          >
-            <FaHome className="text-lg" />
-            Home
-          </button>
-        </div>
+        className="flex items-center gap-2 px-4 py-2 rounded-md bg-gray-100  text-sm font-medium shadow-sm hover:bg-gray-200 transition"
+      >
+        Class: {id}
+      </button>
+    </div>
 
+
+    {/* View Toggle */}
+    <div className="flex justify-center bg-gray-100 p-2 rounded-lg shadow-sm">
+      <div className="inline-flex rounded-md bg-white shadow-sm overflow-hidden border">
+        <button
+          onClick={() => setCards("Cards")}
+          className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition ${
+            cards === "Cards"
+              ? "bg-indigo-600 text-white"
+              : "text-gray-700 hover:bg-gray-100"
+          }`}
+        >
+          <TfiLayoutGrid2 />
+          Cards
+        </button>
+        <button
+          onClick={() => setCards("No")}
+          className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition ${
+            cards === "No"
+              ? "bg-indigo-600 text-white"
+              : "text-gray-700 hover:bg-gray-100"
+          }`}
+        >
+          <TfiLayoutGrid3 />
+          Table
+        </button>
+        
       </div>
+      <button
+        onClick={() => navigate(`/api-recall/${time}`)}
+        className="flex items-center gap-2 px-4 py-2 rounded-md bg-green-600 text-white text-sm font-medium transition hover:bg-green-700 ml-16"
+      >
+        <FaHome />
+        Home
+      </button>
+    </div>
+
+    {/* Quick Actions */}
+<div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg shadow-sm overflow-x-auto scrollbar-hide whitespace-nowrap">
+  <button
+    onClick={() => {
+      const updated = {};
+      students.forEach((s) => (updated[s.ADNO] = "Present"));
+      setAttendance(updated);
+    }}
+    className="flex-shrink-0 px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-medium rounded-md transition"
+  >
+    All Present
+  </button>
+
+  <button
+    onClick={() => {
+      const updated = {};
+      students.forEach((s) => (updated[s.ADNO] = "Absent"));
+      setAttendance(updated);
+    }}
+    className="flex-shrink-0 px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-md transition"
+  >
+    All Absent
+  </button>
+
+  <button
+    onClick={() => {
+      const updated = {};
+      students.forEach((s) => (updated[s.ADNO] = s.Status));
+      setAttendance(updated);
+    }}
+    className="flex-shrink-0 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-md transition"
+  >
+     Previous
+  </button>
+</div>
+
+    </div>
+
 
 
       {dataLoad &&<StudentsLoad/>}

@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import AllClassLoad from '../load-UI/AllClassLoad';
 import { API_PORT } from '../../Constants';
-function AllClass({edit}) {
+function AllClass({edit,id}) {
 
     const navigate = useNavigate()
     const [classes,setClass] = useState([])
@@ -26,53 +26,81 @@ function AllClass({edit}) {
     
     const today = new Date().toISOString().split("T")[0];
     const [date, setDate] = useState(today);
+
+  
     const [time,setTime] = useState('Night')
     const [period,setPeriod] = useState('')
+    const [more,setMore] = useState('')
 
+    useEffect(() => {
+        if (id) {
+          setTime(id);
+        }
+      }, [id]);
+      
 
   return (
           <div className="container mx-auto px-4 py-8 mt-12">
            
-            {!edit &&
-                <div className="flex justify-center mb-6">
-            <form className="flex items-center gap-4 bg-gray-100 p-4 rounded-lg shadow">
-                <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                onFocus={(e) => e.target.showPicker && e.target.showPicker()}
-                className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
-                />
-                <select
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
-                >
-                <option value="Night">Night</option>
-                <option value="Period">Period</option>
-                <option value="Morning">Morning</option>
-                <option value="Noon">Noon</option>
-                </select>
-                {time==="Period"&&
-                <select
-                value={period}
-                onChange={(e) => setPeriod(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
-                >
-                <option value="0">0</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-                <option value="6">6</option>
-                <option value="7">7</option>
-                <option value="8">8</option>
-                <option value="9">9</option>
-                <option value="10">10</option>
-                </select>}
-            </form>
-            </div>}
+           {!edit && (
+  <div className="flex justify-center mb-6">
+    <form className="bg-gray-100 p-4 rounded-lg shadow w-full max-w-xl">
+      {/* Date + Time in one row (even on mobile) */}
+      <div className="flex flex-row gap-4">
+        {/* Date */}
+        <input
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          onFocus={(e) => e.target.showPicker && e.target.showPicker()}
+          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+        />
+
+        {/* Time */}
+        <select
+          value={time}
+          onChange={(e) => setTime(e.target.value)}
+          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+        >
+          <option value="Night">Night</option>
+          <option value="Period">Period</option>
+          <option value="Morning">Morning</option>
+          <option value="Noon">Noon</option>
+          <option value="Jamath">Jamath</option>
+          <option value="More">More</option>
+        </select>
+      </div>
+
+      {/* Period or More under both (on mobile) */}
+      <div className="mt-4 flex flex-col sm:flex-row sm:gap-4">
+        {time === "Period" && (
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-400 focus:outline-none w-full sm:w-auto"
+          >
+            {Array.from({ length: 11 }, (_, i) => (
+              <option key={i} value={i}>
+                {i}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {time === "More" && (
+          <input
+            value={more}
+            onChange={(e) => setMore(e.target.value)}
+            placeholder="Enter more info"
+            className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-400 focus:outline-none w-full sm:w-auto"
+          />
+        )}
+      </div>
+    </form>
+  </div>
+)}
+
+            
 
 
             <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">{edit?"Update Attendance":"Choose a class"}</h2>
@@ -84,7 +112,7 @@ function AllClass({edit}) {
                             if(edit){
                                 navigate(`/edit-attendance/${cls.class}`)
                             }else{
-                                navigate(`/attendance/${cls.class}?date=${date}&time=${time}&period=${period}`)
+                                navigate(`/attendance/${cls.class}?date=${date}&time=${time}&period=${period}&more=${more}`)
                             }
                             
                         }}

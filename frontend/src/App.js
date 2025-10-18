@@ -12,9 +12,10 @@ import Editattendance from './pages/EditAttedance'
 import AllClassLoad from './components/load-UI/AllClassLoad';
 import ReportMain from './pages/ReportMain';
 import DailyReport from './components/report/DailyReport';
+import ApiRecall from './pages/ApiRecall';
 function App() {
    const [teacher, setTeacher] = useState(localStorage.getItem("teacher"));
-
+   
   useEffect(() => {
     const handleStorageChange = () => {
       setTeacher(localStorage.getItem("teacher"));
@@ -37,6 +38,7 @@ function App() {
           <Route path='/edit-attendance/:id' element={teacher?<Editattendance/>:<Login/>}/>
           <Route path='/report' element={teacher?<ReportMain/>:<Login/>}/>
           <Route path='/monthly-daily-report' element={teacher?<DailyReport/>:<Login/>}/>
+          <Route path='/api-recall/:id' element={teacher?<ApiRecall/>:<Login/>}/>
         </Routes>
       </BrowserRouter>
     </div>

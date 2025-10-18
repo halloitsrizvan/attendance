@@ -38,6 +38,9 @@ const attendanceSchema = new Schema({
     },
     period: {
         type: Number
+    },
+    more: {
+        type: String
     }
 },{timestamps:true})
 
