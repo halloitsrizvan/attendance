@@ -137,7 +137,7 @@ function Hajar() {
 
   const handleOk = () => {
     setShowSummary(false);
-    navigate("/");
+    navigate(`/api-recall/${time}`);
   };
 
     const [copy,setCopy] = useState(false)
