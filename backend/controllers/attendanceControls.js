@@ -42,11 +42,11 @@ const getMonthlyReport = async (req, res) => {
                     // The counts below are for recorded days only, we'll calculate final totals on frontend
                     present: { $sum: { $cond: [{ $eq: ['$status', 'Present'] }, 1, 0] } },
                     absent: { $sum: { $cond: [{ $eq: ['$status', 'Absent'] }, 1, 0] } },
-                    late: { $sum: { $cond: [{ $eq: ['$status', 'Late'] }, 1, 0] } },
+                    
                 }
             },
             // Update the projection to include the new 'attendances' field
-            { $project: { _id: 0, ad: '$_id.ad',  SL: '$_id.SL',nameOfStd: '$_id.nameOfStd', class: '$_id.class', present: 1, absent: 1, late: 1, attendances: 1 } },
+            { $project: { _id: 0, ad: '$_id.ad',  SL: '$_id.SL',nameOfStd: '$_id.nameOfStd', class: '$_id.class', present: 1, absent: 1, attendances: 1 } },
             { $sort: { class: 1, nameOfStd: 1 } }
         ];
 
@@ -148,6 +148,128 @@ const updateManyDocs=async(req,res)=>{
       }
 }
 
+// get detailed daily report
+const getDetailedDailyReport = async (req, res) => {
+    try {
+        const { month, year, class: classNumber, attendanceTime } = req.query;
+
+        if (!month || !year) {
+            return res.status(400).json({ error: 'month and year are required' });
+        }
+
+        const monthNum = parseInt(month, 10);
+        const yearNum = parseInt(year, 10);
+        if (Number.isNaN(monthNum) || Number.isNaN(yearNum) || monthNum < 1 || monthNum > 12) {
+            return res.status(400).json({ error: 'Invalid month/year' });
+        }
+
+        const monthStr = monthNum.toString().padStart(2, '0');
+        const prefix = `${yearNum}-${monthStr}`;
+
+        const matchFilter = { attendanceDate: { $regex: `^${prefix}-` } };
+        if (classNumber !== undefined) {
+            const parsedClass = parseInt(classNumber, 10);
+            if (!Number.isNaN(parsedClass)) {
+                matchFilter.class = parsedClass;
+            }
+        }
+        if (attendanceTime) {
+            matchFilter.attendanceTime = attendanceTime;
+        }
+
+        // Get all attendance records for the month
+        const attendanceRecords = await Attendance.find(matchFilter).sort({ 
+            class: 1, 
+            ad: 1, 
+            attendanceDate: 1, 
+            attendanceTime: 1,
+            period: 1 
+        });
+
+        // Group by student
+        const studentMap = new Map();
+        const availableTimeSlots = new Set();
+        
+        attendanceRecords.forEach(record => {
+            const key = `${record.ad}-${record.class}`;
+            if (!studentMap.has(key)) {
+                studentMap.set(key, {
+                    SL: record.SL,
+                    ad: record.ad,
+                    nameOfStd: record.nameOfStd,
+                    class: record.class,
+                    dailyAttendance: new Map()
+                });
+            }
+            
+            const student = studentMap.get(key);
+            const date = record.attendanceDate;
+            
+            if (!student.dailyAttendance.has(date)) {
+                student.dailyAttendance.set(date, {});
+            }
+            
+            const dayAttendance = student.dailyAttendance.get(date);
+            const timeKey = record.attendanceTime;
+            
+            if (timeKey === 'Period') {
+                const periodNum = record.period || 1;
+                if (!dayAttendance.Period) {
+                    dayAttendance.Period = {};
+                }
+                dayAttendance.Period[periodNum] = record.status === 'Present' ? 'P' : 'A';
+                availableTimeSlots.add('Period');
+            } else {
+                dayAttendance[timeKey] = record.status === 'Present' ? 'P' : 'A';
+                availableTimeSlots.add(timeKey);
+            }
+        });
+
+        // Convert to array format and calculate totals
+        const results = Array.from(studentMap.values()).map(student => {
+            const dailyAttendanceArray = Array.from(student.dailyAttendance.entries()).map(([date, attendance]) => ({
+                date,
+                ...attendance
+            }));
+
+            // Calculate total present and absent across all days and times
+            let totalPresent = 0;
+            let totalAbsent = 0;
+            
+            dailyAttendanceArray.forEach(day => {
+                Object.values(day).forEach(value => {
+                    if (value === 'P') totalPresent++;
+                    else if (value === 'A') totalAbsent++;
+                    else if (typeof value === 'object' && value !== null) {
+                        // Handle Period object
+                        Object.values(value).forEach(periodValue => {
+                            if (periodValue === 'P') totalPresent++;
+                            else if (periodValue === 'A') totalAbsent++;
+                        });
+                    }
+                });
+            });
+
+            return {
+                ...student,
+                dailyAttendance: dailyAttendanceArray,
+                present: totalPresent,
+                absent: totalAbsent
+            };
+        });
+
+        res.status(200).json({ 
+            month: monthNum, 
+            year: yearNum, 
+            results,
+            availableTimeSlots: Array.from(availableTimeSlots).sort()
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to build detailed daily report' });
+    }
+}
+
 module.exports = {
     createAttendance,
     getAllAttendance,
@@ -155,5 +277,6 @@ module.exports = {
     deleteAttendance,
     updateAttendance,
     updateManyDocs,
-    getMonthlyReport
+    getMonthlyReport,
+    getDetailedDailyReport
 }

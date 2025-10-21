@@ -165,34 +165,49 @@ function Hajar() {
     },4000)
   };
 
-   
+  const [quickAction,setQuickAction] = useState("All Present")
+
+  const handleQuickAction = () => {
+    setQuickAction(prev => prev === "Previous" ? "All Present" : prev === "All Present" ? "All Absent" : "Previous");
+    const updated = {};
+    students.forEach((s) => (updated[s.ADNO] = quickAction === "Previous" ? s.Status : quickAction === "All Present" ? "Present" : "Absent"));
+    setAttendance(updated);
+  }
+ 
 
   return (
-    <div className="p-6 mt-12">
+    <div className="p-3 sm:p-6 mt-12">
    <div className="space-y-3">
 
    
 
     {/* Date and Time */}
-        <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg shadow-sm flex-wrap">
+        <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg shadow-sm flex-wrap mt-4">
       <span className="text-sm md:text-base text-gray-700">
         📅 {date
           ? new Date(date).toLocaleDateString("en-US", { dateStyle: "medium" })
           : "N/A"}{" "}
-      ||  ⏰ {time || "N/A"}
+      ||  ⏰ {time || "N/A"} {period && `( ${period} )`} {more && `( ${more} )`}
       </span>
 
+      {/* <button
+        className="flex items-center gap-2 px-4 py-2 rounded-md bg-green-500 text-white  text-lg font-medium shadow-sm hover:bg-green-600 transition ml-16"
+        onClick={() => navigate(`/api-recall/${time}`)}
+      >
+        <FaHome />
+      </button> */}
       <button
-        
-        className="flex items-center gap-2 px-4 py-2 rounded-md bg-gray-100  text-sm font-medium shadow-sm hover:bg-gray-200 transition"
+        className="flex items-center gap-2 px-4 py-2 rounded-md bg-blue-600  text-sm font-medium shadow-sm hover:bg-blue-500 transition text-white"
+      onClick={() => navigate(`/api-recall/${time}`)}
       >
         Class: {id}
       </button>
+      
     </div>
 
 
-    {/* View Toggle */}
-    <div className="flex justify-center bg-gray-100 p-2 rounded-lg shadow-sm">
+   
+    {/* <div className="flex justify-center bg-gray-100 p-2 rounded-lg shadow-sm">
       <div className="inline-flex rounded-md bg-white shadow-sm overflow-hidden border">
         <button
           onClick={() => setCards("Cards")}
@@ -225,11 +240,11 @@ function Hajar() {
         <FaHome />
         Home
       </button>
-    </div>
+    </div> */}
 
     {/* Quick Actions */}
-<div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg shadow-sm overflow-x-auto scrollbar-hide whitespace-nowrap">
-  <button
+    <div className="flex items-center justify-end gap-3 bg-gray-50 p-3 rounded-lg shadow-sm overflow-x-auto scrollbar-hide whitespace-nowrap">
+  {/* <button
     onClick={() => {
       const updated = {};
       students.forEach((s) => (updated[s.ADNO] = "Present"));
@@ -261,6 +276,24 @@ function Hajar() {
   >
      Previous
   </button>
+  
+  */}
+
+  <button
+    onClick={handleQuickAction}
+    className={`flex-shrink-0 px-4 py-2 text-sm font-medium rounded-md transition ${
+      quickAction === "Previous"
+        ? "bg-blue-500 hover:bg-blue-600 text-white"
+        : quickAction === "All Present"
+        ? "bg-green-500 hover:bg-green-600 text-white"
+        : quickAction === "All Absent"
+        ? "bg-red-500 hover:bg-red-600 text-white"
+        : "bg-blue-500 hover:bg-blue-600 text-white"
+    }`}
+  >
+     {quickAction}
+  </button>
+
 </div>
 
     </div>
@@ -348,7 +381,7 @@ function Hajar() {
       <div>
     <form onSubmit={preSumbit}>
       <main>
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-6 mt-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-6 mt-2">
             {students.length > 0 ? (
               students.map((student, index) => {
                 const isPresent = attendance[student.ADNO] === "Present"; //  check attendance
@@ -358,16 +391,16 @@ function Hajar() {
                     onClick={() =>
                       handleCheckboxChange(student.ADNO, !isPresent)
                     }
-                    className={`rounded-2xl p-4 text-center transition-all duration-300 transform  cursor-pointer  ${
+                    className={`rounded-xl sm:rounded-2xl p-2 sm:p-3 md:p-4 text-center transition-all duration-300 transform cursor-pointer hover:scale-105 ${
                       isPresent
                         ? "bg-green-500 shadow-sm hover:shadow-lg"
-                        : "bg-red-500"
+                        : "bg-red-500 shadow-sm hover:shadow-lg"
                     }`}
                   >
                     {/* Roll Circle */}
-                    <div className="flex justify-center mb-4">
+                    <div className="flex justify-center mb-2 sm:mb-3 md:mb-4">
                       <div
-                        className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg text-white transition-colors duration-300 ${
+                        className={`w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center font-bold text-sm sm:text-base md:text-lg text-white transition-colors duration-300 ${
                           isPresent ? "bg-indigo-500" : "bg-indigo-500"
                         }`}
                       >
@@ -376,11 +409,11 @@ function Hajar() {
                     </div>
 
                     {/* Student Info */}
-                    <h3 className={`text-base font-semibold text-gray-800 truncate ${isPresent?"text-gray-800":"text-white"}`}>
+                    <h3 className={`text-xs sm:text-sm md:text-base font-semibold truncate px-1 ${isPresent?"text-gray-800":"text-white"}`}>
                       {student["SHORT NAME"]}
                     </h3>
-                    <p className={`text-sm  mb-4 ${isPresent?"text-gray-700":"text-gray-100"}`}>
-                      Ad No: {student.ADNO}
+                    <p className={`text-xs sm:text-sm mb-2 sm:mb-3 md:mb-4 ${isPresent?"text-gray-700":"text-gray-100"}`}>
+                      Ad: {student.ADNO}
                     </p>
 
                    
@@ -388,16 +421,16 @@ function Hajar() {
                 );
               })
             ) : (
-              <p className="col-span-3 text-center p-4 text-gray-500">
-                No students found in Class {id}
-              </p>
+              <div className="col-span-2 sm:col-span-3 md:col-span-4 lg:col-span-5 xl:col-span-6 text-center p-4 text-gray-500">
+                <p className="text-sm sm:text-base">No students found in Class {id}</p>
+              </div>
             )}
           </div>
         </main>
 
         
-        <footer className="mt-8 text-center">
-            <button className="bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-indigo-700 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+        <footer className="mt-6 sm:mt-8 text-center">
+            <button className="bg-indigo-600 text-white font-bold py-2 sm:py-3 px-6 sm:px-8 text-sm sm:text-base rounded-lg shadow-md hover:bg-indigo-700 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                 Submit Attendance
             </button>
         </footer>
@@ -405,44 +438,48 @@ function Hajar() {
       </div>}
       
       {confirmAttendance &&(
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40">
-        <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-          <h3 className="text-lg font-bold mb-4 text-center">
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 p-4">
+        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-sm sm:max-w-md">
+          <h3 className="text-base sm:text-lg font-bold mb-4 text-center">
             Confirm Submission
           </h3>
-          <p className="mb-2">The following students are absent:</p>
+          <p className="mb-2 text-sm sm:text-base">The following students are absent:</p>
           {absentees.length > 0 ? (
-            <ul className="list-disc list-inside mb-4 text-red-600">
-              {absentees.map((s) => (
-                <li key={s.ADNO}>
-                  {s["SHORT NAME"]} (AdNo: {s.ADNO})
-                </li>
-              ))}
-            </ul>
+            <div className="max-h-40 sm:max-h-48 overflow-y-auto mb-4">
+              <ul className="list-disc list-inside text-red-600 text-sm sm:text-base space-y-1">
+                {absentees.map((s) => (
+                  <li key={s.ADNO} className="break-words">
+                    {s["SHORT NAME"]} (AdNo: {s.ADNO})
+                  </li>
+                ))}
+              </ul>
+            </div>
           ) : (
-            <p className="text-green-600 mb-4">No absentees 🎉</p>
+            <p className="text-green-600 mb-4 text-sm sm:text-base">No absentees 🎉</p>
           )}
-          <div className="flex justify-end gap-3">
-            <button
-              onClick={handleCopyAbsentees}
-              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 mr-14"
-            >
-              {copy? "Copied":"Copy"}
-            </button>
 
-            <button
-              onClick={() => setConfirmAttendance(false)}
-              className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Confirm
-            </button>
-          </div>
+        <div className="flex flex-row gap-2 sm:gap-3">
+        <button
+          onClick={() => setConfirmAttendance(false)}
+          className="flex-1 px-3 sm:px-4 py-2 bg-gray-300 text-sm sm:text-base rounded-lg hover:bg-gray-400 transition"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleCopyAbsentees}
+          className="flex-1 px-3 sm:px-4 py-2 bg-green-500 text-white text-sm sm:text-base rounded-lg hover:bg-green-600 transition ">
+          {copy ? "Copied" : "Copy"}
+        </button>
+
+
+        <button
+          onClick={handleSubmit}
+          className="flex-1 px-3 sm:px-4 py-2 bg-blue-600 text-white text-sm sm:text-base rounded-lg hover:bg-blue-700 transition"
+        >
+          Confirm
+        </button>
+      </div>
+
         </div>
       </div>
       )
@@ -453,25 +490,27 @@ function Hajar() {
 
       {/*  Summary Modal */}
       {showSummary && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4">
           {load &&(
-            <div className="flex flex-col items-center justify-center">
-            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            <p className="mt-3 text-blue-600 font-semibold">Submitting Attendance...</p>
+            <div className="flex flex-col items-center justify-center bg-white p-6 rounded-2xl shadow-2xl">
+            <div className="w-8 h-8 sm:w-12 sm:h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <p className="mt-3 text-blue-600 font-semibold text-sm sm:text-base">Submitting Attendance...</p>
           </div>
           )}
           {!load && 
-          <div className="bg-white p-6 rounded-2xl shadow-2xl w-96 text-center">
-            <h3 className="text-xl font-bold mb-4">📊 Attendance Summary</h3>
-            <p className="mb-2">👥 Strength: {summary.strength}</p>
-            <p className="mb-2 text-green-600">✅ Present: {summary.present}</p>
-            <p className="mb-2 text-red-600">❌ Absent: {summary.absent}</p>
-            <p className="mb-4">📈 Presence : {summary.percent}%</p>
+          <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-2xl w-full max-w-sm sm:max-w-md text-center">
+            <h3 className="text-lg sm:text-xl font-bold mb-4">📊 Attendance Summary</h3>
+            <div className="space-y-2 sm:space-y-3">
+              <p className="text-sm sm:text-base">👥 Strength: {summary.strength}</p>
+              <p className="text-sm sm:text-base text-green-600">✅ Present: {summary.present}</p>
+              <p className="text-sm sm:text-base text-red-600">❌ Absent: {summary.absent}</p>
+              <p className="text-sm sm:text-base font-semibold">📈 Presence: {summary.percent}%</p>
+            </div>
             
 
             <button
               onClick={handleOk}
-              className="mt-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              className="mt-4 sm:mt-6 px-4 sm:px-6 py-2 bg-blue-600 text-white text-sm sm:text-base rounded-lg hover:bg-blue-700 transition w-full sm:w-auto"
             >
               OK
             </button>

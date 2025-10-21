@@ -10,6 +10,7 @@ function Report() {
   const [error, setError] = useState('')
   const [data, setData] = useState([])
   const [attendanceTime, setAttendanceTime] = useState('')
+  const [availableTimeSlots, setAvailableTimeSlots] = useState([])
 
   const years = useMemo(() => {
     const y = now.getFullYear()
@@ -25,7 +26,7 @@ function Report() {
     if (classNumber) params.append('class', classNumber);
     if (attendanceTime) params.append('attendanceTime', attendanceTime);
 
-    const res = await fetch(`${API_PORT}/set-attendance/report/monthly?${params.toString()}`);
+    const res = await fetch(`${API_PORT}/set-attendance/report/detailed-daily?${params.toString()}`);
 
     if (!res.ok) {
       const j = await res.json().catch(() => ({}));
@@ -34,11 +35,13 @@ function Report() {
 
     const j = await res.json();
     const results = j.results || [];
+    const timeSlots = j.availableTimeSlots || [];
 
     // Sort by 'ad' in ascending order
     results.sort((a, b) => a.ad - b.ad);
 
     setData(results);
+    setAvailableTimeSlots(timeSlots);
   } catch (e) {
     setError(e.message);
   } finally {
@@ -62,8 +65,24 @@ function Report() {
     URL.revokeObjectURL(url);
   };
 
+  // Get all unique dates from the data
+  const getAllDates = () => {
+    if (data.length === 0) return [];
+    const dates = new Set();
+    data.forEach(student => {
+      if (student.dailyAttendance) {
+        student.dailyAttendance.forEach(day => {
+          dates.add(day.date);
+        });
+      }
+    });
+    return Array.from(dates).sort();
+  };
+
+  const allDates = getAllDates();
+
   return (
-    <div className="pt-20 px-4 max-w-6xl mx-auto">
+    <div className="pt-20 px-4 max-w-7xl mx-auto">
       <div className="bg-white shadow rounded p-4 mb-4">
         <h2 className="text-xl font-semibold mb-3">Monthly Attendance Report</h2>
         <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
@@ -107,7 +126,7 @@ function Report() {
 
       <div className="bg-white shadow rounded p-4">
         <div className="flex justify-between items-center mb-3">
-          <h3 className="text-lg font-semibold">Summary</h3>
+          <h3 className="text-lg font-semibold">Detailed Daily Report</h3>
           <div className="flex gap-2 items-center">
             {loading && <span className="text-sm text-gray-500">Loading...</span>}
             <button
@@ -119,8 +138,7 @@ function Report() {
             </button>
           </div>
         </div>
-          {loading && <span className="text-sm text-gray-500">Loading...</span>}
-        </div>
+        
         {data.length === 0 && !loading ? (
           <div className="text-gray-500 text-sm">No data</div>
         ) : (
@@ -128,34 +146,96 @@ function Report() {
             <table className="min-w-full border">
               <thead className="bg-gray-50">
                 <tr>
+                  <th className="text-left p-2 border">SL</th>
                   <th className="text-left p-2 border">AD</th>
                   <th className="text-left p-2 border">Name</th>
                   <th className="text-left p-2 border">Class</th>
-                  <th className="text-left p-2 border">Present</th>
-                  <th className="text-left p-2 border">Absent</th>
-                 
+                  {allDates.map(date => (
+                    <React.Fragment key={date}>
+                      <th className="text-center p-2 border" colSpan={availableTimeSlots.length + 1}>
+                        {date}
+                      </th>
+                    </React.Fragment>
+                  ))}
+                  <th className="text-left p-2 border">Total Present</th>
+                  <th className="text-left p-2 border">Total Absent</th>
+                </tr>
+                <tr>
+                  <th className="text-left p-2 border"></th>
+                  <th className="text-left p-2 border"></th>
+                  <th className="text-left p-2 border"></th>
+                  <th className="text-left p-2 border"></th>
+                  {allDates.map(date => (
+                    <React.Fragment key={date}>
+                      {availableTimeSlots.map(timeSlot => (
+                        <th key={timeSlot} className="text-center p-2 border">{timeSlot}</th>
+                      ))}
+                      <th className="text-center p-2 border">Total</th>
+                    </React.Fragment>
+                  ))}
+                  <th className="text-left p-2 border"></th>
+                  <th className="text-left p-2 border"></th>
                 </tr>
               </thead>
               <tbody>
                 {data.map(r => (
                   <tr key={`${r.ad}-${r.class}`} className="odd:bg-white even:bg-gray-50">
+                    <td className="p-2 border">{r.SL}</td>
                     <td className="p-2 border">{r.ad}</td>
                     <td className="p-2 border">{r.nameOfStd}</td>
                     <td className="p-2 border">{r.class}</td>
-                    <td className="p-2 border">{r.present}</td>
-                    <td className="p-2 border">{r.absent}</td>
-                    
+                    {allDates.map(date => {
+                      const dayData = r.dailyAttendance?.find(d => d.date === date);
+                      if (!dayData) {
+                        return (
+                          <React.Fragment key={date}>
+                            <td className="p-2 border text-center">-</td>
+                            <td className="p-2 border text-center">-</td>
+                            <td className="p-2 border text-center">-</td>
+                            <td className="p-2 border text-center">-</td>
+                            <td className="p-2 border text-center">-</td>
+                            <td className="p-2 border text-center font-semibold">0</td>
+                          </React.Fragment>
+                        );
+                      }
+                      
+                      const dayTotal = (dayData.Night === 'P' ? 1 : 0) + 
+                                      (dayData.Noon === 'P' ? 1 : 0) + 
+                                      (dayData.Morning === 'P' ? 1 : 0) + 
+                                      (dayData.Jamath === 'P' ? 1 : 0) +
+                                      Object.values(dayData.Period || {}).filter(p => p === 'P').length;
+                      
+                      return (
+                        <React.Fragment key={date}>
+                          <td className="p-2 border text-center">{dayData.Night || '-'}</td>
+                          <td className="p-2 border text-center">
+                            {Object.keys(dayData.Period || {}).length > 0 ? (
+                              <div className="flex flex-col">
+                                {Object.entries(dayData.Period).map(([period, status]) => (
+                                  <span key={period} className="text-xs">
+                                    {period}: {status || '-'}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : '-'}
+                          </td>
+                          <td className="p-2 border text-center">{dayData.Noon || '-'}</td>
+                          <td className="p-2 border text-center">{dayData.Morning || '-'}</td>
+                          <td className="p-2 border text-center">{dayData.Jamath || '-'}</td>
+                          <td className="p-2 border text-center font-semibold">{dayTotal}</td>
+                        </React.Fragment>
+                      );
+                    })}
+                    <td className="p-2 border font-semibold">{r.present}</td>
+                    <td className="p-2 border font-semibold">{r.absent}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-               
-            
           </div>
-          
         )}
       </div>
-    
+    </div>
   )
 }
 

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const {createAttendance,deleteAttendance,getAllAttendance,getSingleAttendance,updateAttendance, updateManyDocs, getMonthlyReport} = require('../controllers/attendanceControls')
+const {createAttendance,deleteAttendance,getAllAttendance,getSingleAttendance,updateAttendance, updateManyDocs, getMonthlyReport, getDetailedDailyReport} = require('../controllers/attendanceControls')
 
 
 
@@ -9,6 +9,9 @@ router.get('/',getAllAttendance)
 
 // monthly report
 router.get('/report/monthly', getMonthlyReport)
+
+// detailed daily report
+router.get('/report/detailed-daily', getDetailedDailyReport)
 
 //get a single attendance
 router.get('/:id',getSingleAttendance)

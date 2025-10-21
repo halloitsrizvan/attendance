@@ -8,12 +8,14 @@ function ClassWIse() {
     const navigate = useNavigate()
     const [classes,setClass] = useState([])
     const [load,setLoad] = useState(false)
+    const [AllStudents,setAllStudents] =useState('')
     useEffect(()=>{
         setLoad(true)
         axios.get(`${API_PORT}/classes`)
         .then((res)=>{
           const filter=res.data.sort((a, b) => a.class - b.class);
           setClass(filter)
+          setAllStudents(res.data.reduce((sum,item)=>sum+item.presentStudents,0))
             console.log(res.data)
             setLoad(false)
         })
@@ -31,11 +33,22 @@ function ClassWIse() {
   
     {load &&<ClassWiseLoad/>}
 
-  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+
+    <div className="mb-6 p-5 bg-gradient-to-r from-indigo-100 via-indigo-200 to-indigo-100 rounded-2xl shadow-md text-center">
+      <h3 className="text-2xl font-semibold text-indigo-700 mb-1">Total Students</h3>
+      <p className="text-5xl font-extrabold text-indigo-600 tracking-wide drop-shadow-sm">
+        {AllStudents}
+      </p>
+    </div>
+
+      
+
+  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 mt-6">
+
     {classes.map((cls, index) => (
       <div
       key={index}
-      className="bg-green-100 rounded-2xl shadow-md p-6 text-center cursor-pointer 
+      className=" bg-gradient-to-r from-indigo-100 via-indigo-200 to-indigo-100 rounded-2xl shadow-md p-6 text-center cursor-pointer 
                  transition-transform transform hover:scale-10 hover:shadow-xl"
     >
       {/* Class Number */}

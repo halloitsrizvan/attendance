@@ -103,11 +103,11 @@ function AllClass({edit,id}) {
             
 
 
-            <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">{edit?"Update Attendance":"Choose a class"}</h2>
+            <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">{edit?"Update Attendance":"Select a class"}</h2>
                 {load && <AllClassLoad/>}
                 <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
                  {classes.map((cls, index) => (
-                        <div key={index} className={` rounded-lg shadow-lg p-4 text-center cursor-pointer transition-transform transform hover:scale-105 hover:shadow-xl bg-green-100 text-green-800`}
+                        <div key={index} className={` rounded-lg shadow-lg p-4 text-center cursor-pointer transition-transform transform hover:scale-105 hover:shadow-xl  bg-gradient-to-r from-indigo-100 via-indigo-200 to-indigo-100 text-green-800`}
                         onClick={()=>{
                             if(edit){
                                 navigate(`/edit-attendance/${cls.class}`)
