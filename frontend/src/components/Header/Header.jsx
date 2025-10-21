@@ -54,10 +54,12 @@ function Header() {
             {/* Center: Desktop Navigation Links */}
             <nav className="hidden md:flex md:items-center md:space-x-8">
               <a href="#" className="text-gray-600 hover:text-indigo-600 transition-colors duration-200" onClick={()=>{navigate('/')}}>Home</a>
-              <a href="#" className="text-gray-600 hover:text-indigo-600 transition-colors duration-200"  onClick={()=>{navigate('/class-wise')}}>Latest</a>
+              <a href="#" className="text-gray-600 hover:text-indigo-600 transition-colors duration-200"  onClick={()=>{navigate('/class-wise')}}>Status</a>
               <a href="#" className="text-gray-600 hover:text-indigo-600 transition-colors duration-200"  onClick={()=>{navigate('/edit-attendance-classes')}}>Edit</a>
               <a href="#" className="text-gray-600 hover:text-indigo-600 transition-colors duration-200"  onClick={()=>{navigate('/report')}}>Report</a>
-              <a href="#" className="text-gray-600 hover:text-indigo-600 transition-colors duration-200"  onClick={()=>handleLogout()}>Logout</a>
+              <a href="#" className="text-gray-600 hover:text-indigo-600 transition-colors duration-200"  onClick={()=>{handleLogout()
+                  navigate('/login')
+              }}>Logout</a>
             </nav>
 
             {/* Right side: User Info */}
@@ -88,7 +90,7 @@ function Header() {
             >Menu</h2>
             <nav className="flex flex-col space-y-2">
                 <a href="#" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-white hover:bg-indigo-500 transition-colors duration-200" onClick={()=>{navigate('/')}}>Home</a>
-                <a href="#" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-white hover:bg-indigo-500 transition-colors duration-200"  onClick={()=>{navigate('/class-wise')}}>Latest</a>
+                <a href="#" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-white hover:bg-indigo-500 transition-colors duration-200"  onClick={()=>{navigate('/class-wise')}}>Status</a>
                 <a href="#" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-white hover:bg-indigo-500 transition-colors duration-200"  onClick={()=>{navigate('/edit-attendance-classes')}}>Edit</a>
                 <a href="#" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-white hover:bg-indigo-500 transition-colors duration-200"  onClick={()=>{navigate('/report')}}>Report</a>
                 {teacher &&<a href="#" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-white hover:bg-indigo-500 transition-colors duration-200"  onClick={()=>{handleLogout()}}>Logout</a>}

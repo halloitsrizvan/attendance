@@ -27,9 +27,12 @@ function LoginP() {
       try{
         const res=await axios.post(`${API_PORT}/teachers/login`,{email,password})
         const { token, teacher } = res.data || {}
+        
         if (token && teacher) {
           localStorage.setItem('token', token)
           localStorage.setItem('teacher', JSON.stringify(teacher))
+          // Trigger a custom event to notify App.js of the login
+          window.dispatchEvent(new Event('storage'))
           navigate('/')
         } else {
           setLoginerr('No token or teacher received from server')

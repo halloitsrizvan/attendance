@@ -44,7 +44,7 @@ function Hajar() {
 
         // set all initially
         filtered.forEach((s) => {
-          initialAttendance[s.ADNO] = s.Status;
+          initialAttendance[s.ADNO] = "Present";
         });
 
         setStudents(filtered);
@@ -165,7 +165,7 @@ function Hajar() {
     },4000)
   };
 
-  const [quickAction,setQuickAction] = useState("All Present")
+  const [quickAction,setQuickAction] = useState("All Absent")
 
   const handleQuickAction = () => {
     setQuickAction(prev => prev === "Previous" ? "All Present" : prev === "All Present" ? "All Absent" : "Previous");
@@ -243,7 +243,13 @@ function Hajar() {
     </div> */}
 
     {/* Quick Actions */}
-    <div className="flex items-center justify-end gap-3 bg-gray-50 p-3 rounded-lg shadow-sm overflow-x-auto scrollbar-hide whitespace-nowrap">
+    <div className="flex items-center justify-between gap-3 bg-gray-50 p-3 rounded-lg shadow-sm overflow-x-auto scrollbar-hide whitespace-nowrap">
+    <button
+        className="flex items-center gap-2 px-4 py-2 rounded-md bg-green-500 text-white  text-lg font-medium shadow-sm hover:bg-green-600 transition"
+        onClick={() => navigate(`/api-recall/${time}`)}
+      >
+        <FaHome />
+      </button>
   {/* <button
     onClick={() => {
       const updated = {};
@@ -281,7 +287,7 @@ function Hajar() {
 
   <button
     onClick={handleQuickAction}
-    className={`flex-shrink-0 px-4 py-2 text-sm font-medium rounded-md transition ${
+    className={`flex-shrink-0 px-4 py-2 text-sm font-medium rounded-md transition ml-auto ${
       quickAction === "Previous"
         ? "bg-blue-500 hover:bg-blue-600 text-white"
         : quickAction === "All Present"

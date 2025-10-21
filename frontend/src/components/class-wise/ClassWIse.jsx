@@ -8,27 +8,71 @@ function ClassWIse() {
     const navigate = useNavigate()
     const [classes,setClass] = useState([])
     const [load,setLoad] = useState(false)
+    const [classesLoad,setClassesLoad] = useState(false)
+    const [absenteesLoad,setAbsenteesLoad] = useState(false)
     const [AllStudents,setAllStudents] =useState('')
+    const [abseties,setAbseties] = useState([])
     useEffect(()=>{
+        // Set overall loading state
         setLoad(true)
+        setClassesLoad(true)
+        setAbsenteesLoad(true)
+        
+        // Fetch classes data
         axios.get(`${API_PORT}/classes`)
         .then((res)=>{
           const filter=res.data.sort((a, b) => a.class - b.class);
           setClass(filter)
           setAllStudents(res.data.reduce((sum,item)=>sum+item.presentStudents,0))
-            console.log(res.data)
-            setLoad(false)
+          console.log(res.data)
+          setClassesLoad(false)
         })
         .catch((err)=>{
             console.error(err);
-            setLoad(false)
+            setClassesLoad(false)
+        })
+
+        // Fetch absentees data
+        axios.get(`${API_PORT}/set-attendance`)
+        .then((res)=>{
+          console.log("All attendance data:", res.data);
+          
+          // First, get the latest attendance record for each student
+          const latestByStudent = {};
+          res.data.forEach((s) => {
+            const existing = latestByStudent[s.ad];
+            if (!existing || new Date(s.attentenceDate) > new Date(existing.attentenceDate)) {
+              latestByStudent[s.ad] = s;
+            }
+          });
+          
+          // Now filter only those whose latest status is "Absent"
+          const latestAbsentStudents = Object.values(latestByStudent)
+            .filter(s => s.status === "Absent")
+            .sort((a, b) => a.SL - b.SL);
+            
+          console.log("Latest absent students:", latestAbsentStudents);
+          latestAbsentStudents.sort((a, b) => a.class - b.class);
+          setAbseties(latestAbsentStudents);
+          setAbsenteesLoad(false);
+        })
+        .catch((err)=>{
+          console.error(err);
+          setAbsenteesLoad(false)
         })
     },[])
+
+    // Update overall loading state when both individual loads are complete
+    useEffect(() => {
+        if (!classesLoad && !absenteesLoad) {
+            setLoad(false)
+        }
+    }, [classesLoad, absenteesLoad])
 
   return (
     <div className="container mx-auto px-4 py-10">
   <h2 className="text-4xl font-extrabold text-center text-gray-800 mb-6 tracking-tight mt-10">
-     Class Wise Latest Attendance
+      Attendance Status
   </h2>
   
     {load &&<ClassWiseLoad/>}
@@ -39,6 +83,87 @@ function ClassWIse() {
       <p className="text-5xl font-extrabold text-indigo-600 tracking-wide drop-shadow-sm">
         {AllStudents}
       </p>
+    </div>
+
+    {/* Latest Absentees Section */}
+    <div className="mb-8">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-bold text-gray-800">Latest Absentees</h2>
+        <span className="bg-red-100 text-red-800 text-sm font-medium px-3 py-1 rounded-full">
+          {abseties.length} Students
+        </span>
+      </div>
+      
+      {absenteesLoad ? (
+        <div className="bg-white rounded-lg shadow-md p-8 text-center">
+          <div className="flex items-center justify-center mb-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          </div>
+          <h3 className="text-lg font-medium text-gray-700 mb-2">Loading Absentees Data</h3>
+          <p className="text-gray-500 animate-pulse">Please wait while we fetch the latest attendance records...</p>
+        </div>
+      ) : abseties.length > 0 ? (
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    AD
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Class
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Student Name
+                  </th>
+                 
+                  
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Date
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {abseties.map((std, index) => (
+                  <tr key={index} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {std.ad || std.ADNO || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {std.class || std.className || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {std.nameOfStd  || 'Unknown Student'}
+                    </td>
+                   
+                   
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {std.attentenceDate ? new Date(std.attentenceDate).toLocaleDateString() : 
+                       std.date ? new Date(std.date).toLocaleDateString() : 
+                       std.createdAt ? new Date(std.createdAt).toLocaleDateString() : 
+                       'Today'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+        
+        <div className="flex items-center justify-center mb-2">
+            <svg className="h-8 w-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-green-800 mb-1">Great News!</h3>
+          
+          <p className="text-green-600">All students are present today. No absentees to display.</p> 
+        
+        </div>
+      )}
     </div>
 
       

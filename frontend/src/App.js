@@ -14,15 +14,30 @@ import ReportMain from './pages/ReportMain';
 import DailyReport from './components/report/DailyReport';
 import ApiRecall from './pages/ApiRecall';
 function App() {
-   const [teacher, setTeacher] = useState(localStorage.getItem("teacher"));
+   const [teacher, setTeacher] = useState(() => {
+     const storedTeacher = localStorage.getItem("teacher");
+     return storedTeacher ? JSON.parse(storedTeacher) : null;
+   });
    
   useEffect(() => {
     const handleStorageChange = () => {
-      setTeacher(localStorage.getItem("teacher"));
+      const storedTeacher = localStorage.getItem("teacher");
+      setTeacher(storedTeacher ? JSON.parse(storedTeacher) : null);
+    };
+
+    // Check for changes in localStorage on focus (for same-tab updates)
+    const handleFocus = () => {
+      const storedTeacher = localStorage.getItem("teacher");
+      setTeacher(storedTeacher ? JSON.parse(storedTeacher) : null);
     };
 
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
   return (
     <div className="App">
