@@ -498,10 +498,34 @@ function Hajar() {
       {showSummary && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4">
           {load &&(
-            <div className="flex flex-col items-center justify-center bg-white p-6 rounded-2xl shadow-2xl">
-            <div className="w-8 h-8 sm:w-12 sm:h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            <p className="mt-3 text-blue-600 font-semibold text-sm sm:text-base">Submitting Attendance...</p>
+            <div className="flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-8 rounded-2xl shadow-2xl relative overflow-hidden">
+  
+          {/* Spinner Container */}
+          <div className="relative flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 mb-4">
+            
+            {/* Outer Spinner */}
+            <div
+              className="absolute w-16 h-16 sm:w-20 sm:h-20 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"
+              style={{ animationDuration: '2.5s' }}
+            ></div>
+
+            {/* Inner Spinner */}
+            <div
+              className="absolute w-12 h-12 sm:w-16 sm:h-16 border-4 border-indigo-400 border-t-transparent rounded-full animate-spin"
+              style={{ animationDuration: '0.8s' }}
+            ></div>
+
+            {/* Center Icon */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-blue-600 font-extrabold text-lg sm:text-xl animate-pulse">⏳</span>
+            </div>
           </div>
+
+          {/* Text */}
+          <p className="mt-2 text-blue-700 font-semibold text-base sm:text-lg">Submitting Attendance...</p>
+          <p className="text-gray-500 text-xs sm:text-sm mt-1">Please wait while we process your data</p>
+        </div>
+
           )}
           {!load && 
           <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-2xl w-full max-w-sm sm:max-w-md text-center">

@@ -67,7 +67,7 @@ function App() {
           <Route path='/monthly-daily-report' element={teacher?<DailyReport/>:<Login/>}/>
           <Route path='/api-recall/:id' element={teacher?<ApiRecall/>:<Login/>}/>
           {/* students portal */}
-          <Route path='/students-portal' element={<StudentsPortal/>}/>
+          {/* <Route path='/students-portal' element={<StudentsPortal/>}/> */}
           <Route path='/student' element={students?<Name/>:<StudentLogin/>}/>
           <Route path='/students-login' element={<StudentLogin/>}/>
         </Routes>
