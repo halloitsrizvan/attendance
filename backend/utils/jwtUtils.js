@@ -4,8 +4,10 @@ const { secretKey } = require('../config/jwtConfig')
 const generateKey =(user)=>{
     const payload={
         id:user._id,
-        email:user.email,
-        role:user.role
+        adno:user.ADNO,
+        name:user["SHORT NAME"],
+        class:user.CLASS,
+        role:'student'
     }
     return jwt.sign(payload,secretKey,{expiresIn:'1h'})
 }

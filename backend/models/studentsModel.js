@@ -24,15 +24,17 @@ const studentsSchema =new Schema ({
         required: true
     },
     Status:{
-        type: String,
-        required: true
+        type: String
     },
     Time:{
-        type: String,
-        required: true
+        type: String
     },
     Date:{
         type: String,
+    }
+    ,
+    Password:{
+        type: Number,
         required: true
     }
 

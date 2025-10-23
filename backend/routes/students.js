@@ -6,8 +6,8 @@ const {createStudents,
     deleteStudents,
     updateStudents,
     filterByClass,
-    updateManyStudents} = require('../controllers/studentsControls')
-
+    updateManyStudents,loginStudent,me} = require('../controllers/studentsControls')
+    const { authStudentToken } = require('../utils/studentAuthMiddleware')
 
 //get all Students
 router.get('/',getAllStudents)
@@ -19,9 +19,10 @@ router.get('/:classId',filterByClass)
 router.get('/:id',getSingleStudents)
 
 //add a Students
-router.post('/',createStudents)
-
+router.post('/signup',createStudents)
+router.post('/login',loginStudent)
 //delete Students
+router.get('/me/profile', authStudentToken, me)
 router.delete('/:id',deleteStudents)
 
 //update Students

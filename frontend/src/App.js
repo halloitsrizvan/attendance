@@ -13,22 +13,34 @@ import AllClassLoad from './components/load-UI/AllClassLoad';
 import ReportMain from './pages/ReportMain';
 import DailyReport from './components/report/DailyReport';
 import ApiRecall from './pages/ApiRecall';
+import StudentsPortal from './pages/StudentsPortal';
+import Name from './components/Students-portal/Name';
+import StudentLogin from './components/Students-portal/StudentLogin';
 function App() {
    const [teacher, setTeacher] = useState(() => {
      const storedTeacher = localStorage.getItem("teacher");
      return storedTeacher ? JSON.parse(storedTeacher) : null;
    });
+
+   const [students, setStudents] = useState(() => {
+    const storedStudent = localStorage.getItem("students");
+    return storedStudent ? JSON.parse(storedStudent) : null;
+  });
    
   useEffect(() => {
     const handleStorageChange = () => {
       const storedTeacher = localStorage.getItem("teacher");
+      const storedStudent = localStorage.getItem("students");
       setTeacher(storedTeacher ? JSON.parse(storedTeacher) : null);
+      setStudents(storedStudent ? JSON.parse(storedStudent) : null);
     };
 
     // Check for changes in localStorage on focus (for same-tab updates)
     const handleFocus = () => {
       const storedTeacher = localStorage.getItem("teacher");
+      const storedStudent = localStorage.getItem("students");
       setTeacher(storedTeacher ? JSON.parse(storedTeacher) : null);
+      setStudents(storedStudent ? JSON.parse(storedStudent) : null);
     };
 
     window.addEventListener('storage', handleStorageChange);
@@ -54,6 +66,10 @@ function App() {
           <Route path='/report' element={teacher?<ReportMain/>:<Login/>}/>
           <Route path='/monthly-daily-report' element={teacher?<DailyReport/>:<Login/>}/>
           <Route path='/api-recall/:id' element={teacher?<ApiRecall/>:<Login/>}/>
+          {/* students portal */}
+          <Route path='/students-portal' element={<StudentsPortal/>}/>
+          <Route path='/student' element={students?<Name/>:<StudentLogin/>}/>
+          <Route path='/students-login' element={<StudentLogin/>}/>
         </Routes>
       </BrowserRouter>
     </div>

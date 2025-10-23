@@ -1,7 +1,7 @@
 const Teacher = require('../models/teachersModel')
 const mongoose = require('mongoose')
 const bcrypt =require('bcrypt')
-const { generateKey } = require('../utils/jwtUtils')
+const { generateTeacherToken } = require('../utils/teacherJwtUtils')
 
 //get all teachers
 const getAllTeacher=async(req,res)=>{
@@ -36,7 +36,7 @@ const createTeacher=async(req,res)=>{
 
     try{
         const teacher = await Teacher.create({password:hashedPassword,email,name,phone,joinedAt,active,tId,role,subjectsTaught});
-        const token = generateKey(teacher)
+        const token = generateTeacherToken(teacher)
         res.status(200).json(({
             token,
             teacher: { id: teacher._id, name: teacher.name, email: teacher.email, role: teacher.role ,subjectsTaught:teacher.subjectsTaught}
@@ -62,7 +62,7 @@ const loginTeacher=async(req,res)=>{
     
           if (!isPasswordValid) return res.status(401).json({ error: "Incorrect password" });
       
-          const token = generateKey(teacher);
+          const token = generateTeacherToken(teacher);
          
           res.status(200).json({
             token,

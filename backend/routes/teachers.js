@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {getAllTeacher,getSingleTeacher,createTeacher,deleteTeacher,updateTeacher,loginTeacher,me} = require('../controllers/teachersControls')
-const { authToken } = require('../utils/authMiddleware')
+const { authTeacherToken } = require('../utils/teacherAuthMiddleware')
 
 //get all Teacher
 router.get('/',getAllTeacher)
@@ -14,7 +14,7 @@ router.post('/login',loginTeacher)
 //get a single Teacher
 router.get('/:id',getSingleTeacher)
 
-router.get('/me/profile', authToken, me)
+router.get('/me/profile', authTeacherToken, me)
 
 
 //delete Teacher

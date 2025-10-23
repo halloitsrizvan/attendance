@@ -1,6 +1,7 @@
 const Student = require('../models/studentsModel')
 const mongoose = require('mongoose')
-
+const bcrypt =require('bcrypt')
+const { generateStudentToken } = require('../utils/studentJwtUtils')
 //get all students
 const getAllStudents=async(req,res)=>{
     const students= await Student.find({}).sort({createdAt:-1})
@@ -37,12 +38,80 @@ const getSingleStudents=async(req,res)=>{
 
 //create a students db
 const createStudents=async(req,res)=>{
+    const { "FULL NAME": fullName, "SHORT NAME": shortName, SL, ADNO, CLASS, Status, Time, Date, Password } = req.body
+    const existingStudent = await Student.findOne({ ADNO: ADNO });
+    if (existingStudent) {
+        return res.status(400).json({ error: "Student already exists" });
+      }
+      
+    // Convert password to number if it's a string
+    const numericPassword = typeof Password === 'string' ? parseInt(Password) : Password;
+    
+    if (isNaN(numericPassword)) {
+        return res.status(400).json({ error: "Password must be a valid number" });
+    }
+    
     try{
-        const students = await Student.create(req.body);
-        res.status(200).json(students);
+        const students = await Student.create({
+            "FULL NAME": fullName,
+            "SHORT NAME": shortName,
+            SL, ADNO, CLASS, Status, Time, Date,
+            Password: numericPassword
+        });
+        const token = generateStudentToken(students)
+        res.status(200).json(({
+            token,
+            students: {id:students._id,name:students["SHORT NAME"],ad:students.ADNO,sl:students.SL}
+        }));
         console.log(students);
     }catch(err){
         res.status(400).json({error:err.message});
+    }
+}
+
+const loginStudent =async(req,res)=>{
+    try{
+        console.log('[LOGIN] Request body:', req.body);
+        const {ADNO,Password} =  req.body
+        if (!ADNO || !Password) {
+            console.log('[LOGIN] Missing credentials');
+            return res.status(400).json({ error: 'AD and Password are required' })
+          }
+        
+        // Convert password to number for comparison
+        const numericPassword = typeof Password === 'string' ? parseInt(Password) : Password;
+        if (isNaN(numericPassword)) {
+            console.log('[LOGIN] Invalid password format');
+            return res.status(400).json({ error: "Password must be a valid number" });
+        }
+        
+        console.log('[LOGIN] Looking for student with ADNO:', ADNO);
+        const students = await Student.findOne({ADNO:ADNO})
+        if (!students) {
+            console.log('[LOGIN] Student not found for ADNO:', ADNO);
+            return res.status(401).json({ error: "Student not found" });
+          }
+        console.log('[LOGIN] Student found:', students["SHORT NAME"]);
+        console.log('[LOGIN] Comparing password...');
+        console.log('[LOGIN] Input password:', numericPassword, 'Stored password:', students.Password);
+        
+        // Direct numeric comparison instead of bcrypt
+        const isPasswordValid = numericPassword === students.Password;
+        if (!isPasswordValid) {
+            console.log('[LOGIN] Invalid password');
+            return res.status(401).json({ error: "Incorrect password" });
+        }
+
+        console.log('[LOGIN] Password valid, generating token...');
+        const token = generateStudentToken(students);
+        console.log('[LOGIN] Token generated successfully');
+        res.status(200).json({
+            token,
+            student:{ id:students._id,name:students["SHORT NAME"],ad:students.ADNO,sl:students.SL}
+          }); 
+    }catch(err){
+        console.log('[LOGIN] Error:', err.message);
+        res.status(401).json({ error: err.message || 'Login failed' });
     }
 }
 
@@ -69,14 +138,27 @@ const updateStudents = async(req,res)=>{
         return res.status(404).json({error:'such document not fount'})
     }
 
-    const students=await Student.findByIdAndUpdate({_id:id},{
-        ...req.body
-    })
+    try {
+        let updateData = { ...req.body };
+        
+        // If password is being updated, convert to number
+        if (updateData.Password) {
+            const numericPassword = typeof updateData.Password === 'string' ? parseInt(updateData.Password) : updateData.Password;
+            if (isNaN(numericPassword)) {
+                return res.status(400).json({ error: "Password must be a valid number" });
+            }
+            updateData.Password = numericPassword;
+        }
 
-    if(!students){
-        return res.status(404).json({error:'such document not fount'})
+        const students = await Student.findByIdAndUpdate({_id:id}, updateData, { new: true });
+
+        if(!students){
+            return res.status(404).json({error:'such document not fount'})
+        }
+        res.status(200).json(students)
+    } catch (err) {
+        res.status(400).json({error: err.message});
     }
-    res.status(200).json(students)
 }
 
 // update many students attendance
@@ -116,5 +198,10 @@ module.exports = {
     deleteStudents,
     updateStudents,
     filterByClass,
-    updateManyStudents
+    updateManyStudents,
+    loginStudent,
+    me:(req,res)=>{
+        if (!req.students) return res.status(401).json({ error: 'Unauthorized' })
+            return res.status(200).json({ students: req.students })
+    }
 }
