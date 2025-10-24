@@ -52,7 +52,7 @@ function ClassWIse() {
             .sort((a, b) => a.SL - b.SL);
             
           console.log("Latest absent students:", latestAbsentStudents);
-          latestAbsentStudents.sort((a, b) => a.class - b.class);
+          latestAbsentStudents.sort((a, b) => b.class - a.class);
           setAbseties(latestAbsentStudents);
           setAbsenteesLoad(false);
         })
@@ -121,10 +121,10 @@ function ClassWIse() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    AD
+                    Class
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Class
+                    AD
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Student Name
@@ -139,11 +139,11 @@ function ClassWIse() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {abseties.map((std, index) => (
                   <tr key={index} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {std.ad || std.ADNO || 'N/A'}
-                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {std.class || std.className || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {std.ad || std.ADNO || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {std.nameOfStd  || 'Unknown Student'}
