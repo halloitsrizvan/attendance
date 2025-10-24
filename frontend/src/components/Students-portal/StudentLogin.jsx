@@ -88,7 +88,7 @@ function StudentLogin() {
           <div className="relative">
             <LockIcon />
             <input
-              type="number"
+              type="password"
               value={password}
               onChange={(e)=>setPassword(e.target.value)}
               placeholder="Password (Numbers only)"
