@@ -72,27 +72,39 @@ function ClassWIse() {
   return (
     <div className="container mx-auto px-4 py-10">
   <h2 className="text-4xl font-extrabold text-center text-gray-800 mb-6 tracking-tight mt-10">
-      Attendance Status
+      Students in Leave
   </h2>
   
     {load &&<ClassWiseLoad/>}
 
+    <div className="mb-6 grid grid-cols-2 sm:grid-cols-2 gap-6">
+  {/* Present Students - Left */}
+  <div className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-green-100 via-green-200 to-green-100 rounded-2xl shadow-lg hover:shadow-xl hover:scale-[1.03] transition-all duration-300">
+    <h3 className="text-xl sm:text-2xl font-semibold text-green-700 mb-2">Present Students</h3>
+    <p className="text-4xl sm:text-5xl font-extrabold text-green-600 tracking-wide drop-shadow-sm">
+      {AllStudents}
+    </p>
+  </div>
 
-    <div className="mb-6 p-5 bg-gradient-to-r from-indigo-100 via-indigo-200 to-indigo-100 rounded-2xl shadow-md text-center">
-      <h3 className="text-2xl font-semibold text-indigo-700 mb-1">Total Students</h3>
-      <p className="text-5xl font-extrabold text-indigo-600 tracking-wide drop-shadow-sm">
-        {AllStudents}
-      </p>
-    </div>
+  {/* Absent Students - Right */}
+  <div className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-rose-100 via-rose-200 to-rose-100 rounded-2xl shadow-lg hover:shadow-xl hover:scale-[1.03] transition-all duration-300">
+    <h3 className="text-xl sm:text-2xl font-semibold text-rose-700 mb-2">Absent Students</h3>
+    <p className="text-4xl sm:text-5xl font-extrabold text-rose-600 tracking-wide drop-shadow-sm">
+      {abseties.length}
+    </p>
+  </div>
+</div>
+
+
 
     {/* Latest Absentees Section */}
     <div className="mb-8">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold text-gray-800">Latest Absentees</h2>
+      {/* <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-bold text-gray-800"></h2>
         <span className="bg-red-100 text-red-800 text-sm font-medium px-3 py-1 rounded-full">
           {abseties.length} Students
         </span>
-      </div>
+      </div> */}
       
       {absenteesLoad ? (
         <div className="bg-white rounded-lg shadow-md p-8 text-center">

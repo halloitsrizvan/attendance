@@ -178,7 +178,7 @@ function Name() {
         </section>
 
         <section className="bg-white p-4 rounded-2xl shadow-xl">
-          <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Total Attendance Log</h2>
+          <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2"> Attendance History</h2>
 
           {/* Attendance Table */}
           <div className="overflow-x-auto">
