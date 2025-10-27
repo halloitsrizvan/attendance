@@ -39,7 +39,7 @@ const getMonthlyReport = async (req, res) => {
                     _id: { ad: '$ad', nameOfStd: '$nameOfStd', class: '$class', SL: '$SL' },
                     // NEW: Use $push to get an array of { date, status } pairs
                     attendances: { $push: { date: '$attendanceDate', status: '$status' } },
-                    // The counts below are for recorded days only, we'll calculate final totals on frontend
+                
                     present: { $sum: { $cond: [{ $eq: ['$status', 'Present'] }, 1, 0] } },
                     absent: { $sum: { $cond: [{ $eq: ['$status', 'Absent'] }, 1, 0] } },
                     

@@ -14,7 +14,8 @@ function DailyReport() {
   const [error, setError] = useState('')
   const [data, setData] = useState([])
   const [availableTimeSlots, setAvailableTimeSlots] = useState([])
-
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
   const years = useMemo(() => {
     const y = now.getFullYear()
     return [y - 1, y, y + 1]
@@ -309,6 +310,24 @@ function DailyReport() {
               <option value="Noon">Noon</option>
               <option value="Morning">Morning</option>
             </select>
+          </div>
+           <div>
+            <label className="block text-sm font-medium text-gray-600 mb-1">From Date</label>
+            <input
+              type='date'
+              value={fromDate}
+              onChange={e => setFromDate(e.target.value)}
+              className="w-full border rounded-lg px-4 py-2 shadow-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-1">To Date</label>
+            <input
+              type='date'
+              value={toDate}
+              onChange={e => setToDate(e.target.value)}
+              className="w-full border rounded-lg px-4 py-2 shadow-sm"
+            />
           </div>
           <div className="flex items-end col-span-2 sm:col-span-3 md:col-span-1">
             <button
