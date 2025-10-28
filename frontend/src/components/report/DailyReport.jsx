@@ -425,8 +425,9 @@ const handleFullCollectionExcel = () => {
             </button>
           
           </div>
-
-          {teacher.email =="muhammedvee@gmail.com" || teacher.email =="test@gmail.com" ||teacher.email=="shanoob@gmail.com" &&
+{/* teacher.email =="muhammedvee@gmail.com" || teacher.email == "test@gmail.com" ||teacher.email=="shanoob@gmail.com" && */}
+          { 
+          (teacher.email =='test@gmail.com' || teacher.email =="muhammedvee@gmail.com"  ||teacher.email=="shanoob@gmail.com"  ) &&
             <div className="col-span-2 sm:col-span-3 md:col-span-1">
         <div className="flex flex-col sm:flex-row items-end gap-4">
           
