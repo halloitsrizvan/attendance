@@ -1,9 +1,9 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { API_PORT } from '../../Constants'
-
+import axios from 'axios'
 function DailyReport() {
   const now = new Date()
   const [month, setMonth] = useState(String(now.getMonth() + 1).padStart(2, '0'))
@@ -21,6 +21,27 @@ function DailyReport() {
     return [y - 1, y, y + 1]
   }, [now])
 
+
+  
+    const teacher = localStorage.getItem("teacher") ? JSON.parse(localStorage.getItem("teacher")) : null;
+
+  const [allAttendanceCollection,setAllAttendanceCollection] = useState([])
+
+    useEffect(()=>{
+      
+      
+      axios.get(`${API_PORT}/set-attendance`).then((res)=>{
+        setAllAttendanceCollection(res.data)
+        console.log('All Data');
+        
+        console.log(res.data);
+      }).catch((err)=>{
+        console.log(err);
+        
+      })
+      
+      
+    },[])
   //  FETCH DATA
   const handleFetch = async () => {
     try {
@@ -251,6 +272,52 @@ function DailyReport() {
     doc.save(`Detailed_Monthly_Report_${month}_${year}.pdf`)
   }
 
+const handleFullCollectionExcel = () => {
+  if (!fromDate || !toDate) {
+    alert("Please select both From and To dates");
+    return;
+  }
+
+  //  Convert to comparable date objects
+  const from = new Date(fromDate);
+  const to = new Date(toDate);
+
+  //  Filter the attendance data
+  const filtered = allAttendanceCollection.filter(item => {
+    const date = new Date(item.attendanceDate);
+    return date >= from && date <= to;
+  });
+
+  if (filtered.length === 0) {
+    alert("No attendance records found in this date range");
+    return;
+  }
+
+  //  Prepare Excel data _id	nameOfStd	ad	class	status	SL	attendanceTime	attendanceDate	teacher	createdAt	updatedAt	__v	period
+  const wsData = filtered.map((item, i) => ({
+    _id:item._id,
+    nameOfStd:item.nameOfStd,
+    ad:item.ad,
+    class:item.class,
+    status:item.status,
+    SL:item.SL,
+    attendanceTime:item.attendanceTime,
+    attendanceDate:item.attendanceDate,
+    teacher:item.teacher,
+    createdAt:item.createdAt,
+    updatedAt:item.updatedAt,
+    __v:item.__v,
+    period:item.period
+  }));
+
+  // Export to Excel
+  const ws = XLSX.utils.json_to_sheet(wsData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Full Attendance');
+  XLSX.writeFile(wb, `Full_Attendance_${fromDate}_to_${toDate}.xlsx`);
+};
+
+
   return (
     <div className="px-4 max-w-7xl mx-auto font-sans bg-gray-50 min-h-screen" style={{ marginTop: '5rem' }}>
       {/* Controls */}
@@ -309,9 +376,10 @@ function DailyReport() {
               <option value="Period">Period</option>
               <option value="Noon">Noon</option>
               <option value="Morning">Morning</option>
+              <option value="Jamath">Jamath</option>
             </select>
           </div>
-           <div>
+           {/* <div>
             <label className="block text-sm font-medium text-gray-600 mb-1">From Date</label>
             <input
               type='date'
@@ -328,7 +396,7 @@ function DailyReport() {
               onChange={e => setToDate(e.target.value)}
               className="w-full border rounded-lg px-4 py-2 shadow-sm"
             />
-          </div>
+          </div> */}
           <div className="flex items-end col-span-2 sm:col-span-3 md:col-span-1">
             <button
               onClick={handleFetch}
@@ -340,7 +408,7 @@ function DailyReport() {
               {loading ? 'Generating...' : 'Generate Report'}
             </button>
           </div>
-          <div className="flex items-end space-x-2 col-span-2 sm:col-span-3 md:col-span-1">
+          <div className="flex items-end space-x-1 col-span-2 sm:col-span-3 md:col-span-1">
             <button
               onClick={handleDownloadExcel}
               disabled={!data.length}
@@ -355,7 +423,61 @@ function DailyReport() {
             >
               PDF
             </button>
+          
           </div>
+
+          {teacher.email =="muhammedvee@gmail.com" || teacher.email =="test@gmail.com" ||teacher.email=="shanoob@gmail.com" &&
+            <div className="col-span-2 sm:col-span-3 md:col-span-1">
+        <div className="flex flex-col sm:flex-row items-end gap-4">
+          
+          
+          <div className="flex flex-col w-full sm:w-auto">
+            <label className="block text-sm font-medium text-gray-600 mb-1">
+              From Date
+            </label>
+            <input
+              type="date"
+              value={fromDate}
+              onChange={e => setFromDate(e.target.value)}
+              className="border rounded-lg px-4 py-2 shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+          </div>
+
+         
+          <div className="flex flex-col w-full sm:w-auto">
+            <label className="block text-sm font-medium text-gray-600 mb-1">
+              To Date
+            </label>
+            <input
+              type="date"
+              value={toDate}
+              onChange={e => setToDate(e.target.value)}
+              className="border rounded-lg px-4 py-2 shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+          </div>
+
+          
+          <div className="flex flex-col w-full sm:w-auto">
+            <label className="block text-sm font-medium text-transparent mb-1">
+              &nbsp;
+            </label>
+            <button
+              onClick={handleFullCollectionExcel}
+              disabled={!fromDate || !toDate}
+              className={`${
+                fromDate && toDate
+                  ? 'bg-green-600 hover:bg-green-700'
+                  : 'bg-gray-400 cursor-not-allowed'
+              } text-white font-semibold rounded-lg px-6 py-2 shadow-sm transition`}
+            >
+              Excel
+            </button>
+
+          </div>
+
+        </div>
+      </div>
+}
         </div>
         {error && <div className="text-red-600 bg-red-50 p-3 rounded-lg mt-4 text-sm">{error}</div>}
       </div>

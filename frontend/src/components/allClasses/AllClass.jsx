@@ -8,6 +8,9 @@ function AllClass({edit,id}) {
     const navigate = useNavigate()
     const [classes,setClass] = useState([])
     const [load,setLoad] = useState(false)
+    const [preAttendance,setPreAttendance]  = useState([])
+    const [preAttendanceLoad,setPreAttendanceLoad]  = useState(true)
+
     useEffect(()=>{
         setLoad(true)
         axios.get(`${API_PORT}/classes`)
@@ -15,13 +18,40 @@ function AllClass({edit,id}) {
         .then((res)=>{
             const filter=res.data.sort((a, b) => a.class - b.class);
             setClass(filter)
-            console.log(res.data)
+
             setLoad(false)
         })
         .catch((err)=>{
             console.error(err);
             setLoad(false)
         })
+
+       axios.get(`${API_PORT}/set-attendance`)
+        .then((res) => {
+          console.log("All attendance data:", res.data);
+
+          // //  Group by student AD, keeping only the latest record
+          // const latestByStudent = {};
+
+          // res.data.forEach((record) => {
+          //   const existing = latestByStudent[record.ad];
+          //   const currentDate = new Date(record.attendanceDate);
+          //   if (!existing || currentDate > new Date(existing.attendanceDate)) {
+          //     latestByStudent[record.ad] = record;
+          //   }
+          // });
+
+          // //  Convert object to array
+          // const latestRecords = Object.values(latestByStudent);
+
+          setPreAttendance(res.data);
+          setPreAttendanceLoad(false);
+        })
+        .catch((err) => {
+          console.error(err);
+          setPreAttendanceLoad(false);
+        });
+
     },[])
     
     const today = new Date().toISOString().split("T")[0];
@@ -98,6 +128,19 @@ function AllClass({edit,id}) {
             className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-400 focus:outline-none w-full sm:w-auto"
           />
         )}
+        {time === "Jamath" && (
+         <select
+         value={more}
+         onChange={(e)=>{setMore(e.target.value)}}
+         className='border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-400 focus:outline-none w-full sm:w-auto'
+         >
+          <option value="Fajr">Fajr</option>
+          <option value="Zuhr">Zuhr</option>
+          <option value="Asr">Asr</option>
+          <option value="Maghrib">Maghrib</option>
+          <option value="Isha">Isha</option>
+         </select>
+        )}
       
       </div>
       {err && (
@@ -124,32 +167,90 @@ function AllClass({edit,id}) {
             <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">{edit?"Update Attendance":"Select a class"}</h2>
                 {load && <AllClassLoad/>}
                 <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
-                 {classes.map((cls, index) => (
-                        <div key={index} className={` rounded-lg shadow-lg p-4 text-center cursor-pointer transition-transform transform hover:scale-105 hover:shadow-xl  bg-gradient-to-r from-indigo-100 via-indigo-200 to-indigo-100 text-green-800`}
-                        onClick={()=>{
-                            if(edit){
-                                navigate(`/edit-attendance/${cls.class}`)
+                 {classes.map((cls, index) => {
+          //  Check if attendance already taken
+       const alreadyTaken = preAttendance.some((record) => {
+      const isSameClassAndDate =
+        record.class === cls.class && record.attendanceDate === date;
 
-                            }else{
-                                if(time=="Period" && !period){
-                                  setErr('Select a period')
-                                }else{
-                                  navigate(`/attendance/${cls.class}?date=${date}&time=${time}&period=${period}&more=${more}`)
-                                }
-                            }
-                            
-                        }}
-                        >
-                            <div className="mb-3">
-                                <p className="text-xs text-gray-500">Class</p>
-                                <h3 className="text-4xl font-bold text-indigo-600">{cls.class}</h3>
-                            </div>
-                            
-                            <div>
-                                <p className="text-sm text-gray-500">Strength: <span className="font-bold text-gray-700">{cls.totalStudents}</span></p>
-                            </div>
-                        </div>
-                    ))}
+      if (time === "Period") {
+        return (
+          isSameClassAndDate &&
+          record.attendanceTime === "Period" &&
+          String(record.period) === String(period)
+        );
+      } else if (time === "Jamath") {
+        return (
+          isSameClassAndDate &&
+          record.attendanceTime === "Jamath" &&
+          record.more === more
+        );
+      } else {
+        return (
+          isSameClassAndDate &&
+          record.attendanceTime === time
+        );
+      }
+    });
+
+
+          return (
+            <div
+              key={index}
+              className={`rounded-lg shadow-lg p-4 text-center transition-transform transform hover:scale-105 hover:shadow-xl 
+                ${
+                  alreadyTaken
+                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-70'
+                    : 'bg-gradient-to-r from-indigo-100 via-indigo-200 to-indigo-100 text-green-800 cursor-pointer'
+                }`}
+              onClick={() => {
+                if (alreadyTaken) return; // 🚫 Prevent navigation if already taken
+
+                if (edit) {
+                  navigate(`/edit-attendance/${cls.class}`);
+                } else {
+                  if (time === "Period" && !period) {
+                    setErr("Select a period");
+                  } else {
+                    navigate(
+                      `/attendance/${cls.class}?date=${date}&time=${time}&period=${period}&more=${more}`
+                    );
+                  }
+                }
+              }}
+            >
+              <div className="mb-3">
+                <p className="text-xs text-gray-500">Class</p>
+                <h3
+                  className={`text-4xl font-bold ${
+                    alreadyTaken ? "text-gray-500" : "text-indigo-600"
+                  }`}
+                >
+                  {cls.class}
+                </h3>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-500">
+                  Strength:{" "}
+                  <span
+                    className={`font-bold ${
+                      alreadyTaken ? "text-gray-500" : "text-gray-700"
+                    }`}
+                  >
+                    {cls.totalStudents}
+                  </span>
+                </p>
+                {alreadyTaken && (
+                  <p className="text-xs text-red-500 mt-1 font-semibold">
+                    Already Taken
+                  </p>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
                 </div>
             </div>
   )

@@ -207,7 +207,7 @@ function Name() {
                     <tr key={index} className="hover:bg-blue-50/50 transition-colors">
                       <td className="p-3 text-sm font-medium text-gray-800">{log.attendanceDate}</td>
                         <td className="p-3 text-sm text-gray-600">{log.attendanceTime} 
-                          {log.attendanceTime === "Period" && (<span className="text-gray-500 text-xs"> ({log.period})</span>)}</td>
+                          {log.attendanceTime === "Period" && (<span className="text-gray-500 text-xs"> ({log.period ||log.teacher})</span>)}</td>
                       {/* <td className="p-3 text-sm text-gray-600">{log.teacher}</td> */}
                       <td className="p-3 text-sm font-semibold">
                         <span className={`px-2 py-1 inline-flex text-xs leading-5 rounded-full ${
