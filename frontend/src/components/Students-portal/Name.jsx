@@ -5,6 +5,8 @@ import MetricCard from './MetricCard'
 import { API_PORT } from '../../Constants'
 import BreakdownModal from './BreakdownModal';
 import { useNavigate } from 'react-router-dom';
+import StudentDashboardLoad from './StudentDashboardLoad';
+ 
 function Name() {
     const [student,setStudent] = useState([])
     const [attendance,setAttendance]  =useState([])
@@ -82,20 +84,7 @@ function Name() {
     
   if (loading) {
     return (
-      <div className="flex-grow p-4 md:p-6 max-w-4xl w-full mx-auto">
-        <div className="bg-white p-6 rounded-2xl shadow-xl mb-8 border-t-4 border-blue-500">
-          <div className="flex items-center">
-            <div className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center text-white text-xl font-bold mr-4 shrink-0 animate-pulse">
-              ...
-            </div>
-            <div className="flex flex-col">
-              <div className="h-6 bg-gray-300 rounded w-32 mb-2 animate-pulse"></div>
-              <div className="h-4 bg-gray-300 rounded w-20 mb-1 animate-pulse"></div>
-              <div className="h-4 bg-gray-300 rounded w-16 animate-pulse"></div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <StudentDashboardLoad/>
     );
   }
 

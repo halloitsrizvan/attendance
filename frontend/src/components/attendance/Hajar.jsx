@@ -86,7 +86,7 @@ function Hajar() {
       attendanceDate:(date || new Date().toISOString().split("T")[0]),
       teacher:teacher.name,
       ...(period && {period:period}),
-      ...(more && {more:more})
+      ...(more && {custom:more})
     }));
 
     try {

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import axios from 'axios'
 import { useNavigate, useParams } from 'react-router-dom'
 import { TfiLayoutGrid3,TfiLayoutGrid2  } from "react-icons/tfi";
-import { FaHome } from "react-icons/fa";
+import { FaHome,FaEdit } from "react-icons/fa";
 import StudentsLoad from '../load-UI/StudentsLoad';
 import { API_PORT } from '../../Constants';
 
@@ -166,67 +166,60 @@ function EditAtt() {
     setShowSummary(false);
     navigate("/edit-attendance-classes");
   };
+  const [quickAction,setQuickAction] = useState("All Present")
+  
+    const handleQuickAction = () => {
+      setQuickAction(prev => prev === "Previous" ? "All Present" : prev === "All Present" ? "All Absent" : "Previous");
+      const updated = {};
+      students.forEach((s) => (updated[s.ADNO] = quickAction === "Previous" ? s.Status : quickAction === "All Present" ? "Present" : "Absent"));
+      setStatus(updated);
+    }
+
   return (
     <div className='p-4' style={{"marginTop":"4.2rem"}}>
-      <div >
-     <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-2 text-center ">
-        Edit Attendance || Class: {id}
-      </h2>
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-gray-100 p-3 rounded-lg shadow-sm mb-1">
-        <span className="text-sm md:text-base text-gray-700">
-           Date & Time:{" "}
-          {students[0]?.attendanceDate
-            ? new Date(students[0].attendanceDate).toLocaleString("en-US", {
-                dateStyle: "medium",
-                
-              })
-            : "N/A"} ({students[0]?.attendanceTime || "N/A"})
-           
-        </span>
-
-  
+       <div className="space-y-3">
+          {/* Date and Time */}
+              <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg shadow-sm flex-wrap mt-4">
+            <span className="text-sm md:text-base text-gray-700">
+              📅 {students[0]?.attendanceDate
+                ? new Date(students[0]?.attendanceDate).toLocaleDateString("en-US", { dateStyle: "medium" })
+                : "N/A"}{" "}
+            ||  ⏰ {students[0]?.attendanceTime || "N/A"} {students[0]?.period && `( ${students[0]?.period} )`} {students[0]?.more && `( ${students[0]?.more} )`}
+            </span>
+            <button
+              className="flex items-center gap-2 px-4 py-2 rounded-md bg-blue-600  text-sm font-medium shadow-sm hover:bg-blue-500 transition text-white"
+            onClick={() => navigate(`/edit-attendance-classes`)}
+            > 
+              Class: {id}
+            </button>
+          </div>
+          {/* Quick Actions */}
+          <div className="flex items-center justify-between gap-3 bg-gray-50 p-3 rounded-lg shadow-sm overflow-x-auto scrollbar-hide whitespace-nowrap">
+          <button
+              className="flex items-center gap-2 px-4 py-2 rounded-md bg-green-500 text-white  text-lg font-medium shadow-sm hover:bg-green-600 transition"
+              onClick={() => navigate(`/edit-attendance-classes`)}
+            >
+              <FaEdit />
+            </button>
+              <button
+              onClick={handleQuickAction}
+              className={`flex-shrink-0 px-4 py-2 text-sm font-medium rounded-md transition ml-auto ${
+                quickAction === "Previous"
+                  ? "bg-blue-500 hover:bg-blue-600 text-white"
+                  : quickAction === "All Present"
+                  ? "bg-green-500 hover:bg-green-600 text-white"
+                  : quickAction === "All Absent"
+                  ? "bg-red-500 hover:bg-red-600 text-white"
+                  : "bg-blue-500 hover:bg-blue-600 text-white"
+              }`}
+            >
+              {quickAction}
+            </button>
       </div>
+          </div>
 
-      <div className="flex gap-3 p-2">
-          <button
-            onClick={() => setCards("Cards")}
-            type="button"
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm transition ${
-              cards === "Cards"
-                ? "bg-indigo-600 text-white"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-            }`}
-          >
-            <TfiLayoutGrid2 className="text-lg" />
-            Cards
-          </button>
 
-          <button
-            onClick={() => setCards("No")}
-            type="button"
-            className={`flex items-center  gap-2 px-4 py-2 rounded-lg shadow-sm transition ${
-              cards === "No"
-                ? "bg-indigo-600 text-white"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-            }`}
-          >
-            <TfiLayoutGrid3 className="text-lg" />
-            Table
-          </button>
-
-        
-          <button
-            onClick={() => navigate("/edit-attendance-classes")}
-            type="button"
-            className="block md:hidden ml-14 flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm transition bg-green-500 text-white"
-          >
-            <FaHome className="text-lg" />
-            Home
-          </button>
-        </div>
-
-      </div>
 
       {load &&<StudentsLoad/>}
       {cards==="No"&&!load &&

@@ -58,9 +58,59 @@ function AllClass({edit,id}) {
     const [date, setDate] = useState(today);
 
     const [err,setErr] = useState('')
-    const [time,setTime] = useState('Period')
     const [period,setPeriod] = useState('')
     const [more,setMore] = useState('')
+
+    const [time, setTime] = useState('Period');
+
+    useEffect(() => {
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+
+      // Convert to total minutes for easy comparison
+      const totalMinutes = hours * 60 + minutes;
+
+// Time Table 
+// Period-1: 7:30 - 8:10
+// Period-2: 8:10 - 8:50
+// Period-3: 8:50 - 9:30
+// Period-1: 7:30 - 8:10
+
+//
+
+      // Define ranges
+      const periodStart = 7 * 60;       // 7:00 AM → 420
+      const periodEnd = 16 * 60 + 10;   // 4:10 PM → 970
+      const nightStart = 18 * 60;       // 6:00 PM → 1080
+      const nightEnd = 20.5 * 60;  //8:30PM
+      const zuhrStart = 12.85 * 60       // 12:50PM 600 + 120 (12) +50 = 770
+      const zuhrEnd = 14 * 60   
+      const FajrStart = 5*60    // 5:00AM 60*5 = 300
+      if (totalMinutes >= periodStart && totalMinutes <= periodEnd) {
+        if(totalMinutes>=zuhrStart && totalMinutes <=zuhrEnd){
+          setTime('Jamath')
+          setMore('Zuhr')
+        }else{
+          setTime('Period');
+        }
+      } else if (totalMinutes >= nightStart && totalMinutes <= nightEnd) {
+        setTime('Night');
+      } else {
+        if(totalMinutes>=periodEnd && totalMinutes<=nightStart){
+          setTime('Jamath')
+          setMore('Asr')
+        }else if(totalMinutes>=nightEnd && totalMinutes <= FajrStart){
+          setTime('Jamath')
+          setMore('Isha')
+        }else{
+          setTime('Jamath');
+          setMore('Fajr')
+        }
+        
+      }
+    }, []);
+
 
     useEffect(() => {
         if (id) {
@@ -77,10 +127,12 @@ function AllClass({edit,id}) {
     <form className="bg-gray-100 p-4 rounded-lg shadow w-full max-w-xl">
       {/* Date + Time in one row (even on mobile) */}
       <div className="flex flex-row gap-4">
+         
         {/* Date */}
         <input
           type="date"
           value={date}
+          disabled
           onChange={(e) => setDate(e.target.value)}
           onFocus={(e) => e.target.showPicker && e.target.showPicker()}
           className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
@@ -183,7 +235,7 @@ function AllClass({edit,id}) {
         return (
           isSameClassAndDate &&
           record.attendanceTime === "Jamath" &&
-          record.more === more
+          record.custom === more
         );
       } else {
         return (
