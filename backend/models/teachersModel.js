@@ -47,7 +47,10 @@ const teacherSchema = new Schema({
                 type:String
             }
         }
-    ]
+    ],
+    classNum:{
+        type:Number
+    }
 
 },{timestamps:true})
 

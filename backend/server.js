@@ -7,6 +7,8 @@ const classesRoutes = require('./routes/classes');
 const techersRoutes = require('./routes/teachers')
 const studentsRoutes = require('./routes/students')
 const attendanceRoutes = require('./routes/attendance')
+const leaveRoutes = require('./routes/leave')
+const minusRoutes = require('./routes/minus')
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -20,12 +22,17 @@ app.use((req,res,next)=>{
     next(); 
 })
 
-//Routes    
+//Routes     
 app.use('/classes',classesRoutes);
 app.use('/teachers',techersRoutes);
 app.use('/students',studentsRoutes)
 app.use('/set-attendance',attendanceRoutes)
-// Attendance Time
+app.use('/leave',leaveRoutes)
+app.use('/minus',minusRoutes)
+// Attendance Time WITH FROM TIME AND TO TIME
+// MINUS REASONS WITH VALUE
+// 
+
 
 //connect to db
 mongoose.connect(process.env.MONGO_URI)

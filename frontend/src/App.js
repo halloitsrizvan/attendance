@@ -16,6 +16,10 @@ import ApiRecall from './pages/ApiRecall';
 import StudentsPortal from './pages/StudentsPortal';
 import Name from './components/Students-portal/Name';
 import StudentLogin from './components/Students-portal/StudentLogin';
+import LeaveMain from './pages/LeaveMain';
+import LeaveForm from './components/leave/LeaveForm';
+import LeaveFormMain from './pages/LeaveFormMain';
+import LeaveStatusMain from './pages/LeaveStatusMain';
 function App() {
    const [teacher, setTeacher] = useState(() => {
      const storedTeacher = localStorage.getItem("teacher");
@@ -70,6 +74,10 @@ function App() {
           {/* <Route path='/students-portal' element={<StudentsPortal/>}/> */}
           <Route path='/student' element={students?<Name/>:<StudentLogin/>}/>
           <Route path='/students-login' element={<StudentLogin/>}/>
+
+          <Route path='/leave' element={teacher?<LeaveMain/>:<Login/>}/>
+          <Route path='/leave-form' element={teacher?<LeaveFormMain/>:<Login/>}/>
+          <Route path='/status' element={teacher?<LeaveStatusMain/>:<Login/>}/>
         </Routes>
       </BrowserRouter>
     </div>

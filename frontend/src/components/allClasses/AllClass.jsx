@@ -3,6 +3,8 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import AllClassLoad from '../load-UI/AllClassLoad';
 import { API_PORT } from '../../Constants';
+import MinusSection from './MinusSection';
+import App from './App';
 function AllClass({edit,id}) {
 
     const navigate = useNavigate()
@@ -10,7 +12,7 @@ function AllClass({edit,id}) {
     const [load,setLoad] = useState(false)
     const [preAttendance,setPreAttendance]  = useState([])
     const [preAttendanceLoad,setPreAttendanceLoad]  = useState(true)
-
+    const [students,setStudents] = useState([])
     useEffect(()=>{
         setLoad(true)
         axios.get(`${API_PORT}/classes`)
@@ -51,6 +53,13 @@ function AllClass({edit,id}) {
           console.error(err);
           setPreAttendanceLoad(false);
         });
+        axios.get(`${API_PORT}/students`).then((res)=>{
+          setStudents(res.data)
+        }).catch((err)=>{
+          console.log(err);
+          
+        })
+
 
     },[])
     
@@ -72,13 +81,38 @@ function AllClass({edit,id}) {
       const totalMinutes = hours * 60 + minutes;
 
 // Time Table 
-// Period-1: 7:30 - 8:10
-// Period-2: 8:10 - 8:50
-// Period-3: 8:50 - 9:30
-// Period-1: 7:30 - 8:10
+  const period1Start = 450; // 7:30 AM
+  const period1End = 490;   // 8:10 AM
 
-//
+  const period2Start = 490; // 8:10 AM
+  const period2End = 530;   // 8:50 AM
 
+  const period3Start = 530; // 8:50 AM
+  const period3End = 600;   // 10:00 AM
+
+  const period4Start = 600; // 10:00 AM
+  const period4End = 640;   // 10:40 AM
+
+  const period5Start = 640; // 10:40 AM
+  const period5End = 680;   // 11:20 AM
+
+  const period6Start = 690; // 11:30 AM
+  const period6End = 730;   // 12:10 PM
+
+  const period7Start = 730; // 12:10 PM
+  const period7End = 770;   // 12:50 PM
+
+  const period8Start = 840; // 2:00 PM
+  const period8End = 880;   // 2:40 PM
+
+  const period9Start = 880; // 2:40 PM
+  const period9End = 920;   // 3:20 PM
+
+  const period10Start = 920; // 3:20 PM
+  const period10End = 970;   // 4:10 PM
+// Period-10: 03:20 - 04:10
+
+      
       // Define ranges
       const periodStart = 7 * 60;       // 7:00 AM → 420
       const periodEnd = 16 * 60 + 10;   // 4:10 PM → 970
@@ -93,6 +127,29 @@ function AllClass({edit,id}) {
           setMore('Zuhr')
         }else{
           setTime('Period');
+            if (totalMinutes >= period1Start && totalMinutes < period1End) {
+            setPeriod(1);
+          } else if (totalMinutes >= period2Start && totalMinutes < period2End) {
+            setPeriod(2);
+          } else if (totalMinutes >= period3Start && totalMinutes < period3End) {
+            setPeriod(3);
+          } else if (totalMinutes >= period4Start && totalMinutes < period4End) {
+            setPeriod(4);
+          } else if (totalMinutes >= period5Start && totalMinutes < period5End) {
+            setPeriod(5);
+          } else if (totalMinutes >= period6Start && totalMinutes < period6End) {
+            setPeriod(6);
+          } else if (totalMinutes >= period7Start && totalMinutes < period7End) {
+            setPeriod(7);
+          } else if (totalMinutes >= period8Start && totalMinutes < period8End) {
+            setPeriod(8);
+          } else if (totalMinutes >= period9Start && totalMinutes < period9End) {
+            setPeriod(9);
+          } else if (totalMinutes >= period10Start && totalMinutes < period10End) {
+            setPeriod(10);
+          } else {
+            setPeriod(0); // Outside period times
+          }
         }
       } else if (totalMinutes >= nightStart && totalMinutes <= nightEnd) {
         setTime('Night');
@@ -145,11 +202,11 @@ function AllClass({edit,id}) {
           className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
         >
           <option value="Period">Period</option>
-          <option value="Morning">Morning</option>
-          <option value="Noon">After Noon</option>
+          {/* <option value="Morning">Morning</option>
+          <option value="Noon">After Noon</option> */}
           <option value="Night">Night</option>
           <option value="Jamath">Jamath</option>
-          <option value="More">Custom</option>
+          <option value="Minus">Minus</option>
         </select>
       </div>
 
@@ -215,7 +272,10 @@ function AllClass({edit,id}) {
   </div>
 )}
 
-            
+    
+
+            { time==="Minus" ? <App students={students}/> :
+            <>
             <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">{edit?"Update Attendance":"Select a class"}</h2>
                 {load && <AllClassLoad/>}
                 <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
@@ -245,6 +305,7 @@ function AllClass({edit,id}) {
       }
     });
 
+    
 
           return (
             <div
@@ -303,7 +364,7 @@ function AllClass({edit,id}) {
           );
         })}
 
-                </div>
+                </div></>}
             </div>
   )
 }

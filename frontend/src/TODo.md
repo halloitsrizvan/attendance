@@ -50,3 +50,14 @@ Alls- class time logic
 custom 
 remove date seclection
 automate attendance Time
+
+ 
+automate period number = done
+leave Time value  = done
+minus section 
+leave status
+
+
+late returned = done
+table - card
+minus reason

@@ -39,7 +39,7 @@ const createTeacher=async(req,res)=>{
         const token = generateTeacherToken(teacher)
         res.status(200).json(({
             token,
-            teacher: { id: teacher._id, name: teacher.name, email: teacher.email, role: teacher.role ,subjectsTaught:teacher.subjectsTaught}
+            teacher: { id: teacher._id, name: teacher.name, email: teacher.email, role: teacher.role ,subjectsTaught:teacher.subjectsTaught,classNum:teacher.classNum}
           }));
         console.log(teacher);
     }catch(err){
@@ -66,7 +66,7 @@ const loginTeacher=async(req,res)=>{
          
           res.status(200).json({
             token,
-            teacher:{ id: teacher._id, name: teacher.name, email: teacher.email, role: teacher.role ,subjectsTaught:teacher.subjectsTaught}
+            teacher:{ id: teacher._id, name: teacher.name, email: teacher.email, role: teacher.role ,subjectsTaught:teacher.subjectsTaught,classNum:teacher.classNum}
           });  
     }catch(err){
         res.status(401).json({ error: err.message || 'Login failed' });

@@ -57,18 +57,29 @@ function Header() {
               <a href="#" className="text-gray-600 hover:text-indigo-600 transition-colors duration-200"  onClick={()=>{navigate('/class-wise')}}>Status</a>
               <a href="#" className="text-gray-600 hover:text-indigo-600 transition-colors duration-200"  onClick={()=>{navigate('/edit-attendance-classes')}}>Edit</a>
               <a href="#" className="text-gray-600 hover:text-indigo-600 transition-colors duration-200"  onClick={()=>{navigate('/report')}}>Report</a>
+              <a href="#" className="text-gray-600 hover:text-indigo-600 transition-colors duration-200"  onClick={()=>{navigate('/leave-form')}}>Leave</a>
               <a href="#" className="text-gray-600 hover:text-indigo-600 transition-colors duration-200"  onClick={()=>{handleLogout()
                   navigate('/login')
               }}>Logout</a>
             </nav>
 
             {/* Right side: User Info */}
-            <div className="flex items-center space-x-3">
+            {/* <div className="flex items-center space-x-3">
               <h5 className="text-gray-700 font-medium  sm:block">{username}</h5>
               <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold text-xl">
                 {userInitial}
               </div>
-            </div>
+            </div> */}
+
+            <div className="flex items-center space-x-3">
+      <div className="text-right">
+        <p className="text-sm font-semibold text-gray-800">{username}</p>
+        <p className="text-xs text-gray-500">{teacher.role =="class_teacher"? "Class Teacher" : teacher.role} {teacher.role =="class_teacher" && (teacher.classNum)}</p>
+      </div>
+      <div className="w-12 h-12 rounded-full bg-indigo-500  flex items-center justify-center text-white font-semibold shadow-md">
+        {userInitial}
+      </div>
+    </div>
             
           </div>
         </div>
@@ -93,6 +104,7 @@ function Header() {
                 <a href="#" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-white hover:bg-indigo-500 transition-colors duration-200"  onClick={()=>{navigate('/class-wise')}}>Status</a>
                 <a href="#" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-white hover:bg-indigo-500 transition-colors duration-200"  onClick={()=>{navigate('/edit-attendance-classes')}}>Edit</a>
                 <a href="#" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-white hover:bg-indigo-500 transition-colors duration-200"  onClick={()=>{navigate('/report')}}>Report</a>
+                <a href="#" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-white hover:bg-indigo-500 transition-colors duration-200"  onClick={()=>{navigate('/leave-form')}}>Leave</a>
                 {teacher &&<a href="#" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-white hover:bg-indigo-500 transition-colors duration-200"  onClick={()=>{handleLogout()}}>Logout</a>}
                 
             </nav>
