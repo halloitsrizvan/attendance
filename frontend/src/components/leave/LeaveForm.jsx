@@ -58,7 +58,22 @@ const TimePicker = ({ label, selectedTime, setSelectedTime, options, customTime,
 );
 
 const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCustomReason }) => {
-  const reasonOptions = ['Medical', 'Marriage', 'Function', 'Custom'];
+ const teacher = localStorage.getItem("teacher")
+    ? JSON.parse(localStorage.getItem("teacher"))
+    : null;
+    const classNum=teacher.classNum
+  let reasonOptions = [];
+  if(classNum>4){
+ reasonOptions =['Medical']  
+  } else {
+ reasonOptions = ['Medical', 'Marriage', 'Function', 'Custom'];
+  }
+
+ useEffect(()=>{
+  console.log(reasonOptions,classNum);
+  
+ },[reasonOptions,classNum])
+  
 
   return (
     <div className="p-4 bg-white rounded-xl shadow-inner border border-gray-200">
@@ -90,7 +105,7 @@ const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCust
             value={customReason}
             onChange={(e) => setCustomReason(e.target.value)}
             className="w-full border border-indigo-300 rounded-lg p-3 text-base focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
-            placeholder="e.g., Annual Sports Day"
+            placeholder="e.g., Meelad rally"
           />
         </div>
       )}
@@ -317,7 +332,7 @@ function LeaveForm() {
         className="flex items-center gap-2 px-4 py-2 rounded-md bg-green-500 text-white  text-lg font-medium shadow-sm hover:bg-green-600 transition mb-2 ml-2"
         onClick={() => navigate(`/leave`)}
       >
-        <FaHome />
+        <FaHome /> Leave Dashboard
       </button>
 
       {/* Remove form tag and use div instead, OR keep form but ensure all buttons have type="button" */}
@@ -467,6 +482,7 @@ function LeaveForm() {
             setSelectedReason={setReason}
             customReason={customReason}
             setCustomReason={setCustomReason}
+            classNumber={teacher.classNum}
           />
         </div>
 

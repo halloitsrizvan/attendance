@@ -203,7 +203,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
     return { disabled: false, text: 'Start Leave', className: 'text-emerald-600 hover:bg-gray-50 bg-white' };
   }
 
-  if (status === 'On Leave' || status === 'Late') {
+  if (status === 'On Leave'    || status === 'Late') {
     return { disabled: false, text: 'Mark as Returned', className: 'bg-blue-600 hover:bg-blue-700 text-white' };
   }
 

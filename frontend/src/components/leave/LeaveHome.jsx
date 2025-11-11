@@ -269,7 +269,7 @@ function LeaveHome() {
             {/* Main Content Area */}
             <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
 
-                 { teacher.role ===("super_admin"||"HOS"||"HOD"||"class_teacher")&&
+                 { teacher.role ===("HOD"||"HOS"||"class_teacher"||"super_admin")&&
                     <div className="flex items-center justify-between p-5 border border-gray-200 bg-blue-600 rounded-lg mb-2 cursor-pointer" onClick={()=>navigate('/leave-form')}>
                 <h2 className="text-xl font-semibold text-gray-50">Apply Leave</h2>
                 <div className="flex items-center space-x-3">
