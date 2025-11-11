@@ -195,6 +195,10 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
 
 
   const getButtonState = () => {
+      const endDateTime = new Date(`${classInfo.toDate}T${classInfo.toTime}`);
+      const now = new Date();
+      const diffHours = (endDateTime - now) / (1000 * 60 * 60); // ms → hours
+      
   if (status === 'Inactive') {
     return { disabled: true, text: 'Inactive', className: 'bg-gray-300 text-gray-600 cursor-not-allowed' };
   }
@@ -203,7 +207,11 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
     return { disabled: false, text: 'Start Leave', className: 'text-emerald-600 hover:bg-gray-50 bg-white' };
   }
 
-  if (status === 'On Leave'    || status === 'Late') {
+   if (status === 'On Leave' && diffHours > 4 && diffHours > 0) {
+    return { disabled: true, text: 'On Leave', className: 'bg-blue-200 text-blue-700 cursor-not-allowed' };
+  }
+
+  if (status === 'On Leave' || status === 'Late') {
     return { disabled: false, text: 'Mark as Returned', className: 'bg-blue-600 hover:bg-blue-700 text-white' };
   }
 
@@ -254,7 +262,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
 const InfoColumn = ({ title, value, children }) => {
   return (
     <div className="flex flex-col items-center justify-start">
-      <h3 className={`text-xs font-medium mb-1 ${title ==="Late Returned" ? 'text-red-500':'text-gray-500'}`} >{ title === "Late Returned" ? "Late By" : title === "Status" ? "Status" :title ==="Returned At"?"Returned At":title==="Inactive"? "Starts in": "Remaining Time" }</h3>
+      <h3 className={`text-xs font-medium mb-1 ${["Late Returned", "Late"].includes(title) ? 'text-red-500':'text-gray-500'}`} >{ ["Late Returned", "Late"].includes(title) ? "Late By" : title === "Status" ? "Status" :title ==="Returned At"?"Returned At":title==="Pending"? "Starts in": "Remaining Time" }</h3>
       {children ? (
         children
       ) : (

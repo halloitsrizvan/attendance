@@ -144,6 +144,12 @@ function LeaveForm() {
   const fromTimeOptions = ['Morning', 'Evening', 'Now', 'Clock'];
   const toTimeOptions = ['Morning', 'Evening', 'Night', 'Clock'];
 
+  useEffect(()=>{
+     if (teacher?.role === "teacher") {
+      navigate('/leave');
+    }
+  },[teacher.role])
+
   // Fetch all students based on teacher role
   useEffect(() => {
     setLoading(true);
@@ -185,9 +191,7 @@ function LeaveForm() {
       setClassNum('');
     }
 
-    if (teacher?.role === "teacher") {
-      navigate('/leave');
-    }
+   
   }, [ad, students, teacher, navigate]);
 
   const handleSubmit = (e) => {
@@ -410,7 +414,7 @@ function LeaveForm() {
                 type="text"
                 value={classNum}
                 onChange={(e) => setClassNum(e.target.value)}
-                disabled={!!student}
+                disabled
                 className={`w-full border border-gray-300 rounded-lg p-2 text-sm ${
                   student ? 'bg-gray-100 cursor-not-allowed' : ''
                 }`}
@@ -427,7 +431,7 @@ function LeaveForm() {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                disabled={!!student}
+                disabled
                 className={`w-full border border-gray-300 rounded-lg p-2 text-sm ${
                   student ? 'bg-gray-100 cursor-not-allowed' : ''
                 }`}
