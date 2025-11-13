@@ -6,14 +6,14 @@ import { API_PORT } from '../../Constants';
 const StatusPill = ({ status }) => {
   const getStatusConfig = (status) => {
     const configs = {
-      'Inactive': { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-200' },
+      'Scheduled': { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-200' },
       'Pending': { bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200' },
       'On Leave': { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' },
       'Late': { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200' },
       'Returned': { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200' },
       'Late Returned': { bg: 'bg-red-100', text: 'text-red-700', border: 'border-orange-200' }
     };
-    return configs[status] || configs['Inactive'];
+    return configs[status] || configs['Scheduled'];
   };
 
   const config = getStatusConfig(status);
@@ -104,7 +104,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
         const getDisplayTime = () => {
 
         // When leave not started yet
-        if (status === 'Inactive') {
+        if (status === 'Scheduled') {
             return calculateTimeToStart(classInfo.fromDate, classInfo.fromTime);
         }
 
@@ -149,6 +149,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
   };
 
   const handleReturn = async (leaveId) => {
+
   try {
     const leave = classData.find((item) => item._id === leaveId);
 
@@ -189,10 +190,10 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
     const now = new Date();
     const diffHours = (endDateTime - now) / (1000 * 60 * 60);
     
-    if (status === 'Inactive') {
+    if (status === 'Scheduled') {
       return { 
         disabled: true, 
-        text: 'Inactive', 
+        text: 'Scheduled', 
         className: ' text-gray-50 cursor-not-allowed border border-gray-200',
         icon: Clock
       };
@@ -260,7 +261,11 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
         <button 
           className={`flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg shadow-sm transition-colors duration-200 ${buttonState.className}`}
           disabled={buttonState.disabled}
-          onClick={() => handleReturn(_id)}
+          onClick={() => {
+            if(window.confirm(`Are you sure to ${buttonState.text}`)){
+              handleReturn(_id)
+            }
+          }}
         >
           <buttonState.icon size={16}/>
           
@@ -298,7 +303,7 @@ const InfoColumn = ({ title, value, children }) => {
         {isLate ? "Late By" : 
          title === "Status" ? "Status" :
          title === "Returned At" ? "Returned At" :
-         title === "Inactive" ? "Starts in" : "Remaining Time"}
+         title === "Scheduled" ? "Starts in" : "Remaining Time"}
       </h3>
       {children ? (
         children
@@ -350,10 +355,10 @@ function LeaveStatusTable() {
     }
 
     // Before leave start
-    if (now < fromDateTime) return 'Inactive';
+    if (now < fromDateTime) return 'Scheduled';
 
     // Time has come, but leave not started yet
-    if (now >= fromDateTime && item.status === 'inactive') {
+    if (now >= fromDateTime && item.status === 'Scheduled') {
         return 'Pending';  // <- Start Leave stage
     }
 

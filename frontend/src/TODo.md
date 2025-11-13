@@ -64,7 +64,7 @@ minus reason   = done
 
 11-11-2025
 minus - teacher name = done
-leave status BG -light = almost done
+leave status BG -light =  done
 
 Done;-{fromTime: 
     morning:5:30
@@ -72,15 +72,13 @@ Done;-{fromTime:
 toTime:
     morning:7:00
     evening:6:00}
-
-
 minus :- DB export excel  =  done
 
-leave status page- on Leave 
-start leave /mark as return : Teacher to Docs
-attendance -on leave : DB boolean
 Start leave, mark as returned എന്ന് click ചെയ്യുമ്പോൾ ഒരു confirmation box കൂടി ഉണ്ടാവണം
-Inactive എന്നതിന് പകരം Scheduled
-എന്ന് കൊടുക്കണം
+
+start leave /mark as return : Teacher to Docs
+leave status page- on Leave 
+attendance -on leave : DB boolean
+Convert date, time to datetime format.
 sort by current time/action
 

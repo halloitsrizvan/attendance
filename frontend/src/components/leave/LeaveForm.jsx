@@ -220,7 +220,7 @@ function LeaveForm() {
         if (timeOption === "Morning") return "05:30";
         if (timeOption === "Evening") return "16:30";
       }
-      if (timeOption === "Night") return "22:00";
+      // if (timeOption === "Night") return "22:00";
       if (timeOption === "Now") {
         const now = new Date();
         return `${pad(now.getHours())}:${pad(now.getMinutes())}`;
@@ -280,7 +280,7 @@ function LeaveForm() {
       toTime: finalToTime,
       reason: finalReason,
       teacher: teacher.name,
-      status: "inactive"
+      status: "Scheduled"
     };
 
     console.log('Submitting leave:', payload);

@@ -6,14 +6,14 @@ import { API_PORT } from '../../Constants';
 const StatusPill = ({ status }) => {
   const getStatusConfig = (status) => {
     const configs = {
-      'Inactive': { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-200' },
+      'Scheduled': { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-200' },
       'Pending': { bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200' },
       'On Leave': { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' },
       'Late': { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200' },
       'Returned': { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200' },
       'Late Returned': { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-200' }
     };
-    return configs[status] || configs['Inactive'];
+    return configs[status] || configs['Scheduled'];
   };
 
   const config = getStatusConfig(status);
@@ -103,7 +103,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
   };
 
   const getDisplayTime = () => {
-    if (status === 'Inactive') {
+    if (status === 'Scheduled') {
       return calculateTimeToStart(classInfo.fromDate, classInfo.fromTime);
     }
 
@@ -179,10 +179,10 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
     const now = new Date();
     const diffHours = (endDateTime - now) / (1000 * 60 * 60);
     
-    if (status === 'Inactive') {
+    if (status === 'Scheduled') {
       return { 
         disabled: true, 
-        text: 'Inactive', 
+        text: 'Scheduled', 
         className: 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200',
         icon: Clock
       };
@@ -235,7 +235,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
   const buttonState = getButtonState();
   const ButtonIcon = buttonState.icon;
   const isLateStatus = ['Late', 'Late Returned'].includes(status);
-  const timeTitle = status === 'Inactive' ? 'Starts In' : 
+  const timeTitle = status === 'Scheduled' ? 'Starts In' : 
                    status === 'Pending' ? 'Starts In' :
                    ['Late', 'Late Returned'].includes(status) ? 'Late By' : 
                    'Remaining Time';
@@ -337,9 +337,9 @@ function FormTest() {
       return 'Returned';
     }
 
-    if (now < fromDateTime) return 'Inactive';
+    if (now < fromDateTime) return 'Scheduled';
 
-    if (now >= fromDateTime && item.status === 'inactive') {
+    if (now >= fromDateTime && item.status === 'Scheduled') {
       return 'Pending';
     }
 

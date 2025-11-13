@@ -107,7 +107,7 @@ const autoUpdateLeaveStatuses = async (req, res) => {
         // Update leaves that should be active
         await Leave.updateMany(
             {
-                status: { $in: ['inactive', 'active'] },
+                status: { $in: ['Scheduled', 'active'] },
                 $or: [
                     {
                         fromDate: { $lt: currentDate }
@@ -133,7 +133,7 @@ const autoUpdateLeaveStatuses = async (req, res) => {
         // Update leaves that are late (past end time but not returned)
         await Leave.updateMany(
             {
-                status: { $in: ['inactive', 'active'] },
+                status: { $in: ['Scheduled', 'active'] },
                 $or: [
                     {
                         toDate: { $lt: currentDate }
@@ -158,7 +158,7 @@ const getLeavesByStatus = async (req, res) => {
     const { status } = req.params;
     
     try {
-        const validStatuses = ['inactive', 'active', 'late', 'returned'];
+        const validStatuses = ['Scheduled', 'active', 'late', 'returned'];
         if (!validStatuses.includes(status)) {
             return res.status(400).json({ error: 'Invalid status' });
         }

@@ -37,8 +37,8 @@ const leaveSchema = new Schema({
     },
     status: {
         type: String,
-        enum: ['inactive','pending', 'active', 'late', 'returned'],
-        default: "inactive"
+        enum: ['Scheduled','pending', 'active', 'late', 'returned'],
+        default: "Scheduled"
     },
     teacher: {
         type: String

@@ -73,11 +73,11 @@ const LeaveStatus = () => {
         return 'Returned';
     }
 
-    if (now < fromDateTime) return 'Inactive';
+    if (now < fromDateTime) return 'Scheduled';
     if (now >= fromDateTime && now <= toDateTime) return 'On Leave';
     if (now > toDateTime) return 'Late';
 
-    return 'Inactive';
+    return 'Scheduled';
 };
 
     // For updating leave status to returned
@@ -215,7 +215,7 @@ const LeaveStatus = () => {
                                         {item.returnedAt ? formatReturnedTime(item.returnedAt) : "—"}
                                     </td>
                                     <td className='p-4 text-sm font-medium'>
-                                        {status === 'Inactive' ? (
+                                        {status === 'Scheduled' ? (
                                             <button 
                                                 disabled
                                                 className='px-3 py-2 rounded-full text-xs font-semibold text-gray-400 bg-gray-200 cursor-not-allowed'
