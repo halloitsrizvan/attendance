@@ -131,18 +131,18 @@ function LeaveForm() {
 
   // Form states
   const [fromDate, setFromDate] = useState('Today');
-  const [fromTime, setFromTime] = useState('Morning');
+  const [fromTime, setFromTime] = useState('Evening');
   const [fromCustomDate, setFromCustomDate] = useState('');
   const [fromCustomTime, setFromCustomTime] = useState('');
   const [toDate, setToDate] = useState('Tomorrow');
-  const [toTime, setToTime] = useState('Night');
+  const [toTime, setToTime] = useState('Evening');
   const [toCustomDate, setToCustomDate] = useState('');
   const [toCustomTime, setToCustomTime] = useState('');
   const [reason, setReason] = useState('Medical');
   const [customReason, setCustomReason] = useState('');
 
   const fromTimeOptions = ['Morning', 'Evening', 'Now', 'Clock'];
-  const toTimeOptions = ['Morning', 'Evening', 'Night', 'Clock'];
+  const toTimeOptions = ['Morning', 'Evening', 'Clock'];
 
   useEffect(()=>{
      if (teacher?.role === "teacher") {
@@ -206,12 +206,20 @@ function LeaveForm() {
 
     const getFormattedDate = (date) => date.toISOString().split('T')[0];
 
-    const getFormattedTime = (timeOption, customTime) => {
+    const getFormattedTime = (timeOption, customTime,label='') => {
       const pad = (n) => String(n).padStart(2, "0");
 
       if (timeOption === "Clock") return customTime;
-      if (timeOption === "Morning") return "07:30";
-      if (timeOption === "Evening") return "17:30";
+      if(label==="From Time"){
+        if (timeOption === "Morning") return "05:30";
+        if (timeOption === "Evening") return "16:30";
+      }else if(label==="To Time"){
+        if (timeOption === "Morning") return "07:00";
+        if (timeOption === "Evening") return "18:00";
+      }else{
+        if (timeOption === "Morning") return "05:30";
+        if (timeOption === "Evening") return "16:30";
+      }
       if (timeOption === "Night") return "22:00";
       if (timeOption === "Now") {
         const now = new Date();
@@ -238,7 +246,7 @@ function LeaveForm() {
       finalFromDate = getFormattedDate(new Date());
     }
 
-    const finalFromTime = getFormattedTime(fromTime, fromCustomTime);
+    
 
     // Calculate To Date
     let finalToDate;
@@ -258,7 +266,8 @@ function LeaveForm() {
       finalToDate = getFormattedDate(new Date());
     }
 
-    const finalToTime = getFormattedTime(toTime, toCustomTime);
+    const finalFromTime = getFormattedTime(fromTime, fromCustomTime,'From Time');
+    const finalToTime = getFormattedTime(toTime, toCustomTime,'To Time');
     const finalReason = reason === 'Custom' ? customReason : reason;
 
     const payload = {

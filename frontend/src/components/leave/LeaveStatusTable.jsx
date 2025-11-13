@@ -1,58 +1,48 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import {ArrowUpRight} from 'lucide-react'
+import { Clock, Calendar, User, ArrowUpRight, CheckCircle, PlayCircle, RotateCcw } from 'lucide-react';
 import { API_PORT } from '../../Constants';
 
 const StatusPill = ({ status }) => {
-  const baseStyle = "px-3 py-1 text-xs font-medium rounded-full inline-block";
+  const getStatusConfig = (status) => {
+    const configs = {
+      'Inactive': { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-200' },
+      'Pending': { bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200' },
+      'On Leave': { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' },
+      'Late': { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200' },
+      'Returned': { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200' },
+      'Late Returned': { bg: 'bg-red-100', text: 'text-red-700', border: 'border-orange-200' }
+    };
+    return configs[status] || configs['Inactive'];
+  };
+
+  const config = getStatusConfig(status);
   
-  if (status === "Inactive") {
-    return (
-      <span className={`${baseStyle} bg-yellow-100 text-yellow-800`}>
-        {status}
-      </span>
-    );
-  }
-  
-  if (status === "On Leave") {
-    return (
-      <span className={`${baseStyle} bg-green-100 text-green-800`}>
-        {status}
-      </span>
-    );
-  }
-
-  if (status === "Late") {
-    return (
-      <span className={`${baseStyle} bg-red-100 text-red-800`}>
-        {status}
-      </span>
-    );
-  }
-
-  if (status === "Returned") {
-    return (
-      <span className={`${baseStyle} bg-gray-100 text-gray-800`}>
-        {status}
-      </span>
-    );
-  }
-
-  if (status === "Late Returned") {
-    return (
-      <span className={`${baseStyle} bg-orange-100 text-orange-800`}>
-        {status}
-      </span>
-    );
-  }
-
   return (
-    <span className={`${baseStyle} bg-gray-100 text-gray-800`}>
+    <span className={`inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-full border ${config.bg} ${config.text} ${config.border}`}>
+      {status === 'Returned' && <CheckCircle size={12} />}
+      {status === 'Pending' && <Clock size={12} />}
+      {status === 'On Leave' && <PlayCircle size={12} />}
+      {status === 'Late Returned' && <RotateCcw size={12} />}
       {status}
     </span>
   );
 };
-
+const TimeDisplay = ({ title, value, icon: Icon, isLate = false }) => {
+  return (
+    <div className="flex flex-col items-center text-center p-3 bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+      <div className="flex items-center gap-2 mb-2">
+        <Icon size={14} className={isLate ? 'text-red-500' : 'text-gray-500'} />
+        <span className={`text-xs font-medium ${isLate ? 'text-red-600' : 'text-gray-600'}`}>
+          {title}
+        </span>
+      </div>
+      <span className={`text-sm font-semibold ${isLate ? 'text-red-700' : 'text-gray-900'}`}>
+        {value}
+      </span>
+    </div>
+  );
+};
 const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassData }) => {
   const { _id, classNum, ad, name, remainingTime, status, returnedAt, toDate, toTime } = classInfo;
 
@@ -194,34 +184,63 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
 };
 
 
-  const getButtonState = () => {
-      const endDateTime = new Date(`${classInfo.toDate}T${classInfo.toTime}`);
-      const now = new Date();
-      const diffHours = (endDateTime - now) / (1000 * 60 * 60); // ms → hours
-      
-  if (status === 'Inactive') {
-    return { disabled: true, text: 'Inactive', className: 'bg-gray-300 text-gray-600 cursor-not-allowed' };
-  }
+ const getButtonState = () => {
+    const endDateTime = new Date(`${classInfo.toDate}T${classInfo.toTime}`);
+    const now = new Date();
+    const diffHours = (endDateTime - now) / (1000 * 60 * 60);
+    
+    if (status === 'Inactive') {
+      return { 
+        disabled: true, 
+        text: 'Inactive', 
+        className: ' text-gray-50 cursor-not-allowed border border-gray-200',
+        icon: Clock
+      };
+    }
 
-  if (status === 'Pending') {
-    return { disabled: false, text: 'Start Leave', className: 'text-emerald-600 hover:bg-gray-50 bg-white' };
-  }
+    if (status === 'Pending') {
+      return { 
+        disabled: false, 
+        text: 'Start Leave', 
+        className: 'bg-white text-emerald-600 hover:bg-emerald-50 border border-emerald-200 hover:border-emerald-300 shadow-sm',
+        icon: PlayCircle
+      };
+    }
 
-   if (status === 'On Leave' && diffHours > 4 && diffHours > 0) {
-    return { disabled: true, text: 'On Leave', className: 'bg-blue-200 text-blue-700 cursor-not-allowed' };
-  }
+    if (status === 'On Leave' && diffHours > 4 && diffHours > 0) {
+      return { 
+        disabled: true, 
+        text: 'On Leave', 
+        className: 'text-blue-100 cursor-not-allowed border border-blue-200',
+        icon: Clock
+      };
+    }
 
-  if (status === 'On Leave' || status === 'Late') {
-    return { disabled: false, text: 'Mark as Returned', className: 'bg-blue-600 hover:bg-blue-700 text-white' };
-  }
+    if (status === 'On Leave' || status === 'Late') {
+      return { 
+        disabled: false, 
+        text: 'Mark Returned', 
+        className: 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-md',
+        icon: CheckCircle
+      };
+    }
 
-  if (status === 'Returned' || status === 'Late Returned') {
-    return { disabled: true, text: 'Returned ✓', className: 'bg-green-100 text-green-700 cursor-not-allowed' };
-  }
+    if (status === 'Returned' || status === 'Late Returned') {
+      return { 
+        disabled: true, 
+        text: 'Returned', 
+        className: 'text-green-100 cursor-not-allowed border border-green-200',
+        icon: CheckCircle
+      };
+    }
 
-  //  FIX: fallback (handles status === "active")
-  return { disabled: false, text: 'Mark as Returned', className: 'bg-blue-600 hover:bg-blue-700 text-white' };
-};
+    return { 
+      disabled: false, 
+      text: 'Mark Returned', 
+      className: 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-md',
+      icon: CheckCircle
+    };
+  };
 
 
 
@@ -230,25 +249,27 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
   return (
     <div className="bg-white shadow-md rounded-xl overflow-hidden w-full">
       {/* --- Card Header (Green) --- */}
-      <div className="bg-emerald-600 text-white p-4 flex justify-between items-center">
+      <div className="bg-gradient-to-l from-emerald-600 to-emerald-700 text-white p-4 flex justify-between items-center">
         <div className="flex items-center gap-3">
           <div className="text-left">
-            <div className="text-xs font-light">Class. {classNum}</div>
-            <div className="text-xs font-light">AD. {ad}</div>
+            <div className="text-xs font-light bg-white/20 px-2 py-1 rounded-md backdrop-blur-sm">Class {classNum}</div>
+            <div className="text-xs font-light px-2 ">AD {ad}</div>
           </div>
-          <h2 className="text-lg font-bold">{name}</h2>
+          <h2 className="text-base font-semibold">{name}</h2>
         </div>
         <button 
-          className={`text-sm font-semibold px-4 py-2 rounded-lg shadow-sm transition-colors duration-200 ${buttonState.className}`}
+          className={`flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg shadow-sm transition-colors duration-200 ${buttonState.className}`}
           disabled={buttonState.disabled}
           onClick={() => handleReturn(_id)}
         >
+          <buttonState.icon size={16}/>
+          
           {buttonState.text}
         </button>
       </div>
 
       {/* --- Card Body (Light Green) --- */}
-      <div className="bg-emerald-50 p-4 grid grid-cols-3 gap-4 text-center">
+      <div className="bg-emerald-100 p-4 grid grid-cols-3 gap-4 text-center">
         <InfoColumn title={status} value={getDisplayTime()} />
         <InfoColumn title="Status"> 
           <StatusPill status={status} />
@@ -260,13 +281,31 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
 };
 // "Remaining/Late Time"
 const InfoColumn = ({ title, value, children }) => {
+  const isLate = ["Late Returned", "Late"].includes(title);
+  
+  // Get the same styling as StatusPill
+  const getValueStyle = () => {
+    if (isLate) {
+      return "bg-red-100 text-red-700 border-red-200";
+    }
+    return "bg-gray-50 text-gray-700 border-gray-200";
+  };
+// ${isLate ? 'text-red-500' : 'text-gray-500'}
   return (
-    <div className="flex flex-col items-center justify-start">
-      <h3 className={`text-xs font-medium mb-1 ${["Late Returned", "Late"].includes(title) ? 'text-red-500':'text-gray-500'}`} >{ ["Late Returned", "Late"].includes(title) ? "Late By" : title === "Status" ? "Status" :title ==="Returned At"?"Returned At":title==="Pending"? "Starts in": "Remaining Time" }</h3>
+    <div className="flex flex-col items-center justify-start ">
+      
+      <h3 className={`text-xs font-medium mb-1  text-gray-500`}> 
+        {isLate ? "Late By" : 
+         title === "Status" ? "Status" :
+         title === "Returned At" ? "Returned At" :
+         title === "Inactive" ? "Starts in" : "Remaining Time"}
+      </h3>
       {children ? (
         children
       ) : (
-        <p className="text-sm font-semibold text-gray-900">{value}</p>
+        <span className={`inline-flex items-center px-3 py-1.5 text-sm font-semibold rounded-xl border ${getValueStyle()}`}>
+          {value}
+        </span>
       )}
     </div>
   );

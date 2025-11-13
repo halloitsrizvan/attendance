@@ -60,56 +60,72 @@ export default function App({students}) {
     const [name, setName] = useState('');
     const [classNum, setClassNum] = useState('');
     const [minusCount,setMinusCout] = useState(1/3)
-    const [reason,setReason] = useState()
+    const [reason,setReason] = useState('Skipping Jamath')
   const [load,setLoad] = useState(false)
+   const teacher = localStorage.getItem("teacher") ? JSON.parse(localStorage.getItem("teacher")) : null;
 
+        const handleSubmit = async (e) => {
+          e.preventDefault();
+          setLoad(true);
 
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-      setLoad(true);
+          try {
+            // Ensure reason has a value, fallback to default if empty
+            const finalReason = reason || 'Skipping Jamath';
+            
+            const payload = { 
+              ad, 
+              name, 
+              classNum, 
+              minusNum: minusCount, 
+              reason: finalReason, 
+              teacher: teacher.name 
+            };
+            
+            console.log('Submitting payload:', payload);
+            
+            await axios.post(`${API_PORT}/minus`, payload);
+            
+            // Reset form but keep reason as default
+            setAd('');
+            setName('');
+            setClassNum('');
+            setReason('Skipping Jamath'); // Explicitly set default
+            
+          } catch (error) {
+            console.log('Error:', error.response?.data);
+            // alert(`Error: ${error.response?.data?.error || 'Something went wrong'}`);
+          } finally {
+            setLoad(false);
+          }
+        };
 
-      try {
-        const payload = { ad, name, classNum, minusNum: minusCount, reason };
-        await axios.post(`${API_PORT}/minus`, payload);
-        setAd('');
-        setName('');
-        setClassNum('');
-        setReason('');
-      } catch (error) {
-        console.log(error);
-      } finally {
-        setLoad(false);
-      }
-    };
+// const suggestionList = [
+//   "Absent in class",
+//   "Absent in program",
+//   "other",
+// ];
+//     const [filtered, setFiltered] = useState([]);
 
-const suggestionList = [
-  "Absent in class",
-  "Absent in program",
-  "other",
-];
-    const [filtered, setFiltered] = useState([]);
+//    const handleChange = (e) => {
+//   const input = e.target.value;
+//   setReason(input);
 
-   const handleChange = (e) => {
-  const input = e.target.value;
-  setReason(input);
+//   if (input.trim() === "") {
+//     // Show ALL suggestions when no text entered
+//     setFiltered(suggestionList);
+//     return;
+//   }
 
-  if (input.trim() === "") {
-    // Show ALL suggestions when no text entered
-    setFiltered(suggestionList);
-    return;
-  }
+//   const results = suggestionList.filter(item =>
+//     item.toLowerCase().includes(input.toLowerCase())
+//   );
+//   setFiltered(results);
+// };
+//     const selectSuggestion = (val) => {
+//       setReason(val);
+//       setFiltered([]);
+//     };
 
-  const results = suggestionList.filter(item =>
-    item.toLowerCase().includes(input.toLowerCase())
-  );
-  setFiltered(results);
-};
-
-
-    const selectSuggestion = (val) => {
-      setReason(val);
-      setFiltered([]);
-    };
   return (
     // This outer div centers the form on the page with a new gradient background
    <div className="flex items-center justify-center font-sans mt-16">
@@ -239,9 +255,28 @@ const suggestionList = [
         />
       </div>
     </div>
+     <div>
+          <label htmlFor="reason" className="block mb-2 text-sm font-medium text-gray-700">
+            Reason
+          </label>
+          <select
+            id="reason"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            required
+            className="w-full pl-3 p-3 bg-gray-50 rounded-lg border border-gray-300 
+            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent 
+            transition-all duration-300"
+          >
+            <option value="Skipping Jamath">Skipping Jamath</option>
+            <option value="Skipping Class">Skipping Class</option>
+            <option value="Late coming without permission">Late coming without permission</option>
+            <option value="Skipping program">Skipping program</option>
+          </select>
+        </div>
 
     {/* Third Row: "Number Of Minus" Input Group */}
-    <div>
+    {/* <div>
       <label 
         htmlFor="minusCount" 
         className="block mb-2 text-sm font-medium text-gray-700"
@@ -254,7 +289,7 @@ const suggestionList = [
         id="reason"
         value={reason}
         onChange={handleChange}
-        onFocus={() => setFiltered(suggestionList)}  // <--- ADD THIS LINE
+        onFocus={() => setFiltered(suggestionList)} 
         placeholder="Reason..."
         className="w-full p-3 bg-gray-50 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
       />
@@ -274,7 +309,7 @@ const suggestionList = [
       )}
         
       </div>
-    </div>
+    </div> */}
 
     {/* Submit Button */}
     <div>

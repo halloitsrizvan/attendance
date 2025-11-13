@@ -20,6 +20,8 @@ import LeaveMain from './pages/LeaveMain';
 import LeaveForm from './components/leave/LeaveForm';
 import LeaveFormMain from './pages/LeaveFormMain';
 import LeaveStatusMain from './pages/LeaveStatusMain';
+import FormTest from './components/leave/FormTest';
+import MinusReport from './pages/MinusReport';
 function App() {
    const [teacher, setTeacher] = useState(() => {
      const storedTeacher = localStorage.getItem("teacher");
@@ -64,7 +66,6 @@ function App() {
           <Route path='/login' element={<Login/>}/>
           <Route path='/attendance/:id' element={teacher?<Attendance/>:<Login/>}/>
          <Route path='/class-wise' element={teacher?<ClassWIsePriv/>:<Login/>}/>
-          <Route path='/test' element={teacher?<AllClassLoad/>:<Login/>}/>
           <Route path='/edit-attendance-classes' element={teacher?<EditClassPage/>:<Login/>}/>
           <Route path='/edit-attendance/:id' element={teacher?<Editattendance/>:<Login/>}/>
           <Route path='/report' element={teacher?<ReportMain/>:<Login/>}/>
@@ -75,9 +76,14 @@ function App() {
           <Route path='/student' element={students?<Name/>:<StudentLogin/>}/>
           <Route path='/students-login' element={<StudentLogin/>}/>
 
+          <Route path='/test' element={teacher?<FormTest/>:<Login/>}/>
+
           <Route path='/leave' element={teacher?<LeaveMain/>:<Login/>}/>
           <Route path='/leave-form' element={teacher?<LeaveFormMain/>:<Login/>}/>
-          <Route path='/status' element={teacher?<LeaveStatusMain/>:<Login/>}/>
+          <Route path='/leave-dashboard' element={teacher?<LeaveStatusMain/>:<Login/>}/>
+          
+          <Route path='/minus-report' element={teacher?<MinusReport/>:<Login/>}/>
+
         </Routes>
       </BrowserRouter>
     </div>

@@ -3,7 +3,6 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import AllClassLoad from '../load-UI/AllClassLoad';
 import { API_PORT } from '../../Constants';
-import MinusSection from './MinusSection';
 import App from './App';
 function AllClass({edit,id}) {
 
