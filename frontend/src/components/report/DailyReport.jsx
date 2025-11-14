@@ -284,7 +284,10 @@ const handleFullCollectionExcel = () => {
 
   //  Filter the attendance data
   const filtered = allAttendanceCollection.filter(item => {
-    const date = new Date(item.attendanceDate);
+    // Handle both Date objects and ISO strings
+    const date = item.attendanceDate instanceof Date 
+      ? item.attendanceDate 
+      : new Date(item.attendanceDate);
     return date >= from && date <= to;
   });
 
@@ -302,7 +305,11 @@ const handleFullCollectionExcel = () => {
     status:item.status,
     SL:item.SL,
     attendanceTime:item.attendanceTime,
-    attendanceDate:item.attendanceDate,
+    attendanceDate: item.attendanceDate instanceof Date 
+      ? item.attendanceDate.toISOString().split('T')[0] 
+      : (typeof item.attendanceDate === 'string' 
+          ? item.attendanceDate.split('T')[0] 
+          : new Date(item.attendanceDate).toISOString().split('T')[0]),
     teacher:item.teacher,
     createdAt:item.createdAt,
     updatedAt:item.updatedAt,

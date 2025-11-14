@@ -16,12 +16,17 @@ const getMonthlyReport = async (req, res) => {
             return res.status(400).json({ error: 'Invalid month/year' });
         }
 
-        // attendanceDate is stored as string in format YYYY-MM-DD
-        // Build regex for the month
-        const monthStr = monthNum.toString().padStart(2, '0');
-        const prefix = `${yearNum}-${monthStr}`; // e.g. 2025-09
+        // attendanceDate is stored as Date type
+        // Build date range for the month
+        const startDate = new Date(yearNum, monthNum - 1, 1); // First day of month
+        const endDate = new Date(yearNum, monthNum, 1); // First day of next month
 
-        const matchFilter = { attendanceDate: { $regex: `^${prefix}-` } };
+        const matchFilter = { 
+            attendanceDate: { 
+                $gte: startDate,
+                $lt: endDate
+            } 
+        };
         if (classNumber !== undefined) {
             const parsedClass = parseInt(classNumber, 10);
             if (!Number.isNaN(parsedClass)) {
@@ -38,7 +43,13 @@ const getMonthlyReport = async (req, res) => {
                 $group: {
                     _id: { ad: '$ad', nameOfStd: '$nameOfStd', class: '$class', SL: '$SL' },
                     // NEW: Use $push to get an array of { date, status } pairs
-                    attendances: { $push: { date: '$attendanceDate', status: '$status' } },
+                    // Convert Date to ISO string for consistent formatting
+                    attendances: { 
+                        $push: { 
+                            date: { $dateToString: { format: '%Y-%m-%d', date: '$attendanceDate' } }, 
+                            status: '$status' 
+                        } 
+                    },
                 
                     present: { $sum: { $cond: [{ $eq: ['$status', 'Present'] }, 1, 0] } },
                     absent: { $sum: { $cond: [{ $eq: ['$status', 'Absent'] }, 1, 0] } },
@@ -163,10 +174,16 @@ const getDetailedDailyReport = async (req, res) => {
             return res.status(400).json({ error: 'Invalid month/year' });
         }
 
-        const monthStr = monthNum.toString().padStart(2, '0');
-        const prefix = `${yearNum}-${monthStr}`;
+        // Build date range for the month
+        const startDate = new Date(yearNum, monthNum - 1, 1); // First day of month
+        const endDate = new Date(yearNum, monthNum, 1); // First day of next month
 
-        const matchFilter = { attendanceDate: { $regex: `^${prefix}-` } };
+        const matchFilter = { 
+            attendanceDate: { 
+                $gte: startDate,
+                $lt: endDate
+            } 
+        };
         if (classNumber !== undefined) {
             const parsedClass = parseInt(classNumber, 10);
             if (!Number.isNaN(parsedClass)) {
@@ -203,7 +220,10 @@ const getDetailedDailyReport = async (req, res) => {
             }
             
             const student = studentMap.get(key);
-            const date = record.attendanceDate;
+            // Convert Date to YYYY-MM-DD string for consistent grouping
+            const date = record.attendanceDate instanceof Date 
+                ? record.attendanceDate.toISOString().split('T')[0]
+                : record.attendanceDate;
             
             if (!student.dailyAttendance.has(date)) {
                 student.dailyAttendance.set(date, {});

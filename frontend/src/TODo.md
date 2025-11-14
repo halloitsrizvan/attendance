@@ -74,11 +74,12 @@ toTime:
     evening:6:00}
 minus :- DB export excel  =  done
 
-Start leave, mark as returned എന്ന് click ചെയ്യുമ്പോൾ ഒരു confirmation box കൂടി ഉണ്ടാവണം
+Start leave, mark as returned എന്ന് click ചെയ്യുമ്പോൾ ഒരു confirmation box കൂടി ഉണ്ടാവണം - design popup = done 
+start leave /mark as return : Teacher to Docs :done
+leave status page- on Leave :done
 
-start leave /mark as return : Teacher to Docs
-leave status page- on Leave 
 attendance -on leave : DB boolean
+Medical Leave
 Convert date, time to datetime format.
 sort by current time/action
 

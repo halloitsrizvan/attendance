@@ -281,8 +281,14 @@ function AllClass({edit,id}) {
                  {classes.map((cls, index) => {
           //  Check if attendance already taken
        const alreadyTaken = preAttendance.some((record) => {
+      // Normalize attendanceDate to YYYY-MM-DD format for comparison
+      const recordDate = record.attendanceDate 
+        ? (typeof record.attendanceDate === 'string' 
+            ? record.attendanceDate.split('T')[0] 
+            : new Date(record.attendanceDate).toISOString().split('T')[0])
+        : null;
       const isSameClassAndDate =
-        record.class === cls.class && record.attendanceDate === date;
+        record.class === cls.class && recordDate === date;
 
       if (time === "Period") {
         return (

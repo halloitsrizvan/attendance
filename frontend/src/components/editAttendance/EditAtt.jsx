@@ -20,7 +20,7 @@ function EditAtt() {
   const [confirmAttendance, setConfirmAttendance] = useState(false)
   const [absentees, setAbsentees] = useState([])
   const [copy, setCopy] = useState(false)
-    const latestDate=students[0]?.attentenceDate
+    const latestDate=students[0]?.attendanceDate
     const latestTime=students[0]?.attentenceTime
     useEffect(() => {
       setLoad(true)
@@ -38,7 +38,9 @@ function EditAtt() {
             const latestByStudent = {};
             filteredData.forEach((s) => {
               const existing = latestByStudent[s.ad];
-              if (!existing || new Date(s.attentenceDate) > new Date(existing.attentenceDate)) {
+              const existingDate = existing?.attendanceDate ? new Date(existing.attendanceDate) : null;
+              const currentDate = s.attendanceDate ? new Date(s.attendanceDate) : null;
+              if (!existing || (currentDate && existingDate && currentDate > existingDate)) {
                 latestByStudent[s.ad] = s;
               }
             });
@@ -112,7 +114,7 @@ function EditAtt() {
           status: status[student.ad] || student.status, 
           SL: student.SL,
           attendanceTime: student.attentenceTime,
-          attendanceDate: student.attentenceDate,
+          attendanceDate: student.attendanceDate ? (typeof student.attendanceDate === 'string' ? new Date(student.attendanceDate).toISOString() : new Date(student.attendanceDate).toISOString()) : new Date().toISOString(),
           
         }));
 
@@ -147,7 +149,7 @@ function EditAtt() {
             CLASS: student.class ?? student.CLASS,
             Status: status[ad] ?? student.status ?? "Absent",
             Time: student.attentenceTime ?? student.Time ?? new Date().toLocaleTimeString(),
-            Date: student.attentenceDate ?? student.Date ?? new Date().toISOString().split("T")[0]
+            Date: student.attendanceDate ? (typeof student.attendanceDate === 'string' ? student.attendanceDate.split('T')[0] : new Date(student.attendanceDate).toISOString().split('T')[0]) : new Date().toISOString().split("T")[0]
           };
         });
         

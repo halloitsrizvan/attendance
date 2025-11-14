@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { Clock, Calendar, User, ArrowUpRight, CheckCircle, PlayCircle, RotateCcw } from 'lucide-react';
 import { API_PORT } from '../../Constants';
@@ -43,8 +43,10 @@ const TimeDisplay = ({ title, value, icon: Icon, isLate = false }) => {
     </div>
   );
 };
-const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassData }) => {
-  const { _id, classNum, ad, name, remainingTime, status, returnedAt, toDate, toTime } = classInfo;
+const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassData, teacher }) => {
+  const { _id, classNum, ad, name, remainingTime, status, returnedAt, toDate, toTime,fromTime,fromDate } = classInfo;
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const calculateRemainingTime = (toDate, toTime) => {
     if (!toDate || !toTime) return "—";
@@ -155,9 +157,17 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
 
     const newStatus = leave.status === 'Pending' ? 'active' : 'returned';
 
-    const response = await axios.put(`${API_PORT}/leave/${leaveId}`, {
-      status: newStatus
-    });
+    const payload = { status: newStatus };
+
+    if (newStatus === 'active' && teacher?.name) {
+      payload.leaveStartTeacher = teacher.name;
+    }
+
+    if (newStatus === 'returned' && teacher?.name) {
+      payload.markReturnedTeacher = teacher.name;
+    }
+
+    const response = await axios.put(`${API_PORT}/leave/${leaveId}`, payload);
 
     setClassData(prevData =>
       prevData.map(item => {
@@ -165,7 +175,9 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
           const updatedItem = {
             ...item,
             status: newStatus,
-            returnedAt: response.data.returnedAt
+            returnedAt: response.data.returnedAt,
+            leaveStartTeacher: response.data.leaveStartTeacher ?? item.leaveStartTeacher,
+            markReturnedTeacher: response.data.markReturnedTeacher ?? item.markReturnedTeacher
           };
 
           // Compute display status instantly (no refresh needed)
@@ -242,12 +254,23 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
       icon: CheckCircle
     };
   };
-
-
-
   const buttonState = getButtonState();
+  const actionDescription = buttonState.text.toLowerCase();
+
+  const handleActionWithConfirm = async () => {
+    setIsProcessing(true);
+    try {
+      await handleReturn(_id);
+      setShowConfirm(false);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   return (
+    <>
     <div className="bg-white shadow-md rounded-xl overflow-hidden w-full">
       {/* --- Card Header (Green) --- */}
       <div className="bg-gradient-to-l from-emerald-600 to-emerald-700 text-white p-4 flex justify-between items-center">
@@ -261,11 +284,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
         <button 
           className={`flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg shadow-sm transition-colors duration-200 ${buttonState.className}`}
           disabled={buttonState.disabled}
-          onClick={() => {
-            if(window.confirm(`Are you sure to ${buttonState.text}`)){
-              handleReturn(_id)
-            }
-          }}
+          onClick={() => setShowConfirm(true)}
         >
           <buttonState.icon size={16}/>
           
@@ -282,6 +301,72 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
         <InfoColumn title="Returned At" value={formatReturnedTime(returnedAt)} />
       </div>
     </div>
+    {showConfirm && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+        <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900">Confirm Action</h3>
+            <button
+              onClick={() => !isProcessing && setShowConfirm(false)}
+              className="text-gray-400 hover:text-gray-500 transition-colors"
+              aria-label="Close confirmation dialog"
+            >
+              ✕
+            </button>
+          </div>
+          <p className="mt-3 text-sm text-gray-600">
+            You are about to {actionDescription} for <span className="font-semibold text-gray-900">{name}</span>. This will update the leave status.
+          </p>
+          <div className="mt-6 space-y-3">
+            <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-100 border border-gray-200 rounded-xl px-3 py-2">
+              <Calendar size={14} className="text-gray-400" />
+             {actionDescription === "start leave" ?
+              <span>From Date & Time: {fromDate} {new Date(`${fromDate}T${fromTime}`).toLocaleTimeString([], {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+              })
+              } </span>:actionDescription === "mark returned" ?
+              <span>To Date & Time: {toDate} {new Date(`${toDate}T${toTime}`).toLocaleTimeString([], {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+              })
+              } </span>:null}
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                className="flex-1 border border-gray-200 text-gray-600 font-medium py-2.5 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                onClick={() => setShowConfirm(false)}
+                disabled={isProcessing}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white font-semibold transition-colors disabled:opacity-70 disabled:cursor-wait ${isProcessing ? 'bg-emerald-400' : 'bg-emerald-600 hover:bg-emerald-700'}`}
+                onClick={handleActionWithConfirm}
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <span className="flex items-center gap-2">
+                    <span className="inline-block w-4 h-4 border-2 border-white/60 border-t-white rounded-full animate-spin"></span>
+                    Processing
+                  </span>
+                ) : (
+                  <>
+                    <CheckCircle size={16} />
+                    Confirm
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 };
 // "Remaining/Late Time"
@@ -317,6 +402,16 @@ const InfoColumn = ({ title, value, children }) => {
 };
 
 function LeaveStatusTable() {
+  const teacher = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const stored = localStorage.getItem("teacher");
+      return stored ? JSON.parse(stored) : null;
+    } catch (error) {
+      console.error('Failed to parse teacher from localStorage:', error);
+      return null;
+    }
+  }, []);
   const [classData, setClassData] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -430,6 +525,7 @@ function LeaveStatusTable() {
                 classData={classData}
                 setClassData={setClassData}
                 getLeaveStatus={getLeaveStatus}
+                teacher={teacher}
                 />
 
           ))}
@@ -442,3 +538,4 @@ function LeaveStatusTable() {
 }
 
 export default LeaveStatusTable;
+

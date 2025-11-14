@@ -29,7 +29,7 @@ const attendanceSchema = new Schema({
         required: true
     },
     attendanceDate: {
-        type: String,
+        type: Date,
         required: true
     },
     teacher: {
@@ -40,6 +40,9 @@ const attendanceSchema = new Schema({
         type: Number
     },
     more: {
+        type: String
+    },
+    custom: {
         type: String
     }
 },{timestamps:true})

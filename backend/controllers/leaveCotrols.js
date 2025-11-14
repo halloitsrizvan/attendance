@@ -49,7 +49,7 @@ const updateLeaveStatus = async (req, res) => {
     }
     
     try {
-        const { status } = req.body;
+        const { status, leaveStartTeacher, markReturnedTeacher } = req.body;
         
         const updateData = {};
         
@@ -58,6 +58,22 @@ const updateLeaveStatus = async (req, res) => {
             updateData.returnedAt = new Date();
         } else if (status) {
             updateData.status = status;
+        }
+
+        if (status === 'active' && leaveStartTeacher) {
+            updateData.leaveStartTeacher = leaveStartTeacher;
+        }
+
+        if (status === 'returned' && markReturnedTeacher) {
+            updateData.markReturnedTeacher = markReturnedTeacher;
+        }
+
+        if (leaveStartTeacher && status !== 'active') {
+            updateData.leaveStartTeacher = leaveStartTeacher;
+        }
+
+        if (markReturnedTeacher && status !== 'returned') {
+            updateData.markReturnedTeacher = markReturnedTeacher;
         }
         
         const leave = await Leave.findByIdAndUpdate(

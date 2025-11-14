@@ -83,7 +83,7 @@ function Hajar() {
       status: attendance[student.ADNO] || "Absent",
       SL:student.SL,
       attendanceTime: time,
-      attendanceDate:(date || new Date().toISOString().split("T")[0]),
+      attendanceDate: date ? new Date(date + 'T00:00:00').toISOString() : new Date().toISOString(),
       teacher:teacher.name,
       ...(period && {period:period}),
       ...(more && {custom:more})
@@ -467,13 +467,13 @@ function Hajar() {
         <div className="flex flex-row gap-2 sm:gap-3">
         <button
           onClick={() => setConfirmAttendance(false)}
-          className="flex-1 px-3 sm:px-4 py-2 bg-gray-300 text-sm sm:text-base rounded-lg hover:bg-gray-400 transition"
+          className="flex-2 px-3 sm:px-4 py-2 bg-gray-300 text-sm sm:text-base rounded-lg hover:bg-gray-400 transition"
         >
           Cancel
         </button>
         <button
           onClick={handleCopyAbsentees}
-          className="flex-1 px-3 sm:px-4 py-2 bg-green-500 text-white text-sm sm:text-base rounded-lg hover:bg-green-600 transition ">
+          className="flex-2 px-3 sm:px-4 py-2 bg-green-500 text-white text-sm sm:text-base rounded-lg hover:bg-green-600 transition ">
           {copy ? "Copied" : "Copy"}
         </button>
 

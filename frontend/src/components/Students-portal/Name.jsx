@@ -194,7 +194,13 @@ function Name() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {studentAttendance.map((log, index) => (
                     <tr key={index} className="hover:bg-blue-50/50 transition-colors">
-                      <td className="p-3 text-sm font-medium text-gray-800">{log.attendanceDate}</td>
+                      <td className="p-3 text-sm font-medium text-gray-800">
+                        {log.attendanceDate 
+                          ? (typeof log.attendanceDate === 'string' 
+                              ? new Date(log.attendanceDate).toLocaleDateString() 
+                              : new Date(log.attendanceDate).toLocaleDateString())
+                          : 'N/A'}
+                      </td>
                         <td className="p-3 text-sm text-gray-600">{log.attendanceTime} 
                           {log.attendanceTime === "Period" && (<span className="text-gray-500 text-xs"> ({log.period ||log.teacher})</span>)}</td>
                       {/* <td className="p-3 text-sm text-gray-600">{log.teacher}</td> */}
