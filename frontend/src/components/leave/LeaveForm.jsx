@@ -288,8 +288,15 @@ function LeaveForm() {
     axios.post(`${API_PORT}/leave`, payload)
       .then(() => {
         console.log("Leave submitted successfully!");
-        
-        resetForm();
+        // axios.patch(`${API_PORT}/students/on-leave/${ad}`, {onLeave: true})
+        // .then(() => {
+        //   console.log("Student on leave updated successfully!");
+        //   resetForm();
+        // })
+        // .catch((err) => {
+        //   console.log("Error updating student on leave", err);
+        //   alert("Error updating student on leave. Please try again.");
+        // });
       })
       .catch((err) => {
         console.log("Error submitting leave", err);
@@ -297,6 +304,8 @@ function LeaveForm() {
       })
       .finally(() =>{ setLoading(false); navigate('/leave')});
   };
+  
+
 
   // Function to reset form
   const resetForm = () => {

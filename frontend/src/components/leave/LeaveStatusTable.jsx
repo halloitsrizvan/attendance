@@ -161,10 +161,28 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
 
     if (newStatus === 'active' && teacher?.name) {
       payload.leaveStartTeacher = teacher.name;
+      
+      axios.patch(`${API_PORT}/students/on-leave/${ad}`, {onLeave: true})
+        .then(() => {
+          console.log("Student on leave updated successfully!");
+        })
+        .catch((err) => {
+          console.log("Error updating student on leave", err);
+          alert("Error updating student on leave. Please try again.");
+        });
     }
 
     if (newStatus === 'returned' && teacher?.name) {
       payload.markReturnedTeacher = teacher.name;
+
+      axios.patch(`${API_PORT}/students/on-leave/${ad}`, {onLeave: false})
+        .then(() => {
+          console.log("Student on leave updated successfully!");
+        })
+        .catch((err) => {
+          console.log("Error updating student on leave to false", err);
+          alert("Error updating student on leave to false. Please try again.");
+        });
     }
 
     const response = await axios.put(`${API_PORT}/leave/${leaveId}`, payload);

@@ -36,6 +36,10 @@ const studentsSchema =new Schema ({
     Password:{
         type: Number,
         required: true
+    },
+    onLeave:{
+        type: Boolean,
+        default: false
     }
 
 },{timestamps:true})

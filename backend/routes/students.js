@@ -6,7 +6,7 @@ const {createStudents,
     deleteStudents,
     updateStudents,
     filterByClass,
-    updateManyStudents,loginStudent,me} = require('../controllers/studentsControls')
+    updateManyStudents,loginStudent,me,updateStudentOnLeave} = require('../controllers/studentsControls')
     const { authStudentToken } = require('../utils/studentAuthMiddleware')
 
 //get all Students
@@ -27,7 +27,7 @@ router.delete('/:id',deleteStudents)
 
 //update Students
 router.patch('/:id',updateStudents)
-
+router.patch('/on-leave/:ad',updateStudentOnLeave) 
 router.patch('/bulk-update/students',updateManyStudents)
 
 module.exports = router;

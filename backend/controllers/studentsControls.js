@@ -150,11 +150,33 @@ const updateStudents = async(req,res)=>{
             updateData.Password = numericPassword;
         }
 
+      
+
         const students = await Student.findByIdAndUpdate({_id:id}, updateData, { new: true });
 
         if(!students){
             return res.status(404).json({error:'such document not fount'})
         }
+        res.status(200).json(students)
+    } catch (err) {
+        res.status(400).json({error: err.message});
+    }
+}
+
+const updateStudentOnLeave = async(req,res)=>{
+    try{
+        const {ad} = req.params
+        const { onLeave } = req.body;
+        const students = await Student.findOne({ADNO:Number(ad)})
+        if(!students){
+            return res.status(404).json({error:'student not found'})
+        }
+        if(onLeave === true){
+            students.onLeave = true
+        }else{
+            students.onLeave = false
+        }
+        await students.save()
         res.status(200).json(students)
     } catch (err) {
         res.status(400).json({error: err.message});
@@ -200,6 +222,7 @@ module.exports = {
     filterByClass,
     updateManyStudents,
     loginStudent,
+    updateStudentOnLeave,
     me:(req,res)=>{
         if (!req.students) return res.status(401).json({ error: 'Unauthorized' })
             return res.status(200).json({ students: req.students })
