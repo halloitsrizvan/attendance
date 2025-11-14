@@ -44,7 +44,11 @@ function Hajar() {
 
         // set all initially
         filtered.forEach((s) => {
-          initialAttendance[s.ADNO] = "Present";
+          if(s.onLeave){
+            initialAttendance[s.ADNO] = "On Leave";
+          }else{
+            initialAttendance[s.ADNO] = "Present";
+          }
         });
 
         setStudents(filtered);
@@ -58,10 +62,18 @@ function Hajar() {
   }, [id,period]);
 
   const handleCheckboxChange = (ad, isChecked) => {
-    setAttendance((prev) => ({
-      ...prev,
-      [ad]: isChecked ? "Present" : "Absent",
-    }));
+    const student = students.find(s => s.ADNO === ad);
+  
+    // If student is on leave, don't allow changing status
+    if (student && student.onLeave) {
+      alert("Student is on leave, cannot change status");
+      return;
+    }else{
+      setAttendance((prev) => ({
+        ...prev,
+        [ad]: isChecked ? "Present" : "Absent",
+      }));
+    }
   };
   const preSumbit=(e)=>{
     e.preventDefault();
@@ -86,7 +98,8 @@ function Hajar() {
       attendanceDate: date ? new Date(date + 'T00:00:00').toISOString() : new Date().toISOString(),
       teacher:teacher.name,
       ...(period && {period:period}),
-      ...(more && {custom:more})
+      ...(more && {custom:more}),
+      onLeave: student.onLeave,
     }));
 
     try {
@@ -121,7 +134,6 @@ function Hajar() {
         Status: attendance[student.ADNO] || "Absent",
         Time: time,
         Date:date ||new Date().toISOString().split("T")[0],
-        
         
       }));
 
@@ -168,6 +180,7 @@ function Hajar() {
   const [quickAction,setQuickAction] = useState("All Absent")
 
   const handleQuickAction = () => {
+
     setQuickAction(prev => prev === "Previous" ? "All Present" : prev === "All Present" ? "All Absent" : "Previous");
     const updated = {};
     students.forEach((s) => (updated[s.ADNO] = quickAction === "Previous" ? s.Status : quickAction === "All Present" ? "Present" : "Absent"));
@@ -351,12 +364,13 @@ function Hajar() {
                       className={`px-4 py-1 rounded-full font-medium transition ${
                         attendance[student.ADNO] === "Present"
                           ? "bg-green-500 text-white hover:bg-green-600"
+                          : student.onLeave === true
+                          ? "bg-yellow-500 text-white hover:bg-yellow-600"
                           : "bg-red-500 text-white hover:bg-red-600"
                       } ${student.Status=="Absent"&& attendance[student.ADNO] === "Absent"    &&   "border-2 border-blue-600"}`}
                     >
                       {attendance[student.ADNO] === "Present"
-                        ? "Present"
-                        : "Absent"}
+                        ? "Present": student.onLeave === true ? "On Leave" : "Absent"}
                     </button>
                    {/* {student.Status =="Absent" && <span class="bg-red-100 text-red-800 text-xs  me-2 px-2.5 py-0.5 rounded-full dark:bg-red-900 dark:text-red-300"></span>} */}
                   </td>

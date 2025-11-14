@@ -47,7 +47,6 @@ const attendanceSchema = new Schema({
     },
     onLeave:{
         type: Boolean,
-        default: false
     }
 },{timestamps:true})
 
