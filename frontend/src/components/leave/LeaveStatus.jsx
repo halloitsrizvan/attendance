@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Calendar, Clock, CheckCircle, AlertCircle, User, XCircle, RefreshCw, ChevronRight } from 'lucide-react';
+import { Calendar, Clock, CheckCircle, AlertCircle, User, XCircle, RefreshCw, ChevronRight,FileSignature} from 'lucide-react';
 import axios from 'axios';
 import { API_PORT } from '../../Constants';
 
@@ -86,7 +86,8 @@ const StudentStatusCard = ({ student }) => {
         day: 'numeric',
         hour: 'numeric',
         minute: '2-digit',
-        hour12: true
+        hour12: true,
+        weekday: 'short',
       });
     } catch (error) {
       return `${date} ${time}`;
@@ -113,9 +114,10 @@ const StudentStatusCard = ({ student }) => {
   const statusColor = isArrived 
     ? student.displayStatus === 'Late Returned' ? 'bg-orange-500' : 'bg-green-500'
     : student.displayStatus === 'On Leave' 
-    ? 'bg-blue-500'
+    ? 'bg-red-500'
     : student.displayStatus === 'Late'
-    ? 'bg-orange-500'
+    ? 'bg-orange-500':student.displayStatus==='Scheduled'? " bg-yellow-500"
+    : student.displayStatus==='Pending'? "bg-blue-500"
     : 'bg-red-500';
 
   const returnedTime = formatReturnedTime(student.returnedAt);
@@ -174,7 +176,7 @@ const StudentStatusCard = ({ student }) => {
           {/* Teacher who created leave */}
           {student.teacher && (
             <div className="flex items-center gap-1 text-indigo-600 bg-indigo-50 px-2 py-1 rounded">
-              <User size={12} />
+              <FileSignature size={12} />
               <span className="font-medium">{student.teacher}</span>
             </div>
           )}
@@ -277,9 +279,9 @@ function LeaveStatus() {
   };
 
   const filteredData = useMemo(() => {
-    if (activeTab === 'notArrived') {
+    if (activeTab === 'onLeave') {
       return leaveData.filter(student => 
-        ['On Leave', 'Late', 'Pending', 'Scheduled'].includes(student.displayStatus)
+        ['On Leave', 'Late', 'Pending'].includes(student.displayStatus)
       );
     }
     return leaveData;
@@ -380,9 +382,9 @@ function LeaveStatus() {
             onClick={() => setActiveTab('all')}
           />
           <TabButton 
-            label={`Not Arrived (${notArrivedCount})`}
-            isActive={activeTab === 'notArrived'}
-            onClick={() => setActiveTab('notArrived')}
+            label={`On leave (${notArrivedCount})`}
+            isActive={activeTab === 'onLeave'}
+            onClick={() => setActiveTab('onLeave')}
           />
         </div>
   

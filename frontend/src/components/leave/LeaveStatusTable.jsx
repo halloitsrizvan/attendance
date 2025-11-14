@@ -250,7 +250,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
     if (status === 'On Leave' || status === 'Late') {
       return { 
         disabled: false, 
-        text: 'Mark Returned', 
+        text: 'Mark Return', 
         className: 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-md',
         icon: CheckCircle
       };
@@ -445,7 +445,11 @@ function LeaveStatusTable() {
           ...item,
           status: getLeaveStatus(item)
         }));
-        setClassData(processedData);
+        const filter = processedData.filter((data) => {
+          const status = getLeaveStatus(data);
+          return ['Scheduled', 'Pending','On Leave','Late'].includes(status);
+        });
+        setClassData(filter);
         setLoading(false);
       })
       .catch(err => {
