@@ -146,7 +146,7 @@ function LeaveForm() {
 
   useEffect(()=>{
      if (teacher?.role === "teacher") {
-      navigate('/leave');
+      navigate('/leave-dashboard');
     }
   },[teacher.role])
 
@@ -354,7 +354,7 @@ function LeaveForm() {
 
       <button
         className="flex items-center gap-2 px-4 py-2 rounded-md bg-green-500 text-white  text-lg font-medium shadow-sm hover:bg-green-600 transition mb-2 ml-2"
-        onClick={() => navigate(`/leave`)}
+        onClick={() => navigate(`/leave-dashboard`)}
       >
         <FaHome /> Leave Dashboard
       </button>
