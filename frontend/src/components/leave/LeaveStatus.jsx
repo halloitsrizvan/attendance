@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Calendar, Clock, CheckCircle, AlertCircle, User, XCircle, RefreshCw, ChevronRight,FileSignature} from 'lucide-react';
 import axios from 'axios';
 import { API_PORT } from '../../Constants';
-
+import LeaveStatusTable from './LeaveStatusTable';
 const TabButton = ({ label, isActive, onClick }) => (
   <button
     onClick={onClick}
@@ -26,14 +26,14 @@ const StatusBadge = ({ status }) => {
         label: 'Arrived'
       },
       'Late Returned': { 
-        bg: 'bg-orange-100', 
-        text: 'text-orange-700', 
+        bg: 'bg-green-100', 
+        text: 'text-orange-600', 
         icon: AlertCircle,
         label: 'Late Returned'
       },
       'On Leave': { 
-        bg: 'bg-blue-100', 
-        text: 'text-blue-700', 
+        bg: 'bg-red-100', 
+        text: 'text-red-700', 
         icon: Clock,
         label: 'On Leave'
       },
@@ -112,7 +112,7 @@ const StudentStatusCard = ({ student }) => {
 
   const isArrived = student.displayStatus === 'Arrived' || student.displayStatus === 'Late Returned';
   const statusColor = isArrived 
-    ? student.displayStatus === 'Late Returned' ? 'bg-orange-500' : 'bg-green-500'
+    ? student.displayStatus === 'Late Returned' ? 'bg-green-500' : 'bg-green-500'
     : student.displayStatus === 'On Leave' 
     ? 'bg-red-500'
     : student.displayStatus === 'Late'
@@ -211,7 +211,7 @@ const StudentStatusCard = ({ student }) => {
 };
 
 function LeaveStatus() {
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState('actions');
   const [leaveData, setLeaveData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -281,7 +281,7 @@ function LeaveStatus() {
   const filteredData = useMemo(() => {
     if (activeTab === 'onLeave') {
       return leaveData.filter(student => 
-        ['On Leave', 'Late', 'Pending'].includes(student.displayStatus)
+        ['On Leave', 'Late'].includes(student.displayStatus)
       );
     }
     return leaveData;
@@ -376,6 +376,11 @@ function LeaveStatus() {
         
         {/* Compact Tabs */}
         <div className="flex gap-2 mb-4 p-1 bg-white rounded-lg shadow-sm w-full sm:w-auto">
+        <TabButton 
+            label={`Actions`}
+            isActive={activeTab === 'actions'}
+            onClick={() => setActiveTab('actions')}
+          />
           <TabButton 
             label={`All (${leaveData.length})`}
             isActive={activeTab === 'all'}
@@ -386,9 +391,11 @@ function LeaveStatus() {
             isActive={activeTab === 'onLeave'}
             onClick={() => setActiveTab('onLeave')}
           />
+           
         </div>
   
         {/* Cards Grid - Mobile First */}
+        {activeTab !== 'actions'?
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {filteredData.length > 0 ? (
             filteredData.map((student) => (
@@ -405,7 +412,10 @@ function LeaveStatus() {
               </div>
             </div>
           )}
-        </div>
+        </div>:
+        <div>
+          <LeaveStatusTable/>
+        </div>}
       </div>
     </div>
   );

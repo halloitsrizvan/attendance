@@ -302,29 +302,31 @@ function LeaveForm() {
         console.log("Error submitting leave", err);
         alert("Error submitting leave. Please try again.");
       })
-      .finally(() =>{ setLoading(false); navigate('/leave')});
+      .finally(() =>{ setLoading(false); 
+       
+          setAd('');
+          setStudent(null);
+          setName('');
+          setClassNum('');
+          setFromDate('Today');
+          setFromTime('Evening');
+          setFromCustomDate('');
+          setFromCustomTime('');
+          setToDate('Tomorrow');
+          setToTime('Evening');
+          setToCustomDate('');
+          setToCustomTime('');
+          setReason('Medical');
+          setCustomReason('');
+          setSuggestions([]);
+        
+      });
   };
   
 
 
   // Function to reset form
-  const resetForm = () => {
-    setAd('');
-    setStudent(null);
-    setName('');
-    setClassNum('');
-    setFromDate('Today');
-    setFromTime('Morning');
-    setFromCustomDate('');
-    setFromCustomTime('');
-    setToDate('Tomorrow');
-    setToTime('Night');
-    setToCustomDate('');
-    setToCustomTime('');
-    setReason('Medical');
-    setCustomReason('');
-    setSuggestions([]);
-  };
+  
 
   return (
     <div className="min-h-screen bg-gray-100 text-gray-800 font-inter p-4 sm:p-8 mt-16">

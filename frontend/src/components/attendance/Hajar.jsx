@@ -45,7 +45,7 @@ function Hajar() {
         // set all initially
         filtered.forEach((s) => {
           if(s.onLeave){
-            initialAttendance[s.ADNO] = "On Leave";
+            initialAttendance[s.ADNO] = "Absent";
           }else{
             initialAttendance[s.ADNO] = "Present";
           }
@@ -95,13 +95,13 @@ function Hajar() {
       status: attendance[student.ADNO] || "Absent",
       SL:student.SL,
       attendanceTime: time,
-      attendanceDate: date ? new Date(date + 'T00:00:00').toISOString() : new Date().toISOString(),
+      attendanceDate:   new Date(),
       teacher:teacher.name,
       ...(period && {period:period}),
       ...(more && {custom:more}),
       onLeave: student.onLeave,
     }));
-
+//attendanceDate:  date ||  new Date().toISOString().split('T')[0],
     try {
       
       await axios.post(`${API_PORT}/set-attendance`, payload);
@@ -367,7 +367,8 @@ function Hajar() {
                           : student.onLeave === true
                           ? "bg-yellow-500 text-white hover:bg-yellow-600"
                           : "bg-red-500 text-white hover:bg-red-600"
-                      } ${student.Status=="Absent"&& attendance[student.ADNO] === "Absent"    &&   "border-2 border-blue-600"}`}
+                      } `}
+                      //${student.Status=="Absent"&& attendance[student.ADNO] === "Absent"    &&   "border-2 border-blue-600"}
                     >
                       {attendance[student.ADNO] === "Present"
                         ? "Present": student.onLeave === true ? "On Leave" : "Absent"}
