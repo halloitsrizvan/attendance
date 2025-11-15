@@ -355,6 +355,7 @@ function Hajar() {
                   <td className="border border-gray-300 px-4 py-2 text-center">
                     <button
                       type="button"
+                      disabled={student.onLeave === true}
                       onClick={() =>
                         handleCheckboxChange(
                           student.ADNO,
