@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Calendar, Clock, CheckCircle, AlertCircle, User, XCircle, RefreshCw, ChevronRight,FileSignature} from 'lucide-react';
-import axios from 'axios';
+import { Calendar, Clock, CheckCircle, AlertCircle, User, XCircle, RefreshCw, ChevronRight, FileSignature } from 'lucide-react';import axios from 'axios';
 import { API_PORT } from '../../Constants';
 import LeaveStatusTable from './LeaveStatusTable';
 const TabButton = ({ label, isActive, onClick }) => (
@@ -215,7 +214,7 @@ function LeaveStatus() {
   const [leaveData, setLeaveData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
+  const [selectedClass, setSelectedClass] = useState(null);
   // Calculate leave status
   const getLeaveStatus = (item) => {
     const now = new Date();
@@ -277,6 +276,53 @@ function LeaveStatus() {
         setLoading(false);
       });
   };
+  // In your main component, add these computed values
+const getLeaveStatusForTable = (item) => {
+  const now = new Date();
+  const fromDateTime = new Date(`${item.fromDate}T${item.fromTime}`);
+  const toDateTime = new Date(`${item.toDate}T${item.toTime}`);
+
+  // Returned logic
+  if (item.status === 'returned') {
+    if (item.returnedAt && new Date(item.returnedAt) > toDateTime) {
+      return 'Late Returned';
+    }
+    return 'Returned';
+  }
+
+  // Before leave start
+  if (now < fromDateTime) return 'Scheduled';
+
+  // Time has come, but leave not started yet
+  if (now >= fromDateTime && item.status === 'Scheduled') {
+    return 'Pending';
+  }
+
+  // Leave running normally
+  if (now >= fromDateTime && now <= toDateTime && item.status === 'active') return 'On Leave';
+
+  // Leave ended but student not returned
+  if (now > toDateTime && item.status !== 'returned') return 'Late';
+
+  return item.status;
+};
+
+// Get data for actions table
+const actionsTableData = useMemo(() => {
+  return leaveData
+    .map(item => ({
+      ...item,
+      status: getLeaveStatusForTable(item)
+    }))
+    .filter(data => {
+      return ['Scheduled', 'Pending', 'On Leave', 'Late'].includes(data.status);
+    });
+}, [leaveData]);
+
+// Refresh function to pass
+const refreshLeaveData = () => {
+  fetchLeaveData();
+};
 
   const filteredData = useMemo(() => {
     if (activeTab === 'onLeave') {
@@ -288,9 +334,7 @@ function LeaveStatus() {
   }, [leaveData, activeTab]);
 
   const notArrivedCount = useMemo(() => {
-    return leaveData.filter(s => 
-      ['On Leave', 'Late', 'Pending', 'Scheduled'].includes(s.displayStatus)
-    ).length;
+    return filteredData.filter(student=>student.status==="active").length;
   }, [leaveData]);
 
   const arrivedCount = useMemo(() => {
@@ -300,6 +344,8 @@ function LeaveStatus() {
   const onLeaveCount = useMemo(() => {
     return leaveData.filter(s => s.displayStatus === 'On Leave').length;
   }, [leaveData]);
+
+  const [showAllAbsenties,setShowAllAbsenties] = useState(false)
 
   if (loading) {
     return (
@@ -398,9 +444,67 @@ function LeaveStatus() {
         {activeTab !== 'actions'?
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {filteredData.length > 0 ? (
-            filteredData.map((student) => (
+            <>
+            {activeTab === 'onLeave' && 
+          <div className="mb-4">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                
+                <h2 className="text-lg font-semibold text-gray-900">Class-wise Absentees</h2>
+              </div>
+              
+              <div className="grid grid-cols-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                {(() => {
+                  // Calculate absentees by class
+                  const classAbsentees = {};
+                  
+                  filteredData.forEach(student => {
+                    const classNum = student.classNum;
+                    if (!classAbsentees[classNum]) {
+                      classAbsentees[classNum] = 0;
+                    }
+                    classAbsentees[classNum]++;
+                  });
+                  
+                  // Convert to array and sort by class number
+                  const sortedClasses = Object.entries(classAbsentees)
+                    .map(([classNum, count]) => ({ classNum, count }))
+                    .sort((a, b) => a.classNum - b.classNum);
+
+                    console.log(classAbsentees);
+                    // const totalLeave=filteredData.filter(student=>student.status==="active")
+                    // console.log(totalLeave.length);
+                    
+                    
+                  
+                  return sortedClasses.map(({ classNum, count }) => (
+                    <div key={classNum} className="text-center p-3 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer"
+                    onClick={()=> setSelectedClass(Number(classNum))}
+                    >
+                      <div className="text-2xl font-bold text-gray-900">{count}</div>
+                      <div className="text-sm text-gray-600">Class {classNum}</div>
+                    </div>
+                  ));
+                })()}
+              </div>
+              
+              {/* Total Absentees Summary */}
+              {/* <div className="mt-3 pt-3 border-t border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                  
+                    <span className="font-semibold text-gray-700">Total Absentees:</span>
+                  </div>
+                  <span className="text-xl font-bold text-red-600">{filteredData.length}</span>
+                </div>
+              </div> */}
+            </div>
+          </div>
+        }
+            {filteredData.map((student) => (
               <StudentStatusCard key={student._id} student={student} />
-            ))
+            ))}
+            </>
           ) : (
             <div className="col-span-full">
               <div className="text-center text-gray-500 mt-8 p-8 bg-white rounded-lg shadow-sm">
@@ -414,9 +518,61 @@ function LeaveStatus() {
           )}
         </div>:
         <div>
-          <LeaveStatusTable/>
+          <LeaveStatusTable 
+          classData={actionsTableData}
+          onDataUpdate={refreshLeaveData}
+          getLeaveStatus={getLeaveStatusForTable}
+        />
         </div>}
       </div>
+      {/* Class Students Popup */}
+  {selectedClass && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+    <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] overflow-hidden">
+      
+      <div className="flex items-center justify-between p-4 border-b border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-900">
+          Class {selectedClass} - Absent Students
+        </h3>
+        <button
+          onClick={() => setSelectedClass(null)}
+          className="text-gray-400 hover:text-gray-500 transition-colors"
+        >
+          <XCircle size={20} />
+        </button>
+      </div>
+      
+      
+      <div className="p-4 overflow-y-auto max-h-96">
+        {filteredData
+          .filter(student => student.classNum === selectedClass)
+          .map(student => (
+            <div key={student._id} className="flex items-center justify-between py-2 px-3 border-b border-gray-100 last:border-b-0">
+              <div className="flex-1">
+                <div className="font-medium text-gray-900">{student.name}</div>
+                <div className="text-sm text-gray-500">AD: {student.ad}</div>
+              </div>
+              <StatusBadge status={student.displayStatus} />
+            </div>
+          ))
+        }
+        
+        {filteredData.filter(student => student.classNum === selectedClass).length === 0 && (
+          <div className="text-center text-gray-500 py-4">
+            No students found in Class {selectedClass}
+          </div>
+        )}
+      </div>
+      
+      {/* Footer */}
+      <div className="p-4 border-t border-gray-200 bg-gray-50">
+        <div className="text-sm text-gray-600 text-center">
+          Total: {filteredData.filter(student => student.classNum === selectedClass).length} students
+        </div>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }
