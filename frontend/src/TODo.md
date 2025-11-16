@@ -91,7 +91,29 @@ short leave:-
         period:[0-10]
         timeSelection
     }
-
+{
+  "_id": {
+    "$oid": "6919bb4b80fa540b8ee33d57"
+  },
+  "ad": 414,
+  "classNum": 9,
+  "fromDate": "2025-11-16",
+  "fromTime": "07:30",
+  "name": "SHIBILY",
+  "reason": "Sakshi",
+  "toDate": "2025-11-16",
+  "toTime": "12:10",
+  "status": "Scheduled",
+  "teacher": "TEST",
+  "returnedAt": null,
+  "createdAt": {
+    "$date": "2025-11-16T11:53:47.157Z"
+  },
+  "updatedAt": {
+    "$date": "2025-11-16T11:53:47.157Z"
+  },
+  "__v": 0
+}
 
 Medical Leave
 sort by current time/action

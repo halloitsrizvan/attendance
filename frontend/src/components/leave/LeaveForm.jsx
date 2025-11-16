@@ -4,21 +4,21 @@ import axios from 'axios';
 import { API_PORT } from '../../Constants';
 import DatePicker from './DatePicker';
 import { FaHome, FaSadCry } from "react-icons/fa";
-import {Plus} from 'lucide-react'
-const SelectionButton = ({ label, isSelected, onClick ,type}) => (
-   <button
+import { Plus, Minus } from 'lucide-react';
+
+const SelectionButton = ({ label, isSelected, onClick, type }) => (
+  <button
     onClick={onClick}
     className={`w-full py-2 px-3 text-sm font-medium border rounded-lg transition-all duration-200
       ${isSelected
-        ? type === "From Date" || type === "From Time"? 'bg-indigo-600 text-white border-indigo-600 shadow-md transform scale-[1.02]' 
-        : type=="Reason"? "bg-red-600 text-white border-indigo-600 shadow-md transform scale-[1.02]"
-        :'bg-green-600 text-white border-indigo-600 shadow-md transform scale-[1.02]' 
+        ? type === "From Date" || type === "From Time" ? 'bg-indigo-600 text-white border-indigo-600 shadow-md transform scale-[1.02]'
+          : type === "Reason" ? "bg-red-600 text-white border-indigo-600 shadow-md transform scale-[1.02]"
+            : 'bg-green-600 text-white border-indigo-600 shadow-md transform scale-[1.02]'
         : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
       }
     `}
   >
     {label}
-      
   </button>
 );
 
@@ -58,23 +58,115 @@ const TimePicker = ({ label, selectedTime, setSelectedTime, options, customTime,
   </div>
 );
 
-const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCustomReason }) => {
- const teacher = localStorage.getItem("teacher")
+const ShortLeaveTimePicker = ({ fromPeriod, setFromPeriod, toPeriod, setToPeriod, fromCustomTime, setFromCustomTime, toCustomTime, setToCustomTime }) => {
+  const periodOptions = Array.from({ length: 11 }, (_, i) => i); // 0 to 10
+
+  const getPeriodTimeRange = (period) => {
+    const timeRanges = {
+      0: "Custom Time",
+      1: "7:30 AM - 8:10 AM",
+      2: "8:10 AM - 8:50 AM",
+      3: "8:50 AM - 10:00 AM",
+      4: "10:00 AM - 10:40 AM",
+      5: "10:40 AM - 11:20 AM",
+      6: "11:30 AM - 12:10 PM",
+      7: "12:10 PM - 12:50 PM",
+      8: "2:00 PM - 2:40 PM",
+      9: "2:40 PM - 3:20 PM",
+      10: "3:20 PM - 4:10 PM"
+    };
+    return timeRanges[period] || "Custom";
+  };
+
+  return (
+    <div className="p-4 bg-white rounded-xl shadow-inner border border-gray-200">
+   
+      
+      {/* From Period */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-2">From Period</label>
+        <select
+          value={fromPeriod}
+          onChange={(e) => setFromPeriod(parseInt(e.target.value))}
+          className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+        >
+          {periodOptions.map(period => (
+            <option key={`from-${period}`} value={period}>
+             {period==0?"Custom Time":`Period ${period}` }
+               {/* {getPeriodTimeRange(period)} */}
+            </option>
+          ))}
+        </select>
+        
+        {fromPeriod === 0 && (
+          <div className="mt-2">
+            <label className="block text-sm font-medium text-indigo-600 mb-1">
+              Custom From Time:
+            </label>
+            <input
+              type="time"
+              value={fromCustomTime}
+              onChange={(e) => setFromCustomTime(e.target.value)}
+              className="w-full border border-indigo-300 rounded-lg p-2 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+        )}
+      </div>
+
+      {/* To Period */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">To Period</label>
+        <select
+          value={toPeriod}
+          onChange={(e) => setToPeriod(parseInt(e.target.value))}
+          className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+        >
+          {periodOptions.map(period => (
+            <option key={`to-${period}`} value={period}>
+              {period==0?"Custom Time":`Period ${period}` }
+            </option>
+          ))}
+        </select>
+        
+        {toPeriod === 0 && (
+          <div className="mt-2">
+            <label className="block text-sm font-medium text-indigo-600 mb-1">
+              Custom To Time:
+            </label>
+            <input
+              type="time"
+              value={toCustomTime}
+              onChange={(e) => setToCustomTime(e.target.value)}
+              className="w-full border border-indigo-300 rounded-lg p-2 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCustomReason,leaveType }) => {
+  const teacher = localStorage.getItem("teacher")
     ? JSON.parse(localStorage.getItem("teacher"))
     : null;
-    const classNum=teacher.classNum
+  const classNum = teacher.classNum;
+  
   let reasonOptions = [];
-  if(classNum>4){
- reasonOptions =['Medical']  
-  } else {
- reasonOptions = ['Medical', 'Marriage', 'Function', 'Custom'];
+  if(leaveType==="leave"){
+      if (classNum > 4) {
+      reasonOptions = ['Medical'];
+    } else {
+      reasonOptions = ['Medical', 'Marriage', 'Function', 'Custom'];
+    }
+  }else{
+    reasonOptions=["Sakshi","Paper"]
   }
+  
 
- useEffect(()=>{
-  console.log(reasonOptions,classNum);
-  
- },[reasonOptions,classNum])
-  
+  useEffect(() => {
+    console.log(reasonOptions, classNum);
+  }, [reasonOptions, classNum]);
 
   return (
     <div className="p-4 bg-white rounded-xl shadow-inner border border-gray-200">
@@ -142,14 +234,26 @@ function LeaveForm() {
   const [reason, setReason] = useState('Medical');
   const [customReason, setCustomReason] = useState('');
 
+  // Short Leave states
+  const [leaveType, setLeaveType] = useState('leave');
+  const [shortLeaveStudents, setShortLeaveStudents] = useState([{ ad: '', name: '', classNum: '', student: null }]);
+  const [shortLeaveFromPeriod, setShortLeaveFromPeriod] = useState(1);
+  const [shortLeaveToPeriod, setShortLeaveToPeriod] = useState(1);
+  const [shortLeaveFromCustomTime, setShortLeaveFromCustomTime] = useState('');
+  const [shortLeaveToCustomTime, setShortLeaveToCustomTime] = useState('');
+  const [shortLeaveReason, setShortLeaveReason] = useState('Sakshi');
+  const [shortLeaveCustomReason, setShortLeaveCustomReason] = useState('');
+  const [shortLeaveSuggestions, setShortLeaveSuggestions] = useState([]);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(null);
+
   const fromTimeOptions = ['Morning', 'Evening', 'Now', 'Clock'];
   const toTimeOptions = ['Morning', 'Evening', 'Clock'];
 
-  useEffect(()=>{
-     if (teacher?.role === "teacher") {
+  useEffect(() => {
+    if (teacher?.role === "teacher") {
       navigate('/leave-dashboard');
     }
-  },[teacher.role])
+  }, [teacher.role]);
 
   // Fetch all students based on teacher role
   useEffect(() => {
@@ -164,7 +268,7 @@ function LeaveForm() {
           filteredStudents = res.data.filter(std => [8, 9, 10].includes(std.CLASS));
         } else if (teacher.role === "HOS") {
           filteredStudents = res.data.filter(std => [5, 6, 7].includes(std.CLASS));
-        }else if(teacher.name ==="SHANOOB HUDAWI"){
+        } else if (teacher.name === "SHANOOB HUDAWI") {
           filteredStudents = res.data.filter(std => std.CLASS === 10);
         }
 
@@ -193,12 +297,124 @@ function LeaveForm() {
       setName('');
       setClassNum('');
     }
-
-   
   }, [ad, students, teacher, navigate]);
 
+  // Short Leave Functions
+  const addShortLeaveStudent = () => {
+    setShortLeaveStudents([...shortLeaveStudents, { ad: '', name: '', classNum: '', student: null }]);
+  };
+
+  const removeShortLeaveStudent = (index) => {
+    if (shortLeaveStudents.length > 1) {
+      const updatedStudents = shortLeaveStudents.filter((_, i) => i !== index);
+      setShortLeaveStudents(updatedStudents);
+    }
+  };
+
+  const updateShortLeaveStudent = (index, field, value) => {
+    const updatedStudents = [...shortLeaveStudents];
+    updatedStudents[index][field] = value;
+
+    // If AD is updated, auto-fill name and class
+    if (field === 'ad' && value) {
+      const found = students.find((std) => String(std.ADNO) === String(value));
+      if (found) {
+        updatedStudents[index].student = found;
+        updatedStudents[index].name = found["SHORT NAME"];
+        updatedStudents[index].classNum = found.CLASS;
+      } else {
+        updatedStudents[index].student = null;
+        updatedStudents[index].name = '';
+        updatedStudents[index].classNum = '';
+      }
+    }
+
+    setShortLeaveStudents(updatedStudents);
+  };
+
+  const getPeriodTime = (period, customTime, isFrom = true) => {
+    if (period === 0 && customTime) {
+      return customTime;
+    }
+
+    const timeMap = {
+      1: isFrom ? "07:30" : "08:10",
+      2: isFrom ? "08:10" : "08:50",
+      3: isFrom ? "08:50" : "10:00",
+      4: isFrom ? "10:00" : "10:40",
+      5: isFrom ? "10:40" : "11:20",
+      6: isFrom ? "11:30" : "12:10",
+      7: isFrom ? "12:10" : "12:50",
+      8: isFrom ? "14:00" : "14:40",
+      9: isFrom ? "14:40" : "15:20",
+      10: isFrom ? "15:20" : "16:10"
+    };
+
+    return timeMap[period] || "07:30";
+  };
+
+  const handleShortLeaveSubmit = (e) => {
+    e.preventDefault();
+
+    // Validate all students are selected
+    const invalidStudents = shortLeaveStudents.filter(student => !student.ad || !student.name || !student.classNum);
+    if (invalidStudents.length > 0) {
+      alert("Please select all students first.");
+      return;
+    }
+
+    setLoading(true);
+
+    const getFormattedDate = (date) => date.toISOString().split('T')[0];
+    const today = getFormattedDate(new Date());
+
+    const finalFromTime = getPeriodTime(shortLeaveFromPeriod, shortLeaveFromCustomTime, true);
+    const finalToTime = getPeriodTime(shortLeaveToPeriod, shortLeaveToCustomTime, false);
+    const finalReason = shortLeaveReason === 'Custom' ? shortLeaveCustomReason : shortLeaveReason;
+
+    // Submit for each student
+    const submitPromises = shortLeaveStudents.map(studentData => {
+      const payload = {
+        ad: studentData.ad,
+        name: studentData.name,
+        classNum: studentData.classNum,
+        fromDate: today,
+        fromTime: finalFromTime,
+        toDate: today,
+        toTime: finalToTime,
+        reason: finalReason,
+        teacher: teacher.name,
+        status: "Scheduled",
+        leaveType: "short"
+      };
+
+      return axios.post(`${API_PORT}/leave`, payload);
+    });
+
+    Promise.all(submitPromises)
+      .then(() => {
+        console.log("All short leaves submitted successfully!");
+        resetShortLeaveForm();
+      })
+      .catch((err) => {
+        console.log("Error submitting short leaves", err);
+        alert("Error submitting short leaves. Please try again.");
+      })
+      .finally(() => setLoading(false));
+  };
+
+  const resetShortLeaveForm = () => {
+    setShortLeaveStudents([{ ad: '', name: '', classNum: '', student: null }]);
+    setShortLeaveFromPeriod(1);
+    setShortLeaveToPeriod(1);
+    setShortLeaveFromCustomTime('');
+    setShortLeaveToCustomTime('');
+    setShortLeaveReason('Medical');
+    setShortLeaveCustomReason('');
+  };
+
   const handleSubmit = (e) => {
-    e.preventDefault(); // Prevent default form submission
+    e.preventDefault();
 
     if (!ad || !name || !classNum) {
       alert("Please select a student first.");
@@ -209,21 +425,20 @@ function LeaveForm() {
 
     const getFormattedDate = (date) => date.toISOString().split('T')[0];
 
-    const getFormattedTime = (timeOption, customTime,label='') => {
+    const getFormattedTime = (timeOption, customTime, label = '') => {
       const pad = (n) => String(n).padStart(2, "0");
 
       if (timeOption === "Clock") return customTime;
-      if(label==="From Time"){
+      if (label === "From Time") {
         if (timeOption === "Morning") return "05:30";
         if (timeOption === "Evening") return "16:30";
-      }else if(label==="To Time"){
+      } else if (label === "To Time") {
         if (timeOption === "Morning") return "07:00";
         if (timeOption === "Evening") return "18:00";
-      }else{
+      } else {
         if (timeOption === "Morning") return "05:30";
         if (timeOption === "Evening") return "16:30";
       }
-      // if (timeOption === "Night") return "22:00";
       if (timeOption === "Now") {
         const now = new Date();
         return `${pad(now.getHours())}:${pad(now.getMinutes())}`;
@@ -249,8 +464,6 @@ function LeaveForm() {
       finalFromDate = getFormattedDate(new Date());
     }
 
-    
-
     // Calculate To Date
     let finalToDate;
     if (toDate === 'Calendar') {
@@ -269,8 +482,8 @@ function LeaveForm() {
       finalToDate = getFormattedDate(new Date());
     }
 
-    const finalFromTime = getFormattedTime(fromTime, fromCustomTime,'From Time');
-    const finalToTime = getFormattedTime(toTime, toCustomTime,'To Time');
+    const finalFromTime = getFormattedTime(fromTime, fromCustomTime, 'From Time');
+    const finalToTime = getFormattedTime(toTime, toCustomTime, 'To Time');
     const finalReason = reason === 'Custom' ? customReason : reason;
 
     const payload = {
@@ -291,42 +504,30 @@ function LeaveForm() {
     axios.post(`${API_PORT}/leave`, payload)
       .then(() => {
         console.log("Leave submitted successfully!");
-        // axios.patch(`${API_PORT}/students/on-leave/${ad}`, {onLeave: true})
-        // .then(() => {
-        //   console.log("Student on leave updated successfully!");
-        //   resetForm();
-        // })
-        // .catch((err) => {
-        //   console.log("Error updating student on leave", err);
-        //   alert("Error updating student on leave. Please try again.");
-        // });
       })
       .catch((err) => {
         console.log("Error submitting leave", err);
         alert("Error submitting leave. Please try again.");
       })
-      .finally(() =>{ setLoading(false); 
-       
-          setAd('');
-          setStudent(null);
-          setName('');
-          setClassNum('');
-          setFromDate('Today');
-          setFromTime('Evening');
-          setFromCustomDate('');
-          setFromCustomTime('');
-          setToDate('Tomorrow');
-          setToTime('Evening');
-          setToCustomDate('');
-          setToCustomTime('');
-          setReason('Medical');
-          setCustomReason('');
-          setSuggestions([]);
-        
+      .finally(() => {
+        setLoading(false);
+        setAd('');
+        setStudent(null);
+        setName('');
+        setClassNum('');
+        setFromDate('Today');
+        setFromTime('Evening');
+        setFromCustomDate('');
+        setFromCustomTime('');
+        setToDate('Tomorrow');
+        setToTime('Evening');
+        setToCustomDate('');
+        setToCustomTime('');
+        setReason('Medical');
+        setCustomReason('');
+        setSuggestions([]);
       });
   };
-
- const [leaveType,setLeaveType] = useState('leave')  
 
   return (
     <div className="min-h-screen bg-gray-100 text-gray-800 font-inter p-4 sm:p-8 mt-16">
@@ -352,46 +553,214 @@ function LeaveForm() {
         </div>
       )}
 
-     <div className="flex items-center justify-between mb-2">
-      <button
-        className="flex items-center gap-2 px-4 py-2 rounded-md bg-green-500 text-white text-base font-medium shadow-sm hover:bg-green-600 transition"
-        onClick={() => navigate(`/leave-dashboard`)}
-      >
-        <FaHome /> Leave Dashboard
-      </button>
-      <button
-        className="flex items-center gap-2 px-4 py-2 rounded-md bg-blue-500 text-white text-base font-medium shadow-sm hover:bg-blue-600 transition "
-        onClick={()=>{
-          if(leaveType==="leave"){
-            setLeaveType('short-leave')
-          }else{ 
-             setLeaveType('leave')
-          }
-        }}
-      >
-       {leaveType==="leave"?"short-leave":"leave"} 
-      </button>
-    </div>
-     
-   {leaveType==="leave" ?   <div className="max-w-xl mx-auto space-y-8 pb-16">
+      <div className="flex items-center justify-between mb-2">
+        <button
+          className="flex items-center gap-2 px-4 py-2 rounded-md bg-green-500 text-white text-base font-medium shadow-sm hover:bg-green-600 transition"
+          onClick={() => navigate(`/leave-dashboard`)}
+        >
+          <FaHome /> Leave Dashboard
+        </button>
+        <button
+          className="flex items-center gap-2 px-4 py-2 rounded-md bg-blue-500 text-white text-base font-medium shadow-sm hover:bg-blue-600 transition"
+          onClick={() => {
+            if (leaveType === "leave") {
+              setLeaveType('short-leave')
+            } else {
+              setLeaveType('leave')
+            }
+          }}
+        >
+          {leaveType === "leave" ? "short-leave" : "leave"}
+        </button>
+      </div>
 
-        {/* Student Information */}
-        <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
-          <div className="grid grid-cols-3 gap-4">
-            <div className="col-span-2 relative">
-              <label htmlFor="ad" className="block text-xs font-medium text-gray-500 mb-1">
+      {leaveType === "leave" ? (
+        <div className="max-w-xl mx-auto space-y-8 pb-16">
+          {/* Regular Leave Form */}
+          <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="col-span-2 relative">
+                <label htmlFor="ad" className="block text-xs font-medium text-gray-500 mb-1">
+                  AD / Name
+                </label>
+                <input
+                  id="ad"
+                  type="text"
+                  value={ad}
+                  onChange={(e) => {
+                    const value = e.target.value.trim();
+                    setAd(value);
+
+                    if (value === "") {
+                      setSuggestions([]);
+                      return;
+                    }
+
+                    const isNumber = /^\d+$/.test(value);
+                    let filtered;
+
+                    if (isNumber) {
+                      filtered = students.filter((std) =>
+                        String(std.ADNO).startsWith(value)
+                      );
+                    } else {
+                      filtered = students.filter((std) =>
+                        std["SHORT NAME"].toLowerCase().includes(value.toLowerCase())
+                      );
+                    }
+
+                    setSuggestions(filtered.slice(0, 5));
+                  }}
+                  className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  placeholder="Enter AD or Name"
+                />
+
+                {suggestions.length > 0 && (
+                  <div className="absolute bg-white border border-gray-200 mt-1 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto w-full">
+                    {suggestions.map((s) => (
+                      <div
+                        key={s.ADNO}
+                        className="px-3 py-2 hover:bg-indigo-100 cursor-pointer text-sm"
+                        onClick={() => {
+                          setAd(s.ADNO);
+                          setName(s["SHORT NAME"]);
+                          setClassNum(s.CLASS);
+                          setStudent(s);
+                          setSuggestions([]);
+                        }}
+                      >
+                        <span className="font-medium">{s.ADNO}</span> – {s["SHORT NAME"]} – {s.CLASS}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="col-span-1">
+                <label htmlFor="classNum" className="block text-xs font-medium text-gray-500 mb-1">
+                  Class
+                </label>
+                <input
+                  id="classNum"
+                  type="text"
+                  value={classNum}
+                  onChange={(e) => setClassNum(e.target.value)}
+                  disabled
+                  className={`w-full border border-gray-300 rounded-lg p-2 text-sm ${student ? 'bg-gray-100 cursor-not-allowed' : ''
+                    }`}
+                  placeholder="00"
+                />
+              </div>
+
+              <div className="col-span-3">
+                <label htmlFor="name" className="block text-xs font-medium text-gray-500 mb-1">
+                  Name
+                </label>
+                <input
+                  id="name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  disabled
+                  className={`w-full border border-gray-300 rounded-lg p-2 text-sm ${student ? 'bg-gray-100 cursor-not-allowed' : ''
+                    }`}
+                  placeholder="Student Name"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* From Date & Time */}
+          <div className="bg-white p-6 rounded-2xl shadow-lg">
+            <DatePicker
+              label="From Date"
+              selectedDate={fromDate}
+              setSelectedDate={setFromDate}
+              customDate={fromCustomDate}
+              setCustomDate={setFromCustomDate}
+            />
+            <TimePicker
+              label="From Time"
+              selectedTime={fromTime}
+              setSelectedTime={setFromTime}
+              options={fromTimeOptions}
+              customTime={fromCustomTime}
+              setCustomTime={setFromCustomTime}
+            />
+          </div>
+
+          {/* To Date & Time */}
+          <div className="bg-white p-6 rounded-2xl shadow-lg">
+            <DatePicker
+              label="To Date"
+              selectedDate={toDate}
+              setSelectedDate={setToDate}
+              customDate={toCustomDate}
+              setCustomDate={setToCustomDate}
+            />
+            <TimePicker
+              label="To Time"
+              selectedTime={toTime}
+              setSelectedTime={setToTime}
+              options={toTimeOptions}
+              customTime={toCustomTime}
+              setCustomTime={setToCustomTime}
+            />
+          </div>
+
+          {/* Reason */}
+          <div className="bg-white p-6 rounded-2xl shadow-lg">
+            <ReasonPicker
+              selectedReason={reason}
+              setSelectedReason={setReason}
+              customReason={customReason}
+              setCustomReason={setCustomReason}
+              classNumber={teacher.classNum}
+              leaveType={leaveType}
+            />
+          </div>
+
+          {/* Submit Button */}
+          <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-2xl">
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={loading}
+              className="w-full py-3 bg-green-500 text-white text-lg font-bold rounded-xl shadow-lg hover:bg-green-600 transition-colors duration-200 disabled:bg-green-300 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Submitting...' : 'Approve Leave'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="max-w-xl mx-auto space-y-8 pb-16">
+          {/* Short Leave Form */}
+          {shortLeaveStudents.map((studentData, index) => (
+      <div key={index} className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 relative">
+        {shortLeaveStudents.length > 1 && (
+          <button
+            onClick={() => removeShortLeaveStudent(index)}
+            className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition"
+          >
+            <Minus size={16} />
+          </button>
+        )}
+
+          <div className="grid grid-cols-7 gap-2">
+            <div className="col-span-3 relative">
+              <label className="block text-xs font-medium text-gray-500 mb-1">
                 AD / Name
               </label>
               <input
-                id="ad"
                 type="text"
-                value={ad}
+                value={studentData.ad}
                 onChange={(e) => {
                   const value = e.target.value.trim();
-                  setAd(value); 
+                  updateShortLeaveStudent(index, 'ad', value);
 
                   if (value === "") {
-                    setSuggestions([]);
+                    setShortLeaveSuggestions([]);
+                    setActiveSuggestionIndex(null);
                     return;
                   }
 
@@ -400,7 +769,7 @@ function LeaveForm() {
 
                   if (isNumber) {
                     filtered = students.filter((std) =>
-                      String(std.ADNO).startsWith(value)  
+                      String(std.ADNO).startsWith(value)
                     );
                   } else {
                     filtered = students.filter((std) =>
@@ -408,24 +777,23 @@ function LeaveForm() {
                     );
                   }
 
-                  setSuggestions(filtered.slice(0, 5));
+                  setShortLeaveSuggestions(filtered.slice(0, 5));
+                  setActiveSuggestionIndex(index);
                 }}
                 className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                placeholder="Enter AD or Name"
+                placeholder="AD / Name"
               />
 
-              {suggestions.length > 0 && (
+              {activeSuggestionIndex === index && shortLeaveSuggestions.length > 0 && (
                 <div className="absolute bg-white border border-gray-200 mt-1 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto w-full">
-                  {suggestions.map((s) => (
+                  {shortLeaveSuggestions.map((s) => (
                     <div
                       key={s.ADNO}
                       className="px-3 py-2 hover:bg-indigo-100 cursor-pointer text-sm"
                       onClick={() => {
-                        setAd(s.ADNO);
-                        setName(s["SHORT NAME"]);
-                        setClassNum(s.CLASS);
-                        setStudent(s);
-                        setSuggestions([]);
+                        updateShortLeaveStudent(index, 'ad', s.ADNO);
+                        setShortLeaveSuggestions([]);
+                        setActiveSuggestionIndex(null);
                       }}
                     >
                       <span className="font-medium">{s.ADNO}</span> – {s["SHORT NAME"]} – {s.CLASS}
@@ -436,215 +804,85 @@ function LeaveForm() {
             </div>
 
             <div className="col-span-1">
-              <label htmlFor="classNum" className="block text-xs font-medium text-gray-500 mb-1">
+              <label className="block text-xs font-medium text-gray-500 mb-1">
                 Class
               </label>
               <input
-                id="classNum"
                 type="text"
-                value={classNum}
-                onChange={(e) => setClassNum(e.target.value)}
+                value={studentData.classNum}
+                onChange={(e) => updateShortLeaveStudent(index, 'classNum', e.target.value)}
                 disabled
-                className={`w-full border border-gray-300 rounded-lg p-2 text-sm ${
-                  student ? 'bg-gray-100 cursor-not-allowed' : ''
-                }`}
+                className={`w-full border border-gray-300 rounded-lg p-2 text-sm ${studentData.student ? 'bg-gray-100 cursor-not-allowed' : ''
+                  }`}
                 placeholder="00"
               />
             </div>
 
             <div className="col-span-3">
-              <label htmlFor="name" className="block text-xs font-medium text-gray-500 mb-1">
+              <label className="block text-xs font-medium text-gray-500 mb-1">
                 Name
               </label>
               <input
-                id="name"
                 type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                value={studentData.name}
+                onChange={(e) => updateShortLeaveStudent(index, 'name', e.target.value)}
                 disabled
-                className={`w-full border border-gray-300 rounded-lg p-2 text-sm ${
-                  student ? 'bg-gray-100 cursor-not-allowed' : ''
-                }`}
+                className={`w-full border border-gray-300 rounded-lg p-2 text-sm ${studentData.student ? 'bg-gray-100 cursor-not-allowed' : ''
+                  }`}
                 placeholder="Student Name"
               />
             </div>
           </div>
         </div>
+      ))}
 
-        {/* From Date & Time */}
-        <div className="bg-white p-6 rounded-2xl shadow-lg">
-          <DatePicker
-            label="From Date"
-            selectedDate={fromDate}
-            setSelectedDate={setFromDate}
-            customDate={fromCustomDate}
-            setCustomDate={setFromCustomDate}
+          {/* Add Student Button */}
+          <div className="flex justify-center">
+            <button
+              onClick={addShortLeaveStudent}
+              className="flex items-center gap-2 px-4 py-2 rounded-md bg-green-600 text-white text-base font-medium shadow-sm hover:bg-green-700 transition"
+            >
+              <Plus size={16} /> Add Student
+            </button>
+          </div>
+
+          {/* Short Leave Time Picker */}
+          <ShortLeaveTimePicker
+            fromPeriod={shortLeaveFromPeriod}
+            setFromPeriod={setShortLeaveFromPeriod}
+            toPeriod={shortLeaveToPeriod}
+            setToPeriod={setShortLeaveToPeriod}
+            fromCustomTime={shortLeaveFromCustomTime}
+            setFromCustomTime={setShortLeaveFromCustomTime}
+            toCustomTime={shortLeaveToCustomTime}
+            setToCustomTime={setShortLeaveToCustomTime}
           />
-          <TimePicker
-            label="From Time"
-            selectedTime={fromTime}
-            setSelectedTime={setFromTime}
-            options={fromTimeOptions}
-            customTime={fromCustomTime}
-            setCustomTime={setFromCustomTime}
-          />
-        </div>
 
-        {/* To Date & Time */}
-        <div className="bg-white p-6 rounded-2xl shadow-lg">
-          <DatePicker
-            label="To Date"
-            selectedDate={toDate}
-            setSelectedDate={setToDate}
-            customDate={toCustomDate}
-            setCustomDate={setToCustomDate}
-          />
-          <TimePicker
-            label="To Time"
-            selectedTime={toTime}
-            setSelectedTime={setToTime}
-            options={toTimeOptions}
-            customTime={toCustomTime}
-            setCustomTime={setToCustomTime}
-          />
-        </div>
+          {/* Reason */}
+          <div className="bg-white p-6 rounded-2xl shadow-lg">
+            <ReasonPicker
+              selectedReason={shortLeaveReason}
+              setSelectedReason={setShortLeaveReason}
+              customReason={shortLeaveCustomReason}
+              setCustomReason={setShortLeaveCustomReason}
+              classNumber={teacher.classNum}
+              leaveType={leaveType}
+            />
+          </div>
 
-        {/* Reason */}
-        <div className="bg-white p-6 rounded-2xl shadow-lg">
-          <ReasonPicker
-            selectedReason={reason}
-            setSelectedReason={setReason}
-            customReason={customReason}
-            setCustomReason={setCustomReason}
-            classNumber={teacher.classNum}
-          />
-        </div>
-
-        {/* Submit Button - This is the ONLY element that should trigger form submission */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-2xl">
-          <button
-            type="button" // Changed to type="button" since we're not using form
-            onClick={handleSubmit}
-            disabled={loading}
-            className="w-full py-3 bg-green-500 text-white text-lg font-bold rounded-xl shadow-lg hover:bg-green-600 transition-colors duration-200 disabled:bg-green-300 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Submitting...' : 'Approve Leave'}
-          </button>
-        </div>
-      </div>
-      :
-     <div className="">
-    <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 relative">
-
-    <button
-      className="border border-gray-300 rounded-lg p-2 text-sm absolute top-2 right-4 bg-green-600">
-      <Plus size={16} color='white'/>
-    </button>
-
-    <div className="grid grid-cols-7 gap-2 ">
-      
-      <div className="col-span-3 relative">
-        <label htmlFor="ad" className="block text-xs font-medium text-gray-500 mb-1">
-          AD / Name
-        </label>
-        <input
-          id="ad"
-          type="text"
-          value={ad}
-          onChange={(e) => {
-            const value = e.target.value.trim();
-            setAd(value);
-
-            if (value === "") {
-              setSuggestions([]);
-              return;
-            }
-
-            const isNumber = /^\d+$/.test(value);
-            let filtered;
-
-            if (isNumber) {
-              filtered = students.filter((std) =>
-                String(std.ADNO).startsWith(value)
-              );
-            } else {
-              filtered = students.filter((std) =>
-                std["SHORT NAME"].toLowerCase().includes(value.toLowerCase())
-              );
-            }
-
-            setSuggestions(filtered.slice(0, 5));
-          }}
-          className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-          placeholder="AD / Name"
-        />
-
-
-              {suggestions.length > 0 && (
-                <div className="absolute bg-white border border-gray-200 mt-1 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto w-full">
-                  {suggestions.map((s) => (
-                    <div
-                      key={s.ADNO}
-                      className="px-3 py-2 hover:bg-indigo-100 cursor-pointer text-sm"
-                      onClick={() => {
-                        setAd(s.ADNO);
-                        setName(s["SHORT NAME"]);
-                        setClassNum(s.CLASS);
-                        setStudent(s);
-                        setSuggestions([]);
-                      }}
-                    >
-                      <span className="font-medium">{s.ADNO}</span> – {s["SHORT NAME"]} – {s.CLASS}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="col-span-1">
-              <label htmlFor="classNum" className="block text-xs font-medium text-gray-500 mb-1">
-                Class
-              </label>
-              <input
-                id="classNum"
-                type="text"
-                value={classNum}
-                onChange={(e) => setClassNum(e.target.value)}
-                disabled
-                className={`w-full border border-gray-300 rounded-lg p-2 text-sm ${
-                  student ? 'bg-gray-100 cursor-not-allowed' : ''
-                }`}
-                placeholder="00"
-              />
-            </div>
-
-            <div className="col-span-3">
-              <label htmlFor="name" className="block text-xs font-medium text-gray-500 mb-1">
-                Name
-              </label>
-              <input
-                id="name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                disabled
-                className={`w-full border border-gray-300 rounded-lg p-2 text-sm ${
-                  student ? 'bg-gray-100 cursor-not-allowed' : ''
-                }`}
-                placeholder="Student Name"
-              />
-            </div>
-
-             <div className="col-span-1">
-              <label htmlFor="classNum" className="block text-xs font-medium text-white mb-1">
-               Class
-              </label>
-             
-            </div>
+          {/* Submit Button */}
+          <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-2xl">
+            <button
+              type="button"
+              onClick={handleShortLeaveSubmit}
+              disabled={loading}
+              className="w-full py-3 bg-green-500 text-white text-lg font-bold rounded-xl shadow-lg hover:bg-green-600 transition-colors duration-200 disabled:bg-green-300 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Submitting...' : 'Approve Short Leave'}
+            </button>
           </div>
         </div>
-      </div>
-      }
+      )}
     </div>
   );
 }

@@ -51,7 +51,8 @@ const leaveSchema = new Schema({
         type: String
     },markReturnedTeacher:{
         type: String
-    }
+    },
+    leaveType:{type:String}
 }, { timestamps: true });
 
 module.exports = mongoose.model('Leave', leaveSchema);

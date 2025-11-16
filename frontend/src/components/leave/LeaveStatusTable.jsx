@@ -281,7 +281,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
           
 
           <div className="flex items-center gap-3">
-            
+          
             <div className="text-left">
               <div className="text-xs font-light bg-white/20 px-2 py-1 rounded-md backdrop-blur-sm">Class {classNum}</div>
               <div className="text-xs font-light px-2 ">AD {ad}</div>

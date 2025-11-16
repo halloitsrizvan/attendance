@@ -437,7 +437,11 @@ const refreshLeaveData = () => {
             isActive={activeTab === 'onLeave'}
             onClick={() => setActiveTab('onLeave')}
           />
-           
+           <TabButton 
+            label={`Short leave ($)`}
+            isActive={activeTab === 'shortLeave'}
+            onClick={() => setActiveTab('shortLeave')}
+          />
         </div>
   
         {/* Cards Grid - Mobile First */}
