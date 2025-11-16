@@ -154,28 +154,47 @@ function Hajar() {
 
     const [copy,setCopy] = useState(false)
 
-  const handleCopyAbsentees = () => {
+const handleCopyAbsentees = () => {
+  if (absentees.length > 0) {
+    // Separate regular absentees and on-leave students
+    const regularAbsentees = absentees.filter(s => !s.onLeave);
+    const onLeaveStudents = absentees.filter(s => s.onLeave);
     
-    if (absentees.length > 0) {
-      const text = absentees
+    let text = "";
+    const classofStd = `Class ${absentees[0].CLASS}`;
+    
+    // Add regular absentees
+    if (regularAbsentees.length > 0) {
+      text += regularAbsentees
         .map((s) => `${s["SHORT NAME"]} (AdNo: ${s.ADNO})`)
         .join("\n");
-  
-      navigator.clipboard.writeText(text)
-        .then(() => {
-          setCopy(true)
-        })
-        .catch((err) => {
-          console.error("Failed to copy: ", err);
-        });
-    } else {
-      navigator.clipboard.writeText("No absentees 🎉");
-      setCopy(true)
     }
-    setTimeout(()=>{
-      setCopy(false)
-    },4000)
-  };
+    
+    // Add on-leave students with special marking
+    if (onLeaveStudents.length > 0) {
+      if (text) text += "\n\n"; // Add spacing if there are regular absentees
+      text += "On Leave:\n" + onLeaveStudents
+        .map((s) => `${s["SHORT NAME"]} (AdNo: ${s.ADNO})`)
+        .join("\n");
+    }
+    
+    navigator.clipboard.writeText(classofStd + "\n" + text)
+      .then(() => {
+        setCopy(true);
+      })
+      .catch((err) => {
+        console.error("Failed to copy: ", err);
+      });
+  } else {
+    navigator.clipboard.writeText("No absentees 🎉");
+    setCopy(true);
+  }
+  setTimeout(() => {
+    setCopy(false);
+  }, 4000);
+};
+
+  
 
   const [quickAction,setQuickAction] = useState("All Absent")
 

@@ -4,6 +4,7 @@ import axios from 'axios';
 import { API_PORT } from '../../Constants';
 import DatePicker from './DatePicker';
 import { FaHome, FaSadCry } from "react-icons/fa";
+import {Plus} from 'lucide-react'
 const SelectionButton = ({ label, isSelected, onClick ,type}) => (
    <button
     onClick={onClick}
@@ -163,6 +164,8 @@ function LeaveForm() {
           filteredStudents = res.data.filter(std => [8, 9, 10].includes(std.CLASS));
         } else if (teacher.role === "HOS") {
           filteredStudents = res.data.filter(std => [5, 6, 7].includes(std.CLASS));
+        }else if(teacher.name ==="SHANOOB HUDAWI"){
+          filteredStudents = res.data.filter(std => std.CLASS === 10);
         }
 
         setStudents(filteredStudents);
@@ -322,11 +325,8 @@ function LeaveForm() {
         
       });
   };
-  
 
-
-  // Function to reset form
-  
+ const [leaveType,setLeaveType] = useState('leave')  
 
   return (
     <div className="min-h-screen bg-gray-100 text-gray-800 font-inter p-4 sm:p-8 mt-16">
@@ -352,18 +352,28 @@ function LeaveForm() {
         </div>
       )}
 
+     <div className="flex items-center justify-between mb-2">
       <button
-        className="flex items-center gap-2 px-4 py-2 rounded-md bg-green-500 text-white  text-lg font-medium shadow-sm hover:bg-green-600 transition mb-2 ml-2"
+        className="flex items-center gap-2 px-4 py-2 rounded-md bg-green-500 text-white text-base font-medium shadow-sm hover:bg-green-600 transition"
         onClick={() => navigate(`/leave-dashboard`)}
       >
         <FaHome /> Leave Dashboard
       </button>
-
-      {/* Remove form tag and use div instead, OR keep form but ensure all buttons have type="button" */}
-      <div className="max-w-xl mx-auto space-y-8 pb-16">
-        
-
-      
+      <button
+        className="flex items-center gap-2 px-4 py-2 rounded-md bg-blue-500 text-white text-base font-medium shadow-sm hover:bg-blue-600 transition "
+        onClick={()=>{
+          if(leaveType==="leave"){
+            setLeaveType('short-leave')
+          }else{ 
+             setLeaveType('leave')
+          }
+        }}
+      >
+       {leaveType==="leave"?"short-leave":"leave"} 
+      </button>
+    </div>
+     
+   {leaveType==="leave" ?   <div className="max-w-xl mx-auto space-y-8 pb-16">
 
         {/* Student Information */}
         <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
@@ -522,6 +532,119 @@ function LeaveForm() {
           </button>
         </div>
       </div>
+      :
+     <div className="">
+    <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 relative">
+
+    <button
+      className="border border-gray-300 rounded-lg p-2 text-sm absolute top-2 right-4 bg-green-600">
+      <Plus size={16} color='white'/>
+    </button>
+
+    <div className="grid grid-cols-7 gap-2 ">
+      
+      <div className="col-span-3 relative">
+        <label htmlFor="ad" className="block text-xs font-medium text-gray-500 mb-1">
+          AD / Name
+        </label>
+        <input
+          id="ad"
+          type="text"
+          value={ad}
+          onChange={(e) => {
+            const value = e.target.value.trim();
+            setAd(value);
+
+            if (value === "") {
+              setSuggestions([]);
+              return;
+            }
+
+            const isNumber = /^\d+$/.test(value);
+            let filtered;
+
+            if (isNumber) {
+              filtered = students.filter((std) =>
+                String(std.ADNO).startsWith(value)
+              );
+            } else {
+              filtered = students.filter((std) =>
+                std["SHORT NAME"].toLowerCase().includes(value.toLowerCase())
+              );
+            }
+
+            setSuggestions(filtered.slice(0, 5));
+          }}
+          className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+          placeholder="AD / Name"
+        />
+
+
+              {suggestions.length > 0 && (
+                <div className="absolute bg-white border border-gray-200 mt-1 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto w-full">
+                  {suggestions.map((s) => (
+                    <div
+                      key={s.ADNO}
+                      className="px-3 py-2 hover:bg-indigo-100 cursor-pointer text-sm"
+                      onClick={() => {
+                        setAd(s.ADNO);
+                        setName(s["SHORT NAME"]);
+                        setClassNum(s.CLASS);
+                        setStudent(s);
+                        setSuggestions([]);
+                      }}
+                    >
+                      <span className="font-medium">{s.ADNO}</span> – {s["SHORT NAME"]} – {s.CLASS}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="col-span-1">
+              <label htmlFor="classNum" className="block text-xs font-medium text-gray-500 mb-1">
+                Class
+              </label>
+              <input
+                id="classNum"
+                type="text"
+                value={classNum}
+                onChange={(e) => setClassNum(e.target.value)}
+                disabled
+                className={`w-full border border-gray-300 rounded-lg p-2 text-sm ${
+                  student ? 'bg-gray-100 cursor-not-allowed' : ''
+                }`}
+                placeholder="00"
+              />
+            </div>
+
+            <div className="col-span-3">
+              <label htmlFor="name" className="block text-xs font-medium text-gray-500 mb-1">
+                Name
+              </label>
+              <input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled
+                className={`w-full border border-gray-300 rounded-lg p-2 text-sm ${
+                  student ? 'bg-gray-100 cursor-not-allowed' : ''
+                }`}
+                placeholder="Student Name"
+              />
+            </div>
+
+             <div className="col-span-1">
+              <label htmlFor="classNum" className="block text-xs font-medium text-white mb-1">
+               Class
+              </label>
+             
+            </div>
+          </div>
+        </div>
+      </div>
+      }
     </div>
   );
 }

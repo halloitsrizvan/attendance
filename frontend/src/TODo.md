@@ -80,7 +80,17 @@ leave status page- on Leave :done
 Convert date, time to datetime format. = done
 
 attendance -on leave : DB boolean  = done
-
+short leave:-
+    multiple students{enter ad or name}
+    one reason 
+    from time{
+        period:[0-10]
+        timeSelection
+    }
+    to time{
+        period:[0-10]
+        timeSelection
+    }
 
 
 Medical Leave

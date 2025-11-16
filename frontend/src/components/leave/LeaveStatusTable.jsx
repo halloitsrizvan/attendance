@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { Clock, Calendar, User, ArrowUpRight, CheckCircle, PlayCircle, RotateCcw } from 'lucide-react';
+import { Clock, Calendar, User, ArrowUpRight, CheckCircle, PlayCircle, RotateCcw ,Edit} from 'lucide-react';
 import { API_PORT } from '../../Constants';
 
 const StatusPill = ({ status }) => {
@@ -278,7 +278,10 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
       <div className="bg-white shadow-md rounded-xl overflow-hidden w-full">
         {/* --- Card Header (Green) --- */}
         <div className="bg-gradient-to-l from-emerald-600 to-emerald-700 text-white p-4 flex justify-between items-center">
+          
+
           <div className="flex items-center gap-3">
+            
             <div className="text-left">
               <div className="text-xs font-light bg-white/20 px-2 py-1 rounded-md backdrop-blur-sm">Class {classNum}</div>
               <div className="text-xs font-light px-2 ">AD {ad}</div>
@@ -293,6 +296,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
             <buttonState.icon size={16}/>
             {buttonState.text}
           </button>
+          
         </div>
 
         {/* --- Card Body (Light Green) --- */}

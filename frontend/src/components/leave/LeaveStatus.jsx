@@ -481,8 +481,8 @@ const refreshLeaveData = () => {
                     <div key={classNum} className="text-center p-3 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer"
                     onClick={()=> setSelectedClass(Number(classNum))}
                     >
-                      <div className="text-2xl font-bold text-gray-900">{count}</div>
-                      <div className="text-sm text-gray-600">Class {classNum}</div>
+                      <div className="text-xs text-gray-600 border-b">Class {classNum}</div>
+                      <div className="text-2xl font-bold text-red-700">{count}</div>
                     </div>
                   ));
                 })()}
