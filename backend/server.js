@@ -9,6 +9,7 @@ const studentsRoutes = require('./routes/students')
 const attendanceRoutes = require('./routes/attendance')
 const leaveRoutes = require('./routes/leave')
 const minusRoutes = require('./routes/minus')
+const shortLeave = require('./routes/shortLeave')
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -29,6 +30,8 @@ app.use('/students',studentsRoutes)
 app.use('/set-attendance',attendanceRoutes)
 app.use('/leave',leaveRoutes)
 app.use('/minus',minusRoutes)
+app.use('/class-excused-pass',shortLeave)
+
 // Attendance Time WITH FROM TIME AND TO TIME
 // MINUS REASONS WITH VALUE
 // 

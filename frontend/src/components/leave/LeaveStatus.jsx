@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Calendar, Clock, CheckCircle, AlertCircle, User, XCircle, RefreshCw, ChevronRight, FileSignature } from 'lucide-react';import axios from 'axios';
 import { API_PORT } from '../../Constants';
 import LeaveStatusTable from './LeaveStatusTable';
+import ShortLeave from './ShortLeave';
 const TabButton = ({ label, isActive, onClick }) => (
   <button
     onClick={onClick}
@@ -215,6 +216,8 @@ function LeaveStatus() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedClass, setSelectedClass] = useState(null);
+
+  const [shortLeaveStatus,setShortLeaveStatus] = useState([])
   // Calculate leave status
   const getLeaveStatus = (item) => {
     const now = new Date();
@@ -252,6 +255,7 @@ function LeaveStatus() {
 
   useEffect(() => {
     fetchLeaveData();
+    fetchShortLeave()
   }, []);
 
   const fetchLeaveData = () => {
@@ -276,6 +280,22 @@ function LeaveStatus() {
         setLoading(false);
       });
   };
+
+  
+  const fetchShortLeave = () => {
+    setLoading(true);
+    setError(null);
+    axios.get(`${API_PORT}/class-excused-pass`)
+      .then((res) => {
+        setShortLeaveStatus(res.data)
+      })
+      .catch(err => {
+        console.error('Error fetching leave data:', err);
+        setError('Failed to load leave data. Please try again.');
+        setLoading(false);
+      });
+  };
+
   // In your main component, add these computed values
 const getLeaveStatusForTable = (item) => {
   const now = new Date();
@@ -438,14 +458,15 @@ const refreshLeaveData = () => {
             onClick={() => setActiveTab('onLeave')}
           />
            <TabButton 
-            label={`Short leave ($)`}
+            label={`Short leave (${shortLeaveStatus.length})`}
             isActive={activeTab === 'shortLeave'}
             onClick={() => setActiveTab('shortLeave')}
           />
         </div>
   
         {/* Cards Grid - Mobile First */}
-        {activeTab !== 'actions'?
+       
+        { ["all","onLeave"].includes(activeTab)?
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {filteredData.length > 0 ? (
             <>
@@ -520,7 +541,17 @@ const refreshLeaveData = () => {
               </div>
             </div>
           )}
-        </div>:
+        </div>
+        :
+        activeTab==="shortLeave"?
+        <div>
+            <div>
+              <ShortLeave
+                statusData={shortLeaveStatus} 
+                />
+            </div>
+        </div>
+        :
         <div>
           <LeaveStatusTable 
           classData={actionsTableData}

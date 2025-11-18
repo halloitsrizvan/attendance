@@ -61,30 +61,13 @@ const TimePicker = ({ label, selectedTime, setSelectedTime, options, customTime,
 const ShortLeaveTimePicker = ({ fromPeriod, setFromPeriod, toPeriod, setToPeriod, fromCustomTime, setFromCustomTime, toCustomTime, setToCustomTime }) => {
   const periodOptions = Array.from({ length: 11 }, (_, i) => i); // 0 to 10
 
-  const getPeriodTimeRange = (period) => {
-    const timeRanges = {
-      0: "Custom Time",
-      1: "7:30 AM - 8:10 AM",
-      2: "8:10 AM - 8:50 AM",
-      3: "8:50 AM - 10:00 AM",
-      4: "10:00 AM - 10:40 AM",
-      5: "10:40 AM - 11:20 AM",
-      6: "11:30 AM - 12:10 PM",
-      7: "12:10 PM - 12:50 PM",
-      8: "2:00 PM - 2:40 PM",
-      9: "2:40 PM - 3:20 PM",
-      10: "3:20 PM - 4:10 PM"
-    };
-    return timeRanges[period] || "Custom";
-  };
-
   return (
     <div className="p-4 bg-white rounded-xl shadow-inner border border-gray-200">
    
       
       {/* From Period */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">From Period</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">From Time</label>
         <select
           value={fromPeriod}
           onChange={(e) => setFromPeriod(parseInt(e.target.value))}
@@ -115,7 +98,7 @@ const ShortLeaveTimePicker = ({ fromPeriod, setFromPeriod, toPeriod, setToPeriod
 
       {/* To Period */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">To Period</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">To Time</label>
         <select
           value={toPeriod}
           onChange={(e) => setToPeriod(parseInt(e.target.value))}
@@ -160,7 +143,7 @@ const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCust
       reasonOptions = ['Medical', 'Marriage', 'Function', 'Custom'];
     }
   }else{
-    reasonOptions=["Sakshi","Paper"]
+    reasonOptions=[,"Custom"]
   }
   
 
@@ -241,11 +224,12 @@ function LeaveForm() {
   const [shortLeaveToPeriod, setShortLeaveToPeriod] = useState(1);
   const [shortLeaveFromCustomTime, setShortLeaveFromCustomTime] = useState('');
   const [shortLeaveToCustomTime, setShortLeaveToCustomTime] = useState('');
-  const [shortLeaveReason, setShortLeaveReason] = useState('Sakshi');
+  const [shortLeaveReason, setShortLeaveReason] = useState('Custom');
   const [shortLeaveCustomReason, setShortLeaveCustomReason] = useState('');
   const [shortLeaveSuggestions, setShortLeaveSuggestions] = useState([]);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(null);
-
+  const [shortLeaveDate,setShortLeaveDate] = useState('Today')
+  const [shortLeaveCustomDate,setShortLeaveCustomDate] = useState('')
   const fromTimeOptions = ['Morning', 'Evening', 'Now', 'Clock'];
   const toTimeOptions = ['Morning', 'Evening', 'Clock'];
 
@@ -357,20 +341,32 @@ function LeaveForm() {
     e.preventDefault();
 
     // Validate all students are selected
-    const invalidStudents = shortLeaveStudents.filter(student => !student.ad || !student.name || !student.classNum);
-    if (invalidStudents.length > 0) {
-      alert("Please select all students first.");
+    const invalidStudents = shortLeaveStudents.filter(student => !student.ad || !student.name || !student.classNum );
+    if (invalidStudents.length > 0 ||!shortLeaveCustomReason) {
+      alert("Please enter all fields first.");
       return;
     }
 
     setLoading(true);
 
-    const getFormattedDate = (date) => date.toISOString().split('T')[0];
-    const today = getFormattedDate(new Date());
-
     const finalFromTime = getPeriodTime(shortLeaveFromPeriod, shortLeaveFromCustomTime, true);
     const finalToTime = getPeriodTime(shortLeaveToPeriod, shortLeaveToCustomTime, false);
     const finalReason = shortLeaveReason === 'Custom' ? shortLeaveCustomReason : shortLeaveReason;
+
+    let finalDate;
+    if (shortLeaveDate === 'Calendar') {
+      finalDate = fromCustomDate;
+    } else if (fromDate === 'Today') {
+      finalDate = new Date();
+    } else if (fromDate === 'Tomorrow') {
+      const tomorrow = new Date();
+      finalDate =  tomorrow.setDate(tomorrow.getDate() + 1);
+    } else if (fromDate === 'Day After') {
+      const dayAfter = new Date();
+      finalDate =  dayAfter.setDate(dayAfter.getDate() + 2);
+    } else {
+      finalDate = new Date();
+    }
 
     // Submit for each student
     const submitPromises = shortLeaveStudents.map(studentData => {
@@ -378,17 +374,14 @@ function LeaveForm() {
         ad: studentData.ad,
         name: studentData.name,
         classNum: studentData.classNum,
-        fromDate: today,
         fromTime: finalFromTime,
-        toDate: today,
         toTime: finalToTime,
         reason: finalReason,
         teacher: teacher.name,
-        status: "Scheduled",
-        leaveType: "short"
+        date:finalDate
       };
 
-      return axios.post(`${API_PORT}/leave`, payload);
+      return axios.post(`${API_PORT}/class-excused-pass`, payload);
     });
 
     Promise.all(submitPromises)
@@ -409,7 +402,7 @@ function LeaveForm() {
     setShortLeaveToPeriod(1);
     setShortLeaveFromCustomTime('');
     setShortLeaveToCustomTime('');
-    setShortLeaveReason('Medical');
+    setShortLeaveReason('Custom');
     setShortLeaveCustomReason('');
   };
 
@@ -570,7 +563,7 @@ function LeaveForm() {
             }
           }}
         >
-          {leaveType === "leave" ? "short-leave" : "leave"}
+          {leaveType === "leave" ? "Class Excused Pass" : "leave"}
         </button>
       </div>
 
@@ -733,7 +726,7 @@ function LeaveForm() {
           </div>
         </div>
       ) : (
-        <div className="max-w-xl mx-auto space-y-8 pb-16">
+        <div className="max-w-xl mx-auto space-y-2 pb-16">
           {/* Short Leave Form */}
           {shortLeaveStudents.map((studentData, index) => (
       <div key={index} className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 relative">
@@ -845,6 +838,14 @@ function LeaveForm() {
               <Plus size={16} /> Add Student
             </button>
           </div>
+
+          <DatePicker
+          label="Date"
+          selectedDate={shortLeaveDate}
+          setSelectedDate={setShortLeaveDate}
+          customDate={shortLeaveCustomDate}
+          setCustomDate={setShortLeaveCustomDate}
+          />
 
           {/* Short Leave Time Picker */}
           <ShortLeaveTimePicker

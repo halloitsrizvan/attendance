@@ -2,17 +2,13 @@ const mongoose = require('mongoose');
 
 const Schema = mongoose.Schema;
 
-const leaveSchema = new Schema({
+const shortLeaveSchema = new Schema({
     ad: {
         type: Number,
         required: true
     },
     classNum: {
         type: Number,
-        required: true
-    },
-    fromDate: {
-        type: String,
         required: true
     },
     fromTime: {
@@ -27,31 +23,14 @@ const leaveSchema = new Schema({
         type: String,
         required: true
     },
-    toDate: {
-        type: String,
-        required: true
-    },
     toTime: {
         type: String,
         required: true
     },
-    status: {
-        type: String,
-        enum: ['Scheduled','pending', 'active', 'late', 'returned'],
-        default: "Scheduled"
-    },
+    date:{type:Date},
     teacher: {
-        type: String
-    },
-    returnedAt: {
-        type: Date,
-        default: null
-    },
-    leaveStartTeacher:{
-        type: String
-    },markReturnedTeacher:{
         type: String
     }
 }, { timestamps: true });
 
-module.exports = mongoose.model('Leave', leaveSchema);
+module.exports = mongoose.model('ClassExcusedPass', shortLeaveSchema);
