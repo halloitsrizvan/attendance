@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, ChevronRight, FileSignature, CheckCircle, XCircle } from 'lucide-react';
+import { Clock, ChevronRight, FileSignature, CheckCircle, XCircle,Calendar } from 'lucide-react';
 import axios from 'axios';
 import { API_PORT } from '../../Constants';
 
@@ -363,65 +363,67 @@ function ShortLeave({ statusData: initialStatusData, type, onDataUpdate }) {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 gap-2 mb-2 text-xs">
-               
-                {type === "shortLeave" ? (
-                  <div className="grid grid-cols-2 gap-2">
-                     <div className="col-span-2 flex items-center gap-1.5 text-gray-600 bg-blue-50 px-2 py-1 rounded">
-                        <span className="font-medium">Date:</span>
-                        <span className="truncate">
-                          {formatDate(leave.date)}
-                        </span>
-                      </div>
-
-                    <div className="col-span-1 flex items-center gap-1.5 text-gray-600 bg-red-50 px-2 py-1 rounded">
-                      <span className="font-medium">From:</span>
-                      <span className="truncate">{formatTime(leave.fromTime)}</span>
-                    </div>
-                    
-                    <div className="col-span-1  flex items-center gap-1.5 text-gray-600 bg-green-50 px-2 py-1 rounded">
-                      <span className="font-medium">To:</span>
-                      <span className="truncate">{formatTime(leave.toTime)}</span>
-                    </div>
-                  </div>
-                ) : (
-                  // For medical room and medical without end date
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="col-span-3 flex items-center gap-1.5 text-gray-600 bg-blue-50 px-2 py-1 rounded">
-                        <span className="font-medium">Date:</span>
-                        <span className="truncate">
-                          {formatDate(leave.fromDate)}
-                        </span>
-                      </div>
-
-                    <div className="col-span-1 flex items-center gap-1.5 text-gray-600 bg-red-50 px-2 py-1 rounded">
-                      <span className="font-medium">From:</span>
-                      <span className="truncate">{formatTime(leave.fromTime)}</span>
-                    </div>
-
-                    {leave.toTime && (
-                      <div className="col-span-2 flex items-center gap-1.5 text-gray-600 bg-green-50 px-2 py-1 rounded">
-                        <span className="font-medium">To:</span>
-                        <span className="truncate">{formatTime(leave.toTime)}</span>
-                      </div>
-                    )}
-                    
-                    {leave.returnedAt && (
-                      <div className="col-span-2 flex items-center gap-1.5 text-gray-600 bg-gray-50 px-2 py-1 rounded">
-                        <span className="font-medium">Returned:</span>
-                        <span className="truncate">{formatDate(leave.returnedAt)}, {formatTime(leave.returnedAt)}</span>
-                      </div>
-                    )}
-                    
-                    {!leave.toTime && !leave.returnedAt && (
-                      <div className="col-span-2 flex items-center gap-1.5 text-gray-600 bg-gray-50 px-2 py-1 rounded">
-                        <span className="font-medium">End:</span>
-                        <span className="truncate">Not specified</span>
-                      </div>
-                    )}
-                  </div>
-                )}
+              <div className="flex flex-wrap gap-1 mb-2">
+          {type === "shortLeave" ? (
+            // Single row for Short Leave
+            <>
+              <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 rounded border border-blue-100">
+                <Calendar size={10} className="text-blue-600" />
+                <span className="text-xs text-gray-900">{formatDate(leave.date)}</span>
               </div>
+              <div className="flex items-center gap-1 px-2 py-1 bg-red-50 rounded border border-red-100">
+                <Clock size={10} className="text-red-600" />
+                <span className="text-xs text-gray-900">From: {formatTime(leave.fromTime)}</span>
+              </div>
+              <div className="flex items-center gap-1 px-2 py-1 bg-green-50 rounded border border-green-100">
+                <Clock size={10} className="text-green-600" />
+                <span className="text-xs text-gray-900">To: {formatTime(leave.toTime)}</span>
+              </div>
+            </>
+          ) : (
+            // Medical Leave - Adaptive layout
+           <div className="flex flex-col gap-1">
+            <div className="flex gap-1">
+            
+              <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 rounded border border-blue-100 whitespace-nowrap">
+                <Calendar size={10} className="text-blue-600" />
+                <span className="text-xs text-gray-900">{formatDate(leave.fromDate)}</span>
+                <span className="text-xs text-blue-600">{formatTime(leave.fromTime)}</span>
+              </div>
+
+              {leave.toTime && (
+                <div className="flex items-center gap-1 px-2 py-1 bg-green-50 rounded border border-green-100 whitespace-nowrap">
+                  <Clock size={10} className="text-green-600" />
+                  <span className="text-xs text-gray-900">{formatDate(leave.toDate)}</span>
+                  <span className="text-xs text-green-600">{formatTime(leave.toTime)}</span>
+                </div>
+              )}
+            </div>
+
+            {leave.returnedAt && (
+              <div className="flex gap-1 w-fit mx-auto">
+                <div className="flex items-center gap-1 px-2 py-1 bg-purple-50 rounded border border-purple-100 whitespace-nowrap">
+                  <CheckCircle size={10} className="text-purple-600" />
+                  <span className="text-xs text-purple-900">Returned:</span>
+                  <span className="text-xs text-purple-600">{formatTime(leave.returnedAt)}</span>
+                  <span className="text-xs text-purple-600">{formatDate(leave.returnedAt)}</span>
+                </div>
+              </div>
+            )}
+
+            {!leave.toTime && !leave.returnedAt && (
+              <div className="flex gap-1">
+                <div className="flex items-center gap-1 px-2 py-1 bg-gray-50 rounded border border-gray-100 whitespace-nowrap">
+                  <Clock size={10} className="text-gray-500" />
+                  <span className="text-xs text-gray-900">Not specified</span>
+                </div>
+              </div>
+            )}
+
+          </div>
+
+          )}
+        </div>
 
               {/* Teacher & Reason */}
               <div className="flex flex-wrap items-center gap-2 text-xs pt-2 border-t border-gray-100">

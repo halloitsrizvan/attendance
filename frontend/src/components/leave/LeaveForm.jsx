@@ -5,7 +5,7 @@ import { API_PORT } from '../../Constants';
 import DatePicker from './DatePicker';
 import { FaHome, FaSadCry } from "react-icons/fa";
 import { Plus, Minus } from 'lucide-react';
-
+import Header from '../Header/Header';
 const SelectionButton = ({ label, isSelected, onClick, type }) => (
   <button
     onClick={onClick}
@@ -239,7 +239,7 @@ function LeaveForm() {
   }, [teacher.role]);
 
   // Fetch all students based on teacher role
-  useEffect(() => {
+  useEffect(() => { 
     setLoading(true);
     axios.get(`${API_PORT}/students`)
       .then((res) => {
@@ -558,6 +558,7 @@ function LeaveForm() {
 
       {loading && (
         <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-40 z-50 backdrop-blur-sm">
+         <Header/>
           <div className="flex flex-col items-center gap-3">
             <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
             <p className="text-white text-lg font-semibold animate-pulse">Processing...</p>

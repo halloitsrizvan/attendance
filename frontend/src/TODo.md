@@ -123,7 +123,17 @@ Medical room / Leave
 sort by current time/action
 
 
-CEP/MR/MWED-remove refresh,show date-time data clearly
+CEP/MR/MWED-remove refresh
+,show date-time data clearly
 decrease lleave load
+
+status update error
+
+
+/att;-
+lea=cep=
+no e-date-medi & room,
+Class 6
+
 
 

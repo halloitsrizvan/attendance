@@ -148,9 +148,10 @@
       });
     };
 
-    const handleReturn = async (leaveId) => {
+    const handleReturn = async () => {
     try {
       setIsProcessing(true);
+      const leaveId=_id;
       const leave = classData.find((item) => item._id === leaveId);
       
       // Add null check for leave
@@ -290,9 +291,9 @@
     const handleActionWithConfirm = async () => {
       setIsProcessing(true);
       try {
-        await handleReturn(_id);
+        await handleReturn();
         setShowConfirm(false);
-      } catch (error) {
+      } catch (error) { 
         console.error('fuckin error',error);
       } finally {
         setIsProcessing(false);
@@ -348,7 +349,7 @@
                 </button>
               </div>
               <p className="mt-3 text-sm text-gray-600">
-                You are about to {actionDescription} for <span className="font-semibold text-gray-900">{name}</span>. This will update the leave status.
+               {actionDescription} for <span className="font-semibold text-gray-900">{name}</span>.
               </p>
               <div className="mt-6 space-y-3">
                 <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-100 border border-gray-200 rounded-xl px-3 py-2">
@@ -358,7 +359,7 @@
                       hour: 'numeric',
                       minute: '2-digit',
                       hour12: true
-                    })} </span> : actionDescription === "mark return" ?
+                    })} </span> : actionDescription === "mark returned" ?
                     <span>To Date & Time: {toDate} {new Date(`${toDate}T${toTime}`).toLocaleTimeString([], {
                       hour: 'numeric',
                       minute: '2-digit',
@@ -474,7 +475,7 @@
 
       } catch (error) {
         console.error('Error updating leave status:', error);
-        alert('Failed. Try again.');
+       
       }
     };
 
