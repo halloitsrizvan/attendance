@@ -115,6 +115,15 @@ short leave:-
   "__v": 0
 }
 
-Medical Leave
+18-11-25
+attendance-on leave for c e p / Medical room 
+medical toTime Date - no 
+Medical room / Leave
+
 sort by current time/action
+
+
+CEP/MR/MWED-remove refresh,show date-time data clearly
+decrease lleave load
+
 

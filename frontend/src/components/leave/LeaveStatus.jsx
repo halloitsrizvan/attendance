@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, act } from 'react';
 import { Calendar, Clock, CheckCircle, AlertCircle, User, XCircle, RefreshCw, ChevronRight, FileSignature } from 'lucide-react';import axios from 'axios';
 import { API_PORT } from '../../Constants';
 import LeaveStatusTable from './LeaveStatusTable';
@@ -212,12 +212,19 @@ const StudentStatusCard = ({ student }) => {
 
 function LeaveStatus() {
   const [activeTab, setActiveTab] = useState('actions');
+  const [activeTabActions, setActiveTabActions] = useState('General');
   const [leaveData, setLeaveData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedClass, setSelectedClass] = useState(null);
 
   const [shortLeaveStatus,setShortLeaveStatus] = useState([])
+  //Medeical room 
+  const medicalRoomStatus = useMemo(() => {
+    return leaveData.filter(student => student.reason === 'Medical (Room)');
+  }, [leaveData]);
+
+
   // Calculate leave status
   const getLeaveStatus = (item) => {
     const now = new Date();
@@ -329,14 +336,30 @@ const getLeaveStatusForTable = (item) => {
 
 // Get data for actions table
 const actionsTableData = useMemo(() => {
+
   return leaveData
     .map(item => ({
       ...item,
       status: getLeaveStatusForTable(item)
     }))
     .filter(data => {
-      return ['Scheduled', 'Pending', 'On Leave', 'Late'].includes(data.status);
-    });
+        const endDateTime = new Date(`${data.toDate}T${data.toTime}`);
+        const now = new Date();
+        const diffHours = (endDateTime - now) / (1000 * 60 * 60);
+
+        const isPendingOrLate =
+          ['Pending', 'Late'].includes(data.status) &&
+          data.reason !== 'Medical (Room)';
+
+        // NEW: Show On Leave only if 4 hours are left before end time
+        const isFourHourOnLeave =
+          data.status === 'On Leave' &&
+          diffHours <= 4 &&  // Less than or equal 4 hours remaining
+          diffHours > 0;     // End time not passed
+
+        return (isPendingOrLate || isFourHourOnLeave) && data.toDate;
+      });
+
 }, [leaveData]);
 
 // Refresh function to pass
@@ -350,6 +373,7 @@ const refreshLeaveData = () => {
         ['On Leave', 'Late'].includes(student.displayStatus)
       );
     }
+    
     return leaveData;
   }, [leaveData, activeTab]);
 
@@ -441,26 +465,27 @@ const refreshLeaveData = () => {
         </div> */}
         
         {/* Compact Tabs */}
-        <div className="flex gap-2 mb-4 p-1 bg-white rounded-lg shadow-sm w-full sm:w-auto">
+        <div className="flex flex-wrap  gap-2 mb-4 p-1 rounded-lg  w-full sm:w-auto border-2 border-indigo-200">
         <TabButton 
             label={`Actions`}
             isActive={activeTab === 'actions'}
             onClick={() => setActiveTab('actions')}
           />
           <TabButton 
-            label={`All (${leaveData.length})`}
-            isActive={activeTab === 'all'}
-            onClick={() => setActiveTab('all')}
-          />
-          <TabButton 
             label={`On leave (${notArrivedCount})`}
             isActive={activeTab === 'onLeave'}
             onClick={() => setActiveTab('onLeave')}
           />
+          
            <TabButton 
-            label={`Short leave (${shortLeaveStatus.length})`}
+            label={`Class Excused Pass (${shortLeaveStatus.length})`}
             isActive={activeTab === 'shortLeave'}
             onClick={() => setActiveTab('shortLeave')}
+          />
+          <TabButton 
+            label={`History (${leaveData.length})`}
+            isActive={activeTab === 'all'}
+            onClick={() => setActiveTab('all')}
           />
         </div>
   
@@ -525,7 +550,8 @@ const refreshLeaveData = () => {
               </div> */}
             </div>
           </div>
-        }
+        } 
+
             {filteredData.map((student) => (
               <StudentStatusCard key={student._id} student={student} />
             ))}
@@ -547,18 +573,67 @@ const refreshLeaveData = () => {
         <div>
             <div>
               <ShortLeave
-                statusData={shortLeaveStatus} 
+                statusData={shortLeaveStatus}
+                type="shortLeave"
+                
                 />
             </div>
         </div>
+        
         :
         <div>
-          <LeaveStatusTable 
-          classData={actionsTableData}
-          onDataUpdate={refreshLeaveData}
-          getLeaveStatus={getLeaveStatusForTable}
-        />
-        </div>}
+           {activeTab==="actions" &&
+        <>
+             <div className="flex flex-wrap  gap-2  p-1  bg-white rounded-lg shadow-sm  w-full sm:w-auto mb-2">
+                <TabButton 
+                    label={`General`}
+                    isActive={activeTabActions === 'General'}
+                    onClick={() => setActiveTabActions('General')}
+                  />
+                  <TabButton 
+                    label={`Medical (room) (${medicalRoomStatus.length})`}
+                    isActive={activeTabActions === 'Medical (room)'}
+                    onClick={() => setActiveTabActions('Medical (room)')}
+                  />
+                  <TabButton 
+                    label={`Medical (without end date)`}
+                    isActive={activeTabActions === 'Medical (without end date)'}
+                    onClick={() => setActiveTabActions('Medical (without end date)')}
+                  />
+                </div>
+                {activeTabActions==="Medical (room)"?
+                <div>
+                  <ShortLeave
+                  statusData={medicalRoomStatus}
+                  type="medicalRoom"
+                  
+                  />
+                </div>:
+                activeTabActions==="General"?
+                  <LeaveStatusTable 
+                      classData={actionsTableData}
+                      onDataUpdate={refreshLeaveData}
+                      getLeaveStatus={getLeaveStatusForTable}
+                    />
+                :activeTabActions==="Medical (without end date)"?
+                <div>
+                  <ShortLeave
+                  statusData={leaveData.filter(student=>student.reason==="Medical" && !student.toDate)}
+                  type="medicalWithoutEndDate"
+                  
+                  />
+                </div>
+                :
+                ""}
+                </>
+        }
+        
+        
+
+         
+        </div>
+        
+        }
       </div>
       {/* Class Students Popup */}
   {selectedClass && (

@@ -29,11 +29,9 @@ const leaveSchema = new Schema({
     },
     toDate: {
         type: String,
-        required: true
     },
     toTime: {
         type: String,
-        required: true
     },
     status: {
         type: String,

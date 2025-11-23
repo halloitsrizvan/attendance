@@ -29,43 +29,129 @@ function Hajar() {
   const token = localStorage.getItem("token")
   const teacher = localStorage.getItem("teacher") ? JSON.parse(localStorage.getItem("teacher")) : 'Teacher Panel';
 
-  const initialAttendance = {}
+  const [shortLeaveData,setShortLeaveData] = useState([])
+  
 
-  useEffect(() => {
+
+      const formatTime = (timeString) => {
+      if (!timeString) return '—';
+      try {
+        const [hours, minutes] = timeString.split(':');
+        const date = new Date();
+        date.setHours(parseInt(hours), parseInt(minutes));
+        return date.toLocaleString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
+      } catch (error) {
+        return timeString;
+      }
+    };
+
+    const formatDate = (dateString) => {
+      if (!dateString) return '—';
+      try {
+        const date = new Date(dateString);
+        return date.toLocaleString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+          weekday: 'short'
+        });
+      } catch (error) {
+        return dateString;
+      }
+    };
+
+    const convertTimeToMinutes = (timeString) => {
+      const [hours, minutes] = timeString.split(':').map(Number);
+      return hours * 60 + minutes;
+    };
+
+    // Check if student is currently on short leave
+    const isStudentOnShortLeave = (studentAdno) => {
+      const today = date ? new Date(date) : new Date();
+      const currentTime = convertTimeToMinutes(getCurrentTimeString());
+      
+      return shortLeaveData.some(leave => {
+        // Check ADNO match
+        if (leave.ad !== studentAdno) return false; 
+        
+        // Check date match
+        const leaveDate = new Date(leave.date);
+        const isSameDate = 
+          leaveDate.getDate() === today.getDate() &&
+          leaveDate.getMonth() === today.getMonth() &&
+          leaveDate.getFullYear() === today.getFullYear();
+        
+        if (!isSameDate) return false;
+        
+        // Check time range
+        const fromTime = convertTimeToMinutes(leave.fromTime);
+        const toTime = convertTimeToMinutes(leave.toTime);
+        
+        return currentTime >= fromTime && currentTime <= toTime;
+      });
+    };
+
+    // Get current time in HH:MM format
+    const getCurrentTimeString = () => {
+      const now = new Date();
+      return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    };
+
+  
+
+   useEffect(() => {
     console.log(period);
+    setDataLoad(true);
     
-    setDataLoad(true)
-    axios
-      .get(`${API_PORT}/students/`)
+    // Fetch short leave data first, then students
+    axios.get(`${API_PORT}/class-excused-pass`)
+      .then((res) => {
+        setShortLeaveData(res.data);
+        console.log("Short leave data:", res.data);
+        
+        // Now fetch students
+        return axios.get(`${API_PORT}/students/`);
+      })
       .then((res) => {
         const filtered = res.data
           .filter((student) => student.CLASS === Number(id))
           .sort((a, b) => a.SL - b.SL);
-
-        // set all initially
-        filtered.forEach((s) => {
-          if(s.onLeave){
-            initialAttendance[s.ADNO] = "Absent";
-          }else{
-            initialAttendance[s.ADNO] = "Present";
+        
+        const initialAttendance = {};
+        
+        // Set initial attendance based on short leave status
+        filtered.forEach((student) => {
+          const isOnShortLeave = isStudentOnShortLeave(student.ADNO,res.data);
+          console.log(isStudentOnShortLeave(267,res.data));
+          
+          if (isOnShortLeave || student.onLeave) {
+            initialAttendance[student.ADNO] = "Absent";
+          } else {
+            initialAttendance[student.ADNO] = "Present";
           }
         });
 
         setStudents(filtered);
         setAttendance(initialAttendance);
-        setDataLoad(false)
+        setDataLoad(false);
       })
       .catch((err) => {
         console.error(err);
-        setDataLoad(false)
+        setDataLoad(false);
       });
-  }, [id,period]);
+  }, [id, period, date, time]);
+
+ 
 
   const handleCheckboxChange = (ad, isChecked) => {
     const student = students.find(s => s.ADNO === ad);
-  
+    const isOnShortLeave = isStudentOnShortLeave(ad);
     // If student is on leave, don't allow changing status
-    if (student && student.onLeave) {
+    if (student && (isOnShortLeave || student.onLeave)) {
       alert("Student is on leave, cannot change status");
       return;
     }else{
@@ -75,32 +161,43 @@ function Hajar() {
       }));
     }
   };
-  const preSumbit=(e)=>{
-    e.preventDefault();
-    const absentiesList=students.filter((s)=>attendance[s.ADNO] !== "Present")
 
-    setAbsenties(absentiesList)
-    setConfirmAttendance(true)
-  }
+    const preSumbit = (e) => {
+    e.preventDefault();
+    const absentiesList = students.filter((s) => {
+      const isOnShortLeave = isStudentOnShortLeave(s.ADNO);
+      const isOnLeave = s.onLeave || isOnShortLeave;
+      // Students are absent if they're marked absent OR on leave
+      return attendance[s.ADNO] !== "Present" || isOnLeave;
+    });
+
+    setAbsenties(absentiesList);
+    setConfirmAttendance(true);
+  };
 
   const handleSubmit = async () => {
 
    setConfirmAttendance(false)
     setLoad(true)
     
-    const payload = students.map((student) => ({
-      nameOfStd: student["SHORT NAME"],
-      ad: student.ADNO,
-      class: student.CLASS,
-      status: attendance[student.ADNO] || "Absent",
-      SL:student.SL,
-      attendanceTime: time,
-      attendanceDate:   new Date(),
-      teacher:teacher.name,
-      ...(period && {period:period}),
-      ...(more && {custom:more}),
-      onLeave: student.onLeave,
-    }));
+      const payload = students.map((student) => {
+        const isOnShortLeave = isStudentOnShortLeave(student.ADNO);
+        const isOnLeave = student.onLeave || isOnShortLeave;
+        const status = isOnLeave ? "Absent" : (attendance[student.ADNO] || "Absent");
+          return {
+            nameOfStd: student["SHORT NAME"],
+            ad: student.ADNO,
+            class: student.CLASS,
+            status:status,
+            SL: student.SL,
+            attendanceTime: time,
+            attendanceDate: new Date(),
+            teacher: teacher.name,
+            ...(period && { period: period }),
+            ...(more && { custom: more }),
+            onLeave: isOnLeave,
+          };
+    });
 //attendanceDate:  date ||  new Date().toISOString().split('T')[0],
     try {
       
@@ -123,19 +220,25 @@ function Hajar() {
         absentStudents: absent,
         percentage: percent,
       });
-
-      const payload2 = students.map((student) => ({
-        _id:student._id,
-        SL:student.SL,
-        ADNO: student.ADNO,
-        ["FULL NAME"]: student["FULL NAME"],
-        ["SHORT NAME"]: student["SHORT NAME"],
-        CLASS: student.CLASS,
-        Status: attendance[student.ADNO] || "Absent",
-        Time: time,
-        Date:date ||new Date().toISOString().split("T")[0],
         
-      }));
+
+        const payload2 = students.map((student) => {
+        const isOnShortLeave = isStudentOnShortLeave(student.ADNO);
+        const isOnLeave = student.onLeave || isOnShortLeave;
+        const status = isOnLeave ? "Absent" : (attendance[student.ADNO] || "Absent");
+        
+        return {
+          _id: student._id,
+          SL: student.SL,
+          ADNO: student.ADNO,
+          ["FULL NAME"]: student["FULL NAME"],
+          ["SHORT NAME"]: student["SHORT NAME"],
+          CLASS: student.CLASS,
+          Status: status, 
+          Time: time,
+          Date: date || new Date().toISOString().split('T')[0],
+        };
+      });
 
       await axios.patch(`${API_PORT}/students/bulk-update/students`,{updates:payload2})
       setLoad(false)
@@ -154,45 +257,63 @@ function Hajar() {
 
     const [copy,setCopy] = useState(false)
 
-const handleCopyAbsentees = () => {
-  if (absentees.length > 0) {
-    // Separate regular absentees and on-leave students
-    const regularAbsentees = absentees.filter(s => !s.onLeave);
-    const onLeaveStudents = absentees.filter(s => s.onLeave);
-    
-    let text = "";
-    const classofStd = `Class ${absentees[0].CLASS}`;
-    
-    // Add regular absentees
-    if (regularAbsentees.length > 0) {
-      text += regularAbsentees
-        .map((s) => `${s["SHORT NAME"]} (AdNo: ${s.ADNO})`)
-        .join("\n");
-    }
-    
-    // Add on-leave students with special marking
-    if (onLeaveStudents.length > 0) {
-      if (text) text += "\n\n"; // Add spacing if there are regular absentees
-      text += "On Leave:\n" + onLeaveStudents
-        .map((s) => `${s["SHORT NAME"]} (AdNo: ${s.ADNO})`)
-        .join("\n");
-    }
-    
-    navigator.clipboard.writeText(classofStd + "\n" + text)
-      .then(() => {
+    const handleCopyAbsentees = () => {
+      if (absentees.length > 0) {
+        // Separate regular absentees, short leave, and on-leave students
+        const regularAbsentees = absentees.filter(s => {
+          const isOnShortLeave = isStudentOnShortLeave(s.ADNO);
+          return !s.onLeave && !isOnShortLeave;
+        });
+        
+        const shortLeaveStudents = absentees.filter(s => 
+          isStudentOnShortLeave(s.ADNO) && !s.onLeave
+        );
+        
+        const onLeaveStudents = absentees.filter(s => 
+          s.onLeave && !isStudentOnShortLeave(s.ADNO)
+        );
+        
+        let text = "";
+        const classofStd = `Class ${absentees[0].CLASS}`;
+        
+        // Add regular absentees
+        if (regularAbsentees.length > 0) {
+          text += "Absent:\n" + regularAbsentees
+            .map((s) => `${s["SHORT NAME"]} (AdNo: ${s.ADNO})`)
+            .join("\n");
+        }
+        
+        // Add short leave students
+        if (shortLeaveStudents.length > 0) {
+          if (text) text += "\n\n";
+          text += "Class excused pass:\n" + shortLeaveStudents
+            .map((s) => `${s["SHORT NAME"]} (AdNo: ${s.ADNO})`)
+            .join("\n");
+        }
+        
+        // Add on-leave students
+        if (onLeaveStudents.length > 0) {
+          if (text) text += "\n\n";
+          text += "On Leave:\n" + onLeaveStudents
+            .map((s) => `${s["SHORT NAME"]} (AdNo: ${s.ADNO})`)
+            .join("\n");
+        }
+        
+        navigator.clipboard.writeText(classofStd + "\n" + text)
+          .then(() => {
+            setCopy(true);
+          })
+          .catch((err) => {
+            console.error("Failed to copy: ", err);
+          });
+      } else {
+        navigator.clipboard.writeText("No absentees 🎉");
         setCopy(true);
-      })
-      .catch((err) => {
-        console.error("Failed to copy: ", err);
-      });
-  } else {
-    navigator.clipboard.writeText("No absentees 🎉");
-    setCopy(true);
-  }
-  setTimeout(() => {
-    setCopy(false);
-  }, 4000);
-};
+      }
+      setTimeout(() => {
+        setCopy(false);
+      }, 4000);
+    };
 
   
 
@@ -341,80 +462,94 @@ const handleCopyAbsentees = () => {
       {dataLoad &&<StudentsLoad/>}
 
      {cards==="No"&& !dataLoad&& <div>
-      <form onSubmit={preSumbit}>
-        <table className="table-auto border-collapse border border-gray-300 w-full">
-          <thead>
-            <tr>
-              <th className="border border-gray-300 px-4 py-2">SL</th>
-              <th className="border border-gray-300 px-4 py-2">Ad</th>
-              <th className="border border-gray-300 px-4 py-2">Name</th>
-              <th className="border border-gray-300 px-4 py-2">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {students.length > 0 ? (
-              students.map((student, index) => (
-                <tr key={index} 
-                onClick={() =>
-                  handleCheckboxChange(
-                    student.ADNO,
-                    attendance[student.ADNO] !== "Present"
-                  )
-                }
-                >
-                  <td className="border border-gray-300 px-4 py-2">
-                    {student.SL}
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2">
-                    {student.ADNO}
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2">
-                    {student["SHORT NAME"]}
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2 text-center">
-                    <button
-                      type="button"
-                      disabled={student.onLeave === true}
-                      onClick={() =>
-                        handleCheckboxChange(
-                          student.ADNO,
-                          attendance[student.ADNO] !== "Present"
-                        )
-                      }
-                      className={`px-4 py-1 rounded-full font-medium transition ${
-                        attendance[student.ADNO] === "Present"
-                          ? "bg-green-500 text-white hover:bg-green-600"
-                          : student.onLeave === true
-                          ? "bg-yellow-500 text-white hover:bg-yellow-600"
-                          : "bg-red-500 text-white hover:bg-red-600"
-                      } `}
-                      //${student.Status=="Absent"&& attendance[student.ADNO] === "Absent"    &&   "border-2 border-blue-600"}
+        <form onSubmit={preSumbit}>
+          <table className="table-auto border-collapse border border-gray-300 w-full">
+            <thead>
+              <tr>
+                <th className="border border-gray-300 px-4 py-2">SL</th>
+                <th className="border border-gray-300 px-4 py-2">Ad</th>
+                <th className="border border-gray-300 px-4 py-2">Name</th>
+                <th className="border border-gray-300 px-4 py-2">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {students.length > 0 ? (
+                students.map((student, index) => {
+                  const isOnShortLeave = isStudentOnShortLeave(student.ADNO);
+                  console.log(isStudentOnShortLeave(267));
+                  
+                  const isOnLeave = student.onLeave || isOnShortLeave;
+                  
+                  return (
+                    <tr key={index} 
+                      onClick={() => {
+                        if (!isOnLeave) {
+                          handleCheckboxChange(
+                            student.ADNO,
+                            attendance[student.ADNO] !== "Present"
+                          );
+                        }
+                      }}
+                      className={isOnLeave ? "cursor-not-allowed" : "cursor-pointer"}
                     >
-                      {attendance[student.ADNO] === "Present"
-                        ? "Present": student.onLeave === true ? "On Leave" : "Absent"}
-                    </button>
-                   {/* {student.Status =="Absent" && <span class="bg-red-100 text-red-800 text-xs  me-2 px-2.5 py-0.5 rounded-full dark:bg-red-900 dark:text-red-300"></span>} */}
+                      <td className="border border-gray-300 px-4 py-2">
+                        {student.SL}
+                      </td>
+                      <td className="border border-gray-300 px-4 py-2">
+                        {student.ADNO}
+                      </td>
+                      <td className="border border-gray-300 px-4 py-2">
+                        {student["SHORT NAME"]}
+                      </td>
+                      <td className="border border-gray-300 px-4 py-2 text-center">
+                        <button
+                          type="button"
+                          disabled={isOnLeave}
+                          onClick={() => {
+                            if (!isOnLeave) {
+                              handleCheckboxChange(
+                                student.ADNO,
+                                attendance[student.ADNO] !== "Present"
+                              );
+                            }
+                          }}
+                          className={`px-4 py-1 rounded-full font-medium transition ${
+                             isOnLeave
+                              ? "bg-yellow-500 text-white hover:bg-yellow-600 cursor-not-allowed":
+                              attendance[student.ADNO] === "Present"
+                              ? "bg-green-500 text-white hover:bg-green-600"
+                              : "bg-red-500 text-white hover:bg-red-600"
+                          }`}
+                        >
+                          {
+                            isOnLeave 
+                            ? "On Leave" :
+                            attendance[student.ADNO] === "Present"
+                            ? "Present"
+                            : "Absent"}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan="4" className="text-center p-4 text-gray-500">
+                    No students found in Class {id}
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="4" className="text-center p-4 text-gray-500">
-                  No students found in Class {id}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-        <div className="mt-6 flex justify-center">
-          <button
-            type="submit"
-            className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:from-indigo-700 hover:to-blue-600 hover:shadow-xl transform hover:scale-105 transition duration-300 ease-in-out"
-          >
-             Submit Attendance
-          </button>
-        </div>
-      </form>
+              )}
+            </tbody>
+          </table>
+          <div className="mt-6 flex justify-center">
+            <button
+              type="submit"
+              className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:from-indigo-700 hover:to-blue-600 hover:shadow-xl transform hover:scale-105 transition duration-300 ease-in-out"
+            >
+              Submit Attendance
+            </button>
+          </div>
+        </form>
       </div>}
 
 
