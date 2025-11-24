@@ -591,12 +591,12 @@ const refreshLeaveData = () => {
                     onClick={() => setActiveTabActions('General')}
                   />
                   <TabButton 
-                    label={`Medical (room) (${medicalRoomStatus.length})`}
+                    label={`Medical Room (${medicalRoomStatus.length})`}
                     isActive={activeTabActions === 'Medical (room)'}
                     onClick={() => setActiveTabActions('Medical (room)')}
                   />
                   <TabButton 
-                    label={`Medical (without end date)`}
+                    label={`Medical-without end date (${leaveData.filter(student=>student.reason==="Medical" && !student.toDate).length})`}
                     isActive={activeTabActions === 'Medical (without end date)'}
                     onClick={() => setActiveTabActions('Medical (without end date)')}
                   />
