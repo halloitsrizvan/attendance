@@ -135,5 +135,10 @@ lea=cep=
 no e-date-medi & room,
 Class 6
 
+CEP only for HOD,HOS ?
+Medical room : 
+            Return to class: for all
+            Medical leave:?
+is it for class teacher, usthad first said only for who gave medical room leave, there is a possibilty if the class teacher is absent and present at the time of medical leave(to home)           
 
 
