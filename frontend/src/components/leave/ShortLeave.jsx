@@ -337,13 +337,13 @@ function ShortLeave({ statusData: initialStatusData, type, onDataUpdate }) {
                 ) : (
                   // For medical room, show both buttons
                   <div className="flex items-center gap-2">
-                    <button
+                   {teacher.name=== leave.teacher && <button
                       onClick={() => actionButtonHandle(leave, 'medicalLeave')}
                       disabled={isProcessing}
                       className="px-3 py-1.5 text-xs sm:text-sm font-medium bg-blue-500 text-white rounded-full shadow hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Medical Leave
-                    </button> 
+                    </button> }
 
                     <button 
                       onClick={() => actionButtonHandle(leave, 'returnToClass')}
