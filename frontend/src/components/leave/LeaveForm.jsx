@@ -573,7 +573,9 @@ function LeaveForm() {
         >
           <FaHome /> Leave Dashboard
         </button>
-        <button
+       {["HOD","HOS","super_admin"].includes(teacher.role) 
+       &&
+       <button
           className="flex items-center gap-2 px-4 py-2 rounded-md bg-blue-500 text-white text-base font-medium shadow-sm hover:bg-blue-600 transition"
           onClick={() => {
             if (leaveType === "leave") {
@@ -584,7 +586,7 @@ function LeaveForm() {
           }}
         >
           {leaveType === "leave" ? "Class Excused Pass" : "Leave"}
-        </button>
+        </button>}
       </div>
 
       {leaveType === "leave" ? (
