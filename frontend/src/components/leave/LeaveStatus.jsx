@@ -221,7 +221,7 @@ function LeaveStatus() {
   const [shortLeaveStatus,setShortLeaveStatus] = useState([])
   //Medeical room 
   const medicalRoomStatus = useMemo(() => {
-    return leaveData.filter(student => student.reason === 'Medical (Room)');
+    return leaveData.filter(student => student.reason === 'Medical (Room)' && !student.returnedAt);
   }, [leaveData]);
 
 
@@ -591,12 +591,12 @@ const refreshLeaveData = () => {
                     onClick={() => setActiveTabActions('General')}
                   />
                   <TabButton 
-                    label={`Medical Room (${medicalRoomStatus.length})`}
+                    label={`Medical Room(${medicalRoomStatus.length})`}
                     isActive={activeTabActions === 'Medical (room)'}
                     onClick={() => setActiveTabActions('Medical (room)')}
                   />
                   <TabButton 
-                    label={`Medical-without end date (${leaveData.filter(student=>student.reason==="Medical" && !student.toDate).length})`}
+                    label={`Medical-without end date(${leaveData.filter(student=>student.reason==="Medical" && !student.toDate).length})`}
                     isActive={activeTabActions === 'Medical (without end date)'}
                     onClick={() => setActiveTabActions('Medical (without end date)')}
                   />
@@ -618,7 +618,7 @@ const refreshLeaveData = () => {
                 :activeTabActions==="Medical (without end date)"?
                 <div>
                   <ShortLeave
-                  statusData={leaveData.filter(student=>student.reason==="Medical" && !student.toDate)}
+                  statusData={leaveData.filter(student=>student.reason==="Medical" && !student.toDate && !student.returnedAt)}
                   type="medicalWithoutEndDate"
                   
                   />
