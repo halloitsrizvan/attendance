@@ -40,7 +40,7 @@ const createLeave = async (req, res) => {
     }
 }
 
-// Update leave status (mark as returned)
+// Update leave (status or dates/times)
 const updateLeaveStatus = async (req, res) => {
     const { id } = req.params;
     
@@ -49,10 +49,19 @@ const updateLeaveStatus = async (req, res) => {
     }
     
     try {
-        const { status, leaveStartTeacher, markReturnedTeacher } = req.body;
+        const { 
+            status, 
+            leaveStartTeacher, 
+            markReturnedTeacher,
+            fromDate,
+            fromTime,
+            toDate,
+            toTime
+        } = req.body;
         
         const updateData = {};
         
+        // Handle status updates
         if (status === 'returned') {
             updateData.status = 'returned';
             updateData.returnedAt = new Date();
@@ -60,6 +69,7 @@ const updateLeaveStatus = async (req, res) => {
             updateData.status = status;
         }
 
+        // Handle teacher assignments
         if (status === 'active' && leaveStartTeacher) {
             updateData.leaveStartTeacher = leaveStartTeacher;
         }
@@ -74,6 +84,52 @@ const updateLeaveStatus = async (req, res) => {
 
         if (markReturnedTeacher && status !== 'returned') {
             updateData.markReturnedTeacher = markReturnedTeacher;
+        }
+
+        // Handle date/time updates
+        if (fromDate) updateData.fromDate = fromDate;
+        if (fromTime) updateData.fromTime = fromTime;
+        if (toDate) updateData.toDate = toDate;
+        if (toTime) updateData.toTime = toTime;
+
+        // If dates are being updated, we might need to recalculate status
+        if (fromDate || fromTime || toDate || toTime) {
+            const leave = await Leave.findById(id);
+            if (leave) {
+                const now = new Date();
+                const currentDate = now.toISOString().split('T')[0];
+                const currentTime = now.toTimeString().split(' ')[0].substring(0, 5);
+                
+                const effectiveFromDate = fromDate || leave.fromDate;
+                const effectiveFromTime = fromTime || leave.fromTime;
+                const effectiveToDate = toDate || leave.toDate;
+                const effectiveToTime = toTime || leave.toTime;
+
+                // Check if leave should be active
+                const isActive = (
+                    (effectiveFromDate < currentDate) ||
+                    (effectiveFromDate === currentDate && effectiveFromTime <= currentTime)
+                ) && (
+                    (effectiveToDate > currentDate) ||
+                    (effectiveToDate === currentDate && effectiveToTime >= currentTime)
+                );
+
+                // Check if leave is late (past end time but not returned)
+                const isLate = (
+                    (effectiveToDate < currentDate) ||
+                    (effectiveToDate === currentDate && effectiveToTime < currentTime)
+                );
+
+                if (isActive && leave.status !== 'returned') {
+                    updateData.status = 'active';
+                } else if (isLate && leave.status !== 'returned') {
+                    updateData.status = 'late';
+                } else if (!status && (effectiveFromDate > currentDate || 
+                    (effectiveFromDate === currentDate && effectiveFromTime > currentTime))) {
+                    // If dates are in future and no status provided, set to Scheduled
+                    updateData.status = 'Scheduled';
+                }
+            }
         }
         
         const leave = await Leave.findByIdAndUpdate(

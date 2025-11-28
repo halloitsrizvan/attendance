@@ -213,15 +213,21 @@ const StudentStatusCard = ({ student }) => {
 function LeaveStatus() {
   const [activeTab, setActiveTab] = useState('actions');
   const [activeTabActions, setActiveTabActions] = useState('General');
+  const [activeTabMyDB, setActiveTabMyDB] = useState('allActions');
   const [leaveData, setLeaveData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedClass, setSelectedClass] = useState(null);
 
+  const teacher = localStorage.getItem("teacher") ? JSON.parse(localStorage.getItem("teacher")) :  null;
+
   const [shortLeaveStatus,setShortLeaveStatus] = useState([])
   //Medeical room 
   const medicalRoomStatus = useMemo(() => {
     return leaveData.filter(student => student.reason === 'Medical (Room)' && !student.returnedAt);
+  }, [leaveData]);
+  const medicalRoomStatusDB = useMemo(() => {
+    return leaveData.filter(student => student.reason === 'Medical (Room)' && !student.returnedAt && student.teacher===teacher?.name);
   }, [leaveData]);
 
 
@@ -381,15 +387,8 @@ const refreshLeaveData = () => {
     return filteredData.filter(student=>student.status==="active").length;
   }, [leaveData]);
 
-  const arrivedCount = useMemo(() => {
-    return leaveData.filter(s => s.displayStatus === 'Arrived' || s.displayStatus === 'Late Returned').length;
-  }, [leaveData]);
-
-  const onLeaveCount = useMemo(() => {
-    return leaveData.filter(s => s.displayStatus === 'On Leave').length;
-  }, [leaveData]);
-
-  const [showAllAbsenties,setShowAllAbsenties] = useState(false)
+ const filterDB=leaveData.filter(student=>student.teacher===teacher?.name);
+ 
 
   if (loading) {
     return (
@@ -487,6 +486,11 @@ const refreshLeaveData = () => {
             isActive={activeTab === 'all'}
             onClick={() => setActiveTab('all')}
           />
+          <TabButton 
+            label={`My Dashboard `}
+            isActive={activeTab === 'My Dashboard'}
+            onClick={() => setActiveTab('My Dashboard')}
+          />
         </div>
   
         {/* Cards Grid - Mobile First */}
@@ -568,6 +572,61 @@ const refreshLeaveData = () => {
             </div>
           )}
         </div>
+        :activeTab==="My Dashboard"?
+        <>
+          <div className="flex flex-wrap  gap-2  p-1  bg-white rounded-lg shadow-sm  w-full sm:w-auto mb-2">
+                <TabButton 
+                    label={`Actions`}
+                    isActive={activeTabMyDB === 'allActions'}
+                    onClick={() => setActiveTabMyDB('allActions')}
+                  />
+                <TabButton 
+                    label={`Medical Room(${medicalRoomStatusDB.length})`}
+                    isActive={activeTabMyDB === 'Medical Room'}
+                    onClick={() => setActiveTabMyDB('Medical Room')}
+                  />
+                <TabButton 
+                    label={`Medical without endDate(${leaveData.filter(student=>student.reason==="Medical" && !student.toDate&& !student.returnedAt&& student.teacher===teacher?.name).length})`}
+                    isActive={activeTabMyDB === 'MWED'}
+                    onClick={() => setActiveTabMyDB('MWED')}
+                  />
+                  <TabButton 
+                    label={`History(${filterDB.length})`}
+                    isActive={activeTabMyDB === 'History'}
+                    onClick={() => setActiveTabMyDB('History')}
+                  />  
+           </div>
+          {activeTabMyDB==="allActions"?
+          <LeaveStatusTable 
+              classData={leaveData}
+              onDataUpdate={refreshLeaveData}
+              getLeaveStatus={getLeaveStatusForTable}
+              type="MyDashboard"
+            />
+            :activeTabMyDB==="Medical Room"?
+            <div>
+              <ShortLeave
+              statusData={medicalRoomStatusDB}
+              type="medicalRoom"
+              
+              />
+            </div>
+            :activeTabMyDB==="MWED"?
+            <div>
+            <ShortLeave
+            statusData={leaveData.filter(student=>student.reason==="Medical" && !student.toDate && !student.returnedAt&& student.teacher===teacher?.name)}
+            type="medicalWithoutEndDate"
+            
+            />
+          </div>
+            :
+            <div>
+              {filterDB.map((student) => (
+              <StudentStatusCard key={student._id} student={student} />
+            ))}
+            </div>
+            }
+        </>
         :
         activeTab==="shortLeave"?
         <div>
@@ -581,6 +640,8 @@ const refreshLeaveData = () => {
         </div>
         
         :
+        
+       
         <div>
            {activeTab==="actions" &&
         <>
@@ -596,7 +657,7 @@ const refreshLeaveData = () => {
                     onClick={() => setActiveTabActions('Medical (room)')}
                   />
                   <TabButton 
-                    label={`Medical-without end date(${leaveData.filter(student=>student.reason==="Medical" && !student.toDate).length})`}
+                    label={`Medical without endDate(${leaveData.filter(student=>student.reason==="Medical" && !student.toDate).length})`}
                     isActive={activeTabActions === 'Medical (without end date)'}
                     onClick={() => setActiveTabActions('Medical (without end date)')}
                   />
@@ -614,6 +675,7 @@ const refreshLeaveData = () => {
                       classData={actionsTableData}
                       onDataUpdate={refreshLeaveData}
                       getLeaveStatus={getLeaveStatusForTable}
+                      type="Generalactions"
                     />
                 :activeTabActions==="Medical (without end date)"?
                 <div>
@@ -626,8 +688,8 @@ const refreshLeaveData = () => {
                 :
                 ""}
                 </>
-        }
-        
+              } 
+
         
 
          

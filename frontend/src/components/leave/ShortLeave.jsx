@@ -411,14 +411,14 @@ function ShortLeave({ statusData: initialStatusData, type, onDataUpdate }) {
               </div>
             )}
 
-            {!leave.toTime && !leave.returnedAt && (
+            {/* {!leave.toTime && !leave.returnedAt && (
               <div className="flex gap-1">
                 <div className="flex items-center gap-1 px-2 py-1 bg-gray-50 rounded border border-gray-100 whitespace-nowrap">
                   <Clock size={10} className="text-gray-500" />
                   <span className="text-xs text-gray-900">Not specified</span>
                 </div>
               </div>
-            )}
+            )} */}
 
           </div>
 

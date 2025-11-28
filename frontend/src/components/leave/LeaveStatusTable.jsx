@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { Clock, Calendar, User, ArrowUpRight, CheckCircle, PlayCircle, RotateCcw ,Edit} from 'lucide-react';
+import { Clock, Calendar, User, ArrowUpRight, CheckCircle, PlayCircle, RotateCcw, Edit, ChevronRight, X } from 'lucide-react';
 import { API_PORT } from '../../Constants';
 
 const StatusPill = ({ status }) => {
@@ -27,10 +27,208 @@ const StatusPill = ({ status }) => {
   );
 };
 
-const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassData, teacher }) => {
+const EditLeaveModal = ({ classInfo, onSave, onClose, isOpen }) => {
+  const [formData, setFormData] = useState({
+    fromDate: '',
+    fromTime: '',
+    toDate: '',
+    toTime: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Initialize form data when modal opens or classInfo changes
+  useEffect(() => {
+    if (isOpen && classInfo) {
+      setFormData({
+        fromDate: classInfo.fromDate || '',
+        fromTime: classInfo.fromTime || '',
+        toDate: classInfo.toDate || '',
+        toTime: classInfo.toTime || ''
+      });
+    }
+  }, [isOpen, classInfo]);
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      
+      // Validation
+      if (!formData.fromDate || !formData.fromTime || !formData.toDate || !formData.toTime) {
+        alert('Please fill in all date and time fields');
+        return;
+      }
+
+      const fromDateTime = new Date(`${formData.fromDate}T${formData.fromTime}`);
+      const toDateTime = new Date(`${formData.toDate}T${formData.toTime}`);
+
+      if (toDateTime <= fromDateTime) {
+        alert('End date/time must be after start date/time');
+        return;
+      }
+
+      setIsSubmitting(true);
+      try {
+        // Make API call to update leave
+        const response = await axios.put(`${API_PORT}/leave/${classInfo._id}`, formData);
+        
+        // Call the onSave callback with the updated data
+        await onSave(classInfo._id, formData);
+        
+        onClose();
+      } catch (error) {
+        console.error('Error updating leave:', error);
+        
+        // More detailed error message
+        if (error.response?.data?.error) {
+          alert(`Failed to update leave: ${error.response.data.error}`);
+        } else {
+          alert('Failed to update leave. Please try again.');
+        }
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+      <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-900 text-lg">Edit Leave</h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-500 transition-colors p-1"
+            disabled={isSubmitting}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Student Info */}
+        <div className="bg-gray-50 rounded-lg p-3 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+              {classInfo.ad}
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-900 text-sm">{classInfo.name}</h4>
+              <p className="text-xs text-gray-600">Class: {classInfo.classNum} | AD: {classInfo.ad}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Edit Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* From Date & Time */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">From</label>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <input
+                  type="date"
+                  value={formData.fromDate}
+                  onChange={(e) => handleInputChange('fromDate', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                  disabled={isSubmitting}
+                />
+              </div>
+              <div>
+                <input
+                  type="time"
+                  value={formData.fromTime}
+                  onChange={(e) => handleInputChange('fromTime', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                  disabled={isSubmitting}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* To Date & Time */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">To</label>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <input
+                  type="date"
+                  value={formData.toDate}
+                  onChange={(e) => handleInputChange('toDate', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                  disabled={isSubmitting}
+                />
+              </div>
+              <div>
+                <input
+                  type="time"
+                  value={formData.toTime}
+                  onChange={(e) => handleInputChange('toTime', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                  disabled={isSubmitting}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Current Dates Display */}
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <h4 className="text-xs font-semibold text-amber-800 mb-1">Current Schedule</h4>
+            <div className="text-xs text-amber-700 space-y-1">
+              <p>From: {classInfo.fromDate} at {classInfo.fromTime}</p>
+              <p>To: {classInfo.toDate} at {classInfo.toTime}</p>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              className="flex-1 border border-gray-300 text-gray-700 text-sm font-medium py-2.5 rounded-lg hover:bg-gray-50 transition-colors"
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/60 border-t-white rounded-full animate-spin"></div>
+                  Updating...
+                </>
+              ) : (
+                <>
+                  <CheckCircle size={16} />
+                  Update Leave
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassData, teacher, type }) => {
   const { _id, classNum, ad, name, remainingTime, status, returnedAt, toDate, toTime, fromTime, fromDate } = classInfo;
   const [showConfirm, setShowConfirm] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
 
   const calculateRemainingTime = (toDate, toTime) => {
     if (!toDate || !toTime) return "—";
@@ -140,25 +338,37 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
     });
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return '—';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        weekday: 'short'
+      });
+    } catch (error) {
+      return dateString;
+    }
+  };
+
   const handleReturn = async () => {
     try {
       setIsProcessing(true);
-      const leaveId=_id;
+      const leaveId = _id;
       const leave = classData.find((item) => item._id === leaveId);
       
-      // Add null check for leave
       if (!leave) {
         console.error('Leave not found with ID:', leaveId);
         alert('Leave record not found. Please refresh the page.');
         return;
       }
 
-      // Map frontend status to backend status
       let newStatus;
       if (leave.status === 'Pending') {
-        newStatus = 'active'; // Start leave
+        newStatus = 'active';
       } else if (leave.status === 'On Leave' || leave.status === 'Late') {
-        newStatus = 'returned'; // Mark return
+        newStatus = 'returned';
       } else {
         console.error('Invalid status transition:', leave.status);
         return;
@@ -166,7 +376,6 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
 
       const payload = { status: newStatus };
 
-      // Add teacher information
       if (teacher?.name) {
         if (newStatus === 'active') {
           payload.leaveStartTeacher = teacher.name;
@@ -189,7 +398,6 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
 
       const response = await axios.put(`${API_PORT}/leave/${leaveId}`, payload);
 
-      // Update local state with the response data
       setClassData(prevData =>
         prevData.map(item => {
           if (item._id === leaveId) {
@@ -205,7 +413,6 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
         })
       );
 
-      // Call parent's refresh function to sync data
       if (onReturn) {
         onReturn();
       }
@@ -219,11 +426,37 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
     }
   };
 
+  const handleEditSave = async (leaveId, updatedData) => {
+    try {
+      const response = await axios.put(`${API_PORT}/leave/${leaveId}`, updatedData);
+      
+      // Update local state
+      setClassData(prevData =>
+        prevData.map(item => {
+          if (item._id === leaveId) {
+            return {
+              ...item,
+              ...updatedData,
+              updatedAt: response.data.updatedAt
+            };
+          }
+          return item;
+        })
+      );
+
+      // Refresh parent data if needed
+      if (onReturn) {
+        onReturn();
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error('Error updating leave:', error);
+      throw error;
+    }
+  };
+
   const getButtonState = () => {
-    // const endDateTime = new Date(`${classInfo.toDate}T${classInfo.toTime}`);
-    // const now = new Date();
-    // const diffHours = (endDateTime - now) / (1000 * 60 * 60);
-    
     if (status === 'Scheduled') {
       return { 
         disabled: true, 
@@ -241,15 +474,6 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
         icon: PlayCircle
       };
     }
-
-    // if (status === 'On Leave' && diffHours > 4 && diffHours > 0) {
-    //   return { 
-    //     disabled: true, 
-    //     text: 'On Leave', 
-    //     className: 'bg-blue-100 text-blue-600 cursor-not-allowed',
-    //     icon: Clock
-    //   };
-    // }
 
     if (status === 'On Leave' || status === 'Late') {
       return { 
@@ -301,13 +525,26 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className="flex-shrink-0">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-                {ad}
+                {type === "Generalactions" ? (
+                  <span>{ad}</span>
+                ) : (
+                  <button 
+                    onClick={() => setShowEdit(true)}
+                    className="w-full h-full flex items-center justify-center hover:bg-blue-700 rounded-lg transition-colors"
+                    title="Edit Leave"
+                  >
+                    <Edit size={16} className="ml-1" />
+                  </button>
+                )}
               </div>
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <h3 className="font-semibold text-gray-900 text-sm truncate">{name}</h3>
-                <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">Class: {classNum}</span>
+                {type === "MyDashboard" && (
+                  <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{ad}</span>
+                )}
+                <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">C:{classNum}</span>
               </div>
               <div className="flex items-center gap-3 text-xs text-gray-500">
                 <span>From: {formatDateTime(fromDate, fromTime)}</span>
@@ -322,17 +559,20 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
             onClick={() => !buttonState.disabled && setShowConfirm(true)}
           >
             <buttonState.icon size={14}/>
-            <span className=" sm:inline"> {buttonState.text}</span>
+            <span className="sm:inline"> {buttonState.text}</span>
           </button>
         </div>
 
         {/* Status Bar */}
         <div className="px-3 pb-3 flex items-center justify-between gap-2">
           <StatusPill status={status} />
+          <span className='text-xs text-gray-800'>
+            {formatDate(fromDate)} - {formatDate(toDate)}
+          </span> 
           <div className="flex items-center gap-4 text-xs text-gray-600">
             <span>
               {status === "Scheduled" ? "Starts in" : 
-               status === "Returned" || status === "Late Returned" ? "Returned" : status==="Late"? "Late by":
+               status === "Returned" || status === "Late Returned" ? "Returned" : status === "Late" ? "Late by" :
                "Remaining"} {getDisplayTime()}
             </span>
             {returnedAt && (
@@ -341,6 +581,14 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
           </div>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      <EditLeaveModal
+        classInfo={classInfo}
+        onSave={handleEditSave}
+        onClose={() => setShowEdit(false)}
+        isOpen={showEdit}
+      />
 
       {/* Confirmation Modal */}
       {showConfirm && (
@@ -399,7 +647,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
   );
 };
 
-function LeaveStatusTable({ classData: initialClassData, onDataUpdate, getLeaveStatus }) {
+function LeaveStatusTable({ classData: initialClassData1, onDataUpdate, getLeaveStatus, type }) {
   const teacher = useMemo(() => {
     if (typeof window === 'undefined') return null;
     try {
@@ -411,9 +659,15 @@ function LeaveStatusTable({ classData: initialClassData, onDataUpdate, getLeaveS
     }
   }, []);
 
+  let initialClassData = "";
+  if (type === "MyDashboard") {
+    initialClassData = initialClassData1.filter((leave) => leave.reason !== "Medical (Room)" && leave.toDate &&leave.teacher === teacher?.name );
+  } else {
+    initialClassData = initialClassData1;
+  }
+
   const [classData, setClassData] = useState(initialClassData || []);
 
-  // Update local state when parent data changes
   useEffect(() => {
     setClassData(initialClassData || []);
   }, [initialClassData]);
@@ -427,7 +681,6 @@ function LeaveStatusTable({ classData: initialClassData, onDataUpdate, getLeaveS
         status: newStatus
       });
 
-      // Update local state immediately
       setClassData(prevData =>
         prevData.map(item =>
           item._id === leaveId
@@ -436,7 +689,6 @@ function LeaveStatusTable({ classData: initialClassData, onDataUpdate, getLeaveS
         )
       );
 
-      // Refresh parent data to sync with server
       if (onDataUpdate) {
         onDataUpdate();
       }
@@ -446,7 +698,6 @@ function LeaveStatusTable({ classData: initialClassData, onDataUpdate, getLeaveS
     }
   };
 
-  // If no data is passed as prop
   if (!initialClassData) {
     return (
       <div className="min-h-64 bg-gray-100 p-4 flex items-center justify-center">
@@ -474,6 +725,7 @@ function LeaveStatusTable({ classData: initialClassData, onDataUpdate, getLeaveS
               setClassData={setClassData}
               getLeaveStatus={getLeaveStatus}
               teacher={teacher}
+              type={type}
             />
           ))
         )}

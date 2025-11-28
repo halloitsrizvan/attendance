@@ -142,3 +142,4 @@ Medical room :
 is it for class teacher, usthad first said only for who gave medical room leave, there is a possibilty if the class teacher is absent and present at the time of medical leave(to home)           
 
 
+
