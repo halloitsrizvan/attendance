@@ -150,23 +150,29 @@ const updateLeaveStatus = async (req, res) => {
 
 // Delete a leave
 const deleteLeave = async (req, res) => {
-    const { id } = req.params;
+  const { id } = req.params;
+  
+  console.log('Delete request for ID:', id);
+  
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    console.log('Invalid ID format:', id);
+    return res.status(404).json({ error: 'Leave not found' });
+  }
+  
+  try {
+    const leave = await Leave.findByIdAndDelete(id);
     
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.status(404).json({ error: 'Leave not found' });
+    if (!leave) {
+      console.log('No leave found with ID:', id);
+      return res.status(404).json({ error: 'Leave not found' });
     }
     
-    try {
-        const leave = await Leave.findByIdAndDelete(id);
-        
-        if (!leave) {
-            return res.status(404).json({ error: 'Leave not found' });
-        }
-        
-        res.status(200).json({ message: 'Leave deleted successfully', leave });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+    console.log('Successfully deleted leave:', leave);
+    res.status(200).json({ message: 'Leave deleted successfully', leave });
+  } catch (error) {
+    console.error('Error in deleteLeave:', error);
+    res.status(500).json({ error: error.message });
+  }
 }
 
 // Auto-update leave statuses based on current time

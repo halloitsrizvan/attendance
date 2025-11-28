@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { Clock, Calendar, User, ArrowUpRight, CheckCircle, PlayCircle, RotateCcw, Edit, ChevronRight, X } from 'lucide-react';
-import { API_PORT } from '../../Constants';
+import { Clock, Calendar, User, ArrowUpRight, CheckCircle, PlayCircle, RotateCcw, Edit, ChevronRight, X, Trash2 } from 'lucide-react';import { API_PORT } from '../../Constants';
 
 const StatusPill = ({ status }) => {
   const getStatusConfig = (status) => {
@@ -27,7 +26,7 @@ const StatusPill = ({ status }) => {
   );
 };
 
-const EditLeaveModal = ({ classInfo, onSave, onClose, isOpen }) => {
+const EditLeaveModal = ({ classInfo, onSave, onClose, isOpen, onDelete }) => {
   const [formData, setFormData] = useState({
     fromDate: '',
     fromTime: '',
@@ -35,6 +34,8 @@ const EditLeaveModal = ({ classInfo, onSave, onClose, isOpen }) => {
     toTime: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Initialize form data when modal opens or classInfo changes
   useEffect(() => {
@@ -55,172 +56,284 @@ const EditLeaveModal = ({ classInfo, onSave, onClose, isOpen }) => {
     }));
   };
 
-    const handleSubmit = async (e) => {
-      e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Validation
+    if (!formData.fromDate || !formData.fromTime || !formData.toDate || !formData.toTime) {
+      alert('Please fill in all date and time fields');
+      return;
+    }
+
+    const fromDateTime = new Date(`${formData.fromDate}T${formData.fromTime}`);
+    const toDateTime = new Date(`${formData.toDate}T${formData.toTime}`);
+
+    if (toDateTime <= fromDateTime) {
+      alert('End date/time must be after start date/time');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Make API call to update leave
+      const response = await axios.put(`${API_PORT}/leave/${classInfo._id}`, formData);
       
-      // Validation
-      if (!formData.fromDate || !formData.fromTime || !formData.toDate || !formData.toTime) {
-        alert('Please fill in all date and time fields');
-        return;
+      // Call the onSave callback with the updated data
+      await onSave(classInfo._id, formData);
+      
+      onClose();
+    } catch (error) {
+      console.error('Error updating leave:', error);
+      
+      // More detailed error message
+      if (error.response?.data?.error) {
+        alert(`Failed to update leave: ${error.response.data.error}`);
+      } else {
+        alert('Failed to update leave. Please try again.');
       }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-      const fromDateTime = new Date(`${formData.fromDate}T${formData.fromTime}`);
-      const toDateTime = new Date(`${formData.toDate}T${formData.toTime}`);
+  const handleDelete = async () => {
+    if (!classInfo._id) {
+      alert('Cannot delete: Leave ID not found');
+      return;
+    }
 
-      if (toDateTime <= fromDateTime) {
-        alert('End date/time must be after start date/time');
-        return;
+    setIsDeleting(true);
+    try {
+      // Make API call to delete leave
+      await axios.delete(`${API_PORT}/leave/${classInfo._id}`);
+      
+      // Call the onDelete callback
+      if (onDelete) {
+        await onDelete(classInfo._id);
       }
-
-      setIsSubmitting(true);
-      try {
-        // Make API call to update leave
-        const response = await axios.put(`${API_PORT}/leave/${classInfo._id}`, formData);
-        
-        // Call the onSave callback with the updated data
-        await onSave(classInfo._id, formData);
-        
-        onClose();
-      } catch (error) {
-        console.error('Error updating leave:', error);
-        
-        // More detailed error message
-        if (error.response?.data?.error) {
-          alert(`Failed to update leave: ${error.response.data.error}`);
-        } else {
-          alert('Failed to update leave. Please try again.');
-        }
-      } finally {
-        setIsSubmitting(false);
-      }
-    };
+      
+      setShowDeleteConfirm(false);
+      onClose();
+    } catch (error) {
+      console.error('Error deleting leave:', error);
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+      onClose();
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-900 text-lg">Edit Leave</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-500 transition-colors p-1"
-            disabled={isSubmitting}
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Student Info */}
-        <div className="bg-gray-50 rounded-lg p-3 mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-              {classInfo.ad}
-            </div>
-            <div>
-              <h4 className="font-semibold text-gray-900 text-sm">{classInfo.name}</h4>
-              <p className="text-xs text-gray-600">Class: {classInfo.classNum} | AD: {classInfo.ad}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Edit Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* From Date & Time */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">From</label>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <input
-                  type="date"
-                  value={formData.fromDate}
-                  onChange={(e) => handleInputChange('fromDate', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                  disabled={isSubmitting}
-                />
-              </div>
-              <div>
-                <input
-                  type="time"
-                  value={formData.fromTime}
-                  onChange={(e) => handleInputChange('fromTime', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                  disabled={isSubmitting}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* To Date & Time */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">To</label>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <input
-                  type="date"
-                  value={formData.toDate}
-                  onChange={(e) => handleInputChange('toDate', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                  disabled={isSubmitting}
-                />
-              </div>
-              <div>
-                <input
-                  type="time"
-                  value={formData.toTime}
-                  onChange={(e) => handleInputChange('toTime', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                  disabled={isSubmitting}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Current Dates Display */}
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-            <h4 className="text-xs font-semibold text-amber-800 mb-1">Current Schedule</h4>
-            <div className="text-xs text-amber-700 space-y-1">
-              <p>From: {classInfo.fromDate} at {classInfo.fromTime}</p>
-              <p>To: {classInfo.toDate} at {classInfo.toTime}</p>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-3 pt-2">
+    <>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+        <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-900 text-lg">Edit Leave</h3>
             <button
-              type="button"
-              className="flex-1 border border-gray-300 text-gray-700 text-sm font-medium py-2.5 rounded-lg hover:bg-gray-50 transition-colors"
               onClick={onClose}
+              className="text-gray-400 hover:text-gray-500 transition-colors p-1"
               disabled={isSubmitting}
             >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/60 border-t-white rounded-full animate-spin"></div>
-                  Updating...
-                </>
-              ) : (
-                <>
-                  <CheckCircle size={16} />
-                  Update Leave
-                </>
-              )}
+              <X size={20} />
             </button>
           </div>
-        </form>
+
+          {/* Student Info */}
+          <div className="bg-gray-50 rounded-lg p-3 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                {classInfo.ad}
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900 text-sm">{classInfo.name}</h4>
+                <p className="text-xs text-gray-600">Class: {classInfo.classNum} | AD: {classInfo.ad}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Edit Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* From Date & Time */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">From</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <input
+                    type="date"
+                    value={formData.fromDate}
+                    onChange={(e) => handleInputChange('fromDate', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <div>
+                  <input
+                    type="time"
+                    value={formData.fromTime}
+                    onChange={(e) => handleInputChange('fromTime', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* To Date & Time */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">To</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <input
+                    type="date"
+                    value={formData.toDate}
+                    onChange={(e) => handleInputChange('toDate', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <div>
+                  <input
+                    type="time"
+                    value={formData.toTime}
+                    onChange={(e) => handleInputChange('toTime', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Current Dates Display */}
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <h4 className="text-xs font-semibold text-amber-800 mb-1">Current Schedule</h4>
+              <div className="text-xs text-amber-700 space-y-1">
+                <p>From: {classInfo.fromDate} at {classInfo.fromTime}</p>
+                <p>To: {classInfo.toDate} at {classInfo.toTime}</p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col gap-3 pt-2">
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  className="flex-1 border border-gray-300 text-gray-700 text-sm font-medium py-2.5 rounded-lg hover:bg-gray-50 transition-colors"
+                  onClick={onClose}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/60 border-t-white rounded-full animate-spin"></div>
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle size={16} />
+                      Update Leave
+                    </>
+                  )}
+                </button>
+              </div>
+              
+              {/* Delete Button */}
+              <button
+                type="button"
+                className="w-full border border-red-300 text-red-600 text-sm font-medium py-2.5 rounded-lg hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={isSubmitting}
+              >
+                <Trash2 size={16} />
+                Delete Leave
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 px-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-xs w-full p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-gray-900 text-sm">Confirm Delete</h3>
+              <button
+                onClick={() => !isDeleting && setShowDeleteConfirm(false)}
+                className="text-gray-400 hover:text-gray-500 transition-colors"
+                disabled={isDeleting}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="mb-4">
+              <div className="flex items-center justify-center w-12 h-12 bg-red-100 rounded-full mx-auto mb-3">
+                <Trash2 size={24} className="text-red-600" />
+              </div>
+              <p className="text-sm text-gray-600 text-center mb-2">
+                Are you sure you want to delete this leave?
+              </p>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <p className="text-xs font-semibold text-red-800 text-center">
+                  {classInfo.name} - Class {classInfo.classNum}
+                </p>
+                <p className="text-xs text-red-700 text-center mt-1">
+                  {classInfo.fromDate} to {classInfo.toDate}
+                </p>
+              </div>
+              <p className="text-xs text-red-600 text-center mt-2">
+                This action cannot be undone.
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="flex-1 border border-gray-300 text-gray-600 text-xs font-medium py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-white text-xs font-semibold transition-colors ${
+                  isDeleting ? 'bg-red-400' : 'bg-red-500 hover:bg-red-600'
+                }`}
+                onClick={handleDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-white/60 border-t-white rounded-full animate-spin"></div>
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={12} />
+                    Delete
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
@@ -516,6 +629,25 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
     }
   };
 
+  const handleDelete = async (leaveId) => {
+  try {
+    await axios.delete(`${API_PORT}/leave/${leaveId}`);
+    
+    // Update local state by removing the deleted leave
+    setClassData(prevData => prevData.filter(item => item._id !== leaveId));
+    
+    // Refresh parent data if needed
+    if (onReturn) {
+      onReturn();
+    }
+    
+    return true;
+  } catch (error) {
+    // console.error('Error deleting leave:', error);
+    throw error;
+  }
+};
+
   return (
     <>
       {/* Compact Card Design */}
@@ -586,6 +718,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
       <EditLeaveModal
         classInfo={classInfo}
         onSave={handleEditSave}
+        onDelete={handleDelete}
         onClose={() => setShowEdit(false)}
         isOpen={showEdit}
       />
