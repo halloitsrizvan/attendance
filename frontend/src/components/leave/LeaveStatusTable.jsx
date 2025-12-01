@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { Clock, Calendar, User, ArrowUpRight, CheckCircle, PlayCircle, RotateCcw, Edit, ChevronRight, X, Trash2 } from 'lucide-react';import { API_PORT } from '../../Constants';
+import { Clock, Calendar, User, ArrowUpRight, CheckCircle, PlayCircle, RotateCcw, Edit, ChevronRight, X, Trash2 } from 'lucide-react'; import { API_PORT } from '../../Constants';
 
 const StatusPill = ({ status }) => {
   const getStatusConfig = (status) => {
@@ -58,7 +58,7 @@ const EditLeaveModal = ({ classInfo, onSave, onClose, isOpen, onDelete }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validation
     if (!formData.fromDate || !formData.fromTime || !formData.toDate || !formData.toTime) {
       alert('Please fill in all date and time fields');
@@ -77,14 +77,14 @@ const EditLeaveModal = ({ classInfo, onSave, onClose, isOpen, onDelete }) => {
     try {
       // Make API call to update leave
       const response = await axios.put(`${API_PORT}/leave/${classInfo._id}`, formData);
-      
+
       // Call the onSave callback with the updated data
       await onSave(classInfo._id, formData);
-      
+
       onClose();
     } catch (error) {
       console.error('Error updating leave:', error);
-      
+
       // More detailed error message
       if (error.response?.data?.error) {
         alert(`Failed to update leave: ${error.response.data.error}`);
@@ -106,12 +106,12 @@ const EditLeaveModal = ({ classInfo, onSave, onClose, isOpen, onDelete }) => {
     try {
       // Make API call to delete leave
       await axios.delete(`${API_PORT}/leave/${classInfo._id}`);
-      
+
       // Call the onDelete callback
       if (onDelete) {
         await onDelete(classInfo._id);
       }
-      
+
       setShowDeleteConfirm(false);
       onClose();
     } catch (error) {
@@ -249,7 +249,7 @@ const EditLeaveModal = ({ classInfo, onSave, onClose, isOpen, onDelete }) => {
                   )}
                 </button>
               </div>
-              
+
               {/* Delete Button */}
               <button
                 type="button"
@@ -279,7 +279,7 @@ const EditLeaveModal = ({ classInfo, onSave, onClose, isOpen, onDelete }) => {
                 ✕
               </button>
             </div>
-            
+
             <div className="mb-4">
               <div className="flex items-center justify-center w-12 h-12 bg-red-100 rounded-full mx-auto mb-3">
                 <Trash2 size={24} className="text-red-600" />
@@ -311,9 +311,8 @@ const EditLeaveModal = ({ classInfo, onSave, onClose, isOpen, onDelete }) => {
               </button>
               <button
                 type="button"
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-white text-xs font-semibold transition-colors ${
-                  isDeleting ? 'bg-red-400' : 'bg-red-500 hover:bg-red-600'
-                }`}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-white text-xs font-semibold transition-colors ${isDeleting ? 'bg-red-400' : 'bg-red-500 hover:bg-red-600'
+                  }`}
                 onClick={handleDelete}
                 disabled={isDeleting}
               >
@@ -360,7 +359,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
       if (expiredDays > 0) result += `${expiredDays}d `;
       if (expiredHours > 0) result += `${expiredHours}h `;
       if (expiredMinutes > 0) result += `${expiredMinutes}m`;
-      
+
       return result.trim() || "0m";
     }
 
@@ -372,7 +371,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
     if (diffDays > 0) result += `${diffDays}d `;
     if (diffHours > 0) result += `${diffHours}h `;
     if (diffMinutes > 0) result += `${diffMinutes}m`;
-    
+
     return result.trim() || "Less than a minute";
   };
 
@@ -421,8 +420,8 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
         if (lateMinutes > 0) lateResult += `${lateMinutes}m`;
 
         return lateResult.trim() || "0m";
-      } 
-      
+      }
+
       // Returned within time
       return "—";
     }
@@ -433,11 +432,11 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
 
   const formatReturnedTime = (returnedAt) => {
     if (!returnedAt) return "—";
-    
+
     const returnedDate = new Date(returnedAt);
-    return returnedDate.toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return returnedDate.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
@@ -470,7 +469,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
       setIsProcessing(true);
       const leaveId = _id;
       const leave = classData.find((item) => item._id === leaveId);
-      
+
       if (!leave) {
         console.error('Leave not found with ID:', leaveId);
         alert('Leave record not found. Please refresh the page.');
@@ -542,7 +541,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
   const handleEditSave = async (leaveId, updatedData) => {
     try {
       const response = await axios.put(`${API_PORT}/leave/${leaveId}`, updatedData);
-      
+
       // Update local state
       setClassData(prevData =>
         prevData.map(item => {
@@ -571,44 +570,44 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
 
   const getButtonState = () => {
     if (status === 'Scheduled') {
-      return { 
-        disabled: true, 
-        text: 'Scheduled', 
+      return {
+        disabled: true,
+        text: 'Scheduled',
         className: 'bg-gray-100 text-gray-500 cursor-not-allowed',
         icon: Clock
       };
     }
 
     if (status === 'Pending') {
-      return { 
-        disabled: false, 
-        text: 'Start', 
+      return {
+        disabled: false,
+        text: 'Start',
         className: 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm',
         icon: PlayCircle
       };
     }
 
     if (status === 'On Leave' || status === 'Late') {
-      return { 
-        disabled: false, 
-        text: 'Return', 
+      return {
+        disabled: false,
+        text: 'Return',
         className: 'bg-blue-500 hover:bg-blue-600 text-white shadow-sm',
         icon: CheckCircle
       };
     }
 
     if (status === 'Returned' || status === 'Late Returned') {
-      return { 
-        disabled: true, 
-        text: 'Returned', 
+      return {
+        disabled: true,
+        text: 'Returned',
         className: 'bg-green-100 text-green-600 cursor-not-allowed',
         icon: CheckCircle
       };
     }
 
-    return { 
-      disabled: false, 
-      text: 'Return', 
+    return {
+      disabled: false,
+      text: 'Return',
       className: 'bg-blue-500 hover:bg-blue-600 text-white shadow-sm',
       icon: CheckCircle
     };
@@ -622,7 +621,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
     try {
       await handleReturn();
       setShowConfirm(false);
-    } catch (error) { 
+    } catch (error) {
       console.error('Error processing action:', error);
     } finally {
       setIsProcessing(false);
@@ -630,23 +629,23 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
   };
 
   const handleDelete = async (leaveId) => {
-  try {
-    await axios.delete(`${API_PORT}/leave/${leaveId}`);
-    
-    // Update local state by removing the deleted leave
-    setClassData(prevData => prevData.filter(item => item._id !== leaveId));
-    
-    // Refresh parent data if needed
-    if (onReturn) {
-      onReturn();
+    try {
+      await axios.delete(`${API_PORT}/leave/${leaveId}`);
+
+      // Update local state by removing the deleted leave
+      setClassData(prevData => prevData.filter(item => item._id !== leaveId));
+
+      // Refresh parent data if needed
+      if (onReturn) {
+        onReturn();
+      }
+
+      return true;
+    } catch (error) {
+      // console.error('Error deleting leave:', error);
+      throw error;
     }
-    
-    return true;
-  } catch (error) {
-    // console.error('Error deleting leave:', error);
-    throw error;
-  }
-};
+  };
 
   return (
     <>
@@ -660,7 +659,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
                 {type === "Generalactions" ? (
                   <span>{ad}</span>
                 ) : (
-                  <button 
+                  <button
                     onClick={() => setShowEdit(true)}
                     className="w-full h-full flex items-center justify-center hover:bg-blue-700 rounded-lg transition-colors"
                     title="Edit Leave"
@@ -679,18 +678,26 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
                 <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">C:{classNum}</span>
               </div>
               <div className="flex items-center gap-3 text-xs text-gray-500">
-                <span>From: {formatDateTime(fromDate, fromTime)}</span>
-                <span>To: {formatDateTime(toDate, toTime)}</span>
+                <span>From: {formatDate(fromDate)},</span>
+                <span>{formatDateTime(fromDate, fromTime)}</span>
+
+              </div>
+              <div className="flex items-center gap-3 text-xs text-gray-500">
+                <span>To: {formatDate(toDate)},</span>
+                <span>{formatDateTime(toDate, toTime)}</span>
               </div>
             </div>
           </div>
-          
-          <button 
+          {/* <div className="flex items-center gap-3 text-xs text-gray-500">
+                <span>From: {formatDateTime(fromDate, fromTime)}</span>
+                <span>To: {formatDateTime(toDate, toTime)}</span>
+              </div> */}
+          <button
             className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg transition-colors duration-200 flex-shrink-0 ${buttonState.className}`}
             disabled={buttonState.disabled || isProcessing}
             onClick={() => !buttonState.disabled && setShowConfirm(true)}
           >
-            <buttonState.icon size={14}/>
+            <buttonState.icon size={14} />
             <span className="sm:inline"> {buttonState.text}</span>
           </button>
         </div>
@@ -699,13 +706,13 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
         <div className="px-3 pb-3 flex items-center justify-between gap-2">
           <StatusPill status={status} />
           <span className='text-xs text-gray-800'>
-            {formatDate(fromDate)} - {formatDate(toDate)}
-          </span> 
+            {/* {formatDate(fromDate)} - {formatDate(toDate)} */}
+          </span>
           <div className="flex items-center gap-4 text-xs text-gray-600">
             <span>
-              {status === "Scheduled" ? "Starts in" : 
-               status === "Returned" || status === "Late Returned" ? "Returned" : status === "Late" ? "Late by" :
-               "Remaining"} {getDisplayTime()}
+              {status === "Scheduled" ? "Starts in" :
+                status === "Returned" || status === "Late Returned" ? "Returned" : status === "Late" ? "Late by" :
+                  "Remaining"} {getDisplayTime()}
             </span>
             {returnedAt && (
               <span className="text-green-600">At: {formatReturnedTime(returnedAt)}</span>
@@ -794,7 +801,7 @@ function LeaveStatusTable({ classData: initialClassData1, onDataUpdate, getLeave
 
   let initialClassData = "";
   if (type === "MyDashboard") {
-    initialClassData = initialClassData1.filter((leave) => leave.reason !== "Medical (Room)" && leave.toDate &&leave.teacher === teacher?.name );
+    initialClassData = initialClassData1.filter((leave) => leave.reason !== "Medical (Room)" && leave.toDate && leave.teacher === teacher?.name);
   } else {
     initialClassData = initialClassData1;
   }
@@ -850,9 +857,9 @@ function LeaveStatusTable({ classData: initialClassData1, onDataUpdate, getLeave
           </div>
         ) : (
           classData.map((item) => (
-            <ClassCard 
-              key={item._id} 
-              classInfo={item} 
+            <ClassCard
+              key={item._id}
+              classInfo={item}
               onReturn={handleReturn}
               classData={classData}
               setClassData={setClassData}

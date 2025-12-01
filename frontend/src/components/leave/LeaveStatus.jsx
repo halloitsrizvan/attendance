@@ -1,16 +1,15 @@
 import React, { useEffect, useState, useMemo, act } from 'react';
-import { Calendar, Clock, CheckCircle, AlertCircle, User, XCircle, RefreshCw, ChevronRight, FileSignature } from 'lucide-react';import axios from 'axios';
+import { Calendar, Clock, CheckCircle, AlertCircle, User, XCircle, RefreshCw, ChevronRight, ChevronDown, FileSignature, DropletIcon } from 'lucide-react'; import axios from 'axios';
 import { API_PORT } from '../../Constants';
 import LeaveStatusTable from './LeaveStatusTable';
 import ShortLeave from './ShortLeave';
 const TabButton = ({ label, isActive, onClick }) => (
   <button
     onClick={onClick}
-    className={`py-1.5 px-3 sm:px-4 text-xs sm:text-sm font-medium rounded-full transition-all duration-200 ${
-      isActive
-        ? 'bg-indigo-600 text-white shadow-md'
-        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-    }`}
+    className={`py-1.5 px-3 sm:px-4 text-xs sm:text-sm font-medium rounded-full transition-all duration-200 ${isActive
+      ? 'bg-indigo-600 text-white shadow-md'
+      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+      }`}
   >
     {label}
   </button>
@@ -19,45 +18,45 @@ const TabButton = ({ label, isActive, onClick }) => (
 const StatusBadge = ({ status }) => {
   const getStatusConfig = (status) => {
     const configs = {
-      'Arrived': { 
-        bg: 'bg-green-100', 
-        text: 'text-green-700', 
+      'Arrived': {
+        bg: 'bg-green-100',
+        text: 'text-green-700',
         icon: CheckCircle,
         label: 'Arrived'
       },
-      'Late Returned': { 
-        bg: 'bg-green-100', 
-        text: 'text-orange-600', 
+      'Late Returned': {
+        bg: 'bg-green-100',
+        text: 'text-orange-600',
         icon: AlertCircle,
         label: 'Late Returned'
       },
-      'On Leave': { 
-        bg: 'bg-red-100', 
-        text: 'text-red-700', 
+      'On Leave': {
+        bg: 'bg-red-100',
+        text: 'text-red-700',
         icon: Clock,
         label: 'On Leave'
       },
-      'Late': { 
-        bg: 'bg-orange-100', 
-        text: 'text-orange-700', 
+      'Late': {
+        bg: 'bg-orange-100',
+        text: 'text-orange-700',
         icon: AlertCircle,
         label: 'Late'
       },
-      'Pending': { 
-        bg: 'bg-amber-100', 
-        text: 'text-amber-700', 
+      'Pending': {
+        bg: 'bg-amber-100',
+        text: 'text-amber-700',
         icon: Clock,
         label: 'Pending'
       },
-      'Scheduled': { 
-        bg: 'bg-gray-100', 
-        text: 'text-gray-700', 
+      'Scheduled': {
+        bg: 'bg-gray-100',
+        text: 'text-gray-700',
         icon: Calendar,
         label: 'Scheduled'
       },
-      'Not Arrived': { 
-        bg: 'bg-red-100', 
-        text: 'text-red-700', 
+      'Not Arrived': {
+        bg: 'bg-red-100',
+        text: 'text-red-700',
         icon: XCircle,
         label: 'Not Arrived'
       }
@@ -111,25 +110,27 @@ const StudentStatusCard = ({ student }) => {
   };
 
   const isArrived = student.displayStatus === 'Arrived' || student.displayStatus === 'Late Returned';
-  const statusColor = isArrived 
+  const statusColor = isArrived
     ? student.displayStatus === 'Late Returned' ? 'bg-green-500' : 'bg-green-500'
-    : student.displayStatus === 'On Leave' 
-    ? 'bg-red-500'
-    : student.displayStatus === 'Late'
-    ? 'bg-orange-500':student.displayStatus==='Scheduled'? " bg-yellow-500"
-    : student.displayStatus==='Pending'? "bg-blue-500"
-    : 'bg-red-500';
+    : student.displayStatus === 'On Leave'
+      ? 'bg-red-500'
+      : student.displayStatus === 'Late'
+        ? 'bg-orange-500' : student.displayStatus === 'Scheduled' ? " bg-yellow-500"
+          : student.displayStatus === 'Pending' ? "bg-blue-500"
+            : 'bg-red-500';
 
   const returnedTime = formatReturnedTime(student.returnedAt);
-
+  const [showFull, setShowFull] = useState(false);
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden">
       {/* Status Indicator Bar */}
       <div className={`h-1 ${statusColor}`}></div>
-      
+
       <div className="p-3 sm:p-4">
         {/* Header Row: AD, Name, Status */}
-        <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="flex items-start justify-between gap-2 mb-2"
+          onClick={() => setShowFull(!showFull)}
+        >
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg ${statusColor} flex items-center justify-center text-white font-bold text-sm sm:text-base flex-shrink-0`}>
               {student.ad}
@@ -139,72 +140,85 @@ const StudentStatusCard = ({ student }) => {
               <p className="text-xs text-gray-500">Class {student.classNum}</p>
             </div>
           </div>
-          <StatusBadge status={student.calculatedStatus === 'Late Returned' ? 'Late Returned' : student.displayStatus} />
-        </div>
-
-        {/* Time Info - Compact */}
-        <div className="grid grid-cols-2 gap-2 mb-2 text-xs">
-          <div className="flex items-center gap-1.5 text-gray-600">
-            <Clock size={12} className="text-gray-400 flex-shrink-0" />
-            <span className="truncate">{formatTime(student.fromDate, student.fromTime)}</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-gray-600">
-            <ChevronRight size={12} className="text-gray-400 flex-shrink-0" />
-            <span className="truncate">
-              {student.toDate && student.toTime ? formatTime(student.toDate, student.toTime) : 'End of Day'}
-            </span>
+          <div className="flex flex-col items-end gap-1">
+            <StatusBadge status={student.calculatedStatus === 'Late Returned' ? 'Late Returned' : student.displayStatus} />
+            <button
+              onClick={() => setShowFull(!showFull)}
+              className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full w-1/2 transition-all"
+            >
+              <ChevronDown size={16} className={`transition-transform duration-200 ${showFull ? 'rotate-180' : ''}`} />
+            </button>
           </div>
         </div>
 
-        {/* Returned Time */}
-        {returnedTime && (
-          <div className={`flex items-center gap-1.5 text-xs mb-2 px-2 py-1 rounded ${
-            student.calculatedStatus === 'Late Returned' 
-              ? 'text-orange-700 bg-orange-50' 
-              : 'text-green-700 bg-green-50'
-          }`}>
-            <CheckCircle size={12} />
-            <span>Returned: {returnedTime}</span>
-            {student.calculatedStatus === 'Late Returned' && (
-              <span className="ml-1 font-semibold">(Late)</span>
+
+        {showFull &&
+          <>
+            <div className="grid grid-cols-2 gap-2 mb-2 text-xs">
+              <div className="flex items-center gap-1.5 text-gray-600">
+                <Clock size={12} className="text-gray-400 flex-shrink-0" />
+                <span className="truncate">{formatTime(student.fromDate, student.fromTime)}</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-gray-600">
+                <ChevronRight size={12} className="text-gray-400 flex-shrink-0" />
+                <span className="truncate">
+                  {student.toDate && student.toTime ? formatTime(student.toDate, student.toTime) : 'End of Day'}
+                </span>
+              </div>
+            </div>
+
+            {returnedTime && (
+              <div className={`flex items-center gap-1.5 text-xs mb-2 px-2 py-1 rounded ${student.calculatedStatus === 'Late Returned'
+                ? 'text-orange-700 bg-orange-50'
+                : 'text-green-700 bg-green-50'
+                }`}>
+                <CheckCircle size={12} />
+                <span>Returned: {returnedTime}</span>
+                {student.calculatedStatus === 'Late Returned' && (
+                  <span className="ml-1 font-semibold">(Late)</span>
+                )}
+              </div>
             )}
-          </div>
-        )}
 
-        {/* Teacher & Reason - Compact Row */}
-        <div className="flex flex-wrap items-center gap-2 text-xs pt-2 border-t border-gray-100">
-          {/* Teacher who created leave */}
-          {student.teacher && (
-            <div className="flex items-center gap-1 text-indigo-600 bg-indigo-50 px-2 py-1 rounded">
-              <FileSignature size={12} />
-              <span className="font-medium">{student.teacher}</span>
-            </div>
-          )}
-          
-          {/* Action Teachers */}
-          {student.leaveStartTeacher && (
-            <div className="flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-1 rounded">
-              <Clock size={12} />
-              <span className="hidden sm:inline">Started: </span>
-              <span className="font-medium">{student.leaveStartTeacher}</span>
-            </div>
-          )}
-          
-          {student.markReturnedTeacher && (
-            <div className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded">
-              <CheckCircle size={12} />
-              <span className="hidden sm:inline">Returned: </span>
-              <span className="font-medium">{student.markReturnedTeacher}</span>
-            </div>
-          )}
+            <div className="flex flex-wrap items-center gap-2 text-xs pt-2 border-t border-gray-100">
 
-          {/* Reason */}
-          {student.reason && (
-            <div className="flex items-center gap-1 text-gray-600 bg-gray-50 px-2 py-1 rounded flex-1 min-w-0">
-              <span className="truncate italic">{student.reason}</span>
+              {student.teacher && (
+                <div className="flex items-center gap-1 text-indigo-600 bg-indigo-50 px-2 py-1 rounded">
+                  <FileSignature size={12} />
+                  <span className="font-medium">{student.teacher}</span>
+                </div>
+              )}
+
+
+              {student.leaveStartTeacher && (
+                <div className="flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                  <Clock size={12} />
+                  <span className="hidden sm:inline">Started: </span>
+                  <span className="font-medium">{student.leaveStartTeacher}</span>
+                </div>
+              )}
+
+              {student.markReturnedTeacher && (
+                <div className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded">
+                  <CheckCircle size={12} />
+                  <span className="hidden sm:inline">Returned: </span>
+                  <span className="font-medium">{student.markReturnedTeacher}</span>
+                </div>
+              )}
+
+              {/* Reason */}
+              {student.reason && (
+                <div className="flex items-center gap-1 text-gray-600 bg-gray-50 px-2 py-1 rounded flex-1 min-w-0">
+                  <span className="truncate italic">{student.reason}</span>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </>}
+
+
+
+
+
       </div>
     </div>
   );
@@ -219,15 +233,15 @@ function LeaveStatus() {
   const [error, setError] = useState(null);
   const [selectedClass, setSelectedClass] = useState(null);
 
-  const teacher = localStorage.getItem("teacher") ? JSON.parse(localStorage.getItem("teacher")) :  null;
+  const teacher = localStorage.getItem("teacher") ? JSON.parse(localStorage.getItem("teacher")) : null;
 
-  const [shortLeaveStatus,setShortLeaveStatus] = useState([])
+  const [shortLeaveStatus, setShortLeaveStatus] = useState([])
   //Medeical room 
   const medicalRoomStatus = useMemo(() => {
     return leaveData.filter(student => student.reason === 'Medical (Room)' && !student.returnedAt);
   }, [leaveData]);
   const medicalRoomStatusDB = useMemo(() => {
-    return leaveData.filter(student => student.reason === 'Medical (Room)' && !student.returnedAt && student.teacher===teacher?.name);
+    return leaveData.filter(student => student.reason === 'Medical (Room)' && !student.returnedAt && student.teacher === teacher?.name);
   }, [leaveData]);
 
 
@@ -294,7 +308,7 @@ function LeaveStatus() {
       });
   };
 
-  
+
   const fetchShortLeave = () => {
     setLoading(true);
     setError(null);
@@ -310,51 +324,51 @@ function LeaveStatus() {
   };
 
   // In your main component, add these computed values
-const getLeaveStatusForTable = (item) => {
-  const now = new Date();
-  const fromDateTime = new Date(`${item.fromDate}T${item.fromTime}`);
-  const toDateTime = new Date(`${item.toDate}T${item.toTime}`);
+  const getLeaveStatusForTable = (item) => {
+    const now = new Date();
+    const fromDateTime = new Date(`${item.fromDate}T${item.fromTime}`);
+    const toDateTime = new Date(`${item.toDate}T${item.toTime}`);
 
-  // Returned logic
-  if (item.status === 'returned') {
-    if (item.returnedAt && new Date(item.returnedAt) > toDateTime) {
-      return 'Late Returned';
+    // Returned logic
+    if (item.status === 'returned') {
+      if (item.returnedAt && new Date(item.returnedAt) > toDateTime) {
+        return 'Late Returned';
+      }
+      return 'Returned';
     }
-    return 'Returned';
-  }
 
-  // Before leave start
-  if (now < fromDateTime) return 'Scheduled';
+    // Before leave start
+    if (now < fromDateTime) return 'Scheduled';
 
-  // Time has come, but leave not started yet
-  if (now >= fromDateTime && item.status === 'Scheduled') {
-    return 'Pending';
-  }
+    // Time has come, but leave not started yet
+    if (now >= fromDateTime && item.status === 'Scheduled') {
+      return 'Pending';
+    }
 
-  // Leave running normally
-  if (now >= fromDateTime && now <= toDateTime && item.status === 'active') return 'On Leave';
+    // Leave running normally
+    if (now >= fromDateTime && now <= toDateTime && item.status === 'active') return 'On Leave';
 
-  // Leave ended but student not returned
-  if (now > toDateTime && item.status !== 'returned') return 'Late';
+    // Leave ended but student not returned
+    if (now > toDateTime && item.status !== 'returned') return 'Late';
 
-  return item.status;
-};
+    return item.status;
+  };
 
-// Get data for actions table
-const actionsTableData = useMemo(() => {
+  // Get data for actions table
+  const actionsTableData = useMemo(() => {
 
-  return leaveData
-    .map(item => ({
-      ...item,
-      status: getLeaveStatusForTable(item)
-    }))
-    .filter(data => {
+    return leaveData
+      .map(item => ({
+        ...item,
+        status: getLeaveStatusForTable(item)
+      }))
+      .filter(data => {
         const endDateTime = new Date(`${data.toDate}T${data.toTime}`);
         const now = new Date();
         const diffHours = (endDateTime - now) / (1000 * 60 * 60);
 
         const isPendingOrLate =
-          ['Pending', 'Late'].includes(data.status) &&
+          ['Pending', 'Late', 'On Leave'].includes(data.status) &&
           data.reason !== 'Medical (Room)';
 
         // NEW: Show On Leave only if 4 hours are left before end time
@@ -363,32 +377,32 @@ const actionsTableData = useMemo(() => {
           diffHours <= 4 &&  // Less than or equal 4 hours remaining
           diffHours > 0;     // End time not passed
 
-        return (isPendingOrLate || isFourHourOnLeave) && data.toDate;
+        return (isPendingOrLate) && data.toDate;
       });
 
-}, [leaveData]);
+  }, [leaveData]);
 
-// Refresh function to pass
-const refreshLeaveData = () => {
-  fetchLeaveData();
-};
+  // Refresh function to pass
+  const refreshLeaveData = () => {
+    fetchLeaveData();
+  };
 
   const filteredData = useMemo(() => {
     if (activeTab === 'onLeave') {
-      return leaveData.filter(student => 
+      return leaveData.filter(student =>
         ['On Leave', 'Late'].includes(student.displayStatus)
       );
     }
-    
+
     return leaveData;
   }, [leaveData, activeTab]);
 
   const notArrivedCount = useMemo(() => {
-    return filteredData.filter(student=>student.status==="active").length;
+    return filteredData.filter(student => student.status === "active").length;
   }, [leaveData]);
 
- const filterDB=leaveData.filter(student=>student.teacher===teacher?.name);
- 
+  const filterDB = leaveData.filter(student => student.teacher === teacher?.name);
+
 
   if (loading) {
     return (
@@ -426,12 +440,12 @@ const refreshLeaveData = () => {
           body { font-family: 'Inter', sans-serif; }
         `}
       </style>
-      
+
       <div className="max-w-7xl mx-auto">
         {/* Compact Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Calendar size={24} className="text-indigo-600"/> 
+            <Calendar size={24} className="text-indigo-600" />
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Leave Status</h1>
           </div>
           <button
@@ -462,88 +476,88 @@ const refreshLeaveData = () => {
             <div className="text-xl sm:text-2xl font-bold text-blue-600">{onLeaveCount}</div>
           </div>
         </div> */}
-        
+
         {/* Compact Tabs */}
         <div className="flex flex-wrap  gap-2 mb-4 p-1 rounded-lg  w-full sm:w-auto border-2 border-indigo-200">
-        <TabButton 
+          <TabButton
             label={`Actions`}
             isActive={activeTab === 'actions'}
             onClick={() => setActiveTab('actions')}
           />
-          <TabButton 
+          <TabButton
             label={`On leave (${notArrivedCount})`}
             isActive={activeTab === 'onLeave'}
             onClick={() => setActiveTab('onLeave')}
           />
-          
-           <TabButton 
+
+          <TabButton
             label={`Class Excused Pass (${shortLeaveStatus.length})`}
             isActive={activeTab === 'shortLeave'}
             onClick={() => setActiveTab('shortLeave')}
           />
-          <TabButton 
+          <TabButton
             label={`History (${leaveData.length})`}
             isActive={activeTab === 'all'}
             onClick={() => setActiveTab('all')}
           />
-          <TabButton 
+          <TabButton
             label={`My Dashboard `}
             isActive={activeTab === 'My Dashboard'}
             onClick={() => setActiveTab('My Dashboard')}
           />
         </div>
-  
-        {/* Cards Grid - Mobile First */}
-       
-        { ["all","onLeave"].includes(activeTab)?
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          {filteredData.length > 0 ? (
-            <>
-            {activeTab === 'onLeave' && 
-          <div className="mb-4">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <div className="flex items-center gap-2 mb-3">
-                
-                <h2 className="text-lg font-semibold text-gray-900">Class-wise Absentees</h2>
-              </div>
-              
-              <div className="grid grid-cols-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                {(() => {
-                  // Calculate absentees by class
-                  const classAbsentees = {};
-                  
-                  filteredData.forEach(student => {
-                    const classNum = student.classNum;
-                    if (!classAbsentees[classNum]) {
-                      classAbsentees[classNum] = 0;
-                    }
-                    classAbsentees[classNum]++;
-                  });
-                  
-                  // Convert to array and sort by class number
-                  const sortedClasses = Object.entries(classAbsentees)
-                    .map(([classNum, count]) => ({ classNum, count }))
-                    .sort((a, b) => a.classNum - b.classNum);
 
-                    console.log(classAbsentees);
-                    // const totalLeave=filteredData.filter(student=>student.status==="active")
-                    // console.log(totalLeave.length);
-                    
-                    
-                  
-                  return sortedClasses.map(({ classNum, count }) => (
-                    <div key={classNum} className="text-center p-3 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer"
-                    onClick={()=> setSelectedClass(Number(classNum))}
-                    >
-                      <div className="text-xs text-gray-600 border-b">Class {classNum}</div>
-                      <div className="text-2xl font-bold text-red-700">{count}</div>
-                    </div>
-                  ));
-                })()}
-              </div>
-              
-              {/* Total Absentees Summary */}
-              {/* <div className="mt-3 pt-3 border-t border-gray-200">
+        {/* Cards Grid - Mobile First */}
+
+        {["all", "onLeave"].includes(activeTab) ?
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            {filteredData.length > 0 ? (
+              <>
+                {activeTab === 'onLeave' &&
+                  <div className="mb-4">
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                      <div className="flex items-center gap-2 mb-3">
+
+                        <h2 className="text-lg font-semibold text-gray-900">Class-wise Absentees</h2>
+                      </div>
+
+                      <div className="grid grid-cols-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                        {(() => {
+                          // Calculate absentees by class
+                          const classAbsentees = {};
+
+                          filteredData.forEach(student => {
+                            const classNum = student.classNum;
+                            if (!classAbsentees[classNum]) {
+                              classAbsentees[classNum] = 0;
+                            }
+                            classAbsentees[classNum]++;
+                          });
+
+                          // Convert to array and sort by class number
+                          const sortedClasses = Object.entries(classAbsentees)
+                            .map(([classNum, count]) => ({ classNum, count }))
+                            .sort((a, b) => a.classNum - b.classNum);
+
+                          console.log(classAbsentees);
+                          // const totalLeave=filteredData.filter(student=>student.status==="active")
+                          // console.log(totalLeave.length);
+
+
+
+                          return sortedClasses.map(({ classNum, count }) => (
+                            <div key={classNum} className="text-center p-3 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer"
+                              onClick={() => setSelectedClass(Number(classNum))}
+                            >
+                              <div className="text-xs text-gray-600 border-b">Class {classNum}</div>
+                              <div className="text-2xl font-bold text-red-700">{count}</div>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+
+                      {/* Total Absentees Summary */}
+                      {/* <div className="mt-3 pt-3 border-t border-gray-200">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                   
@@ -552,199 +566,199 @@ const refreshLeaveData = () => {
                   <span className="text-xl font-bold text-red-600">{filteredData.length}</span>
                 </div>
               </div> */}
-            </div>
-          </div>
-        } 
+                    </div>
+                  </div>
+                }
 
-            {filteredData.map((student) => (
-              <StudentStatusCard key={student._id} student={student} />
-            ))}
-            </>
-          ) : (
-            <div className="col-span-full">
-              <div className="text-center text-gray-500 mt-8 p-8 bg-white rounded-lg shadow-sm">
-                <p className="text-sm sm:text-base">
-                  {activeTab === 'notArrived' 
-                    ? 'All students have arrived! 🎉' 
-                    : 'No leave records found.'}
-                </p>
+                {filteredData.map((student) => (
+                  <StudentStatusCard key={student._id} student={student} />
+                ))}
+              </>
+            ) : (
+              <div className="col-span-full">
+                <div className="text-center text-gray-500 mt-8 p-8 bg-white rounded-lg shadow-sm">
+                  <p className="text-sm sm:text-base">
+                    {activeTab === 'notArrived'
+                      ? 'All students have arrived! 🎉'
+                      : 'No leave records found.'}
+                  </p>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-        :activeTab==="My Dashboard"?
-        <>
-          <div className="flex flex-wrap  gap-2  p-1  bg-white rounded-lg shadow-sm  w-full sm:w-auto mb-2">
-                <TabButton 
-                    label={`Actions`}
-                    isActive={activeTabMyDB === 'allActions'}
-                    onClick={() => setActiveTabMyDB('allActions')}
-                  />
-                <TabButton 
-                    label={`Medical Room(${medicalRoomStatusDB.length})`}
-                    isActive={activeTabMyDB === 'Medical Room'}
-                    onClick={() => setActiveTabMyDB('Medical Room')}
-                  />
-                <TabButton 
-                    label={`Medical without endDate(${leaveData.filter(student=>student.reason==="Medical" && !student.toDate&& !student.returnedAt&& student.teacher===teacher?.name).length})`}
-                    isActive={activeTabMyDB === 'MWED'}
-                    onClick={() => setActiveTabMyDB('MWED')}
-                  />
-                  <TabButton 
-                    label={`History(${filterDB.length})`}
-                    isActive={activeTabMyDB === 'History'}
-                    onClick={() => setActiveTabMyDB('History')}
-                  />  
-           </div>
-          {activeTabMyDB==="allActions"?
-          <LeaveStatusTable 
-              classData={leaveData}
-              onDataUpdate={refreshLeaveData}
-              getLeaveStatus={getLeaveStatusForTable}
-              type="MyDashboard"
-            />
-            :activeTabMyDB==="Medical Room"?
-            <div>
-              <ShortLeave
-              statusData={medicalRoomStatusDB}
-              type="medicalRoom"
-              
-              />
-            </div>
-            :activeTabMyDB==="MWED"?
-            <div>
-            <ShortLeave
-            statusData={leaveData.filter(student=>student.reason==="Medical" && !student.toDate && !student.returnedAt&& student.teacher===teacher?.name)}
-            type="medicalWithoutEndDate"
-            
-            />
+            )}
           </div>
-            :
-            <div>
-              {filterDB.map((student) => (
-              <StudentStatusCard key={student._id} student={student} />
-            ))}
-            </div>
-            }
-        </>
-        :
-        activeTab==="shortLeave"?
-        <div>
-            <div>
-              <ShortLeave
-                statusData={shortLeaveStatus}
-                type="shortLeave"
-                
+          : activeTab === "My Dashboard" ?
+            <>
+              <div className="flex flex-wrap  gap-2  p-1  bg-white rounded-lg shadow-sm  w-full sm:w-auto mb-2">
+                <TabButton
+                  label={`Actions`}
+                  isActive={activeTabMyDB === 'allActions'}
+                  onClick={() => setActiveTabMyDB('allActions')}
                 />
-            </div>
-        </div>
-        
-        :
-        
-       
-        <div>
-           {activeTab==="actions" &&
-        <>
-             <div className="flex flex-wrap  gap-2  p-1  bg-white rounded-lg shadow-sm  w-full sm:w-auto mb-2">
-                <TabButton 
-                    label={`General`}
-                    isActive={activeTabActions === 'General'}
-                    onClick={() => setActiveTabActions('General')}
-                  />
-                  <TabButton 
-                    label={`Medical Room(${medicalRoomStatus.length})`}
-                    isActive={activeTabActions === 'Medical (room)'}
-                    onClick={() => setActiveTabActions('Medical (room)')}
-                  />
-                  <TabButton 
-                    label={`Medical without endDate(${leaveData.filter(student=>student.reason==="Medical" && !student.toDate).length})`}
-                    isActive={activeTabActions === 'Medical (without end date)'}
-                    onClick={() => setActiveTabActions('Medical (without end date)')}
-                  />
-                </div>
-                {activeTabActions==="Medical (room)"?
-                <div>
-                  <ShortLeave
-                  statusData={medicalRoomStatus}
-                  type="medicalRoom"
-                  
-                  />
-                </div>:
-                activeTabActions==="General"?
-                  <LeaveStatusTable 
-                      classData={actionsTableData}
-                      onDataUpdate={refreshLeaveData}
-                      getLeaveStatus={getLeaveStatusForTable}
-                      type="Generalactions"
+                <TabButton
+                  label={`Medical Room(${medicalRoomStatusDB.length})`}
+                  isActive={activeTabMyDB === 'Medical Room'}
+                  onClick={() => setActiveTabMyDB('Medical Room')}
+                />
+                <TabButton
+                  label={`Medical without endDate(${leaveData.filter(student => student.reason === "Medical" && !student.toDate && !student.returnedAt && student.teacher === teacher?.name).length})`}
+                  isActive={activeTabMyDB === 'MWED'}
+                  onClick={() => setActiveTabMyDB('MWED')}
+                />
+                <TabButton
+                  label={`History(${filterDB.length})`}
+                  isActive={activeTabMyDB === 'History'}
+                  onClick={() => setActiveTabMyDB('History')}
+                />
+              </div>
+              {activeTabMyDB === "allActions" ?
+                <LeaveStatusTable
+                  classData={leaveData}
+                  onDataUpdate={refreshLeaveData}
+                  getLeaveStatus={getLeaveStatusForTable}
+                  type="MyDashboard"
+                />
+                : activeTabMyDB === "Medical Room" ?
+                  <div>
+                    <ShortLeave
+                      statusData={medicalRoomStatusDB}
+                      type="medicalRoom"
+
                     />
-                :activeTabActions==="Medical (without end date)"?
+                  </div>
+                  : activeTabMyDB === "MWED" ?
+                    <div>
+                      <ShortLeave
+                        statusData={leaveData.filter(student => student.reason === "Medical" && !student.toDate && !student.returnedAt && student.teacher === teacher?.name)}
+                        type="medicalWithoutEndDate"
+
+                      />
+                    </div>
+                    :
+                    <div>
+                      {filterDB.map((student) => (
+                        <StudentStatusCard key={student._id} student={student} />
+                      ))}
+                    </div>
+              }
+            </>
+            :
+            activeTab === "shortLeave" ?
+              <div>
                 <div>
                   <ShortLeave
-                  statusData={leaveData.filter(student=>student.reason==="Medical" && !student.toDate && !student.returnedAt)}
-                  type="medicalWithoutEndDate"
-                  
+                    statusData={shortLeaveStatus}
+                    type="shortLeave"
+
                   />
                 </div>
-                :
-                ""}
-                </>
-              } 
+              </div>
 
-        
+              :
 
-         
-        </div>
-        
+
+              <div>
+                {activeTab === "actions" &&
+                  <>
+                    <div className="flex flex-wrap  gap-2  p-1  bg-white rounded-lg shadow-sm  w-full sm:w-auto mb-2">
+                      <TabButton
+                        label={`General`}
+                        isActive={activeTabActions === 'General'}
+                        onClick={() => setActiveTabActions('General')}
+                      />
+                      <TabButton
+                        label={`Medical Room(${medicalRoomStatus.length})`}
+                        isActive={activeTabActions === 'Medical (room)'}
+                        onClick={() => setActiveTabActions('Medical (room)')}
+                      />
+                      <TabButton
+                        label={`Medical without endDate(${leaveData.filter(student => student.reason === "Medical" && !student.toDate).length})`}
+                        isActive={activeTabActions === 'Medical (without end date)'}
+                        onClick={() => setActiveTabActions('Medical (without end date)')}
+                      />
+                    </div>
+                    {activeTabActions === "Medical (room)" ?
+                      <div>
+                        <ShortLeave
+                          statusData={medicalRoomStatus}
+                          type="medicalRoom"
+
+                        />
+                      </div> :
+                      activeTabActions === "General" ?
+                        <LeaveStatusTable
+                          classData={actionsTableData}
+                          onDataUpdate={refreshLeaveData}
+                          getLeaveStatus={getLeaveStatusForTable}
+                          type="Generalactions"
+                        />
+                        : activeTabActions === "Medical (without end date)" ?
+                          <div>
+                            <ShortLeave
+                              statusData={leaveData.filter(student => student.reason === "Medical" && !student.toDate && !student.returnedAt)}
+                              type="medicalWithoutEndDate"
+
+                            />
+                          </div>
+                          :
+                          ""}
+                  </>
+                }
+
+
+
+
+              </div>
+
         }
       </div>
       {/* Class Students Popup */}
-  {selectedClass && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-    <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] overflow-hidden">
-      
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Class {selectedClass} - Absent Students
-        </h3>
-        <button
-          onClick={() => setSelectedClass(null)}
-          className="text-gray-400 hover:text-gray-500 transition-colors"
-        >
-          <XCircle size={20} />
-        </button>
-      </div>
-      
-      
-      <div className="p-4 overflow-y-auto max-h-96">
-        {filteredData
-          .filter(student => student.classNum === selectedClass)
-          .map(student => (
-            <div key={student._id} className="flex items-center justify-between py-2 px-3 border-b border-gray-100 last:border-b-0">
-              <div className="flex-1">
-                <div className="font-medium text-gray-900">{student.name}</div>
-                <div className="text-sm text-gray-500">AD: {student.ad}</div>
-              </div>
-              <StatusBadge status={student.displayStatus} />
+      {selectedClass && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] overflow-hidden">
+
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Class {selectedClass} - Absent Students
+              </h3>
+              <button
+                onClick={() => setSelectedClass(null)}
+                className="text-gray-400 hover:text-gray-500 transition-colors"
+              >
+                <XCircle size={20} />
+              </button>
             </div>
-          ))
-        }
-        
-        {filteredData.filter(student => student.classNum === selectedClass).length === 0 && (
-          <div className="text-center text-gray-500 py-4">
-            No students found in Class {selectedClass}
+
+
+            <div className="p-4 overflow-y-auto max-h-96">
+              {filteredData
+                .filter(student => student.classNum === selectedClass)
+                .map(student => (
+                  <div key={student._id} className="flex items-center justify-between py-2 px-3 border-b border-gray-100 last:border-b-0">
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900">{student.name}</div>
+                      <div className="text-sm text-gray-500">AD: {student.ad}</div>
+                    </div>
+                    <StatusBadge status={student.displayStatus} />
+                  </div>
+                ))
+              }
+
+              {filteredData.filter(student => student.classNum === selectedClass).length === 0 && (
+                <div className="text-center text-gray-500 py-4">
+                  No students found in Class {selectedClass}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-gray-200 bg-gray-50">
+              <div className="text-sm text-gray-600 text-center">
+                Total: {filteredData.filter(student => student.classNum === selectedClass).length} students
+              </div>
+            </div>
           </div>
-        )}
-      </div>
-      
-      {/* Footer */}
-      <div className="p-4 border-t border-gray-200 bg-gray-50">
-        <div className="text-sm text-gray-600 text-center">
-          Total: {filteredData.filter(student => student.classNum === selectedClass).length} students
         </div>
-      </div>
-    </div>
-  </div>
-)}
+      )}
     </div>
   );
 }
