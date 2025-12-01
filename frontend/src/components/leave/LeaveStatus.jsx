@@ -612,7 +612,7 @@ function LeaveStatus() {
               </div>
               {activeTabMyDB === "allActions" ?
                 <LeaveStatusTable
-                  classData={leaveData}
+                  classData={actionsTableData}
                   onDataUpdate={refreshLeaveData}
                   getLeaveStatus={getLeaveStatusForTable}
                   type="MyDashboard"
@@ -691,6 +691,7 @@ function LeaveStatus() {
                           getLeaveStatus={getLeaveStatusForTable}
                           type="Generalactions"
                         />
+                        
                         : activeTabActions === "Medical (without end date)" ?
                           <div>
                             <ShortLeave

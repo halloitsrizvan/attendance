@@ -659,22 +659,23 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
                 {type === "Generalactions" ? (
                   <span>{ad}</span>
                 ) : (
-                  <button
-                    onClick={() => setShowEdit(true)}
-                    className="w-full h-full flex items-center justify-center hover:bg-blue-700 rounded-lg transition-colors"
-                    title="Edit Leave"
-                  >
-                    <Edit size={16} className="ml-1" />
-                  </button>
+                  // <button
+                  //   onClick={() => setShowEdit(true)}
+                  //   className="w-full h-full flex items-center justify-center hover:bg-blue-700 rounded-lg transition-colors"
+                  //   title="Edit Leave"
+                  // >
+                  //   <Edit size={16} className="ml-1" />
+                  // </button>
+                  <span>{ad}</span> 
                 )}
               </div>
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <h3 className="font-semibold text-gray-900 text-sm truncate">{name}</h3>
-                {type === "MyDashboard" && (
+                {/* {type === "MyDashboard" && (
                   <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{ad}</span>
-                )}
+                )} */}
                 <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">C:{classNum}</span>
               </div>
               <div className="flex items-center gap-3 text-xs text-gray-500">
@@ -700,6 +701,15 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
             <buttonState.icon size={14} />
             <span className="sm:inline"> {buttonState.text}</span>
           </button>
+          {type!=="Generalactions"&&
+          <button
+            className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg transition-colors duration-200 flex-shrink-0 bg-blue-600 text-white hover:bg-blue-700`}
+             onClick={() => setShowEdit(true)}
+            title="Edit Leave"
+          >
+            <Edit size={16} className="ml-1" />
+           
+          </button>}
         </div>
 
         {/* Status Bar */}
@@ -801,7 +811,13 @@ function LeaveStatusTable({ classData: initialClassData1, onDataUpdate, getLeave
 
   let initialClassData = "";
   if (type === "MyDashboard") {
-    initialClassData = initialClassData1.filter((leave) => leave.reason !== "Medical (Room)" && leave.toDate && leave.teacher === teacher?.name);
+    // Filter for MyDashboard: teacher's data only, exclude Medical Room, include Scheduled status
+    initialClassData = initialClassData1.filter((leave) => 
+      leave.reason !== "Medical (Room)" && 
+      leave.toDate && 
+      leave.teacher === teacher?.name &&
+      (leave.status !== "returned" || leave.status === "Scheduled") // Include Scheduled status
+    );
   } else {
     initialClassData = initialClassData1;
   }

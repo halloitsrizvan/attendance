@@ -6,6 +6,8 @@ import DatePicker from './DatePicker';
 import { FaHome, FaSadCry } from "react-icons/fa";
 import { Plus, Minus } from 'lucide-react';
 import Header from '../Header/Header';
+import './styles/leaveForm.css'; 
+import BulkStudents from './BulkStudents';
 const SelectionButton = ({ label, isSelected, onClick, type }) => (
   <button
     onClick={onClick}
@@ -23,9 +25,9 @@ const SelectionButton = ({ label, isSelected, onClick, type }) => (
 );
 
 const TimePicker = ({ label, selectedTime, setSelectedTime, options, customTime, setCustomTime }) => (
-  <div className="mb-6 p-4 bg-white rounded-xl shadow-inner border border-gray-200">
+  <div className="mb-6 p-2 bg-white rounded-xl shadow-inner border border-gray-200">
     <h3 className="text-lg font-semibold text-gray-800 mb-3">{label}</h3>
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
       {options.map(option => (
         <SelectionButton
           key={option}
@@ -541,6 +543,206 @@ function LeaveForm() {
       });
   };
 
+
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [Bulkstudents, setBulkStudents] = useState([]);
+  const [classValue, setClassValue] = useState(teacher?.classNum || "3"); 
+  const [selectedBulkStudents, setSelectedBulkStudents] = useState([]);
+// Update Bulkstudents when classValue OR students changes
+      useEffect(() => { 
+        if (students.length > 0) {
+          const filteredStudents = students
+            .filter(student => student.CLASS == classValue)
+            .map((student, index) => ({
+              SL: student.SL,
+              ADNO: student.ADNO,
+              "SHORT NAME": student["SHORT NAME"],
+              CLASS: student.CLASS,
+              selected: false
+            }));
+            filteredStudents.sort((a, b) => a.SL - b.SL);
+          setBulkStudents(filteredStudents);
+        } else {
+          setBulkStudents([]);
+        }
+      }, [classValue, students]);
+
+      const handleSelectAll = () => {
+      const allStudents = Bulkstudents.map(student => ({
+        ADNO: student.ADNO,
+        name: student["SHORT NAME"],
+        classNum: student.CLASS
+      }));
+      setSelectedBulkStudents(allStudents);
+    };
+      // Also, update the initial classValue to be dynamic based on teacher
+
+      let classValues = []; 
+      if (teacher.role === "class_teacher") {
+        classValues = [teacher.classNum];
+      } else if (teacher.role === "HOD") {
+        classValues = [8, 9, 10];
+      } else if (teacher.role === "HOS") {
+        classValues = [5, 6, 7];
+      } else {
+        classValues = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+      }
+ 
+      const handleRemoveBulkStudent = (adno) => {
+        setSelectedBulkStudents(prev => prev.filter(student => student.ADNO !== adno));
+      };
+      const handleAdd = (student) => {
+        const isAlreadyAdded = selectedBulkStudents.some(s => s.ADNO === student.ADNO);
+        
+        if (!isAlreadyAdded) {
+          // Add student to selected list
+          setSelectedBulkStudents(prev => [...prev, {
+            ADNO: student.ADNO,
+            name: student["SHORT NAME"],
+            classNum: student.CLASS
+          }]);
+        }
+      };
+const handleBulkSubmit = async () => {
+  if (selectedBulkStudents.length === 0) {
+    alert("Please select at least one student.");
+    return;
+  }
+
+  // Use the same validation as regular form
+  if (!reason) {
+    alert("Please select a reason.");
+    return;
+  }
+
+  setLoading(true);
+
+  const getFormattedDate = (date) => date.toISOString().split('T')[0];
+
+  const getFormattedTime = (timeOption, customTime, label = '') => {
+    const pad = (n) => String(n).padStart(2, "0");
+
+    if (timeOption === "Clock") return customTime;
+    if (label === "From Time") {
+      if (timeOption === "Morning") return "05:30";
+      if (timeOption === "Evening") return "16:30";
+    } else if (label === "To Time") {
+      if (timeOption === "Morning") return "07:00";
+      if (timeOption === "Evening") return "18:00";
+    } else {
+      if (timeOption === "Morning") return "05:30";
+      if (timeOption === "Evening") return "16:30";
+    }
+    if (timeOption === "Now") {
+      const now = new Date();
+      return `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    }
+    return "07:30";
+  };
+
+  // Calculate From Date (same as regular form)
+  let finalFromDate;
+  if (fromDate === 'Calendar') {
+    finalFromDate = fromCustomDate;
+  } else if (fromDate === 'Today') {
+    finalFromDate = getFormattedDate(new Date());
+  } else if (fromDate === 'Tomorrow') {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    finalFromDate = getFormattedDate(tomorrow);
+  } else if (fromDate === 'Day After') {
+    const dayAfter = new Date();
+    dayAfter.setDate(dayAfter.getDate() + 2);
+    finalFromDate = getFormattedDate(dayAfter);
+  } else {
+    finalFromDate = getFormattedDate(new Date());
+  }
+
+  const finalFromTime = getFormattedTime(fromTime, fromCustomTime, 'From Time');
+  const finalReason = reason === 'Custom' ? customReason : reason;
+
+  // For medical reasons, set toDate and toTime to null unless user explicitly sets them
+  const isMedicalReason = reason === 'Medical' || reason === 'Medical (Room)';
+  
+  let finalToDate = null;
+  let finalToTime = null;
+
+  // Only set toDate and toTime if it's NOT a medical reason OR if user has explicitly selected them
+  if (!isMedicalReason || showEndDateForMedical) {
+    // Calculate To Date only if needed
+    if (toDate === 'Calendar') {
+      finalToDate = toCustomDate;
+    } else if (toDate === 'Today') {
+      finalToDate = getFormattedDate(new Date());
+    } else if (toDate === 'Tomorrow') {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      finalToDate = getFormattedDate(tomorrow);
+    } else if (toDate === 'Day After') {
+      const dayAfter = new Date();
+      dayAfter.setDate(dayAfter.getDate() + 2);
+      finalToDate = getFormattedDate(dayAfter);
+    } else if (toDate) {
+      finalToDate = getFormattedDate(new Date());
+    }
+
+    finalToTime = getFormattedTime(toTime, toCustomTime, 'To Time');
+  }
+
+  // Create an array of promises for all selected students
+  const submitPromises = selectedBulkStudents.map(studentData => {
+    const payload = {
+      ad: studentData.ADNO,
+      name: studentData.name,
+      classNum: studentData.classNum,
+      fromDate: finalFromDate,
+      fromTime: finalFromTime,
+      toDate: finalToDate, 
+      toTime: finalToTime,
+      reason: finalReason,
+      teacher: teacher.name,
+      status: "Scheduled"
+    };
+
+    return axios.post(`${API_PORT}/leave`, payload);
+  });
+
+  try {
+    // Submit all leaves at once
+    await Promise.all(submitPromises);
+    
+    console.log("All bulk leaves submitted successfully!");
+    
+    // Reset bulk form
+    setSelectedBulkStudents([]);
+    setShowBulkModal(false);
+    
+    // Reset regular form as well (optional)
+    setAd('');
+    setStudent(null);
+    setName('');
+    setClassNum('');
+    setFromDate('Today');
+    setFromTime('Evening');
+    setFromCustomDate('');
+    setFromCustomTime('');
+    setToDate('Tomorrow');
+    setToTime('Evening');
+    setToCustomDate('');
+    setToCustomTime('');
+    setReason('Medical');
+    setCustomReason('');
+    setSuggestions([]);
+    setShowEndDateForMedical(false);
+    
+    alert(`Successfully submitted ${selectedBulkStudents.length} leave(s)!`);
+  } catch (error) {
+    console.error("Error submitting bulk leaves:", error);
+    alert("Error submitting bulk leaves. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <div className="min-h-screen bg-gray-100 text-gray-800 font-inter p-4 sm:p-8 mt-16">
       <style>
@@ -592,7 +794,7 @@ function LeaveForm() {
       {leaveType === "leave" ? (
         <div className="max-w-xl mx-auto space-y-8 pb-16">
           {/* Regular Leave Form */}
-          <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
+         {!showBulkModal && <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
             <div className="grid grid-cols-3 gap-4">
               <div className="col-span-2 relative">
                 <label htmlFor="ad" className="block text-xs font-medium text-gray-500 mb-1">
@@ -651,6 +853,34 @@ function LeaveForm() {
                 )}
               </div>
 
+                <div className="col-span-1">
+                  <button className='mt-3 ml-8 comic-button '
+                  onClick={()=>{
+                    if(showBulkModal){
+                      setShowBulkModal(false)
+                    }else{  
+                    setShowBulkModal(true)}}
+                  }
+                  > Bulk</button>
+                </div>
+
+
+              <div className="col-span-2">
+                <label htmlFor="name" className="block text-xs font-medium text-gray-500 mb-1">
+                  Name
+                </label>
+                <input
+                  id="name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  disabled
+                  className={`w-full border border-gray-300 rounded-lg p-2 text-sm ${student ? 'bg-gray-100 cursor-not-allowed' : ''
+                    }`}
+                  placeholder="Student Name"
+                />
+              </div>
+
               <div className="col-span-1">
                 <label htmlFor="classNum" className="block text-xs font-medium text-gray-500 mb-1">
                   Class
@@ -667,24 +897,163 @@ function LeaveForm() {
                 />
               </div>
 
-              <div className="col-span-3">
-                <label htmlFor="name" className="block text-xs font-medium text-gray-500 mb-1">
-                  Name
-                </label>
-                <input
-                  id="name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  disabled
-                  className={`w-full border border-gray-300 rounded-lg p-2 text-sm ${student ? 'bg-gray-100 cursor-not-allowed' : ''
-                    }`}
-                  placeholder="Student Name"
-                />
-              </div>
             </div>
-          </div>
+          </div>}
+      {showBulkModal && 
+  <div className="min-h-screen sm:p-8 flex justify-center items-start font-sans mt-4">
+    {/* Card that holds the UI */}
+    <div className="bg-white p-4 sm:p-6 rounded-3xl shadow-lg w-full max-w-md backdrop-blur-sm">
+      <div className="flex justify-between items-center mb-4 px-1">
+        <div className="flex items-center space-x-2">
+          <label htmlFor="classInput" className="text-gray-700 font-medium text-lg">
+            Class
+          </label>
+          <select 
+            value={classValue}
+            onChange={(e) => setClassValue(e.target.value)}
+            className='bg-white border border-gray-400 rounded-md px-3 py-1.5 w-18 shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500'>
+            {classValues.map((item,index) => (
+              <option key={index} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+        </div>
+         <button 
+          onClick={handleSelectAll}
+          className="px-3 py-1 ml-12 bg-blue-500 text-white text-base rounded-lg hover:bg-blue-600 transition"
+        >
+          Select All
+        </button>
+        <button className='comic-button mr-2'
+          onClick={() => setShowBulkModal(false)}>
+          Regular
+        </button>
+      </div>
 
+      {/* Selected Students Summary */}
+      {selectedBulkStudents.length > 0 && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-blue-700">
+              Selected: {selectedBulkStudents.length} student(s)
+            </span>
+            <button
+              onClick={() => setSelectedBulkStudents([])}
+              className="text-xs text-red-600 hover:text-red-800"
+            >
+              Clear All
+            </button>
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {selectedBulkStudents.map((student) => (
+              <div key={student.ADNO} className="flex items-center gap-1 bg-white border border-blue-300 rounded-full px-2 py-1 text-xs">
+                <span>{student.ADNO} - {student.name}</span>
+                <button
+                  onClick={() => handleRemoveBulkStudent(student.ADNO)}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="bg-gray-100 rounded-2xl overflow-hidden border-2 border-gray-500 shadow-inner">
+        <table className="w-full border-collapse">
+          <thead className="bg-gray-300">
+            <tr>
+              <th className="p-3 text-left font-bold text-gray-800 border-b-2 border-gray-500 border-r border-gray-400 w-1/6">Sl</th>
+              <th className="p-3 text-left font-bold text-gray-800 border-b-2 border-gray-500 border-r border-gray-400 w-1/6">Ad</th>
+              <th className="p-3 text-left font-bold text-gray-800 border-b-2 border-gray-500 border-r border-gray-400 w-1/2">Name</th>
+              <th className="p-3 text-center font-bold text-gray-800 border-b-2 border-gray-500 w-1/6">
+                <span className="w-16 h-8 flex items-center justify-center bg-white text-gray-600 rounded-md transition-colors text-2xl font-mono focus:outline-none focus:ring-2 focus:ring-gray-500">
+                  +
+                </span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {Bulkstudents.length > 0 ? (
+              Bulkstudents.map((student) => {
+                const isSelected = selectedBulkStudents.some(s => s.ADNO === student.ADNO);
+                return (
+                  <tr key={student.ADNO} className="bg-white border-b border-gray-300 last:border-b-0 hover:bg-gray-50">
+                    <td className="p-3 text-center text-gray-700 border-r border-gray-300 w-1/6">{student.SL}</td>
+                    <td className="p-3 text-center text-gray-700 border-r border-gray-300 w-1/6">{student.ADNO}</td>
+                    <td className="p-3 text-left text-gray-900 border-r border-gray-300 w-1/2">{student["SHORT NAME"]}</td>
+                    <td className="p-3 text-center w-1/6">
+                     <button
+                        onClick={() => {
+                          if (isSelected) {
+                            handleRemoveBulkStudent(student.ADNO);
+                          } else {
+                            handleAdd(student);
+                          }
+                        }}
+                        className={`
+                          flex items-center cursor-pointer font-medium text-white text-[12px]
+                          px-[1.1em] py-[0.7em]
+                          rounded-[20em] tracking-wide 
+                          border-none
+                          ${isSelected 
+                            ? 'bg-gradient-to-t from-[rgba(100,100,100,1)] to-[rgba(200,200,200,1)] text-gray-300 cursor-not-allowed shadow-[0_0.7em_1.5em_-0.5em_#88888898]' 
+                            : 'bg-gradient-to-t from-[rgba(20,167,62,1)] to-[rgba(102,247,113,1)] shadow-[0_0.7em_1.5em_-0.5em_#14a73e98] hover:shadow-[0_0.5em_1.5em_-0.5em_#14a73e98] active:shadow-[0_0.3em_1em_-0.5em_#14a73e98]'
+                          }
+                        `}
+                        disabled={isSelected}
+                      >
+                        {isSelected ? (
+                          <>
+                            {/* <svg
+                              height="20"
+                              width="20"
+                              viewBox="0 0 24 24"
+                              className="mr-[6px]"
+                              fill="currentColor"
+                            >
+                              <path d="M0 0h24v24H0z" fill="none"></path>
+                              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path>
+                            </svg> */}
+                            <span>Added</span>
+                          </>
+                        ) : (
+                          <>
+                            {/* <svg
+                              height="20"
+                              width="20"
+                              viewBox="0 0 24 24"
+                              className="mr-[6px]"
+                              fill="currentColor"
+                            >
+                              <path d="M0 0h24v24H0z" fill="none"></path>
+                              <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"></path>
+                            </svg> */}
+                            <span>Add</span>
+                          </>
+                        )}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan="4" className="p-4 text-center text-gray-500">
+                  No students found in Class {classValue}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+     
+    </div>
+  </div>
+}
           {/* Reason */}
           <div className="bg-white p-6 rounded-2xl shadow-lg">
             <ReasonPicker
@@ -697,42 +1066,58 @@ function LeaveForm() {
           </div>
 
           {/* From Date & Time */}
-          <div className="bg-white p-6 rounded-2xl shadow-lg">
+          <div className=" bg-white p-4 rounded-2xl shadow-lg">
+          <h2 className='p-2'>From Date & Time</h2>
+
+          <div className='grid grid-cols-2  gap-1'>
+           <div className='grid grid-cols-1'>
             <DatePicker
-              label="From Date"
+              label=""
               selectedDate={fromDate}
               setSelectedDate={setFromDate}
               customDate={fromCustomDate}
               setCustomDate={setFromCustomDate}
-            />
+              />
+
+           </div>
+            <div className='grid grid-cols-1'>
             <TimePicker
-              label="From Time"
+              label=""
               selectedTime={fromTime}
               setSelectedTime={setFromTime}
               options={fromTimeOptions}
               customTime={fromCustomTime}
               setCustomTime={setFromCustomTime}
             />
+           </div>
+              </div>
           </div>
 
           {/* Conditional To Date & Time */}
           {(reason !== 'Medical' && reason !== 'Medical (Room)') || showEndDateForMedical ? (
             <div className="bg-white p-6 rounded-2xl shadow-lg">
+              <h2 className='p-2'>To Date & Time</h2>
+          <div className='grid grid-cols-2  gap-1'>
+           <div className='grid grid-cols-1'>
               <DatePicker
-                label="To Date"
+                label=""
                 selectedDate={toDate}
                 setSelectedDate={setToDate}
                 customDate={toCustomDate}
                 setCustomDate={setToCustomDate}
               />
+              </div>
+            <div className='grid grid-cols-1'>
               <TimePicker
-                label="To Time"
+                label=""
                 selectedTime={toTime}
                 setSelectedTime={setToTime}
                 options={toTimeOptions}
                 customTime={toCustomTime}
                 setCustomTime={setToCustomTime}
               />
+               </div>
+              </div>
             </div>
           ) : (
             // Show button to add end date for medical reasons
@@ -754,11 +1139,17 @@ function LeaveForm() {
           <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-2xl">
             <button
               type="button"
-              onClick={handleSubmit}
+              onClick={(e)=>{
+                if(showBulkModal){
+                   handleBulkSubmit();
+                }else{
+                  handleSubmit(e);
+                }
+              } }
               disabled={loading}
               className="w-full py-3 bg-green-500 text-white text-lg font-bold rounded-xl shadow-lg hover:bg-green-600 transition-colors duration-200 disabled:bg-green-300 disabled:cursor-not-allowed"
             >
-              {loading ? 'Submitting...' : 'Approve Leave'}
+              {loading ? 'Submitting...' : 'Approve Leave '}
             </button>
           </div>
         </div>
