@@ -275,13 +275,12 @@ function AllClass({edit,id}) {
 
             { time==="Minus" ? <App students={students}/> :
             <>
-            <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">{edit?"Update Attendance":"Select a class"}</h2>
+            <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">{edit?"Update Attendance":""}</h2>
                 {load && <AllClassLoad/>}
                 <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
-                 {classes.map((cls, index) => {
-          //  Check if attendance already taken
-       const alreadyTaken = preAttendance.some((record) => {
-      // Normalize attendanceDate to YYYY-MM-DD format for comparison
+  {classes.map((cls, index) => {
+    // Check if attendance already taken
+    const alreadyTaken = preAttendance.some((record) => {
       const recordDate = record.attendanceDate 
         ? (typeof record.attendanceDate === 'string' 
             ? record.attendanceDate.split('T')[0] 
@@ -310,63 +309,60 @@ function AllClass({edit,id}) {
       }
     });
 
-    
+            return (
+      <div
+        key={index}
+        className={`button-container ${alreadyTaken ? 'opacity-70' : ''}`}
+        onClick={() => {
+          if (alreadyTaken) return;
 
-          return (
-            <div
-              key={index}
-              className={`rounded-lg shadow-lg p-4 text-center transition-transform transform hover:scale-105 hover:shadow-xl 
-                ${
-                  alreadyTaken
-                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-70'
-                    : 'bg-gradient-to-r from-indigo-100 via-indigo-200 to-indigo-100 text-green-800 cursor-pointer'
-                }`}
-              onClick={() => {
-                if (alreadyTaken) return; // 🚫 Prevent navigation if already taken
-
-                if (edit) {
-                  navigate(`/edit-attendance/${cls.class}`);
-                } else {
-                  if (time === "Period" && !period) {
-                    setErr("Select a period");
-                  } else {
-                    navigate(
-                      `/attendance/${cls.class}?date=${date}&time=${time}&period=${period}&more=${more}`
-                    );
-                  }
-                }
-              }}
-            >
-              <div className="mb-3">
-                <p className="text-xs text-gray-500">Class</p>
-                <h3
-                  className={`text-4xl font-bold ${
-                    alreadyTaken ? "text-gray-500" : "text-indigo-600"
-                  }`}
-                >
-                  {cls.class}
-                </h3>
-              </div>
-
-              <div>
-                <p className="text-sm text-gray-500">
-                  Strength:{" "}
-                  <span
-                    className={`font-bold ${
-                      alreadyTaken ? "text-gray-500" : "text-gray-700"
-                    }`}
-                  >
-                    {cls.totalStudents}
-                  </span>
-                </p>
-                {alreadyTaken && (
-                  <p className="text-xs text-red-500 mt-1 font-semibold">
-                    Already Taken
-                  </p>
-                )}
+          if (edit) {
+            navigate(`/edit-attendance/${cls.class}`);
+          } else {
+            if (time === "Period" && !period) {
+              setErr("Select a period");
+            } else {
+              navigate(
+                `/attendance/${cls.class}?date=${date}&time=${time}&period=${period}&more=${more}`
+              );
+            }
+          }
+        }}
+      >
+        <button
+          className={`brutalist-button openai button-1 ${alreadyTaken ? 'cursor-not-allowed' : ''}`}
+          disabled={alreadyTaken}
+        >
+          <div className="openai-logo">
+            <div className="class-icon">
+              {/* Class number in a circle */}
+              <div className={`class-number ${alreadyTaken ? 'bg-gray-400 text-gray-600' : 'bg-indigo-600 text-white'}`}>
+                {cls.class}
               </div>
             </div>
-          );
+          </div>
+          
+          <div className="button-text">
+            <span>Class</span>
+            <span>{cls.class}</span>
+          </div>
+          
+          {/* Strength info */}
+          <div className="strength-info">
+            <span className="strength-text">Strength:</span>
+            <span className={`strength-count ${alreadyTaken ? 'text-gray-500' : 'text-gray-100'}`}>
+              {cls.totalStudents}
+            </span>
+          </div>
+          
+          {alreadyTaken && (
+            <div className="already-taken">
+              <span className="already-text">Already Taken</span>
+            </div>
+          )}
+        </button>
+      </div>
+    );
         })}
 
                 </div></>}

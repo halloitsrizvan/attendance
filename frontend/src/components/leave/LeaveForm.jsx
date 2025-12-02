@@ -761,10 +761,41 @@ const handleBulkSubmit = async () => {
       {loading && (
         <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-40 z-50 backdrop-blur-sm">
          <Header/>
-          <div className="flex flex-col items-center gap-3">
+          {/* <div className="flex flex-col items-center gap-3">
             <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
             <p className="text-white text-lg font-semibold animate-pulse">Processing...</p>
-          </div>
+          </div> */}
+          {/* <div className="loader">
+            <div className="dot"></div>
+            <div className="dot"></div>
+            <div className="dot"></div>
+          </div> */}
+          <div className="boxes">
+            <div className="box">
+                <div></div>
+                <div></div>
+                <div></div>
+                <div></div>
+            </div>
+            <div className="box">
+                <div></div>
+                <div></div>
+                <div></div>
+                <div></div>
+            </div>
+            <div className="box">
+                <div></div>
+                <div></div>
+                <div></div>
+                <div></div>
+            </div>
+            <div className="box">
+                <div></div>
+                <div></div>
+                <div></div>
+                <div></div>
+            </div>
+        </div>
         </div>
       )}
 
@@ -919,12 +950,12 @@ const handleBulkSubmit = async () => {
             ))}
           </select>
         </div>
-         <button 
+         {/* <button 
           onClick={handleSelectAll}
-          className="px-3 py-1 ml-12 bg-blue-500 text-white text-base rounded-lg hover:bg-blue-600 transition"
+          className="px-3 py-1 ml-8 bg-blue-500 text-white text-base rounded-lg hover:bg-blue-600 transition"
         >
           Select All
-        </button>
+        </button> */}
         <button className='comic-button mr-2'
           onClick={() => setShowBulkModal(false)}>
           Regular
@@ -969,7 +1000,9 @@ const handleBulkSubmit = async () => {
               <th className="p-3 text-left font-bold text-gray-800 border-b-2 border-gray-500 border-r border-gray-400 w-1/6">Ad</th>
               <th className="p-3 text-left font-bold text-gray-800 border-b-2 border-gray-500 border-r border-gray-400 w-1/2">Name</th>
               <th className="p-3 text-center font-bold text-gray-800 border-b-2 border-gray-500 w-1/6">
-                <span className="w-16 h-8 flex items-center justify-center bg-white text-gray-600 rounded-md transition-colors text-2xl font-mono focus:outline-none focus:ring-2 focus:ring-gray-500">
+                <span 
+                onClick={handleSelectAll}
+                className="w-16 h-8 flex items-center justify-center bg-white text-gray-600 rounded-md transition-colors text-2xl font-mono focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer">
                   +
                 </span>
               </th>
