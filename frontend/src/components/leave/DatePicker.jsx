@@ -15,7 +15,7 @@ function DatePicker({ label, selectedDate, setSelectedDate, customDate, setCusto
   return (
     <div className="mb-6 p-2 bg-white rounded-xl shadow-inner border border-gray-200">
       <h3 className="text-lg font-semibold text-gray-800 mb-3">{label}</h3>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-2">
         {dateOptions.map(option => (
           <SelectionButton
             key={option}
