@@ -33,6 +33,7 @@ function Hajar() {
 
   const [shortLeaveData, setShortLeaveData] = useState([]);
   const [leaveData, setLeaveData] = useState([]); // New state for medical leaves
+  const [returnedStudents, setReturnedStudents] = useState([]); // Track students returned locally
 
   const convertTimeToMinutes = (timeString) => {
     if (!timeString) return 0;
@@ -115,13 +116,13 @@ function Hajar() {
     console.log(period);
     setDataLoad(true);
 
-    //  axios.get(`${process.env.REACT_APP_BACKEND_URL}/class-excused-pass`),
+    //  axios.get(`${API_PORT}/class-excused-pass`),
     // Fetch short leave data first, then medical leaves, then students
     Promise.all([
       axios.get(`${API_PORT}/class-excused-pass`),
       axios.get(`${API_PORT}/leave`), // Fetch medical leaves
       axios.get(`${API_PORT}/students/`)
-      
+
     ])
       .then(([shortLeaveRes, leaveRes, studentsRes]) => {
         setShortLeaveData(shortLeaveRes.data);
@@ -188,8 +189,9 @@ function Hajar() {
     const absentiesList = students.filter((s) => {
       const isOnShortLeave = isStudentOnShortLeave(s.ADNO);
       const isOnMedicalLeave = isStudentOnMedicalLeave(s.ADNO);
-      const isOnLeave = s.onLeave || isOnShortLeave || isOnMedicalLeave;
-      // Students are absent if they're marked absent OR on leave
+      const isReturned = returnedStudents.includes(s.ADNO);
+      const isOnLeave = (s.onLeave || isOnShortLeave || isOnMedicalLeave) && !isReturned;
+      // Students are absent if they're marked absent OR on leave (and not returned)
       return attendance[s.ADNO] !== "Present" || isOnLeave;
     });
 
@@ -201,10 +203,28 @@ function Hajar() {
     setConfirmAttendance(false);
     setLoad(true);
 
+    // Save Return Data for Medical Leaves
+    try {
+      if (returnedStudents.length > 0) {
+        await Promise.all(returnedStudents.map(async (ad) => {
+          const findStd = leaveData.find(leave => leave.ad === ad && leave.status !== 'returned');
+          if (findStd) {
+            await axios.put(`${API_PORT}/leave/${findStd._id}`, { status: 'returned', markReturnedTeacher: teacher.name });
+            await axios.put(`${API_PORT}/students/${ad}`, { onLeave: false });
+          }
+        }));
+      }
+    } catch (err) {
+      console.error("Error updating return status:", err);
+      // Continue with attendance submission even if return update fails? 
+      // Maybe better to alert but for now we proceed or the main attendance might fail too.
+    }
+
     const payload = students.map((student) => {
       const isOnShortLeave = isStudentOnShortLeave(student.ADNO);
       const isOnMedicalLeave = isStudentOnMedicalLeave(student.ADNO);
-      const isOnLeave = student.onLeave || isOnShortLeave || isOnMedicalLeave;
+      const isReturned = returnedStudents.includes(student.ADNO);
+      const isOnLeave = (student.onLeave || isOnShortLeave || isOnMedicalLeave) && !isReturned;
       const status = isOnLeave ? "Absent" : (attendance[student.ADNO] || "Absent");
 
       return {
@@ -223,7 +243,7 @@ function Hajar() {
     });
 
     try {
-      await axios.post(`${process.env.REACT_APP_BACKEND_URL}/set-attendance`, payload);
+      await axios.post(`${API_PORT}/set-attendance`, payload);
 
       // calculate summary
       const strength = students.length;
@@ -236,7 +256,7 @@ function Hajar() {
       setSummary({ strength, present, absent, percent });
       setShowSummary(true);
 
-      await axios.patch(`${process.env.REACT_APP_BACKEND_URL}/classes/by-number/${id}`, {
+      await axios.patch(`${API_PORT}/classes/by-number/${id}`, {
         totalStudents: strength,
         presentStudents: present,
         absentStudents: absent,
@@ -246,7 +266,8 @@ function Hajar() {
       const payload2 = students.map((student) => {
         const isOnShortLeave = isStudentOnShortLeave(student.ADNO);
         const isOnMedicalLeave = isStudentOnMedicalLeave(student.ADNO);
-        const isOnLeave = student.onLeave || isOnShortLeave || isOnMedicalLeave;
+        const isReturned = returnedStudents.includes(student.ADNO);
+        const isOnLeave = (student.onLeave || isOnShortLeave || isOnMedicalLeave) && !isReturned;
         const status = isOnLeave ? "Absent" : (attendance[student.ADNO] || "Absent");
 
         return {
@@ -262,7 +283,7 @@ function Hajar() {
         };
       });
 
-      await axios.patch(`${process.env.REACT_APP_BACKEND_URL}/students/bulk-update/students`, { updates: payload2 });
+      await axios.patch(`${API_PORT}/students/bulk-update/students`, { updates: payload2 });
       setLoad(false);
     } catch (err) {
       console.error(err);
@@ -371,30 +392,13 @@ function Hajar() {
     if (!selectedReturnStudent) return;
     const ad = selectedReturnStudent.ADNO;
 
-    // Find Medical Leave Record to validata return
-    const findStd = leaveData.filter(leave => leave.ad === ad && leave.status !== 'returned')
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+    // Locally mark as returned
+    setReturnedStudents(prev => [...prev, ad]);
+    setAttendance((prev) => ({
+      ...prev,
+      [ad]: "Present",
+    }));
 
-    if (findStd) {
-      try {
-        await axios.put(`${process.env.REACT_APP_BACKEND_URL}/leave/${findStd._id}`, { status: 'returned' });
-        alert("Student returned successfully!");
-        window.location.reload(); // Reload to refresh data
-      } catch (err) {
-        console.error(err);
-        alert("Error updating return status: " + err.message);
-      }
-    } else {
-      // If no medical leave, check if it was CEP but CEP return might not be supported by API yet
-      // or maybe user expects it to just work. 
-      // For now, inform user if no medical record found.
-      // Check if it is CEP for better error message
-      if (isStudentOnShortLeave(ad)) {
-        alert("Return logic for Class Excused Pass (CEP) is not yet linked to an API. Please manage CEP separately.");
-      } else {
-        alert("No active medical leave record found to return.");
-      }
-    }
     setShowReturnModal(false);
     setSelectedReturnStudent(null);
   };
@@ -431,12 +435,12 @@ function Hajar() {
           <button
             onClick={handleQuickAction}
             className={`flex-shrink-0 px-4 py-2 text-sm font-medium rounded-md transition ml-auto ${quickAction === "Previous"
-                ? "bg-blue-500 hover:bg-blue-600 text-white"
-                : quickAction === "All Present"
-                  ? "bg-green-500 hover:bg-green-600 text-white"
-                  : quickAction === "All Absent"
-                    ? "bg-red-500 hover:bg-red-600 text-white"
-                    : "bg-blue-500 hover:bg-blue-600 text-white"
+              ? "bg-blue-500 hover:bg-blue-600 text-white"
+              : quickAction === "All Present"
+                ? "bg-green-500 hover:bg-green-600 text-white"
+                : quickAction === "All Absent"
+                  ? "bg-red-500 hover:bg-red-600 text-white"
+                  : "bg-blue-500 hover:bg-blue-600 text-white"
               }`}
           >
             {quickAction}
@@ -463,11 +467,13 @@ function Hajar() {
                   students.map((student, index) => {
                     const isOnShortLeave = isStudentOnShortLeave(student.ADNO);
                     const isOnMedicalLeave = isStudentOnMedicalLeave(student.ADNO);
-                    const isOnLeave = student.onLeave || isOnShortLeave || isOnMedicalLeave;
+                    const isReturned = returnedStudents.includes(student.ADNO);
+                    const isOnLeave = (student.onLeave || isOnShortLeave || isOnMedicalLeave);
+                    const displayOnLeave = isOnLeave && !isReturned;
 
                     // Determine leave type for display
                     let leaveType = "";
-                    if (isOnLeave) {
+                    if (displayOnLeave) {
                       if (student.onLeave) leaveType = "Leave";
                       else if (isOnShortLeave) leaveType = "CEP";
                       else if (isOnMedicalLeave) leaveType = "Medical ";
@@ -477,14 +483,14 @@ function Hajar() {
                       <tr
                         key={index}
                         onClick={() => {
-                          if (!isOnLeave) {
+                          if (!displayOnLeave) {
                             handleCheckboxChange(
                               student.ADNO,
                               attendance[student.ADNO] !== "Present"
                             );
                           }
                         }}
-                        className={isOnLeave ? "cursor-not-allowed" : "cursor-pointer"}
+                        className={displayOnLeave ? "cursor-not-allowed" : "cursor-pointer"}
                       >
                         <td className="border border-gray-300 px-4 py-2">
                           {student.SL}
@@ -499,23 +505,23 @@ function Hajar() {
                           <div className="flex items-center justify-center gap-2">
                             <button
                               type="button"
-                              disabled={isOnLeave}
+                              disabled={displayOnLeave}
                               onClick={() => {
-                                if (!isOnLeave) {
+                                if (!displayOnLeave) {
                                   handleCheckboxChange(
                                     student.ADNO,
                                     attendance[student.ADNO] !== "Present"
                                   );
                                 }
                               }}
-                              className={`px-4 py-1 rounded-full font-medium transition ${isOnLeave
-                                  ? "bg-yellow-500 text-white cursor-not-allowed"
-                                  : attendance[student.ADNO] === "Present"
-                                    ? "bg-green-500 text-white hover:bg-green-600"
-                                    : "bg-red-500 text-white hover:bg-red-600"
+                              className={`px-4 py-1 rounded-full font-medium transition ${displayOnLeave
+                                ? "bg-yellow-500 text-white cursor-not-allowed"
+                                : attendance[student.ADNO] === "Present"
+                                  ? "bg-green-500 text-white hover:bg-green-600"
+                                  : "bg-red-500 text-white hover:bg-red-600"
                                 }`}
                             >
-                              {isOnLeave
+                              {displayOnLeave
                                 ? leaveType
                                 : attendance[student.ADNO] === "Present"
                                   ? "Present"
@@ -523,12 +529,19 @@ function Hajar() {
                             </button>
 
                             {isOnLeave && (
-                              <button className="text-xs text-white italic bg-blue-500 px-4 py-2 rounded-full font-bold"
+                              <button className={`text-xs text-white italic px-4 py-2 rounded-full font-bold ${isReturned ? "bg-green-600" : "bg-blue-500"}`}
                                 type="button"
-                                onClick={() => {openReturnModal(student)
+                                onClick={() => {
+                                  if (isReturned) {
+                                    // Toggle Off
+                                    setReturnedStudents(prev => prev.filter(id => id !== student.ADNO));
+                                    setAttendance(prev => ({ ...prev, [student.ADNO]: "Absent" }));
+                                  } else {
+                                    openReturnModal(student);
+                                  }
                                 }}
                               >
-                                R
+                                {isReturned ? "↩" : "R"}
                               </button>
                             )}
                           </div>
@@ -568,22 +581,25 @@ function Hajar() {
                   students.map((student, index) => {
                     const isOnShortLeave = isStudentOnShortLeave(student.ADNO);
                     const isOnMedicalLeave = isStudentOnMedicalLeave(student.ADNO);
-                    const isOnLeave = student.onLeave || isOnShortLeave || isOnMedicalLeave;
-                    const isPresent = attendance[student.ADNO] === "Present" && !isOnLeave;
+                    const isReturned = returnedStudents.includes(student.ADNO);
+                    const isOnLeave = (student.onLeave || isOnShortLeave || isOnMedicalLeave);
+                    const displayOnLeave = isOnLeave && !isReturned;
+
+                    const isPresent = attendance[student.ADNO] === "Present" && !displayOnLeave;
 
                     return (
                       <div
                         key={index}
                         onClick={() => {
-                          if (!isOnLeave) {
+                          if (!displayOnLeave) {
                             handleCheckboxChange(student.ADNO, !isPresent);
                           }
                         }}
-                        className={`rounded-xl sm:rounded-2xl p-2 sm:p-3 md:p-4 text-center transition-all duration-300 transform cursor-pointer hover:scale-105 ${isOnLeave
-                            ? "bg-yellow-500 shadow-sm hover:shadow-lg"
-                            : isPresent
-                              ? "bg-green-500 shadow-sm hover:shadow-lg"
-                              : "bg-red-500 shadow-sm hover:shadow-lg"
+                        className={`rounded-xl sm:rounded-2xl p-2 sm:p-3 md:p-4 text-center transition-all duration-300 transform cursor-pointer hover:scale-105 ${displayOnLeave
+                          ? "bg-yellow-500 shadow-sm hover:shadow-lg"
+                          : isPresent
+                            ? "bg-green-500 shadow-sm hover:shadow-lg"
+                            : "bg-red-500 shadow-sm hover:shadow-lg"
                           }`}
                       >
                         {/* Roll Circle */}
@@ -607,9 +623,9 @@ function Hajar() {
                         </p>
 
                         {/* Status */}
-                        <div className={`text-xs font-medium ${isOnLeave ? "text-white" : isPresent ? "text-green-800" : "text-red-100"
+                        <div className={`text-xs font-medium ${displayOnLeave ? "text-white" : isPresent ? "text-green-800" : "text-red-100"
                           }`}>
-                          {isOnLeave ? "On Leave" : isPresent ? "Present" : "Absent"}
+                          {displayOnLeave ? "On Leave" : isPresent ? "Present" : "Absent"}
                         </div>
                       </div>
                     );
