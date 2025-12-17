@@ -14,11 +14,11 @@ const getAllLeave = async (req, res) => {
 // Get a single leave
 const getSingleLeave = async (req, res) => {
     const { id } = req.params;
-    
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(404).json({ error: 'Leave not found' });
     }
-    
+
     try {
         const leave = await Leave.findById(id);
         if (!leave) {
@@ -43,24 +43,24 @@ const createLeave = async (req, res) => {
 // Update leave (status or dates/times)
 const updateLeaveStatus = async (req, res) => {
     const { id } = req.params;
-    
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(404).json({ error: 'Leave not found' });
     }
-    
+
     try {
-        const { 
-            status, 
-            leaveStartTeacher, 
+        const {
+            status,
+            leaveStartTeacher,
             markReturnedTeacher,
             fromDate,
             fromTime,
             toDate,
             toTime
         } = req.body;
-        
+
         const updateData = {};
-        
+
         // Handle status updates
         if (status === 'returned') {
             updateData.status = 'returned';
@@ -99,7 +99,7 @@ const updateLeaveStatus = async (req, res) => {
                 const now = new Date();
                 const currentDate = now.toISOString().split('T')[0];
                 const currentTime = now.toTimeString().split(' ')[0].substring(0, 5);
-                
+
                 const effectiveFromDate = fromDate || leave.fromDate;
                 const effectiveFromTime = fromTime || leave.fromTime;
                 const effectiveToDate = toDate || leave.toDate;
@@ -110,9 +110,9 @@ const updateLeaveStatus = async (req, res) => {
                     (effectiveFromDate < currentDate) ||
                     (effectiveFromDate === currentDate && effectiveFromTime <= currentTime)
                 ) && (
-                    (effectiveToDate > currentDate) ||
-                    (effectiveToDate === currentDate && effectiveToTime >= currentTime)
-                );
+                        (effectiveToDate > currentDate) ||
+                        (effectiveToDate === currentDate && effectiveToTime >= currentTime)
+                    );
 
                 // Check if leave is late (past end time but not returned)
                 const isLate = (
@@ -124,24 +124,24 @@ const updateLeaveStatus = async (req, res) => {
                     updateData.status = 'active';
                 } else if (isLate && leave.status !== 'returned') {
                     updateData.status = 'late';
-                } else if (!status && (effectiveFromDate > currentDate || 
+                } else if (!status && (effectiveFromDate > currentDate ||
                     (effectiveFromDate === currentDate && effectiveFromTime > currentTime))) {
                     // If dates are in future and no status provided, set to Scheduled
                     updateData.status = 'Scheduled';
                 }
             }
         }
-        
+
         const leave = await Leave.findByIdAndUpdate(
             id,
             updateData,
             { new: true, runValidators: true }
         );
-        
+
         if (!leave) {
             return res.status(404).json({ error: 'Leave not found' });
         }
-        
+
         res.status(200).json(leave);
     } catch (error) {
         res.status(400).json({ error: error.message });
@@ -150,29 +150,29 @@ const updateLeaveStatus = async (req, res) => {
 
 // Delete a leave
 const deleteLeave = async (req, res) => {
-  const { id } = req.params;
-  
-  console.log('Delete request for ID:', id);
-  
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    console.log('Invalid ID format:', id);
-    return res.status(404).json({ error: 'Leave not found' });
-  }
-  
-  try {
-    const leave = await Leave.findByIdAndDelete(id);
-    
-    if (!leave) {
-      console.log('No leave found with ID:', id);
-      return res.status(404).json({ error: 'Leave not found' });
+    const { id } = req.params;
+
+    console.log('Delete request for ID:', id);
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        console.log('Invalid ID format:', id);
+        return res.status(404).json({ error: 'Leave not found' });
     }
-    
-    console.log('Successfully deleted leave:', leave);
-    res.status(200).json({ message: 'Leave deleted successfully', leave });
-  } catch (error) {
-    console.error('Error in deleteLeave:', error);
-    res.status(500).json({ error: error.message });
-  }
+
+    try {
+        const leave = await Leave.findByIdAndDelete(id);
+
+        if (!leave) {
+            console.log('No leave found with ID:', id);
+            return res.status(404).json({ error: 'Leave not found' });
+        }
+
+        console.log('Successfully deleted leave:', leave);
+        res.status(200).json({ message: 'Leave deleted successfully', leave });
+    } catch (error) {
+        console.error('Error in deleteLeave:', error);
+        res.status(500).json({ error: error.message });
+    }
 }
 
 // Auto-update leave statuses based on current time
@@ -181,7 +181,7 @@ const autoUpdateLeaveStatuses = async (req, res) => {
         const now = new Date();
         const currentDate = now.toISOString().split('T')[0];
         const currentTime = now.toTimeString().split(' ')[0].substring(0, 5);
-        
+
         // Update leaves that should be active
         await Leave.updateMany(
             {
@@ -207,7 +207,7 @@ const autoUpdateLeaveStatuses = async (req, res) => {
             },
             { status: 'active' }
         );
-        
+
         // Update leaves that are late (past end time but not returned)
         await Leave.updateMany(
             {
@@ -224,7 +224,7 @@ const autoUpdateLeaveStatuses = async (req, res) => {
             },
             { status: 'late' }
         );
-        
+
         res.status(200).json({ message: 'Leave statuses updated successfully' });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -234,13 +234,13 @@ const autoUpdateLeaveStatuses = async (req, res) => {
 // Get leaves by status
 const getLeavesByStatus = async (req, res) => {
     const { status } = req.params;
-    
+
     try {
         const validStatuses = ['Scheduled', 'active', 'late', 'returned'];
         if (!validStatuses.includes(status)) {
             return res.status(400).json({ error: 'Invalid status' });
         }
-        
+
         const leaves = await Leave.find({ status }).sort({ createdAt: -1 });
         res.status(200).json(leaves);
     } catch (error) {

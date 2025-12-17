@@ -141,5 +141,7 @@ Medical room :
             Medical leave:?
 is it for class teacher, usthad first said only for who gave medical room leave, there is a possibilty if the class teacher is absent and present at the time of medical leave(to home)           
 
-
+06-12-2025
+Check whether a student is on leave or his leave is scheduled before going to approve his leave again.
+Return option from attendace
 

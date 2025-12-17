@@ -6,7 +6,7 @@ import DatePicker from './DatePicker';
 import { FaHome, FaSadCry } from "react-icons/fa";
 import { Plus, Minus } from 'lucide-react';
 import Header from '../Header/Header';
-import './styles/leaveForm.css'; 
+import './styles/leaveForm.css';
 import BulkStudents from './BulkStudents';
 const SelectionButton = ({ label, isSelected, onClick, type }) => (
   <button
@@ -65,7 +65,7 @@ const ShortLeaveTimePicker = ({ fromPeriod, setFromPeriod, toPeriod, setToPeriod
 
   return (
     <div className="p-4 bg-white rounded-xl shadow-inner border border-gray-200">
-      
+
       {/* From Period */}
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 mb-2">From Time</label>
@@ -76,11 +76,11 @@ const ShortLeaveTimePicker = ({ fromPeriod, setFromPeriod, toPeriod, setToPeriod
         >
           {periodOptions.map(period => (
             <option key={`from-${period}`} value={period}>
-             {period==0?"Custom Time":`Period ${period}` }
+              {period == 0 ? "Custom Time" : `Period ${period}`}
             </option>
           ))}
         </select>
-        
+
         {fromPeriod === 0 && (
           <div className="mt-2">
             <label className="block text-sm font-medium text-indigo-600 mb-1">
@@ -106,11 +106,11 @@ const ShortLeaveTimePicker = ({ fromPeriod, setFromPeriod, toPeriod, setToPeriod
         >
           {periodOptions.map(period => (
             <option key={`to-${period}`} value={period}>
-              {period==0?"Custom Time":`Period ${period}` }
+              {period == 0 ? "Custom Time" : `Period ${period}`}
             </option>
           ))}
         </select>
-        
+
         {toPeriod === 0 && (
           <div className="mt-2">
             <label className="block text-sm font-medium text-indigo-600 mb-1">
@@ -134,18 +134,23 @@ const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCust
     ? JSON.parse(localStorage.getItem("teacher"))
     : null;
   const classNum = teacher.classNum;
-  
+
   let reasonOptions = [];
-  if(leaveType==="leave"){
-      if (classNum > 4) {
-      reasonOptions = ['Medical','Medical (Room)'];
+  if (leaveType === "leave") {
+    if (classNum > 4) {
+      reasonOptions = ['Medical', 'Medical (Room)', 'Hospital'];
     } else {
-      reasonOptions = ['Medical','Medical (Room)', 'Marriage', 'Function', 'Custom'];
+      if (teacher.role === "class_teacher") {
+        reasonOptions = ['Medical', 'Medical (Room)', 'Marriage', 'Hospital', '', 'Custom'];
+      } else {
+
+        reasonOptions = ['Medical', 'Medical (Room)', 'Marriage', 'Function', 'Custom'];
+      }
     }
-  }else{
-    reasonOptions=[,"Custom"]
+  } else {
+    reasonOptions = ["Custom"]
   }
-  
+
 
   useEffect(() => {
     console.log(reasonOptions, classNum);
@@ -204,6 +209,7 @@ function LeaveForm() {
   const [students, setStudents] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [leaveData, setLeaveData] = useState([]);
 
   // Form states
   const [fromDate, setFromDate] = useState('Today');
@@ -229,8 +235,8 @@ function LeaveForm() {
   const [shortLeaveCustomReason, setShortLeaveCustomReason] = useState('');
   const [shortLeaveSuggestions, setShortLeaveSuggestions] = useState([]);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(null);
-  const [shortLeaveDate,setShortLeaveDate] = useState('Today')
-  const [shortLeaveCustomDate,setShortLeaveCustomDate] = useState('')
+  const [shortLeaveDate, setShortLeaveDate] = useState('Today')
+  const [shortLeaveCustomDate, setShortLeaveCustomDate] = useState('')
   const fromTimeOptions = ['Morning', 'Evening', 'Now', 'Clock'];
   const toTimeOptions = ['Morning', 'Evening', 'Clock'];
 
@@ -241,7 +247,7 @@ function LeaveForm() {
   }, [teacher.role]);
 
   // Fetch all students based on teacher role
-  useEffect(() => { 
+  useEffect(() => {
     setLoading(true);
     axios.get(`${API_PORT}/students`)
       .then((res) => {
@@ -263,6 +269,59 @@ function LeaveForm() {
       .finally(() => setLoading(false));
   }, [teacher.role, teacher.classNum]);
 
+  // Fetch leave data
+  useEffect(() => {
+    axios.get(`${API_PORT}/leave`)
+      .then((res) => {
+        console.log("Fetched leaves:", res.data);
+        setLeaveData(res.data);
+      })
+      .catch((err) => {
+        console.error("Error fetching leaves data:", err);
+      });
+  }, []);
+
+  const checkLeaveStatus = (studentAd) => {
+    try {
+
+      // Filter leaves for this student
+      const studentLeaves = leaveData.filter(leave =>
+        String(leave.ad) === String(studentAd)
+      );
+
+      if (studentLeaves.length === 0) return false;
+
+      // Sort by creation time (descending) to get the latest document
+      // Primary sort: createdAt, Secondary sort: _id (as proxy for time)
+      studentLeaves.sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt) : null;
+        const dateB = b.createdAt ? new Date(b.createdAt) : null;
+
+        if (dateA && dateB) {
+          return dateB - dateA;
+        }
+
+        // Fallback to _id comparison if createdAt is missing or invalid
+        if (a._id && b._id) {
+          return a._id < b._id ? 1 : -1;
+        }
+        return 0;
+      });
+
+      const latestLeave = studentLeaves[0];
+      // console.log(`Latest leave for ${studentAd}:`, latestLeave);
+
+      // Check if the latest leave is NOT returned
+      const status = latestLeave.status ? latestLeave.status.toLowerCase() : '';
+
+      return status !== 'returned';
+
+    } catch (error) {
+      console.error("Error checking leave status:", error);
+      return false;
+    }
+  };
+
   // Fetch student when AD changes
   useEffect(() => {
     if (!ad) {
@@ -277,12 +336,17 @@ function LeaveForm() {
       setStudent(found);
       setName(found["SHORT NAME"]);
       setClassNum(found.CLASS);
+      if (checkLeaveStatus(found.ADNO)) {
+        alert("Student is on leave");
+        setAd('');
+        return;
+      }
     } else {
       setStudent(null);
       setName('');
       setClassNum('');
     }
-  }, [ad, students, teacher, navigate]);
+  }, [ad, students, teacher, navigate, leaveData]);
 
   // Reset showEndDateForMedical when reason changes
   useEffect(() => {
@@ -316,6 +380,9 @@ function LeaveForm() {
         updatedStudents[index].student = found;
         updatedStudents[index].name = found["SHORT NAME"];
         updatedStudents[index].classNum = found.CLASS;
+        if (checkLeaveStatus(found.ADNO)) {
+          alert("Student is on leave");
+        }
       } else {
         updatedStudents[index].student = null;
         updatedStudents[index].name = '';
@@ -351,9 +418,16 @@ function LeaveForm() {
     e.preventDefault();
 
     // Validate all students are selected
-    const invalidStudents = shortLeaveStudents.filter(student => !student.ad || !student.name || !student.classNum );
-    if (invalidStudents.length > 0 ||!shortLeaveCustomReason) {
+    const invalidStudents = shortLeaveStudents.filter(student => !student.ad || !student.name || !student.classNum);
+    if (invalidStudents.length > 0 || !shortLeaveCustomReason) {
       alert("Please enter all fields first.");
+      return;
+    }
+
+    // Check if any student is already on leave
+    const onLeaveStudents = shortLeaveStudents.filter(student => checkLeaveStatus(student.ad));
+    if (onLeaveStudents.length > 0) {
+      alert(`Cannot submit. The following students are already on leave: ${onLeaveStudents.map(s => s.name).join(', ')}`);
       return;
     }
 
@@ -370,10 +444,10 @@ function LeaveForm() {
       finalDate = new Date();
     } else if (fromDate === 'Tomorrow') {
       const tomorrow = new Date();
-      finalDate =  tomorrow.setDate(tomorrow.getDate() + 1);
+      finalDate = tomorrow.setDate(tomorrow.getDate() + 1);
     } else if (fromDate === 'Day After') {
       const dayAfter = new Date();
-      finalDate =  dayAfter.setDate(dayAfter.getDate() + 2);
+      finalDate = dayAfter.setDate(dayAfter.getDate() + 2);
     } else {
       finalDate = new Date();
     }
@@ -388,7 +462,7 @@ function LeaveForm() {
         toTime: finalToTime,
         reason: finalReason,
         teacher: teacher.name,
-        date:finalDate
+        date: finalDate
       };
 
       return axios.post(`${API_PORT}/class-excused-pass`, payload);
@@ -421,6 +495,12 @@ function LeaveForm() {
 
     if (!ad || !name || !classNum) {
       alert("Please select a student first.");
+      return;
+    }
+
+    if (checkLeaveStatus(ad)) {
+      alert("Student is on leave");
+      setAd('');
       return;
     }
 
@@ -472,7 +552,7 @@ function LeaveForm() {
 
     // For medical reasons, set toDate and toTime to null unless user explicitly sets them
     const isMedicalReason = reason === 'Medical' || reason === 'Medical (Room)';
-    
+
     let finalToDate = null;
     let finalToTime = null;
 
@@ -504,7 +584,7 @@ function LeaveForm() {
       classNum,
       fromDate: finalFromDate,
       fromTime: finalFromTime,
-      toDate: finalToDate, 
+      toDate: finalToDate,
       toTime: finalToTime,
       reason: finalReason,
       teacher: teacher.name,
@@ -546,203 +626,226 @@ function LeaveForm() {
 
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [Bulkstudents, setBulkStudents] = useState([]);
-  const [classValue, setClassValue] = useState(teacher?.classNum || "3"); 
+  const [classValue, setClassValue] = useState(teacher?.classNum || "3");
   const [selectedBulkStudents, setSelectedBulkStudents] = useState([]);
-// Update Bulkstudents when classValue OR students changes
-      useEffect(() => { 
-        if (students.length > 0) {
-          const filteredStudents = students
-            .filter(student => student.CLASS == classValue)
-            .map((student, index) => ({
-              SL: student.SL,
-              ADNO: student.ADNO,
-              "SHORT NAME": student["SHORT NAME"],
-              CLASS: student.CLASS,
-              selected: false
-            }));
-            filteredStudents.sort((a, b) => a.SL - b.SL);
-          setBulkStudents(filteredStudents);
-        } else {
-          setBulkStudents([]);
-        }
-      }, [classValue, students]);
+  // Update Bulkstudents when classValue OR students changes
+  useEffect(() => {
+    if (students.length > 0) {
+      const filteredStudents = students
+        .filter(student => student.CLASS == classValue)
+        .map((student, index) => ({
+          SL: student.SL,
+          ADNO: student.ADNO,
+          "SHORT NAME": student["SHORT NAME"],
+          CLASS: student.CLASS,
+          selected: false
+        }));
+      filteredStudents.sort((a, b) => a.SL - b.SL);
+      setBulkStudents(filteredStudents);
+    } else {
+      setBulkStudents([]);
+    }
+  }, [classValue, students]);
 
-      const handleSelectAll = () => {
-      const allStudents = Bulkstudents.map(student => ({
+  const handleSelectAll = () => {
+    const allStudents = Bulkstudents.map(student => ({
+      ADNO: student.ADNO,
+      name: student["SHORT NAME"],
+      classNum: student.CLASS
+    }));
+    setSelectedBulkStudents(allStudents);
+  };
+  // Also, update the initial classValue to be dynamic based on teacher
+
+  let classValues = [];
+  if (teacher.role === "class_teacher") {
+    classValues = [teacher.classNum];
+  } else if (teacher.role === "HOD") {
+    classValues = [8, 9, 10];
+  } else if (teacher.role === "HOS") {
+    classValues = [5, 6, 7];
+  } else {
+    classValues = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  }
+
+  const handleRemoveBulkStudent = (adno) => {
+    setSelectedBulkStudents(prev => prev.filter(student => student.ADNO !== adno));
+  };
+  const handleAdd = (student) => {
+    const isAlreadyAdded = selectedBulkStudents.some(s => s.ADNO === student.ADNO);
+
+    if (!isAlreadyAdded) {
+      if (checkLeaveStatus(student.ADNO)) {
+        alert(`${student["SHORT NAME"]} is already on leave.`);
+        return;
+      }
+      // Add student to selected list
+      setSelectedBulkStudents(prev => [...prev, {
         ADNO: student.ADNO,
         name: student["SHORT NAME"],
         classNum: student.CLASS
-      }));
-      setSelectedBulkStudents(allStudents);
-    };
-      // Also, update the initial classValue to be dynamic based on teacher
-
-      let classValues = []; 
-      if (teacher.role === "class_teacher") {
-        classValues = [teacher.classNum];
-      } else if (teacher.role === "HOD") {
-        classValues = [8, 9, 10];
-      } else if (teacher.role === "HOS") {
-        classValues = [5, 6, 7];
-      } else {
-        classValues = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-      }
- 
-      const handleRemoveBulkStudent = (adno) => {
-        setSelectedBulkStudents(prev => prev.filter(student => student.ADNO !== adno));
-      };
-      const handleAdd = (student) => {
-        const isAlreadyAdded = selectedBulkStudents.some(s => s.ADNO === student.ADNO);
-        
-        if (!isAlreadyAdded) {
-          // Add student to selected list
-          setSelectedBulkStudents(prev => [...prev, {
-            ADNO: student.ADNO,
-            name: student["SHORT NAME"],
-            classNum: student.CLASS
-          }]);
-        }
-      };
-const handleBulkSubmit = async () => {
-  if (selectedBulkStudents.length === 0) {
-    alert("Please select at least one student.");
-    return;
-  }
-
-  // Use the same validation as regular form
-  if (!reason) {
-    alert("Please select a reason.");
-    return;
-  }
-
-  setLoading(true);
-
-  const getFormattedDate = (date) => date.toISOString().split('T')[0];
-
-  const getFormattedTime = (timeOption, customTime, label = '') => {
-    const pad = (n) => String(n).padStart(2, "0");
-
-    if (timeOption === "Clock") return customTime;
-    if (label === "From Time") {
-      if (timeOption === "Morning") return "05:30";
-      if (timeOption === "Evening") return "16:30";
-    } else if (label === "To Time") {
-      if (timeOption === "Morning") return "07:00";
-      if (timeOption === "Evening") return "18:00";
-    } else {
-      if (timeOption === "Morning") return "05:30";
-      if (timeOption === "Evening") return "16:30";
+      }]);
     }
-    if (timeOption === "Now") {
-      const now = new Date();
-      return `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-    }
-    return "07:30";
   };
+  const handleBulkSubmit = async () => {
+    if (selectedBulkStudents.length === 0) {
+      alert("Please select at least one student.");
+      return;
+    }
 
-  // Calculate From Date (same as regular form)
-  let finalFromDate;
-  if (fromDate === 'Calendar') {
-    finalFromDate = fromCustomDate;
-  } else if (fromDate === 'Today') {
-    finalFromDate = getFormattedDate(new Date());
-  } else if (fromDate === 'Tomorrow') {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    finalFromDate = getFormattedDate(tomorrow);
-  } else if (fromDate === 'Day After') {
-    const dayAfter = new Date();
-    dayAfter.setDate(dayAfter.getDate() + 2);
-    finalFromDate = getFormattedDate(dayAfter);
-  } else {
-    finalFromDate = getFormattedDate(new Date());
-  }
+    // Use the same validation as regular form
+    if (!reason) {
+      alert("Please select a reason.");
+      return;
+    }
 
-  const finalFromTime = getFormattedTime(fromTime, fromCustomTime, 'From Time');
-  const finalReason = reason === 'Custom' ? customReason : reason;
+    setLoading(true);
 
-  // For medical reasons, set toDate and toTime to null unless user explicitly sets them
-  const isMedicalReason = reason === 'Medical' || reason === 'Medical (Room)';
-  
-  let finalToDate = null;
-  let finalToTime = null;
+    const getFormattedDate = (date) => date.toISOString().split('T')[0];
 
-  // Only set toDate and toTime if it's NOT a medical reason OR if user has explicitly selected them
-  if (!isMedicalReason || showEndDateForMedical) {
-    // Calculate To Date only if needed
-    if (toDate === 'Calendar') {
-      finalToDate = toCustomDate;
-    } else if (toDate === 'Today') {
-      finalToDate = getFormattedDate(new Date());
-    } else if (toDate === 'Tomorrow') {
+    const getFormattedTime = (timeOption, customTime, label = '') => {
+      const pad = (n) => String(n).padStart(2, "0");
+
+      if (timeOption === "Clock") return customTime;
+      if (label === "From Time") {
+        if (timeOption === "Morning") return "05:30";
+        if (timeOption === "Evening") return "16:30";
+      } else if (label === "To Time") {
+        if (timeOption === "Morning") return "07:00";
+        if (timeOption === "Evening") return "18:00";
+      } else {
+        if (timeOption === "Morning") return "05:30";
+        if (timeOption === "Evening") return "16:30";
+      }
+      if (timeOption === "Now") {
+        const now = new Date();
+        return `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+      }
+      return "07:30";
+    };
+
+    // Calculate From Date (same as regular form)
+    let finalFromDate;
+    if (fromDate === 'Calendar') {
+      finalFromDate = fromCustomDate;
+    } else if (fromDate === 'Today') {
+      finalFromDate = getFormattedDate(new Date());
+    } else if (fromDate === 'Tomorrow') {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      finalToDate = getFormattedDate(tomorrow);
-    } else if (toDate === 'Day After') {
+      finalFromDate = getFormattedDate(tomorrow);
+    } else if (fromDate === 'Day After') {
       const dayAfter = new Date();
       dayAfter.setDate(dayAfter.getDate() + 2);
-      finalToDate = getFormattedDate(dayAfter);
-    } else if (toDate) {
-      finalToDate = getFormattedDate(new Date());
+      finalFromDate = getFormattedDate(dayAfter);
+    } else {
+      finalFromDate = getFormattedDate(new Date());
     }
 
-    finalToTime = getFormattedTime(toTime, toCustomTime, 'To Time');
-  }
+    const finalFromTime = getFormattedTime(fromTime, fromCustomTime, 'From Time');
+    const finalReason = reason === 'Custom' ? customReason : reason;
 
-  // Create an array of promises for all selected students
-  const submitPromises = selectedBulkStudents.map(studentData => {
-    const payload = {
-      ad: studentData.ADNO,
-      name: studentData.name,
-      classNum: studentData.classNum,
-      fromDate: finalFromDate,
-      fromTime: finalFromTime,
-      toDate: finalToDate, 
-      toTime: finalToTime,
-      reason: finalReason,
-      teacher: teacher.name,
-      status: "Scheduled"
-    };
+    // For medical reasons, set toDate and toTime to null unless user explicitly sets them
+    const isMedicalReason = reason === 'Medical' || reason === 'Medical (Room)';
 
-    return axios.post(`${API_PORT}/leave`, payload);
-  });
+    let finalToDate = null;
+    let finalToTime = null;
 
-  try {
-    // Submit all leaves at once
-    await Promise.all(submitPromises);
-    
-    console.log("All bulk leaves submitted successfully!");
-    
-    // Reset bulk form
-    setSelectedBulkStudents([]);
-    setShowBulkModal(false);
-    
-    // Reset regular form as well (optional)
-    setAd('');
-    setStudent(null);
-    setName('');
-    setClassNum('');
-    setFromDate('Today');
-    setFromTime('Evening');
-    setFromCustomDate('');
-    setFromCustomTime('');
-    setToDate('Tomorrow');
-    setToTime('Evening');
-    setToCustomDate('');
-    setToCustomTime('');
-    setReason('Medical');
-    setCustomReason('');
-    setSuggestions([]);
-    setShowEndDateForMedical(false);
-    
-    alert(`Successfully submitted ${selectedBulkStudents.length} leave(s)!`);
-  } catch (error) {
-    console.error("Error submitting bulk leaves:", error);
-    alert("Error submitting bulk leaves. Please try again.");
-  } finally {
-    setLoading(false);
-  }
-};
+    // Only set toDate and toTime if it's NOT a medical reason OR if user has explicitly selected them
+    if (!isMedicalReason || showEndDateForMedical) {
+      // Calculate To Date only if needed
+      if (toDate === 'Calendar') {
+        finalToDate = toCustomDate;
+      } else if (toDate === 'Today') {
+        finalToDate = getFormattedDate(new Date());
+      } else if (toDate === 'Tomorrow') {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        finalToDate = getFormattedDate(tomorrow);
+      } else if (toDate === 'Day After') {
+        const dayAfter = new Date();
+        dayAfter.setDate(dayAfter.getDate() + 2);
+        finalToDate = getFormattedDate(dayAfter);
+      } else if (toDate) {
+        finalToDate = getFormattedDate(new Date());
+      }
+
+      finalToTime = getFormattedTime(toTime, toCustomTime, 'To Time');
+    }
+
+    // Create an array of promises for all selected students
+    const submitPromises = selectedBulkStudents.map(studentData => {
+      const payload = {
+        ad: studentData.ADNO,
+        name: studentData.name,
+        classNum: studentData.classNum,
+        fromDate: finalFromDate,
+        fromTime: finalFromTime,
+        toDate: finalToDate,
+        toTime: finalToTime,
+        reason: finalReason,
+        teacher: teacher.name,
+        status: "Scheduled"
+      };
+
+      return axios.post(`${API_PORT}/leave`, payload);
+    });
+
+    try {
+      // Submit all leaves at once
+      await Promise.all(submitPromises);
+
+      console.log("All bulk leaves submitted successfully!");
+
+      // Reset bulk form
+      setSelectedBulkStudents([]);
+      setShowBulkModal(false);
+
+      // Reset regular form as well (optional)
+      setAd('');
+      setStudent(null);
+      setName('');
+      setClassNum('');
+      setFromDate('Today');
+      setFromTime('Evening');
+      setFromCustomDate('');
+      setFromCustomTime('');
+      setToDate('Tomorrow');
+      setToTime('Evening');
+      setToCustomDate('');
+      setToCustomTime('');
+      setReason('Medical');
+      setCustomReason('');
+      setSuggestions([]);
+      setShowEndDateForMedical(false);
+
+      alert(`Successfully submitted ${selectedBulkStudents.length} leave(s)!`);
+    } catch (error) {
+      console.error("Error submitting bulk leaves:", error);
+      alert("Error submitting bulk leaves. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  // const [leaveData,setLeaveData]=useState([]);
+  // const [isOnleaveAlerted,setIsOnLeaveAlerted]=useState(false);
+  // useEffect(()=>{
+  //   axios.get(`${API_PORT}/leaves`)
+  //   .then((res)=>{
+  //     setLeaveData(res.data);
+  //   })
+  //   .catch((err)=>{
+  //     console.error("Error fetching leaves data:", err);
+  //   })
+  // })
+  // const isOnLeave=(stdAd)=>{
+  //   const filter = leaveData.filter(leave=>String(leave.ad)===String(stdAd) && leave.status!=="returned" );
+  //   if(filter.length>0 && !isOnleaveAlerted){
+  //     alert(`Student AD ${stdAd} is already on leave!`);
+  //     setIsOnLeaveAlerted(true);
+  //   }
+  // }
+
   return (
     <div className="min-h-screen bg-gray-100 text-gray-800 font-inter p-4 sm:p-8 mt-16">
       <style>
@@ -760,17 +863,17 @@ const handleBulkSubmit = async () => {
 
       {loading && (
         <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-40 z-50 backdrop-blur-sm">
-         <Header/>
-          {/* <div className="flex flex-col items-center gap-3">
-            <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+          <Header />
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
             <p className="text-white text-lg font-semibold animate-pulse">Processing...</p>
-          </div> */}
+          </div>
           {/* <div className="loader">
             <div className="dot"></div>
             <div className="dot"></div>
             <div className="dot"></div>
-          </div> */}
-          <div className="boxes">
+          </div>  */}
+          {/* <div className="boxes">
             <div className="box">
                 <div></div>
                 <div></div>
@@ -795,7 +898,7 @@ const handleBulkSubmit = async () => {
                 <div></div>
                 <div></div>
             </div>
-        </div>
+        </div> */}
         </div>
       )}
 
@@ -806,26 +909,26 @@ const handleBulkSubmit = async () => {
         >
           <FaHome /> Leave Dashboard
         </button>
-       {["HOD","HOS","super_admin"].includes(teacher.role) 
-       &&
-       <button
-          className="flex items-center gap-2 px-4 py-2 rounded-md bg-blue-500 text-white text-base font-medium shadow-sm hover:bg-blue-600 transition"
-          onClick={() => {
-            if (leaveType === "leave") {
-              setLeaveType('short-leave')
-            } else {
-              setLeaveType('leave')
-            }
-          }}
-        >
-          {leaveType === "leave" ? "Class Excused Pass" : "Leave"}
-        </button>}
+        {["HOD", "HOS", "super_admin"].includes(teacher.role)
+          &&
+          <button
+            className="flex items-center gap-2 px-4 py-2 rounded-md bg-blue-500 text-white text-base font-medium shadow-sm hover:bg-blue-600 transition"
+            onClick={() => {
+              if (leaveType === "leave") {
+                setLeaveType('short-leave')
+              } else {
+                setLeaveType('leave')
+              }
+            }}
+          >
+            {leaveType === "leave" ? "Class Excused Pass" : "Leave"}
+          </button>}
       </div>
 
       {leaveType === "leave" ? (
         <div className="max-w-xl mx-auto space-y-8 pb-16">
           {/* Regular Leave Form */}
-         {!showBulkModal && <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
+          {!showBulkModal && <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
             <div className="grid grid-cols-3 gap-4">
               <div className="col-span-2 relative">
                 <label htmlFor="ad" className="block text-xs font-medium text-gray-500 mb-1">
@@ -858,7 +961,9 @@ const handleBulkSubmit = async () => {
                     }
 
                     setSuggestions(filtered.slice(0, 5));
+
                   }}
+
                   className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                   placeholder="Enter AD or Name"
                 />
@@ -875,6 +980,7 @@ const handleBulkSubmit = async () => {
                           setClassNum(s.CLASS);
                           setStudent(s);
                           setSuggestions([]);
+
                         }}
                       >
                         <span className="font-medium">{s.ADNO}</span> – {s["SHORT NAME"]} – {s.CLASS}
@@ -884,16 +990,18 @@ const handleBulkSubmit = async () => {
                 )}
               </div>
 
-                <div className="col-span-1">
-                  <button className='mt-3 ml-8 comic-button '
-                  onClick={()=>{
-                    if(showBulkModal){
+              <div className="col-span-1">
+                <button className='mt-3 ml-8 comic-button '
+                  onClick={() => {
+                    if (showBulkModal) {
                       setShowBulkModal(false)
-                    }else{  
-                    setShowBulkModal(true)}}
+                    } else {
+                      setShowBulkModal(true)
+                    }
                   }
-                  > Bulk</button>
-                </div>
+                  }
+                > Bulk</button>
+              </div>
 
 
               <div className="col-span-2">
@@ -930,117 +1038,117 @@ const handleBulkSubmit = async () => {
 
             </div>
           </div>}
-      {showBulkModal && 
-  <div className="min-h-screen sm:p-8 flex justify-center items-start font-sans mt-4">
-    {/* Card that holds the UI */}
-    <div className="bg-white p-4 sm:p-6 rounded-3xl shadow-lg w-full max-w-md backdrop-blur-sm">
-      <div className="flex justify-between items-center mb-4 px-1">
-        <div className="flex items-center space-x-2">
-          <label htmlFor="classInput" className="text-gray-700 font-medium text-lg">
-            Class
-          </label>
-          <select 
-            value={classValue}
-            onChange={(e) => setClassValue(e.target.value)}
-            className='bg-white border border-gray-400 rounded-md px-3 py-1.5 w-18 shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500'>
-            {classValues.map((item,index) => (
-              <option key={index} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-        </div>
-         {/* <button 
+          {showBulkModal &&
+            <div className="min-h-screen sm:p-8 flex justify-center items-start font-sans mt-4">
+              {/* Card that holds the UI */}
+              <div className="bg-white p-4 sm:p-6 rounded-3xl shadow-lg w-full max-w-md backdrop-blur-sm">
+                <div className="flex justify-between items-center mb-4 px-1">
+                  <div className="flex items-center space-x-2">
+                    <label htmlFor="classInput" className="text-gray-700 font-medium text-lg">
+                      Class
+                    </label>
+                    <select
+                      value={classValue}
+                      onChange={(e) => setClassValue(e.target.value)}
+                      className='bg-white border border-gray-400 rounded-md px-3 py-1.5 w-18 shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500'>
+                      {classValues.map((item, index) => (
+                        <option key={index} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {/* <button 
           onClick={handleSelectAll}
           className="px-3 py-1 ml-8 bg-blue-500 text-white text-base rounded-lg hover:bg-blue-600 transition"
         >
           Select All
         </button> */}
-        <button className='comic-button mr-2'
-          onClick={() => setShowBulkModal(false)}>
-          Regular
-        </button>
-      </div>
+                  <button className='comic-button mr-2'
+                    onClick={() => setShowBulkModal(false)}>
+                    Regular
+                  </button>
+                </div>
 
-      {/* Selected Students Summary */}
-      {selectedBulkStudents.length > 0 && (
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-medium text-blue-700">
-              Selected: {selectedBulkStudents.length} student(s)
-            </span>
-            <button
-              onClick={() => setSelectedBulkStudents([])}
-              className="text-xs text-red-600 hover:text-red-800"
-            >
-              Clear All
-            </button>
-          </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {selectedBulkStudents.map((student) => (
-              <div key={student.ADNO} className="flex items-center gap-1 bg-white border border-blue-300 rounded-full px-2 py-1 text-xs">
-                <span>{student.ADNO} - {student.name}</span>
-                <button
-                  onClick={() => handleRemoveBulkStudent(student.ADNO)}
-                  className="text-red-500 hover:text-red-700"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+                {/* Selected Students Summary */}
+                {selectedBulkStudents.length > 0 && (
+                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-blue-700">
+                        Selected: {selectedBulkStudents.length} student(s)
+                      </span>
+                      <button
+                        onClick={() => setSelectedBulkStudents([])}
+                        className="text-xs text-red-600 hover:text-red-800"
+                      >
+                        Clear All
+                      </button>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {selectedBulkStudents.map((student) => (
+                        <div key={student.ADNO} className="flex items-center gap-1 bg-white border border-blue-300 rounded-full px-2 py-1 text-xs">
+                          <span>{student.ADNO} - {student.name}</span>
+                          <button
+                            onClick={() => handleRemoveBulkStudent(student.ADNO)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-      <div className="bg-gray-100 rounded-2xl overflow-hidden border-2 border-gray-500 shadow-inner">
-        <table className="w-full border-collapse">
-          <thead className="bg-gray-300">
-            <tr>
-              <th className="p-3 text-left font-bold text-gray-800 border-b-2 border-gray-500 border-r border-gray-400 w-1/6">Sl</th>
-              <th className="p-3 text-left font-bold text-gray-800 border-b-2 border-gray-500 border-r border-gray-400 w-1/6">Ad</th>
-              <th className="p-3 text-left font-bold text-gray-800 border-b-2 border-gray-500 border-r border-gray-400 w-1/2">Name</th>
-              <th className="p-3 text-center font-bold text-gray-800 border-b-2 border-gray-500 w-1/6">
-                <span 
-                onClick={handleSelectAll}
-                className="w-16 h-8 flex items-center justify-center bg-white text-gray-600 rounded-md transition-colors text-2xl font-mono focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer">
-                  +
-                </span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {Bulkstudents.length > 0 ? (
-              Bulkstudents.map((student) => {
-                const isSelected = selectedBulkStudents.some(s => s.ADNO === student.ADNO);
-                return (
-                  <tr key={student.ADNO} className="bg-white border-b border-gray-300 last:border-b-0 hover:bg-gray-50">
-                    <td className="p-3 text-center text-gray-700 border-r border-gray-300 w-1/6">{student.SL}</td>
-                    <td className="p-3 text-center text-gray-700 border-r border-gray-300 w-1/6">{student.ADNO}</td>
-                    <td className="p-3 text-left text-gray-900 border-r border-gray-300 w-1/2">{student["SHORT NAME"]}</td>
-                    <td className="p-3 text-center w-1/6">
-                     <button
-                        onClick={() => {
-                          if (isSelected) {
-                            handleRemoveBulkStudent(student.ADNO);
-                          } else {
-                            handleAdd(student);
-                          }
-                        }}
-                        className={`
+                <div className="bg-gray-100 rounded-2xl overflow-hidden border-2 border-gray-500 shadow-inner">
+                  <table className="w-full border-collapse">
+                    <thead className="bg-gray-300">
+                      <tr>
+                        <th className="p-3 text-left font-bold text-gray-800 border-b-2 border-gray-500 border-r border-gray-400 w-1/6">Sl</th>
+                        <th className="p-3 text-left font-bold text-gray-800 border-b-2 border-gray-500 border-r border-gray-400 w-1/6">Ad</th>
+                        <th className="p-3 text-left font-bold text-gray-800 border-b-2 border-gray-500 border-r border-gray-400 w-1/2">Name</th>
+                        <th className="p-3 text-center font-bold text-gray-800 border-b-2 border-gray-500 w-1/6">
+                          <span
+                            onClick={handleSelectAll}
+                            className="w-16 h-8 flex items-center justify-center bg-white text-gray-600 rounded-md transition-colors text-2xl font-mono focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer">
+                            +
+                          </span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Bulkstudents.length > 0 ? (
+                        Bulkstudents.map((student) => {
+                          const isSelected = selectedBulkStudents.some(s => s.ADNO === student.ADNO);
+                          return (
+                            <tr key={student.ADNO} className="bg-white border-b border-gray-300 last:border-b-0 hover:bg-gray-50">
+                              <td className="p-3 text-center text-gray-700 border-r border-gray-300 w-1/6">{student.SL}</td>
+                              <td className="p-3 text-center text-gray-700 border-r border-gray-300 w-1/6">{student.ADNO}</td>
+                              <td className="p-3 text-left text-gray-900 border-r border-gray-300 w-1/2">{student["SHORT NAME"]}</td>
+                              <td className="p-3 text-center w-1/6">
+                                <button
+                                  onClick={() => {
+                                    if (isSelected) {
+                                      handleRemoveBulkStudent(student.ADNO);
+                                    } else {
+                                      handleAdd(student);
+                                    }
+                                  }}
+                                  className={`
                           flex items-center cursor-pointer font-medium text-white text-[12px]
                           px-[1.1em] py-[0.7em]
                           rounded-[20em] tracking-wide 
                           border-none
-                          ${isSelected 
-                            ? 'bg-gradient-to-t from-[rgba(100,100,100,1)] to-[rgba(200,200,200,1)] text-gray-300 cursor-not-allowed shadow-[0_0.7em_1.5em_-0.5em_#88888898]' 
-                            : 'bg-gradient-to-t from-[rgba(20,167,62,1)] to-[rgba(102,247,113,1)] shadow-[0_0.7em_1.5em_-0.5em_#14a73e98] hover:shadow-[0_0.5em_1.5em_-0.5em_#14a73e98] active:shadow-[0_0.3em_1em_-0.5em_#14a73e98]'
-                          }
+                          ${isSelected
+                                      ? 'bg-gradient-to-t from-[rgba(100,100,100,1)] to-[rgba(200,200,200,1)] text-gray-300 cursor-not-allowed shadow-[0_0.7em_1.5em_-0.5em_#88888898]'
+                                      : 'bg-gradient-to-t from-[rgba(20,167,62,1)] to-[rgba(102,247,113,1)] shadow-[0_0.7em_1.5em_-0.5em_#14a73e98] hover:shadow-[0_0.5em_1.5em_-0.5em_#14a73e98] active:shadow-[0_0.3em_1em_-0.5em_#14a73e98]'
+                                    }
                         `}
-                        disabled={isSelected}
-                      >
-                        {isSelected ? (
-                          <>
-                            {/* <svg
+                                  disabled={isSelected}
+                                >
+                                  {isSelected ? (
+                                    <>
+                                      {/* <svg
                               height="20"
                               width="20"
                               viewBox="0 0 24 24"
@@ -1050,11 +1158,11 @@ const handleBulkSubmit = async () => {
                               <path d="M0 0h24v24H0z" fill="none"></path>
                               <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path>
                             </svg> */}
-                            <span>Added</span>
-                          </>
-                        ) : (
-                          <>
-                            {/* <svg
+                                      <span>Added</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      {/* <svg
                               height="20"
                               width="20"
                               viewBox="0 0 24 24"
@@ -1064,29 +1172,29 @@ const handleBulkSubmit = async () => {
                               <path d="M0 0h24v24H0z" fill="none"></path>
                               <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"></path>
                             </svg> */}
-                            <span>Add</span>
-                          </>
-                        )}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })
-            ) : (
-              <tr>
-                <td colSpan="4" className="p-4 text-center text-gray-500">
-                  No students found in Class {classValue}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+                                      <span>Add</span>
+                                    </>
+                                  )}
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan="4" className="p-4 text-center text-gray-500">
+                            No students found in Class {classValue}
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
 
-     
-    </div>
-  </div>
-}
+
+              </div>
+            </div>
+          }
           {/* Reason */}
           <div className="bg-white p-6 rounded-2xl shadow-lg">
             <ReasonPicker
@@ -1100,56 +1208,56 @@ const handleBulkSubmit = async () => {
 
           {/* From Date & Time */}
           <div className=" bg-white p-4 rounded-2xl shadow-lg">
-          <h2 className='p-2'>From Date & Time</h2>
+            <h2 className='p-2'>From Date & Time</h2>
 
-          <div className='grid grid-cols-2  gap-1'>
-           <div className='grid grid-cols-1'>
-            <DatePicker
-              label=""
-              selectedDate={fromDate}
-              setSelectedDate={setFromDate}
-              customDate={fromCustomDate}
-              setCustomDate={setFromCustomDate}
-              />
+            <div className='grid grid-cols-2  gap-1'>
+              <div className='grid grid-cols-1'>
+                <DatePicker
+                  label=""
+                  selectedDate={fromDate}
+                  setSelectedDate={setFromDate}
+                  customDate={fromCustomDate}
+                  setCustomDate={setFromCustomDate}
+                />
 
-           </div>
-            <div className='grid grid-cols-1'>
-            <TimePicker
-              label=""
-              selectedTime={fromTime}
-              setSelectedTime={setFromTime}
-              options={fromTimeOptions}
-              customTime={fromCustomTime}
-              setCustomTime={setFromCustomTime}
-            />
-           </div>
               </div>
+              <div className='grid grid-cols-1'>
+                <TimePicker
+                  label=""
+                  selectedTime={fromTime}
+                  setSelectedTime={setFromTime}
+                  options={fromTimeOptions}
+                  customTime={fromCustomTime}
+                  setCustomTime={setFromCustomTime}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Conditional To Date & Time */}
           {(reason !== 'Medical' && reason !== 'Medical (Room)') || showEndDateForMedical ? (
             <div className="bg-white p-6 rounded-2xl shadow-lg">
               <h2 className='p-2'>To Date & Time</h2>
-          <div className='grid grid-cols-2  gap-1'>
-           <div className='grid grid-cols-1'>
-              <DatePicker
-                label=""
-                selectedDate={toDate}
-                setSelectedDate={setToDate}
-                customDate={toCustomDate}
-                setCustomDate={setToCustomDate}
-              />
-              </div>
-            <div className='grid grid-cols-1'>
-              <TimePicker
-                label=""
-                selectedTime={toTime}
-                setSelectedTime={setToTime}
-                options={toTimeOptions}
-                customTime={toCustomTime}
-                setCustomTime={setToCustomTime}
-              />
-               </div>
+              <div className='grid grid-cols-2  gap-1'>
+                <div className='grid grid-cols-1'>
+                  <DatePicker
+                    label=""
+                    selectedDate={toDate}
+                    setSelectedDate={setToDate}
+                    customDate={toCustomDate}
+                    setCustomDate={setToCustomDate}
+                  />
+                </div>
+                <div className='grid grid-cols-1'>
+                  <TimePicker
+                    label=""
+                    selectedTime={toTime}
+                    setSelectedTime={setToTime}
+                    options={toTimeOptions}
+                    customTime={toCustomTime}
+                    setCustomTime={setToCustomTime}
+                  />
+                </div>
               </div>
             </div>
           ) : (
@@ -1172,13 +1280,13 @@ const handleBulkSubmit = async () => {
           <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-2xl">
             <button
               type="button"
-              onClick={(e)=>{
-                if(showBulkModal){
-                   handleBulkSubmit();
-                }else{
+              onClick={(e) => {
+                if (showBulkModal) {
+                  handleBulkSubmit();
+                } else {
                   handleSubmit(e);
                 }
-              } }
+              }}
               disabled={loading}
               className="w-full py-3 bg-green-500 text-white text-lg font-bold rounded-xl shadow-lg hover:bg-green-600 transition-colors duration-200 disabled:bg-green-300 disabled:cursor-not-allowed"
             >

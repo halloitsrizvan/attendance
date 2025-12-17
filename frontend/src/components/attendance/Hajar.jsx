@@ -4,6 +4,7 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { TfiLayoutGrid3, TfiLayoutGrid2 } from "react-icons/tfi";
 import { FaHome } from "react-icons/fa";
 import StudentsLoad from "../load-UI/StudentsLoad";
+import { Import } from "lucide-react";
 import { API_PORT } from "../../Constants";
 
 function Hajar() {
@@ -22,11 +23,11 @@ function Hajar() {
   const time = queryParams.get("time") || "Night";
   const period = queryParams.get("period");
   const more = queryParams.get("more");
-  
+
   //confirm attendance
   const [absentees, setAbsenties] = useState([]);
   const [confirmAttendance, setConfirmAttendance] = useState(false);
- 
+
   //teacher data
   const teacher = localStorage.getItem("teacher") ? JSON.parse(localStorage.getItem("teacher")) : 'Teacher Panel';
 
@@ -43,24 +44,24 @@ function Hajar() {
   const isStudentOnShortLeave = (studentAdno) => {
     const today = date ? new Date(date) : new Date();
     const currentTime = convertTimeToMinutes(getCurrentTimeString());
-    
+
     return shortLeaveData.some(leave => {
       // Check ADNO match
-      if (leave.ad !== studentAdno) return false; 
-      
+      if (leave.ad !== studentAdno) return false;
+
       // Check date match
       const leaveDate = new Date(leave.date);
-      const isSameDate = 
+      const isSameDate =
         leaveDate.getDate() === today.getDate() &&
         leaveDate.getMonth() === today.getMonth() &&
         leaveDate.getFullYear() === today.getFullYear();
-      
+
       if (!isSameDate) return false;
-      
+
       // Check time range
       const fromTime = convertTimeToMinutes(leave.fromTime);
       const toTime = convertTimeToMinutes(leave.toTime);
-      
+
       return currentTime >= fromTime && currentTime <= toTime;
     });
   };
@@ -69,35 +70,35 @@ function Hajar() {
   const isStudentOnMedicalLeave = (studentAdno) => {
     const today = date ? new Date(date) : new Date();
     const currentTime = convertTimeToMinutes(getCurrentTimeString());
-    
+
     return leaveData.some(leave => {
       // Check ADNO match and leave type
       if (leave.ad !== studentAdno) return false;
-      
+
       // Check if it's a medical leave (room or without end date)
       const isMedicalLeave = leave.reason === 'Medical' || leave.reason === 'Medical (Room)';
       if (!isMedicalLeave) return false;
-      
+
       // Check date match
       const fromDate = new Date(leave.fromDate);
-      const isSameDate = 
+      const isSameDate =
         fromDate.getDate() === today.getDate() &&
         fromDate.getMonth() === today.getMonth() &&
         fromDate.getFullYear() === today.getFullYear();
-      
+
       if (!isSameDate) return false;
-      
+
       // For medical leaves, check if they haven't returned
       if (leave.status === 'returned') return false;
-      
+
       // Check time - if current time is after leave start time
       const fromTime = convertTimeToMinutes(leave.fromTime);
-      
+
       // For medical without end date, just check if current time is after start time
       if (!leave.toTime) {
         return currentTime >= fromTime;
       }
-      
+
       // For medical room with end time, check time range
       const toTime = convertTimeToMinutes(leave.toTime);
       return currentTime >= fromTime && currentTime <= toTime;
@@ -113,53 +114,55 @@ function Hajar() {
   useEffect(() => {
     console.log(period);
     setDataLoad(true);
-    
+
+    //  axios.get(`${process.env.REACT_APP_BACKEND_URL}/class-excused-pass`),
     // Fetch short leave data first, then medical leaves, then students
     Promise.all([
       axios.get(`${API_PORT}/class-excused-pass`),
       axios.get(`${API_PORT}/leave`), // Fetch medical leaves
       axios.get(`${API_PORT}/students/`)
+      
     ])
-    .then(([shortLeaveRes, leaveRes, studentsRes]) => {
-      setShortLeaveData(shortLeaveRes.data);
-      setLeaveData(leaveRes.data);
-      console.log("Short leave data:", shortLeaveRes.data);
-      console.log("Medical leave data:", leaveRes.data);
-      
-      const filtered = studentsRes.data
-        .filter((student) => student.CLASS === Number(id))
-        .sort((a, b) => a.SL - b.SL);
-      
-      const initialAttendance = {};
-      
-      // Set initial attendance based on short leave and medical leave status
-      filtered.forEach((student) => {
-        const isOnShortLeave = isStudentOnShortLeave(student.ADNO);
-        const isOnMedicalLeave = isStudentOnMedicalLeave(student.ADNO);
-        const isOnLeave = student.onLeave || isOnShortLeave || isOnMedicalLeave;
-        
-        console.log(`Student ${student.ADNO}:`, {
-          onLeave: student.onLeave,
-          shortLeave: isOnShortLeave,
-          medicalLeave: isOnMedicalLeave,
-          total: isOnLeave
-        });
-        
-        if (isOnLeave) {
-          initialAttendance[student.ADNO] = "Absent";
-        } else {
-          initialAttendance[student.ADNO] = "Present";
-        }
-      });
+      .then(([shortLeaveRes, leaveRes, studentsRes]) => {
+        setShortLeaveData(shortLeaveRes.data);
+        setLeaveData(leaveRes.data);
+        console.log("Short leave data:", shortLeaveRes.data);
+        console.log("Medical leave data:", leaveRes.data);
 
-      setStudents(filtered);
-      setAttendance(initialAttendance);
-      setDataLoad(false);
-    })
-    .catch((err) => {
-      console.error(err);
-      setDataLoad(false);
-    });
+        const filtered = studentsRes.data
+          .filter((student) => student.CLASS === Number(id))
+          .sort((a, b) => a.SL - b.SL);
+
+        const initialAttendance = {};
+
+        // Set initial attendance based on short leave and medical leave status
+        filtered.forEach((student) => {
+          const isOnShortLeave = isStudentOnShortLeave(student.ADNO);
+          const isOnMedicalLeave = isStudentOnMedicalLeave(student.ADNO);
+          const isOnLeave = student.onLeave || isOnShortLeave || isOnMedicalLeave;
+
+          console.log(`Student ${student.ADNO}:`, {
+            onLeave: student.onLeave,
+            shortLeave: isOnShortLeave,
+            medicalLeave: isOnMedicalLeave,
+            total: isOnLeave
+          });
+
+          if (isOnLeave) {
+            initialAttendance[student.ADNO] = "Absent";
+          } else {
+            initialAttendance[student.ADNO] = "Present";
+          }
+        });
+
+        setStudents(filtered);
+        setAttendance(initialAttendance);
+        setDataLoad(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setDataLoad(false);
+      });
   }, [id, period, date, time]);
 
   const handleCheckboxChange = (ad, isChecked) => {
@@ -167,7 +170,7 @@ function Hajar() {
     const isOnShortLeave = isStudentOnShortLeave(ad);
     const isOnMedicalLeave = isStudentOnMedicalLeave(ad);
     const isOnLeave = student.onLeave || isOnShortLeave || isOnMedicalLeave;
-    
+
     // If student is on leave, don't allow changing status
     if (student && isOnLeave) {
       alert("Student is on leave, cannot change status");
@@ -197,13 +200,13 @@ function Hajar() {
   const handleSubmit = async () => {
     setConfirmAttendance(false);
     setLoad(true);
-    
+
     const payload = students.map((student) => {
       const isOnShortLeave = isStudentOnShortLeave(student.ADNO);
       const isOnMedicalLeave = isStudentOnMedicalLeave(student.ADNO);
       const isOnLeave = student.onLeave || isOnShortLeave || isOnMedicalLeave;
       const status = isOnLeave ? "Absent" : (attendance[student.ADNO] || "Absent");
-      
+
       return {
         nameOfStd: student["SHORT NAME"],
         ad: student.ADNO,
@@ -220,7 +223,7 @@ function Hajar() {
     });
 
     try {
-      await axios.post(`${API_PORT}/set-attendance`, payload);
+      await axios.post(`${process.env.REACT_APP_BACKEND_URL}/set-attendance`, payload);
 
       // calculate summary
       const strength = students.length;
@@ -233,7 +236,7 @@ function Hajar() {
       setSummary({ strength, present, absent, percent });
       setShowSummary(true);
 
-      await axios.patch(`${API_PORT}/classes/by-number/${id}`, {
+      await axios.patch(`${process.env.REACT_APP_BACKEND_URL}/classes/by-number/${id}`, {
         totalStudents: strength,
         presentStudents: present,
         absentStudents: absent,
@@ -245,7 +248,7 @@ function Hajar() {
         const isOnMedicalLeave = isStudentOnMedicalLeave(student.ADNO);
         const isOnLeave = student.onLeave || isOnShortLeave || isOnMedicalLeave;
         const status = isOnLeave ? "Absent" : (attendance[student.ADNO] || "Absent");
-        
+
         return {
           _id: student._id,
           SL: student.SL,
@@ -253,13 +256,13 @@ function Hajar() {
           ["FULL NAME"]: student["FULL NAME"],
           ["SHORT NAME"]: student["SHORT NAME"],
           CLASS: student.CLASS,
-          Status: status, 
+          Status: status,
           Time: time,
           Date: date || new Date().toISOString().split('T')[0],
         };
       });
 
-      await axios.patch(`${API_PORT}/students/bulk-update/students`, { updates: payload2 });
+      await axios.patch(`${process.env.REACT_APP_BACKEND_URL}/students/bulk-update/students`, { updates: payload2 });
       setLoad(false);
     } catch (err) {
       console.error(err);
@@ -283,29 +286,29 @@ function Hajar() {
         const isOnMedicalLeave = isStudentOnMedicalLeave(s.ADNO);
         return !s.onLeave && !isOnShortLeave && !isOnMedicalLeave;
       });
-      
-      const shortLeaveStudents = absentees.filter(s => 
+
+      const shortLeaveStudents = absentees.filter(s =>
         isStudentOnShortLeave(s.ADNO) && !s.onLeave && !isStudentOnMedicalLeave(s.ADNO)
       );
-      
-      const medicalLeaveStudents = absentees.filter(s => 
+
+      const medicalLeaveStudents = absentees.filter(s =>
         isStudentOnMedicalLeave(s.ADNO) && !s.onLeave && !isStudentOnShortLeave(s.ADNO)
       );
-      
-      const onLeaveStudents = absentees.filter(s => 
+
+      const onLeaveStudents = absentees.filter(s =>
         s.onLeave && !isStudentOnShortLeave(s.ADNO) && !isStudentOnMedicalLeave(s.ADNO)
       );
-      
+
       let text = "";
       const classofStd = `Class ${absentees[0].CLASS}`;
-      
+
       // Add regular absentees
       if (regularAbsentees.length > 0) {
         text += "Absent:\n" + regularAbsentees
           .map((s) => `${s["SHORT NAME"]} (AdNo: ${s.ADNO})`)
           .join("\n");
       }
-      
+
       // Add short leave students
       if (shortLeaveStudents.length > 0) {
         if (text) text += "\n\n";
@@ -313,7 +316,7 @@ function Hajar() {
           .map((s) => `${s["SHORT NAME"]} (AdNo: ${s.ADNO})`)
           .join("\n");
       }
-      
+
       // Add medical leave students
       if (medicalLeaveStudents.length > 0) {
         if (text) text += "\n\n";
@@ -321,7 +324,7 @@ function Hajar() {
           .map((s) => `${s["SHORT NAME"]} (AdNo: ${s.ADNO})`)
           .join("\n");
       }
-      
+
       // Add on-leave students
       if (onLeaveStudents.length > 0) {
         if (text) text += "\n\n";
@@ -329,7 +332,7 @@ function Hajar() {
           .map((s) => `${s["SHORT NAME"]} (AdNo: ${s.ADNO})`)
           .join("\n");
       }
-      
+
       navigator.clipboard.writeText(classofStd + "\n" + text)
         .then(() => {
           setCopy(true);
@@ -353,6 +356,47 @@ function Hajar() {
     const updated = {};
     students.forEach((s) => (updated[s.ADNO] = quickAction === "Previous" ? s.Status : quickAction === "All Present" ? "Present" : "Absent"));
     setAttendance(updated);
+  };
+
+  // Return Confirmation Modal State
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [selectedReturnStudent, setSelectedReturnStudent] = useState(null);
+
+  const openReturnModal = (student) => {
+    setSelectedReturnStudent(student);
+    setShowReturnModal(true);
+  };
+
+  const confirmReturn = async () => {
+    if (!selectedReturnStudent) return;
+    const ad = selectedReturnStudent.ADNO;
+
+    // Find Medical Leave Record to validata return
+    const findStd = leaveData.filter(leave => leave.ad === ad && leave.status !== 'returned')
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+
+    if (findStd) {
+      try {
+        await axios.put(`${process.env.REACT_APP_BACKEND_URL}/leave/${findStd._id}`, { status: 'returned' });
+        alert("Student returned successfully!");
+        window.location.reload(); // Reload to refresh data
+      } catch (err) {
+        console.error(err);
+        alert("Error updating return status: " + err.message);
+      }
+    } else {
+      // If no medical leave, check if it was CEP but CEP return might not be supported by API yet
+      // or maybe user expects it to just work. 
+      // For now, inform user if no medical record found.
+      // Check if it is CEP for better error message
+      if (isStudentOnShortLeave(ad)) {
+        alert("Return logic for Class Excused Pass (CEP) is not yet linked to an API. Please manage CEP separately.");
+      } else {
+        alert("No active medical leave record found to return.");
+      }
+    }
+    setShowReturnModal(false);
+    setSelectedReturnStudent(null);
   };
 
   return (
@@ -386,15 +430,14 @@ function Hajar() {
 
           <button
             onClick={handleQuickAction}
-            className={`flex-shrink-0 px-4 py-2 text-sm font-medium rounded-md transition ml-auto ${
-              quickAction === "Previous"
+            className={`flex-shrink-0 px-4 py-2 text-sm font-medium rounded-md transition ml-auto ${quickAction === "Previous"
                 ? "bg-blue-500 hover:bg-blue-600 text-white"
                 : quickAction === "All Present"
-                ? "bg-green-500 hover:bg-green-600 text-white"
-                : quickAction === "All Absent"
-                ? "bg-red-500 hover:bg-red-600 text-white"
-                : "bg-blue-500 hover:bg-blue-600 text-white"
-            }`}
+                  ? "bg-green-500 hover:bg-green-600 text-white"
+                  : quickAction === "All Absent"
+                    ? "bg-red-500 hover:bg-red-600 text-white"
+                    : "bg-blue-500 hover:bg-blue-600 text-white"
+              }`}
           >
             {quickAction}
           </button>
@@ -405,7 +448,7 @@ function Hajar() {
 
       {cards === "No" && !dataLoad && (
         <div>
-          <form onSubmit={preSumbit}>
+          <form >
             <table className="table-auto border-collapse border border-gray-300 w-full">
               <thead>
                 <tr>
@@ -421,15 +464,15 @@ function Hajar() {
                     const isOnShortLeave = isStudentOnShortLeave(student.ADNO);
                     const isOnMedicalLeave = isStudentOnMedicalLeave(student.ADNO);
                     const isOnLeave = student.onLeave || isOnShortLeave || isOnMedicalLeave;
-                    
+
                     // Determine leave type for display
                     let leaveType = "";
                     if (isOnLeave) {
-                      if (student.onLeave) leaveType = "On Leave";
+                      if (student.onLeave) leaveType = "Leave";
                       else if (isOnShortLeave) leaveType = "CEP";
                       else if (isOnMedicalLeave) leaveType = "Medical ";
                     }
-                    
+
                     return (
                       <tr
                         key={index}
@@ -453,32 +496,44 @@ function Hajar() {
                           {student["SHORT NAME"]}
                         </td>
                         <td className="border border-gray-300 px-4 py-2 text-center">
-                          <button
-                            type="button"
-                            disabled={isOnLeave}
-                            onClick={() => {
-                              if (!isOnLeave) {
-                                handleCheckboxChange(
-                                  student.ADNO,
-                                  attendance[student.ADNO] !== "Present"
-                                );
-                              }
-                            }}
-                            className={`px-4 py-1 rounded-full font-medium transition ${
-                              isOnLeave
-                                ? "bg-yellow-500 text-white hover:bg-yellow-600 cursor-not-allowed"
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              disabled={isOnLeave}
+                              onClick={() => {
+                                if (!isOnLeave) {
+                                  handleCheckboxChange(
+                                    student.ADNO,
+                                    attendance[student.ADNO] !== "Present"
+                                  );
+                                }
+                              }}
+                              className={`px-4 py-1 rounded-full font-medium transition ${isOnLeave
+                                  ? "bg-yellow-500 text-white cursor-not-allowed"
+                                  : attendance[student.ADNO] === "Present"
+                                    ? "bg-green-500 text-white hover:bg-green-600"
+                                    : "bg-red-500 text-white hover:bg-red-600"
+                                }`}
+                            >
+                              {isOnLeave
+                                ? leaveType
                                 : attendance[student.ADNO] === "Present"
-                                ? "bg-green-500 text-white hover:bg-green-600"
-                                : "bg-red-500 text-white hover:bg-red-600"
-                            }`}
-                          >
-                            {isOnLeave
-                              ? leaveType
-                              : attendance[student.ADNO] === "Present"
-                              ? "Present"
-                              : "Absent"}
-                          </button>
+                                  ? "Present"
+                                  : "Absent"}
+                            </button>
+
+                            {isOnLeave && (
+                              <button className="text-xs text-white italic bg-blue-500 px-4 py-2 rounded-full font-bold"
+                                type="button"
+                                onClick={() => {openReturnModal(student)
+                                }}
+                              >
+                                R
+                              </button>
+                            )}
+                          </div>
                         </td>
+
                       </tr>
                     );
                   })
@@ -493,6 +548,7 @@ function Hajar() {
             </table>
             <div className="mt-6 flex justify-center">
               <button
+                onClick={preSumbit}
                 type="submit"
                 className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:from-indigo-700 hover:to-blue-600 hover:shadow-xl transform hover:scale-105 transition duration-300 ease-in-out"
               >
@@ -523,41 +579,36 @@ function Hajar() {
                             handleCheckboxChange(student.ADNO, !isPresent);
                           }
                         }}
-                        className={`rounded-xl sm:rounded-2xl p-2 sm:p-3 md:p-4 text-center transition-all duration-300 transform cursor-pointer hover:scale-105 ${
-                          isOnLeave
+                        className={`rounded-xl sm:rounded-2xl p-2 sm:p-3 md:p-4 text-center transition-all duration-300 transform cursor-pointer hover:scale-105 ${isOnLeave
                             ? "bg-yellow-500 shadow-sm hover:shadow-lg"
                             : isPresent
-                            ? "bg-green-500 shadow-sm hover:shadow-lg"
-                            : "bg-red-500 shadow-sm hover:shadow-lg"
-                        }`}
+                              ? "bg-green-500 shadow-sm hover:shadow-lg"
+                              : "bg-red-500 shadow-sm hover:shadow-lg"
+                          }`}
                       >
                         {/* Roll Circle */}
                         <div className="flex justify-center mb-2 sm:mb-3 md:mb-4">
                           <div
-                            className={`w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center font-bold text-sm sm:text-base md:text-lg text-white transition-colors duration-300 ${
-                              isOnLeave ? "bg-yellow-600" : isPresent ? "bg-indigo-500" : "bg-indigo-500"
-                            }`}
+                            className={`w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center font-bold text-sm sm:text-base md:text-lg text-white transition-colors duration-300 ${isOnLeave ? "bg-yellow-600" : isPresent ? "bg-indigo-500" : "bg-indigo-500"
+                              }`}
                           >
                             {student.SL}
                           </div>
                         </div>
 
                         {/* Student Info */}
-                        <h3 className={`text-xs sm:text-sm md:text-base font-semibold truncate px-1 ${
-                          isOnLeave ? "text-white" : isPresent ? "text-gray-800" : "text-white"
-                        }`}>
+                        <h3 className={`text-xs sm:text-sm md:text-base font-semibold truncate px-1 ${isOnLeave ? "text-white" : isPresent ? "text-gray-800" : "text-white"
+                          }`}>
                           {student["SHORT NAME"]}
                         </h3>
-                        <p className={`text-xs sm:text-sm mb-2 sm:mb-3 md:mb-4 ${
-                          isOnLeave ? "text-gray-100" : isPresent ? "text-gray-700" : "text-gray-100"
-                        }`}>
+                        <p className={`text-xs sm:text-sm mb-2 sm:mb-3 md:mb-4 ${isOnLeave ? "text-gray-100" : isPresent ? "text-gray-700" : "text-gray-100"
+                          }`}>
                           Ad: {student.ADNO}
                         </p>
 
                         {/* Status */}
-                        <div className={`text-xs font-medium ${
-                          isOnLeave ? "text-white" : isPresent ? "text-green-800" : "text-red-100"
-                        }`}>
+                        <div className={`text-xs font-medium ${isOnLeave ? "text-white" : isPresent ? "text-green-800" : "text-red-100"
+                          }`}>
                           {isOnLeave ? "On Leave" : isPresent ? "Present" : "Absent"}
                         </div>
                       </div>
@@ -673,6 +724,109 @@ function Hajar() {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Return Confirmation Modal */}
+      {showReturnModal && selectedReturnStudent && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden transform transition-all animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-blue-600 px-4 py-3 text-white flex justify-between items-center">
+              <h3 className="text-lg font-bold">Confirm Return</h3>
+              <button
+                onClick={() => setShowReturnModal(false)}
+                className="text-white hover:text-gray-200"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6">
+              <div className="mb-4">
+                <p className="text-gray-700 font-medium">
+                  Mark <span className="font-bold text-blue-600">{selectedReturnStudent["SHORT NAME"]}</span> as returned?
+                </p>
+              </div>
+
+              {/* Minimal Details Section */}
+              <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 text-sm space-y-3 shadow-inner">
+                {(() => {
+                  const ad = selectedReturnStudent.ADNO;
+                  // Find Medical Leave
+                  const medical = leaveData.find(leave => leave.ad === ad && leave.status !== 'returned');
+
+                  // Find CEP (Short Leave)
+                  // Re-using logic to match currently active short leave
+                  const today = date ? new Date(date) : new Date();
+                  const currentTime = convertTimeToMinutes(getCurrentTimeString());
+                  const cep = shortLeaveData.find(leave => {
+                    if (leave.ad !== ad) return false;
+                    const leaveDate = new Date(leave.date);
+                    const isSameDate = leaveDate.getDate() === today.getDate() &&
+                      leaveDate.getMonth() === today.getMonth() &&
+                      leaveDate.getFullYear() === today.getFullYear();
+                    if (!isSameDate) return false;
+                    const fromTime = convertTimeToMinutes(leave.fromTime);
+                    const toTime = convertTimeToMinutes(leave.toTime);
+                    return currentTime >= fromTime && currentTime <= toTime;
+                  });
+
+                  if (medical) {
+                    return (
+                      <>
+                        <div className="flex justify-between items-center border-b border-gray-200 pb-2">
+                          <span className="text-gray-500 font-medium">Type</span>
+                          <span className="font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full text-xs">Medical Leave</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-500 font-medium">Reason</span>
+                          <span className="font-medium text-gray-800">{medical.reason || "N/A"}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-500 font-medium">Start Time</span>
+                          <span className="font-mono text-gray-700">{medical.fromTime || "N/A"}</span>
+                        </div>
+                      </>
+                    );
+                  } else if (cep) {
+                    return (
+                      <>
+                        <div className="flex justify-between items-center border-b border-gray-200 pb-2">
+                          <span className="text-gray-500 font-medium">Type</span>
+                          <span className="font-bold text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded-full text-xs">CEP (Short Leave)</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-500 font-medium">Reason</span>
+                          <span className="font-medium text-gray-800">{cep.reason || "N/A"}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-500 font-medium">Duration</span>
+                          <span className="font-mono text-gray-700">{cep.fromTime} - {cep.toTime}</span>
+                        </div>
+                      </>
+                    );
+                  } else {
+                    return <div className="text-center text-gray-500 italic py-2">No specific leave details found.</div>;
+                  }
+                })()}
+              </div>
+            </div>
+
+            <div className="bg-gray-50 px-4 py-3 flex justify-end gap-3 border-t border-gray-100">
+              <button
+                onClick={() => setShowReturnModal(false)}
+                className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition focus:outline-none focus:ring-2 focus:ring-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmReturn}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold shadow-md hover:shadow-lg transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+              >
+                Confirm Return
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
