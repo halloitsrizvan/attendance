@@ -174,7 +174,7 @@ function Hajar() {
 
     // If student is on leave, don't allow changing status
     if (student && isOnLeave) {
-      alert("Student is on leave, cannot change status");
+      console.log("Student is on leave, cannot change status");
       return;
     } else {
       setAttendance((prev) => ({
