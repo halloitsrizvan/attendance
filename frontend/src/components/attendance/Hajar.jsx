@@ -120,7 +120,7 @@ function Hajar() {
     // Fetch short leave data first, then medical leaves, then students
     Promise.all([
       axios.get(`${API_PORT}/class-excused-pass`),
-      axios.get(`${API_PORT}/leave`), // Fetch medical leaves
+      axios.get(`${API_PORT}/leave`), //  medical leaves
       axios.get(`${API_PORT}/students/`)
 
     ])

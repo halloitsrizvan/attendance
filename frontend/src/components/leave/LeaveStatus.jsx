@@ -671,7 +671,7 @@ function LeaveStatus() {
                         onClick={() => setActiveTabActions('Medical (room)')}
                       />
                       <TabButton
-                        label={`Medical without endDate(${leaveData.filter(student => student.reason === "Medical" && !student.toDate).length})`}
+                        label={`Medical without endDate(${leaveData.filter(student => student.reason === "Medical" && !student.toDate  && student.status!=='returned' ).length })`}
                         isActive={activeTabActions === 'Medical (without end date)'}
                         onClick={() => setActiveTabActions('Medical (without end date)')}
                       />
