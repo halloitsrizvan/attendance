@@ -80,14 +80,12 @@ function Hajar() {
       const isMedicalLeave = leave.reason === 'Medical' || leave.reason === 'Medical (Room)';
       if (!isMedicalLeave) return false;
 
-      // Check date match
+      // Check date range
       const fromDate = new Date(leave.fromDate);
-      const isSameDate =
-        fromDate.getDate() === today.getDate() &&
-        fromDate.getMonth() === today.getMonth() &&
-        fromDate.getFullYear() === today.getFullYear();
+      const toDate = leave.toDate ? new Date(leave.toDate) : null;
+      const isInDateRange = today >= fromDate && (toDate === null || today <= toDate);
 
-      if (!isSameDate) return false;
+      if (!isInDateRange) return false;
 
       // For medical leaves, check if they haven't returned
       if (leave.status === 'returned') return false;
