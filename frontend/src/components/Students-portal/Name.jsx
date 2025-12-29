@@ -1,40 +1,49 @@
 import React, { useEffect, useState ,useMemo} from 'react'
-import { Menu, User, X, CheckCircle, XCircle, Clock, Calendar, TrendingUp, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
+import { Menu, User, X, CheckCircle, XCircle, TrendingUp,MinusCircle } from 'lucide-react';
 import axios from 'axios'
 import MetricCard from './MetricCard'
 import { API_PORT } from '../../Constants'
 import BreakdownModal from './BreakdownModal';
 import { useNavigate } from 'react-router-dom';
 import StudentDashboardLoad from './StudentDashboardLoad';
+import MinusBreakdown from './MinusBreakdown';
  
 function Name() {
     const [student,setStudent] = useState([])
     const [attendance,setAttendance]  =useState([])
     const [loading, setLoading] = useState(true)
-    const [attLoading, setAttLoading] = useState(true)
     const navigate = useNavigate()
-    const studentData = localStorage.getItem("students") ? JSON.parse(localStorage.getItem("students")) : 'Stundets Panel';
+    const studentData = localStorage.getItem("students") ? JSON.parse(localStorage.getItem("students")) : null;
     const std = student.find(s => s.ADNO === studentData.ad);
-
+    const [minusData,setMinusData] = useState([])
 
     
     
     useEffect(()=>{
-        axios.get(`${API_PORT}/students`).then((res)=>{
-            setStudent(res.data)
-            setLoading(false)
-        }).catch((err)=>{
-            console.log(err);
-            setLoading(false)
-        })
+      setLoading(true)
 
-        axios.get(`${API_PORT}/set-attendance`).then((res)=>{
-            setAttendance(res.data)
-            setAttLoading(false)
-        }).catch((er)=>{
-            console.log(er);
-            setAttLoading(false)
-        })
+      Promise.all([
+        axios.get(`${API_PORT}/students`),
+        axios.get(`${API_PORT}/set-attendance`),
+        axios.get(`${API_PORT}/minus`)
+      ])
+      .then(([studentsRes, attendanceRes,minusData]) => {
+        setStudent(studentsRes.data);
+        setAttendance(attendanceRes.data);
+        const std = studentsRes.data.find(s => s.ADNO === studentData.ad);
+        const minusDataFilter = minusData.data.filter(md => parseInt(md.ad) === parseInt(std?.ADNO));
+      //  const minusDataFilter = minusDataWFilter
+        //.filter(md => md.ad === std?.ADNO);
+        console.log(minusDataFilter);
+        
+        setMinusData(minusDataFilter);
+      })
+      .catch((err) => {
+        console.log(err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
     }, [])
 
     const handleLogout = ()=>{
@@ -68,9 +77,6 @@ function Name() {
       const [showModal, setShowModal] = useState(false);
       const [modalType, setModalType] = useState('present'); 
       const handleMetricClick = (type) => {
-
-
-
         setModalType(type);
         setShowModal(true);
       };
@@ -164,14 +170,25 @@ function Name() {
             icon={TrendingUp}
             onClick={() => { /* Average doesn't trigger modal, but can be informational */ }}
           />
+           <div
+              className={`flex flex-col items-center justify-center p-4 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-[1.02] cursor-pointer
+                bg-red-500 hover:bg-red-600/95 text-white `}
+                onClick={()=>handleMetricClick('minus')}
+            >
+              <MinusCircle  className="w-8 h-8 mb-2" />
+              <div className="text-4xl font-extrabold">{minusData.length}</div>
+              <div className="text-sm font-semibold mt-1 opacity-90">Minus Count</div>
+             
+            </div>
+        
         </section>
-
+                
         <section className="bg-white p-4 rounded-2xl shadow-xl">
           <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2"> Attendance History</h2>
 
           {/* Attendance Table */}
           <div className="overflow-x-auto">
-            {attLoading ? (
+            {loading ? (
               <div className="flex justify-center items-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                 <span className="ml-2 text-gray-600">Loading attendance data...</span>
@@ -223,11 +240,20 @@ function Name() {
             )}
           </div>
         </section>
+      {modalType =="minus" ? 
+      <MinusBreakdown 
+        minusData={minusData}
+        show={showModal} 
+        onClose={closeModal} 
+        />
+        :
         <BreakdownModal 
         show={showModal} 
         onClose={closeModal} 
         type={modalType} 
-      />
+        attendanceData={studentAttendance}
+        studentData={std}
+      />}
     </main>
     </div>
   )

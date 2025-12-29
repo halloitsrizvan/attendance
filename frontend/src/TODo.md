@@ -145,3 +145,7 @@ is it for class teacher, usthad first said only for who gave medical room leave,
 Check whether a student is on leave or his leave is scheduled before going to approve his leave again.
 Return option from attendace
 
+
+
+
+

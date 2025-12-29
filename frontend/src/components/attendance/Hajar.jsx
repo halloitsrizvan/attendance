@@ -560,10 +560,11 @@ function Hajar() {
             <div className="mt-6 flex justify-center">
               <button
                 onClick={preSumbit}
+                disabled={load}
                 type="submit"
                 className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:from-indigo-700 hover:to-blue-600 hover:shadow-xl transform hover:scale-105 transition duration-300 ease-in-out"
               >
-                Submit Attendance
+             {load ?"Submitting":"Submit Attendance"}   
               </button>
             </div>
           </form>

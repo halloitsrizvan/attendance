@@ -4,25 +4,18 @@ import BreakdownCard from './BreakdownCard';
 import axios from 'axios';
 import { API_PORT } from '../../Constants';
 
-function BreakdownModal({ show, onClose, type }) {
+function BreakdownModal({ show, onClose, type ,attendanceData,studentData}) {
   const [attendanceBreakdown, setAttendanceBreakdown] = useState([]);
-  const studentData = localStorage.getItem("students")
-    ? JSON.parse(localStorage.getItem("students"))
-    : null;
-
   useEffect(() => {
     if (!show || !studentData) return; // prevent early calls
 
-    const fetchAttendance = async () => {
+    const filterAttendance = () => {
       try {
-        const res = await axios.get(`${API_PORT}/set-attendance`);
-        const filtered = res.data.filter(att => att.ad === studentData.ad);
-
         // Create categories
         const categories = ["Night", "Period", "Noon", "Morning", "Jamath", "More"];
 
         const breakdown = categories.map(cat => {
-          const catData = filtered.filter(item => item.attendanceTime === cat);
+          const catData = attendanceData.filter(item => item.attendanceTime === cat);
           const total = catData.length;
           const present = catData.filter(item => item.status === "Present").length;
           const absent = total - present;
@@ -35,7 +28,7 @@ function BreakdownModal({ show, onClose, type }) {
       }
     };
 
-    fetchAttendance();
+    filterAttendance();
   }, [show, studentData]);
 
   if (!show) return null;
