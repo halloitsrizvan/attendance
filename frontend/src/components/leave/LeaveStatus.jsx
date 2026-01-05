@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo, act } from 'react';
-import { Calendar, Clock, CheckCircle, AlertCircle, User, XCircle, RefreshCw, ChevronRight, ChevronDown, FileSignature, DropletIcon } from 'lucide-react'; import axios from 'axios';
+import { Calendar, Clock, CheckCircle, AlertCircle, User, XCircle, RefreshCw, ChevronRight, ChevronDown, FileSignature, DropletIcon, Search, X } from 'lucide-react';
+import axios from 'axios';
 import { API_PORT } from '../../Constants';
 import LeaveStatusTable from './LeaveStatusTable';
 import ShortLeave from './ShortLeave';
@@ -232,17 +233,28 @@ function LeaveStatus() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedClass, setSelectedClass] = useState(null);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
 
   const teacher = localStorage.getItem("teacher") ? JSON.parse(localStorage.getItem("teacher")) : null;
 
   const [shortLeaveStatus, setShortLeaveStatus] = useState([])
   //Medeical room 
+  const matchesSearch = (student) => {
+    if (!searchValue) return true;
+    const searchLower = searchValue.toLowerCase();
+    return (
+      (student.name && student.name.toLowerCase().includes(searchLower)) ||
+      (student.ad && String(student.ad).toLowerCase().includes(searchLower))
+    );
+  };
+
   const medicalRoomStatus = useMemo(() => {
-    return leaveData.filter(student => student.reason === 'Medical (Room)' && !student.returnedAt);
-  }, [leaveData]);
+    return leaveData.filter(student => student.reason === 'Medical (Room)' && !student.returnedAt && matchesSearch(student));
+  }, [leaveData, searchValue]);
   const medicalRoomStatusDB = useMemo(() => {
-    return leaveData.filter(student => student.reason === 'Medical (Room)' && !student.returnedAt && student.teacher === teacher?.name);
-  }, [leaveData]);
+    return leaveData.filter(student => student.reason === 'Medical (Room)' && !student.returnedAt && student.teacher === teacher?.name && matchesSearch(student));
+  }, [leaveData, searchValue]);
 
 
   // Calculate leave status
@@ -358,6 +370,7 @@ function LeaveStatus() {
   const actionsTableData = useMemo(() => {
 
     return leaveData
+      .filter(matchesSearch) // Apply search filter
       .map(item => ({
         ...item,
         status: getLeaveStatusForTable(item)
@@ -380,7 +393,7 @@ function LeaveStatus() {
         return (isPendingOrLate) && data.toDate;
       });
 
-  }, [leaveData]);
+  }, [leaveData, searchValue]);
 
   // Refresh function to pass
   const refreshLeaveData = () => {
@@ -388,20 +401,32 @@ function LeaveStatus() {
   };
 
   const filteredData = useMemo(() => {
+    let data = leaveData;
+
+    // Apply search filter if present
+    if (searchValue) {
+      data = data.filter(matchesSearch);
+    }
+
     if (activeTab === 'onLeave') {
-      return leaveData.filter(student =>
+      return data.filter(student =>
         ['On Leave', 'Late'].includes(student.displayStatus)
       );
     }
 
-    return leaveData;
-  }, [leaveData, activeTab]);
+    return data;
+  }, [leaveData, activeTab, searchValue]);
+
+  const filteredDataForOnleave = leaveData.filter(student => student.returnedAt === null)
+
 
   const notArrivedCount = useMemo(() => {
     return filteredData.filter(student => student.status === "active").length;
   }, [leaveData]);
 
-  const filterDB = leaveData.filter(student => student.teacher === teacher?.name);
+  const filterDB = leaveData.filter(student => student.teacher === teacher?.name && matchesSearch(student));
+
+
 
 
   if (loading) {
@@ -445,16 +470,28 @@ function LeaveStatus() {
         {/* Compact Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Calendar size={24} className="text-indigo-600" />
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Leave Status</h1>
+            {/* <Calendar size={24} className="text-indigo-600" /> */}
+            <h1 className="text-xl sm:text-xl font-bold text-gray-900">Leave Status</h1>
           </div>
-          <button
-            onClick={fetchLeaveData}
-            className="p-2 text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
-            aria-label="Refresh"
-          >
-            <RefreshCw size={18} />
-          </button>
+
+          <div className=' flex justify-end rounded-lg px-2 py-1 gap-1'>
+            <input
+              placeholder='Search'
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+              className={`border border-indigo-200 outline-none rounded-lg pl-2 transition-all duration-300 w-2/3 opacity-100`}
+            // ${showSearch ? 'w-2/3 opacity-100' : 'w-0 opacity-0'}
+            />
+            <button
+              // onClick={() => setShowSearch(!showSearch)}
+              className="p-2 text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
+              aria-label="Search"
+            >
+              {searchValue ?
+                <X size={18} className="text-indigo-600" onClick={() => setSearchValue('')} />
+                : <Search size={18} className="text-indigo-600" />}
+            </button>
+          </div>
         </div>
 
         {/* Compact Stats - Mobile Optimized */}
@@ -478,14 +515,14 @@ function LeaveStatus() {
         </div> */}
 
         {/* Compact Tabs */}
-        <div className="flex flex-wrap  gap-2 mb-4 p-1 rounded-lg  w-full sm:w-auto border-2 border-indigo-200">
+        <div className="flex flex-wrap  gap-2 mb-4 p-1 rounded-lg  w-full sm:w-auto border-2 border-indigo-400">
           <TabButton
             label={`Actions`}
             isActive={activeTab === 'actions'}
             onClick={() => setActiveTab('actions')}
           />
           <TabButton
-            label={`On leave (${notArrivedCount})`}
+            label={`On leave (${filteredDataForOnleave.length})`}
             isActive={activeTab === 'onLeave'}
             onClick={() => setActiveTab('onLeave')}
           />
@@ -570,7 +607,7 @@ function LeaveStatus() {
                   </div>
                 }
 
-                {filteredData.map((student) => (
+                {filteredDataForOnleave.map((student) => (
                   <StudentStatusCard key={student._id} student={student} />
                 ))}
               </>
@@ -600,7 +637,7 @@ function LeaveStatus() {
                   onClick={() => setActiveTabMyDB('Medical Room')}
                 />
                 <TabButton
-                  label={`Medical without endDate(${leaveData.filter(student => student.reason === "Medical" && !student.toDate && !student.returnedAt && student.teacher === teacher?.name).length})`}
+                  label={`Medical without endDate(${leaveData.filter(student => student.reason === "Medical" && !student.toDate && !student.returnedAt && student.teacher === teacher?.name && matchesSearch(student)).length})`}
                   isActive={activeTabMyDB === 'MWED'}
                   onClick={() => setActiveTabMyDB('MWED')}
                 />
@@ -628,7 +665,7 @@ function LeaveStatus() {
                   : activeTabMyDB === "MWED" ?
                     <div>
                       <ShortLeave
-                        statusData={leaveData.filter(student => student.reason === "Medical" && !student.toDate && !student.returnedAt && student.teacher === teacher?.name)}
+                        statusData={leaveData.filter(student => student.reason === "Medical" && !student.toDate && !student.returnedAt && student.teacher === teacher?.name && matchesSearch(student))}
                         type="medicalWithoutEndDate"
 
                       />
@@ -646,7 +683,7 @@ function LeaveStatus() {
               <div>
                 <div>
                   <ShortLeave
-                    statusData={shortLeaveStatus}
+                    statusData={shortLeaveStatus.filter(matchesSearch)}
                     type="shortLeave"
 
                   />
@@ -671,7 +708,7 @@ function LeaveStatus() {
                         onClick={() => setActiveTabActions('Medical (room)')}
                       />
                       <TabButton
-                        label={`Medical without endDate(${leaveData.filter(student => student.reason === "Medical" && !student.toDate  && student.status!=='returned' ).length })`}
+                        label={`Medical without endDate(${leaveData.filter(student => student.reason === "Medical" && !student.toDate && student.status !== 'returned' && matchesSearch(student)).length})`}
                         isActive={activeTabActions === 'Medical (without end date)'}
                         onClick={() => setActiveTabActions('Medical (without end date)')}
                       />
@@ -691,11 +728,11 @@ function LeaveStatus() {
                           getLeaveStatus={getLeaveStatusForTable}
                           type="Generalactions"
                         />
-                        
+
                         : activeTabActions === "Medical (without end date)" ?
                           <div>
                             <ShortLeave
-                              statusData={leaveData.filter(student => student.reason === "Medical" && !student.toDate && !student.returnedAt)}
+                              statusData={leaveData.filter(student => student.reason === "Medical" && !student.toDate && !student.returnedAt && matchesSearch(student))}
                               type="medicalWithoutEndDate"
 
                             />

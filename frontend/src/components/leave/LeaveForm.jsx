@@ -991,7 +991,7 @@ function LeaveForm() {
               </div>
 
               <div className="col-span-1">
-                <button className='mt-3 ml-8 comic-button '
+                <button className='mt-5 ml-2 px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-200'
                   onClick={() => {
                     if (showBulkModal) {
                       setShowBulkModal(false)
@@ -1064,7 +1064,7 @@ function LeaveForm() {
         >
           Select All
         </button> */}
-                  <button className='comic-button mr-2'
+                  <button className='px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-200 mr-2'
                     onClick={() => setShowBulkModal(false)}>
                     Regular
                   </button>
