@@ -233,7 +233,6 @@ function LeaveStatus() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedClass, setSelectedClass] = useState(null);
-  const [showSearch, setShowSearch] = useState(false);
   const [searchValue, setSearchValue] = useState('');
 
   const teacher = localStorage.getItem("teacher") ? JSON.parse(localStorage.getItem("teacher")) : null;
@@ -403,8 +402,8 @@ function LeaveStatus() {
   const filteredData = useMemo(() => {
     let data = leaveData;
 
-    // Apply search filter if present
-    if (searchValue) {
+    // Apply search filter ONLY if on 'actions' tab and searchValue exists
+    if (activeTab === 'actions' && searchValue) {
       data = data.filter(matchesSearch);
     }
 
@@ -420,12 +419,17 @@ function LeaveStatus() {
   const filteredDataForOnleave = leaveData.filter(student => student.returnedAt === null)
 
 
-  const notArrivedCount = useMemo(() => {
-    return filteredData.filter(student => student.status === "active").length;
-  }, [leaveData]);
+  // const notArrivedCount = useMemo(() => {
+  //   return filteredData.filter(student => student.status === "active").length;
+  // }, [leaveData]);
 
   const filterDB = leaveData.filter(student => student.teacher === teacher?.name && matchesSearch(student));
 
+  useEffect(() => {
+    if (activeTab !== "actions") {
+      setSearchValue('');
+    }
+  }, [activeTab])
 
 
 
@@ -468,13 +472,13 @@ function LeaveStatus() {
 
       <div className="max-w-7xl mx-auto">
         {/* Compact Header */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 ">
           <div className="flex items-center gap-2">
             {/* <Calendar size={24} className="text-indigo-600" /> */}
             <h1 className="text-xl sm:text-xl font-bold text-gray-900">Leave Status</h1>
           </div>
 
-          <div className=' flex justify-end rounded-lg px-2 py-1 gap-1'>
+          <div className={` flex justify-end rounded-lg px-2 py-1 gap-1 ${activeTab==="actions"? 'visible':"invisible"} `}>
             <input
               placeholder='Search'
               value={searchValue}
@@ -683,7 +687,7 @@ function LeaveStatus() {
               <div>
                 <div>
                   <ShortLeave
-                    statusData={shortLeaveStatus.filter(matchesSearch)}
+                    statusData={activeTab === 'actions' ? shortLeaveStatus.filter(matchesSearch) : shortLeaveStatus}
                     type="shortLeave"
 
                   />
