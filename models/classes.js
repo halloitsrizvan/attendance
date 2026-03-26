@@ -1,0 +1,24 @@
+import mongoose from 'mongoose';
+
+const Schema = mongoose.Schema;
+
+const classSchema = new Schema({
+    class: {
+        type: Number,
+        required: true
+    },
+    students_count: {
+        type: Number,
+        required: true
+    },
+    teacher: {
+        type: String,
+        required: true
+    },
+    batch: {
+        type: String,
+        required: true
+    }
+}, { timestamps: true });
+
+export default mongoose.models['Classes'] || mongoose.model('Classes', classSchema);

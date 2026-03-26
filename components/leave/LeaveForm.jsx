@@ -1,0 +1,1325 @@
+"use client";
+import React, { useState, useEffect } from 'react';
+import { useRouter } from "next/navigation";
+import axios from 'axios';
+import { API_PORT } from '../../Constants';
+import BulkStudents from './BulkStudents';
+import CustomAlert from '../common/CustomAlert';
+import DatePicker from './DatePicker';
+import SelectionButton from './SelectionButton';
+
+const getSafeLocalStorage = () => typeof window !== 'undefined' ? localStorage : { getItem: () => null, setItem: () => { }, removeItem: () => { } };
+
+import { FaHome, FaSadCry } from "react-icons/fa";
+import { Plus, Minus } from 'lucide-react';
+import Header from '../Header/Header';
+import './styles/leaveForm.css';
+
+const TimePicker = ({ label, selectedTime, setSelectedTime, options, customTime, setCustomTime }) => (
+  <div className="space-y-3">
+    {label && <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">{label}</h3>}
+    <div className="grid grid-cols-2 gap-2">
+      {options.map(option => (
+        <SelectionButton
+          key={option}
+          type={label}
+          label={option}
+          isSelected={selectedTime === option}
+          onClick={() => {
+            setSelectedTime(option);
+            if (option !== 'Clock') {
+              setCustomTime('');
+            }
+          }}
+        />
+      ))}
+    </div>
+    {selectedTime === 'Clock' && (
+      <div className="mt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+        <input
+          id={`${label}-time-input`}
+          type="time"
+          value={customTime}
+          onChange={(e) => setCustomTime(e.target.value)}
+          className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all"
+        />
+      </div>
+    )}
+  </div>
+);
+
+const ShortLeaveTimePicker = ({ fromPeriod, setFromPeriod, toPeriod, setToPeriod, fromCustomTime, setFromCustomTime, toCustomTime, setToCustomTime }) => {
+  const periodOptions = Array.from({ length: 11 }, (_, i) => i);
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">From Period</label>
+          <select
+            value={fromPeriod}
+            onChange={(e) => setFromPeriod(parseInt(e.target.value))}
+            className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white transition-all outline-none appearance-none"
+          >
+            {periodOptions.map(period => (
+              <option key={`from-${period}`} value={period}>
+                {period === 0 ? "Custom" : `Period ${period}`}
+              </option>
+            ))}
+          </select>
+          {fromPeriod === 0 && (
+            <div className="mt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+              <input
+                type="time"
+                value={fromCustomTime}
+                onChange={(e) => setFromCustomTime(e.target.value)}
+                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3 text-sm font-bold text-slate-700 focus:border-sky-400 outline-none transition-all"
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">To Period</label>
+          <select
+            value={toPeriod}
+            onChange={(e) => setToPeriod(parseInt(e.target.value))}
+            className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white transition-all outline-none appearance-none"
+          >
+            {periodOptions.map(period => (
+              <option key={`to-${period}`} value={period}>
+                {period === 0 ? "Custom" : `Period ${period}`}
+              </option>
+            ))}
+          </select>
+          {toPeriod === 0 && (
+            <div className="mt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+              <input
+                type="time"
+                value={toCustomTime}
+                onChange={(e) => setToCustomTime(e.target.value)}
+                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3 text-sm font-bold text-slate-700 focus:border-sky-400 outline-none transition-all"
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCustomReason, leaveType, teacher }) => {
+  const classNum = teacher?.classNum;
+
+  let reasonOptions = [];
+  if (leaveType === "leave") {
+    if (classNum > 4) {
+      reasonOptions = ['Medical', 'Room', 'Hospital'];
+    } else {
+      reasonOptions = teacher?.role === "class_teacher"
+        ? ['Medical', 'Room', 'Marriage', 'Hospital', 'Custom']
+        : ['Medical', 'Room', 'Marriage', 'Function', 'Custom'];
+    }
+  } else {
+    reasonOptions = ["Custom"];
+  }
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Select Reason</h3>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {reasonOptions.map(option => (
+          <SelectionButton
+            key={option}
+            label={option}
+            type={'Reason'}
+            isSelected={selectedReason === option}
+            onClick={() => {
+              setSelectedReason(option);
+              if (option !== 'Custom') {
+                setCustomReason('');
+              }
+            }}
+          />
+        ))}
+      </div>
+      {selectedReason === 'Custom' && (
+        <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+          <input
+            id="custom-reason-input"
+            type="text"
+            value={customReason}
+            onChange={(e) => setCustomReason(e.target.value)}
+            className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all"
+            placeholder="Type your reason here..."
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
+function LeaveForm({ initialStudents = null, initialLeaves = null }) {
+  const [teacher, setTeacher] = useState(null);
+
+  useEffect(() => {
+    const storedTeacher = getSafeLocalStorage().getItem("teacher");
+    if (storedTeacher) {
+      try {
+        setTeacher(JSON.parse(storedTeacher));
+      } catch (e) {
+        console.error("Failed to parse teacher from localStorage");
+      }
+    }
+  }, []);
+
+  const navigate = useRouter();
+
+  // States
+  const [ad, setAd] = useState('');
+  const [student, setStudent] = useState(null);
+  const [name, setName] = useState('');
+  const [classNum, setClassNum] = useState('');
+  const [students, setStudents] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [leaveData, setLeaveData] = useState(initialLeaves || []);
+
+  // Form states
+  const [fromDate, setFromDate] = useState('Today');
+  const [fromTime, setFromTime] = useState('Evening');
+  const [fromCustomDate, setFromCustomDate] = useState('');
+  const [fromCustomTime, setFromCustomTime] = useState('');
+  const [reason, setReason] = useState('Medical');
+  const [toDate, setToDate] = useState('Tomorrow');
+  const [toTime, setToTime] = useState('Evening');
+  const [toCustomDate, setToCustomDate] = useState('');
+  const [toCustomTime, setToCustomTime] = useState('');
+  const [customReason, setCustomReason] = useState('');
+  const [showEndDateForMedical, setShowEndDateForMedical] = useState(false);
+
+  // Short Leave states
+  const [leaveType, setLeaveType] = useState('leave');
+  const [shortLeaveStudents, setShortLeaveStudents] = useState([{ ad: '', name: '', classNum: '', student: null }]);
+  const [shortLeaveFromPeriod, setShortLeaveFromPeriod] = useState(1);
+  const [shortLeaveToPeriod, setShortLeaveToPeriod] = useState(1);
+  const [shortLeaveFromCustomTime, setShortLeaveFromCustomTime] = useState('');
+  const [shortLeaveToCustomTime, setShortLeaveToCustomTime] = useState('');
+  const [shortLeaveReason, setShortLeaveReason] = useState('Custom');
+  const [shortLeaveCustomReason, setShortLeaveCustomReason] = useState('');
+  const [shortLeaveSuggestions, setShortLeaveSuggestions] = useState([]);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(null);
+  const [shortLeaveDate, setShortLeaveDate] = useState('Today')
+  const [shortLeaveCustomDate, setShortLeaveCustomDate] = useState('')
+  const fromTimeOptions = ['Morning', 'Evening', 'Now', 'Clock'];
+  const toTimeOptions = ['Morning', 'Evening', 'Clock'];
+  const [alertState, setAlertState] = useState({ isOpen: false, title: '', message: '', type: 'info' });
+
+  const showAlert = (message, title = "Notice", type = "info") => {
+    setAlertState({ isOpen: true, title, message, type });
+  };
+
+  useEffect(() => {
+    if (teacher?.role === "teacher") {
+      navigate.push('/leave-dashboard');
+    }
+  }, [teacher?.role]);
+
+  // Fetch all students based on teacher role
+  useEffect(() => {
+    if (initialStudents) {
+      let filteredStudents = initialStudents;
+      if (teacher && teacher?.role === "class_teacher") {
+        filteredStudents = initialStudents.filter(std => std.CLASS === teacher.classNum);
+      } else if (teacher && teacher?.role === "HOD") {
+        filteredStudents = initialStudents.filter(std => [8, 9, 10].includes(std.CLASS));
+      } else if (teacher && teacher?.role === "HOS") {
+        filteredStudents = initialStudents.filter(std => [5, 6, 7].includes(std.CLASS));
+      } else if (teacher && teacher.name === "SHANOOB HUDAWI") {
+        filteredStudents = initialStudents.filter(std => std.CLASS === 10);
+      }
+      setStudents(filteredStudents);
+      return;
+    }
+
+    setLoading(true);
+    axios.get(`${API_PORT}/students`)
+      .then((res) => {
+        let filteredStudents = res.data;
+        if (teacher && teacher?.role === "class_teacher") {
+          filteredStudents = res.data.filter(std => std.CLASS === teacher.classNum);
+        } else if (teacher && teacher?.role === "HOD") {
+          filteredStudents = res.data.filter(std => [8, 9, 10].includes(std.CLASS));
+        } else if (teacher && teacher?.role === "HOS") {
+          filteredStudents = res.data.filter(std => [5, 6, 7].includes(std.CLASS));
+        } else if (teacher && teacher.name === "SHANOOB HUDAWI") {
+          filteredStudents = res.data.filter(std => std.CLASS === 10);
+        }
+        setStudents(filteredStudents);
+      })
+      .catch(err => console.error(err))
+      .finally(() => setLoading(false));
+  }, [teacher?.role, teacher?.classNum, initialStudents]);
+
+  // Fetch leave data
+  useEffect(() => {
+    if (initialLeaves) return;
+
+    axios.get(`${API_PORT}/leave`)
+      .then((res) => {
+        setLeaveData(res.data);
+      })
+      .catch((err) => {
+        console.error("Error fetching leaves data:", err);
+      });
+  }, [initialLeaves]);
+
+  const checkLeaveStatus = (studentAd) => {
+    try {
+
+      // Filter leaves for this student
+      const studentLeaves = leaveData.filter(leave =>
+        String(leave.ad) === String(studentAd)
+      );
+
+      if (studentLeaves.length === 0) return false;
+
+      // Sort by creation time (descending) to get the latest document
+      // Primary sort: createdAt, Secondary sort: _id (as proxy for time)
+      studentLeaves.sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt) : null;
+        const dateB = b.createdAt ? new Date(b.createdAt) : null;
+
+        if (dateA && dateB) {
+          return dateB - dateA;
+        }
+
+        // Fallback to _id comparison if createdAt is missing or invalid
+        if (a._id && b._id) {
+          return a._id < b._id ? 1 : -1;
+        }
+        return 0;
+      });
+
+      const latestLeave = studentLeaves[0];
+      // console.log(`Latest leave for ${studentAd}:`, latestLeave);
+
+      // Check if the latest leave is NOT returned
+      const status = latestLeave.status ? latestLeave.status.toLowerCase() : '';
+
+      return status !== 'returned';
+
+    } catch (error) {
+      console.error("Error checking leave status:", error);
+      return false;
+    }
+  };
+
+  // Fetch student when AD changes
+  useEffect(() => {
+    if (!ad) {
+      setStudent(null);
+      setName('');
+      setClassNum('');
+      return;
+    }
+
+    const found = students.find((std) => String(std.ADNO) === String(ad));
+    if (found) {
+      setStudent(found);
+      setName(found["SHORT NAME"] || found["FULL NAME"] || found.name || "Unknown");
+      setClassNum(found.CLASS);
+      if (checkLeaveStatus(found.ADNO)) {
+        showAlert(`${found["SHORT NAME"] || found["FULL NAME"]} is currently marked as on leave or absent.`, "Student Unavailable", "error");
+        setAd('');
+        return;
+      }
+    } else {
+      setStudent(null);
+      setName('');
+      setClassNum('');
+    }
+  }, [ad, students, teacher, navigate, leaveData]);
+
+  // Reset showEndDateForMedical when reason changes
+  useEffect(() => {
+    if (reason !== 'Medical' && reason !== 'Medical (Room)') {
+      setShowEndDateForMedical(true);
+    } else {
+      setShowEndDateForMedical(false);
+    }
+  }, [reason]);
+
+  // Short Leave Functions
+  const addShortLeaveStudent = () => {
+    setShortLeaveStudents([...shortLeaveStudents, { ad: '', name: '', classNum: '', student: null }]);
+  };
+
+  const removeShortLeaveStudent = (index) => {
+    if (shortLeaveStudents.length > 1) {
+      const updatedStudents = shortLeaveStudents.filter((_, i) => i !== index);
+      setShortLeaveStudents(updatedStudents);
+    }
+  };
+
+  const updateShortLeaveStudent = (index, field, value) => {
+    const updatedStudents = [...shortLeaveStudents];
+    updatedStudents[index][field] = value;
+
+    // If AD is updated, auto-fill name and class
+    if (field === 'ad' && value) {
+      const found = students.find((std) => String(std.ADNO) === String(value));
+      if (found) {
+        updatedStudents[index].student = found;
+        updatedStudents[index].name = found["SHORT NAME"] || found["FULL NAME"] || found.name || "Unknown";
+        updatedStudents[index].classNum = found.CLASS;
+        if (checkLeaveStatus(found.ADNO)) {
+          showAlert(`${found["SHORT NAME"] || found.name} is currently marked as on leave.`, "Student Unavailable", "error");
+        }
+      } else {
+        updatedStudents[index].student = null;
+        updatedStudents[index].name = '';
+        updatedStudents[index].classNum = '';
+      }
+    }
+
+    setShortLeaveStudents(updatedStudents);
+  };
+
+  const getPeriodTime = (period, customTime, isFrom = true) => {
+    if (period === 0 && customTime) {
+      return customTime;
+    }
+
+    const timeMap = {
+      1: isFrom ? "07:30" : "08:10",
+      2: isFrom ? "08:10" : "08:50",
+      3: isFrom ? "08:50" : "10:00",
+      4: isFrom ? "10:00" : "10:40",
+      5: isFrom ? "10:40" : "11:20",
+      6: isFrom ? "11:30" : "12:10",
+      7: isFrom ? "12:10" : "12:50",
+      8: isFrom ? "14:00" : "14:40",
+      9: isFrom ? "14:40" : "15:20",
+      10: isFrom ? "15:20" : "16:10"
+    };
+
+    return timeMap[period] || "07:30";
+  };
+
+  const handleShortLeaveSubmit = (e) => {
+    e.preventDefault();
+
+    // Validate all students are selected
+    const invalidStudents = shortLeaveStudents.filter(student => !student.ad || !student.name || !student.classNum);
+    if (invalidStudents.length > 0) {
+      showAlert("Please ensure all student details are filled.", "Missing Info", "info");
+      return;
+    }
+    if (!shortLeaveCustomReason.trim() && shortLeaveReason === 'Custom') {
+      showAlert("Please provide a reason for the pass.", "Reason Required", "info");
+      return;
+    }
+
+    // Check if any student is already on leave
+    const onLeaveStudents = shortLeaveStudents.filter(student => checkLeaveStatus(student.ad));
+    if (onLeaveStudents.length > 0) {
+      const names = onLeaveStudents.map(s => s.name).join(', ');
+      showAlert(`Cannot submit. These students are already on leave: ${names}`, "Multiple Absentees", "error");
+      return;
+    }
+
+    setLoading(true);
+
+    const finalFromTime = getPeriodTime(shortLeaveFromPeriod, shortLeaveFromCustomTime, true);
+    const finalToTime = getPeriodTime(shortLeaveToPeriod, shortLeaveToCustomTime, false);
+    const finalReason = shortLeaveReason === 'Custom' ? shortLeaveCustomReason : shortLeaveReason;
+
+    let finalDate;
+    if (shortLeaveDate === 'Calendar') {
+      finalDate = fromCustomDate;
+    } else if (fromDate === 'Today') {
+      finalDate = new Date();
+    } else if (fromDate === 'Tomorrow') {
+      const tomorrow = new Date();
+      finalDate = tomorrow.setDate(tomorrow.getDate() + 1);
+    } else if (fromDate === 'Day After') {
+      const dayAfter = new Date();
+      finalDate = dayAfter.setDate(dayAfter.getDate() + 2);
+    } else {
+      finalDate = new Date();
+    }
+
+    // Submit for each student
+    const submitPromises = shortLeaveStudents.map(studentData => {
+      const payload = {
+        ad: studentData.ad,
+        name: studentData.name,
+        classNum: studentData.classNum,
+        fromTime: finalFromTime,
+        toTime: finalToTime,
+        reason: finalReason,
+        teacher: teacher.name,
+        date: finalDate
+      };
+
+      return axios.post(`${API_PORT}/class-excused-pass`, payload);
+    });
+
+    Promise.all(submitPromises)
+      .then(() => {
+        const studentCount = shortLeaveStudents.filter(s => s.student).length;
+        showAlert(`Leave approved for ${studentCount} student${studentCount === 1 ? '' : 's'}.`, "Approval Successful", "success");
+        resetShortLeaveForm();
+      })
+      .catch((err) => {
+        console.error("Error submitting short leaves", err);
+        showAlert("There was an error submitting the short leave requests. Please try again.", "Submission Failed", "error");
+      })
+      .finally(() => setLoading(false));
+  };
+
+  const resetShortLeaveForm = () => {
+    setShortLeaveStudents([{ ad: '', name: '', classNum: '', student: null }]);
+    setShortLeaveFromPeriod(1);
+    setShortLeaveToPeriod(1);
+    setShortLeaveFromCustomTime('');
+    setShortLeaveToCustomTime('');
+    setShortLeaveReason('Custom');
+    setShortLeaveCustomReason('');
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    if (!ad || !name || !classNum) {
+      showAlert("Please search for and select a student first.", "Missing Selection", "info");
+      return;
+    }
+
+    if (checkLeaveStatus(ad)) {
+      showAlert(`${name} is currently marked as on leave or absent.`, "Student Unavailable", "error");
+      setAd('');
+      return;
+    }
+
+    setLoading(true);
+
+    const getFormattedDate = (date) => date.toISOString().split('T')[0];
+
+    const getFormattedTime = (timeOption, customTime, label = '') => {
+      const pad = (n) => String(n).padStart(2, "0");
+
+      if (timeOption === "Clock") return customTime;
+      if (label === "From Time") {
+        if (timeOption === "Morning") return "05:30";
+        if (timeOption === "Evening") return "16:30";
+      } else if (label === "To Time") {
+        if (timeOption === "Morning") return "07:00";
+        if (timeOption === "Evening") return "18:00";
+      } else {
+        if (timeOption === "Morning") return "05:30";
+        if (timeOption === "Evening") return "16:30";
+      }
+      if (timeOption === "Now") {
+        const now = new Date();
+        return `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+      }
+      return "07:30";
+    };
+
+    // Calculate From Date
+    let finalFromDate;
+    if (fromDate === 'Calendar') {
+      finalFromDate = fromCustomDate;
+    } else if (fromDate === 'Today') {
+      finalFromDate = getFormattedDate(new Date());
+    } else if (fromDate === 'Tomorrow') {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      finalFromDate = getFormattedDate(tomorrow);
+    } else if (fromDate === 'Day After') {
+      const dayAfter = new Date();
+      dayAfter.setDate(dayAfter.getDate() + 2);
+      finalFromDate = getFormattedDate(dayAfter);
+    } else {
+      finalFromDate = getFormattedDate(new Date());
+    }
+
+    const finalFromTime = getFormattedTime(fromTime, fromCustomTime, 'From Time');
+    const finalReason = reason === 'Custom' ? customReason : reason;
+
+    // For medical reasons, set toDate and toTime to null unless user explicitly sets them
+    const isMedicalReason = reason === 'Medical' || reason === 'Medical (Room)';
+
+    let finalToDate = null;
+    let finalToTime = null;
+
+    // Only set toDate and toTime if it's NOT a medical reason OR if user has explicitly selected them
+    if (!isMedicalReason || showEndDateForMedical) {
+      // Calculate To Date only if needed
+      if (toDate === 'Calendar') {
+        finalToDate = toCustomDate;
+      } else if (toDate === 'Today') {
+        finalToDate = getFormattedDate(new Date());
+      } else if (toDate === 'Tomorrow') {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        finalToDate = getFormattedDate(tomorrow);
+      } else if (toDate === 'Day After') {
+        const dayAfter = new Date();
+        dayAfter.setDate(dayAfter.getDate() + 2);
+        finalToDate = getFormattedDate(dayAfter);
+      } else if (toDate) {
+        finalToDate = getFormattedDate(new Date());
+      }
+
+      finalToTime = getFormattedTime(toTime, toCustomTime, 'To Time');
+    }
+
+    const payload = {
+      ad,
+      name,
+      classNum,
+      fromDate: finalFromDate,
+      fromTime: finalFromTime,
+      toDate: finalToDate,
+      toTime: finalToTime,
+      reason: finalReason,
+      teacher: teacher.name,
+      status: "Scheduled"
+    };
+
+    console.log('Submitting leave:', payload);
+
+    axios.post(`${API_PORT}/leave`, payload)
+      .then(() => {
+        showAlert(`Leave approved for ${name}.`, "Approval Successful", "success");
+        // Reset form
+        setAd('');
+        setStudent(null);
+        setName('');
+        setClassNum('');
+        setFromDate('Today');
+        setFromTime('Evening');
+        setFromCustomDate('');
+        setFromCustomTime('');
+        setToDate('Tomorrow');
+        setToTime('Evening');
+        setToCustomDate('');
+        setToCustomTime('');
+        setReason('Medical');
+        setCustomReason('');
+        setSuggestions([]);
+        setShowEndDateForMedical(false);
+      })
+      .catch((err) => {
+        console.error("Error submitting leave", err);
+        showAlert("Error submitting leave request. Please try again.", "Error", "error");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  };
+
+
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [Bulkstudents, setBulkStudents] = useState([]);
+  const [classValue, setClassValue] = useState(teacher?.classNum || "3");
+  const [selectedBulkStudents, setSelectedBulkStudents] = useState([]);
+  // Update Bulkstudents when classValue OR students changes
+  useEffect(() => {
+    if (students.length > 0) {
+      const filteredStudents = students
+        .filter(student => student.CLASS == classValue)
+        .map((student, index) => ({
+          SL: student.SL,
+          ADNO: student.ADNO,
+          "SHORT NAME": student["SHORT NAME"] || student["FULL NAME"] || student.name || "Unknown",
+          CLASS: student.CLASS,
+          selected: false
+        }));
+      filteredStudents.sort((a, b) => a.SL - b.SL);
+      setBulkStudents(filteredStudents);
+    } else {
+      setBulkStudents([]);
+    }
+  }, [classValue, students]);
+
+  const handleSelectAll = () => {
+    const allStudents = Bulkstudents.map(student => ({
+      ADNO: student.ADNO,
+      name: student["SHORT NAME"] || student["FULL NAME"] || student.name || "Unknown",
+      classNum: student.CLASS
+    }));
+    setSelectedBulkStudents(allStudents);
+  };
+  // Also, update the initial classValue to be dynamic based on teacher
+
+  let classValues = [];
+  if (teacher?.role === "class_teacher") {
+    classValues = [teacher?.classNum];
+  } else if (teacher?.role === "HOD") {
+    classValues = [8, 9, 10];
+  } else if (teacher?.role === "HOS") {
+    classValues = [5, 6, 7];
+  } else {
+    classValues = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  }
+
+  const handleRemoveBulkStudent = (adno) => {
+    setSelectedBulkStudents(prev => prev.filter(student => student.ADNO !== adno));
+  };
+  const handleAdd = (student) => {
+    const isAlreadyAdded = selectedBulkStudents.some(s => s.ADNO === student.ADNO);
+
+    if (!isAlreadyAdded) {
+      if (checkLeaveStatus(student.ADNO)) {
+        showAlert(`${student["SHORT NAME"]} is already on leave.`, "Student Unavailable", "error");
+        return;
+      }
+      // Add student to selected list
+      setSelectedBulkStudents(prev => [...prev, {
+        ADNO: student.ADNO,
+        name: student["SHORT NAME"],
+        classNum: student.CLASS
+      }]);
+    }
+  };
+  const handleBulkSubmit = async () => {
+    if (selectedBulkStudents.length === 0) {
+      showAlert("Please select at least one student from the list.", "Selection Required", "info");
+      return;
+    }
+
+    // Use the same validation as regular form
+    if (!reason || (reason === "Custom" && !customReason.trim())) {
+      showAlert("Please provide a reason for the bulk leave request.", "Reason Required", "info");
+      return;
+    }
+
+    setLoading(true);
+
+    const getFormattedDate = (date) => date.toISOString().split('T')[0];
+
+    const getFormattedTime = (timeOption, customTime, label = '') => {
+      const pad = (n) => String(n).padStart(2, "0");
+
+      if (timeOption === "Clock") return customTime;
+      if (label === "From Time") {
+        if (timeOption === "Morning") return "05:30";
+        if (timeOption === "Evening") return "16:30";
+      } else if (label === "To Time") {
+        if (timeOption === "Morning") return "07:00";
+        if (timeOption === "Evening") return "18:00";
+      } else {
+        if (timeOption === "Morning") return "05:30";
+        if (timeOption === "Evening") return "16:30";
+      }
+      if (timeOption === "Now") {
+        const now = new Date();
+        return `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+      }
+      return "07:30";
+    };
+
+    // Calculate From Date (same as regular form)
+    let finalFromDate;
+    if (fromDate === 'Calendar') {
+      finalFromDate = fromCustomDate;
+    } else if (fromDate === 'Today') {
+      finalFromDate = getFormattedDate(new Date());
+    } else if (fromDate === 'Tomorrow') {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      finalFromDate = getFormattedDate(tomorrow);
+    } else if (fromDate === 'Day After') {
+      const dayAfter = new Date();
+      dayAfter.setDate(dayAfter.getDate() + 2);
+      finalFromDate = getFormattedDate(dayAfter);
+    } else {
+      finalFromDate = getFormattedDate(new Date());
+    }
+
+    const finalFromTime = getFormattedTime(fromTime, fromCustomTime, 'From Time');
+    const finalReason = reason === 'Custom' ? customReason : reason;
+
+    // For medical reasons, set toDate and toTime to null unless user explicitly sets them
+    const isMedicalReason = reason === 'Medical' || reason === 'Medical (Room)';
+
+    let finalToDate = null;
+    let finalToTime = null;
+
+    // Only set toDate and toTime if it's NOT a medical reason OR if user has explicitly selected them
+    if (!isMedicalReason || showEndDateForMedical) {
+      // Calculate To Date only if needed
+      if (toDate === 'Calendar') {
+        finalToDate = toCustomDate;
+      } else if (toDate === 'Today') {
+        finalToDate = getFormattedDate(new Date());
+      } else if (toDate === 'Tomorrow') {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        finalToDate = getFormattedDate(tomorrow);
+      } else if (toDate === 'Day After') {
+        const dayAfter = new Date();
+        dayAfter.setDate(dayAfter.getDate() + 2);
+        finalToDate = getFormattedDate(dayAfter);
+      } else if (toDate) {
+        finalToDate = getFormattedDate(new Date());
+      }
+
+      finalToTime = getFormattedTime(toTime, toCustomTime, 'To Time');
+    }
+
+    // Create an array of promises for all selected students
+    const submitPromises = selectedBulkStudents.map(studentData => {
+      const payload = {
+        ad: studentData.ADNO,
+        name: studentData.name,
+        classNum: studentData.classNum,
+        fromDate: finalFromDate,
+        fromTime: finalFromTime,
+        toDate: finalToDate,
+        toTime: finalToTime,
+        reason: finalReason,
+        teacher: teacher.name,
+        status: "Scheduled"
+      };
+
+      return axios.post(`${API_PORT}/leave`, payload);
+    });
+
+    try {
+      // Submit all leaves at once
+      await Promise.all(submitPromises);
+
+      console.log("All bulk leaves submitted successfully!");
+
+      // Reset bulk form
+      setSelectedBulkStudents([]);
+      setShowBulkModal(false);
+
+      // Reset regular form as well (optional)
+      setAd('');
+      setStudent(null);
+      setName('');
+      setClassNum('');
+      setFromDate('Today');
+      setFromTime('Evening');
+      setFromCustomDate('');
+      setFromCustomTime('');
+      setToDate('Tomorrow');
+      setToTime('Evening');
+      setToCustomDate('');
+      setToCustomTime('');
+      setReason('Medical');
+      setCustomReason('');
+      setSuggestions([]);
+      setShowEndDateForMedical(false);
+
+      showAlert(`Bulk leave approved for ${selectedBulkStudents.length} students.`, "Success", "success");
+      setSelectedBulkStudents([]);
+      setShowBulkModal(false);
+    } catch (error) {
+      console.error("Error submitting bulk leaves:", error);
+      showAlert("There was an error approving the bulk leave request.", "Submission Failed", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+  // const [leaveData,setLeaveData]=useState([]);
+  // const [isOnleaveAlerted,setIsOnLeaveAlerted]=useState(false);
+  // useEffect(()=>{
+  //   axios.get(`${API_PORT}/leaves`)
+  //   .then((res)=>{
+  //     setLeaveData(res.data);
+  //   })
+  //   .catch((err)=>{
+  //     console.error("Error fetching leaves data:", err);
+  //   })
+  // })
+  // const isOnLeave=(stdAd)=>{
+  //   const filter = leaveData.filter(leave=>String(leave.ad)===String(stdAd) && leave.status!=="returned" );
+  //   if(filter.length>0 && !isOnleaveAlerted){
+  //     alert(`Student AD ${stdAd} is already on leave!`);
+  //     setIsOnLeaveAlerted(true);
+  //   }
+  // }
+
+  return (
+    <div className="min-h-screen bg-[#f8fafc] text-slate-800 p-4 sm:p-8 mt-16">
+
+      {/* Loading Overlay */}
+      {loading && (
+        <div className="fixed inset-0 flex items-center justify-center bg-slate-900/60 z-50 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4 bg-white p-10 rounded-[2rem] shadow-2xl">
+            <div className="w-14 h-14 border-4 border-sky-500/20 border-t-sky-500 rounded-full animate-spin"></div>
+            <p className="text-sky-600 font-bold tracking-wider uppercase text-sm">Processing…</p>
+          </div>
+        </div>
+      )}
+
+      {/* Top Navigation Bar */}
+      <div className="flex items-center justify-between mb-6">
+        <button
+          className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-white border border-slate-200 text-slate-600 text-sm font-bold shadow-sm hover:bg-slate-50 hover:border-sky-200 transition-all"
+          onClick={() => navigate.push('/leave-dashboard')}
+        >
+          <FaHome size={16} /> Leave Dashboard
+        </button>
+        {["HOD", "HOS", "super_admin"].includes(teacher?.role) && (
+          <button
+            className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold shadow-sm transition-all ${leaveType === "leave"
+                ? "bg-sky-500 text-white hover:bg-sky-600 shadow-sky-500/20"
+                : "bg-amber-500 text-white hover:bg-amber-600 shadow-amber-500/20"
+              }`}
+            onClick={() => setLeaveType(leaveType === "leave" ? 'short-leave' : 'leave')}
+          >
+            {leaveType === "leave" ? "Class Excused Pass" : "← Regular Leave"}
+          </button>
+        )}
+      </div>
+
+      {leaveType === "leave" ? (
+        <div className="max-w-xl mx-auto space-y-8 pb-16">
+          {/* Regular Leave Form */}
+          {!showBulkModal && (
+            <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50 space-y-6">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2 relative">
+                  <label htmlFor="ad" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">
+                    Student Search
+                  </label>
+                  <input
+                    id="ad"
+                    type="text"
+                    value={ad}
+                    onChange={(e) => {
+                      const value = e.target.value.trim();
+                      setAd(value);
+                      if (value === "") {
+                        setSuggestions([]);
+                        return;
+                      }
+                      const isNumber = /^\d+$/.test(value);
+                      let filtered;
+                      if (isNumber) {
+                        filtered = students.filter((std) => String(std.ADNO).startsWith(value));
+                      } else {
+                        filtered = students.filter((std) =>
+                          (std["SHORT NAME"] || "").toLowerCase().includes(value.toLowerCase()) ||
+                          (std["FULL NAME"] || "").toLowerCase().includes(value.toLowerCase())
+                        );
+                      }
+                      setSuggestions(filtered.slice(0, 5));
+                    }}
+                    className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all"
+                    placeholder="AD No or Name..."
+                  />
+
+                  {suggestions.length > 0 && (
+                    <div className="absolute left-0 right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-slate-50">
+                      {suggestions.map((s) => (
+                        <div
+                          key={s.ADNO}
+                          className="px-4 py-3 hover:bg-sky-50 cursor-pointer flex items-center justify-between"
+                          onClick={() => {
+                            setAd(s.ADNO);
+                            setName(s["SHORT NAME"] || s["FULL NAME"]);
+                            setClassNum(s.CLASS);
+                            setStudent(s);
+                            setSuggestions([]);
+                          }}
+                        >
+                          <div className="flex flex-col">
+                            <span className="text-sm font-black text-slate-800">{s["SHORT NAME"] || s["FULL NAME"]}</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase">AD: {s.ADNO}</span>
+                          </div>
+                          <span className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-black italic">
+                            {s.CLASS}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="col-span-1 pt-6">
+                  <button
+                    type="button"
+                    className="w-full h-[46px] rounded-2xl bg-white border-2 border-sky-100 text-sky-500 font-black text-[10px] uppercase tracking-widest hover:bg-sky-50 transition-all flex items-center justify-center"
+                    onClick={() => setShowBulkModal(true)}
+                  >
+                    Bulk
+                  </button>
+                </div>
+
+                <div className="col-span-2">
+                  <label htmlFor="name" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">
+                    Selected Student
+                  </label>
+                  <input
+                    id="name"
+                    type="text"
+                    value={name}
+                    disabled
+                    className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3 text-sm font-bold text-slate-400"
+                    placeholder="Student Name"
+                  />
+                </div>
+
+                <div className="col-span-1">
+                  <label htmlFor="classNum" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">
+                    Class
+                  </label>
+                  <input
+                    id="classNum"
+                    type="text"
+                    value={classNum}
+                    disabled
+                    className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3 text-sm font-bold text-slate-400 text-center"
+                    placeholder="—"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+          {showBulkModal && (
+            <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50 space-y-6">
+              <div className="flex justify-between items-center px-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Class</span>
+                  <select
+                    value={classValue}
+                    onChange={(e) => setClassValue(e.target.value)}
+                    className="bg-slate-50 border-2 border-slate-50 rounded-xl px-4 py-1.5 text-xs font-black text-slate-700 focus:border-sky-400 transition-all outline-none"
+                  >
+                    {classValues.map((item, index) => (
+                      <option key={index} value={item}>{item}</option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  className="px-4 py-2 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-xl shadow-lg transition-all active:scale-95"
+                  onClick={() => setShowBulkModal(false)}
+                >
+                  Exit Bulk
+                </button>
+              </div>
+
+              {selectedBulkStudents.length > 0 && (
+                <div className="p-4 bg-sky-50 rounded-2xl border border-sky-100">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-[10px] font-black text-sky-600 uppercase tracking-widest">
+                      Selected: {selectedBulkStudents.length} Students
+                    </span>
+                    <button onClick={() => setSelectedBulkStudents([])} className="text-[10px] font-black text-rose-500 uppercase tracking-widest">
+                      Clear All
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedBulkStudents.map((student) => (
+                      <div key={student.ADNO} className="flex items-center gap-1.5 bg-white border border-sky-100 rounded-lg px-2 py-1">
+                        <span className="text-[10px] font-black text-slate-700">{student.name}</span>
+                        <button onClick={() => handleRemoveBulkStudent(student.ADNO)} className="text-rose-400 hover:text-rose-600">×</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="rounded-2xl border border-slate-100 overflow-hidden">
+                <table className="w-full border-collapse">
+                  <thead className="bg-slate-50 border-b border-slate-100">
+                    <tr>
+                      <th className="p-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest w-12">No</th>
+                      <th className="p-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Student</th>
+                      <th className="p-3 text-center">
+                        <button onClick={handleSelectAll} className="w-8 h-8 rounded-lg bg-sky-500 text-white text-lg font-black">+</button>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {Bulkstudents.length > 0 ? (
+                      Bulkstudents.map((student) => {
+                        const isSelected = selectedBulkStudents.some(s => s.ADNO === student.ADNO);
+                        return (
+                          <tr key={student.ADNO} className="hover:bg-slate-50 transition-colors">
+                            <td className="p-3 text-xs font-black text-slate-400">{student.SL}</td>
+                            <td className="p-3">
+                              <div className="flex flex-col">
+                                <span className="text-xs font-black text-slate-800">{student["SHORT NAME"] || student["FULL NAME"]}</span>
+                                <span className="text-[8px] font-bold text-slate-300 uppercase tracking-tight">AD: {student.ADNO}</span>
+                              </div>
+                            </td>
+                            <td className="p-3 text-center">
+                              <button
+                                onClick={() => isSelected ? handleRemoveBulkStudent(student.ADNO) : handleAdd(student)}
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${isSelected ? 'bg-emerald-500 text-white rotate-0' : 'bg-slate-100 text-slate-400 hover:bg-sky-100 hover:text-sky-500'
+                                  }`}
+                              >
+                                {isSelected ? '✓' : '+'}
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr><td colSpan="3" className="p-8 text-center text-xs font-bold text-slate-400 italic">No students found</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          {/* Reason */}
+          <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50">
+            <ReasonPicker
+              selectedReason={reason}
+              setSelectedReason={setReason}
+              customReason={customReason}
+              setCustomReason={setCustomReason}
+              leaveType={leaveType}
+              teacher={teacher}
+            />
+          </div>
+
+          <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50 space-y-6">
+            <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">From Date & Time</h2>
+            <div className="space-y-6"> {/* Stacked for clarity on mobile */}
+              <DatePicker
+                label="Date"
+                selectedDate={fromDate}
+                setSelectedDate={setFromDate}
+                customDate={fromCustomDate}
+                setCustomDate={setFromCustomDate}
+              />
+              <TimePicker
+                label="Time"
+                selectedTime={fromTime}
+                setSelectedTime={setFromTime}
+                options={fromTimeOptions}
+                customTime={fromCustomTime}
+                setCustomTime={setFromCustomTime}
+              />
+            </div>
+          </div>
+
+          {(reason !== 'Medical' && reason !== 'Room') || showEndDateForMedical ? (
+            <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50 space-y-6">
+              <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">To Date & Time</h2>
+              <div className="space-y-6">
+                <DatePicker
+                  label="Date"
+                  selectedDate={toDate}
+                  setSelectedDate={setToDate}
+                  customDate={toCustomDate}
+                  setCustomDate={setToCustomDate}
+                />
+                <TimePicker
+                  label="Time"
+                  selectedTime={toTime}
+                  setSelectedTime={setToTime}
+                  options={toTimeOptions}
+                  customTime={toCustomTime}
+                  setCustomTime={setToCustomTime}
+                />
+              </div>
+            </div>
+          ) : (
+            (reason === 'Medical' || reason === 'Room') && (
+              <div className="bg-white p-8 rounded-[2rem] shadow-sm border-2 border-dashed border-slate-100 text-center space-y-4">
+                <div className="w-12 h-12 bg-sky-50 rounded-full flex items-center justify-center mx-auto">
+                  <span className="text-sky-500 font-black italic text-xl">m</span>
+                </div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Medical leave - No end date needed</p>
+                <button
+                  type="button"
+                  onClick={() => setShowEndDateForMedical(true)}
+                  className="px-6 py-2 bg-sky-50 text-sky-500 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-sky-100 transition-all"
+                >
+                  + Add End Date
+                </button>
+              </div>
+            )
+          )}
+
+          {/* Submit Button */}
+          <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-slate-100 z-40">
+            <button
+              type="button"
+              onClick={(e) => {
+                if (showBulkModal) {
+                  handleBulkSubmit();
+                } else {
+                  handleSubmit(e);
+                }
+              }}
+              disabled={loading}
+              className="w-full max-w-xl mx-auto py-4 bg-emerald-500 text-white text-xs font-black uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+            >
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                  Processing...
+                </>
+              ) : leaveType === 'leave' ? 'Approve Leave' : 'Approve Pass'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="max-w-xl mx-auto space-y-4 pb-16">
+          {/* Short Leave Pass Section */}
+          <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50 space-y-6">
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Class Excused Pass</h3>
+            
+            {/* Added Students Chips */}
+            <div className="space-y-3">
+              {shortLeaveStudents.filter(s => s.student).map((studentData, index) => (
+                <div key={studentData.ad} className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl group animate-in zoom-in-95 duration-200">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-black text-slate-800">{studentData.name}</span>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">AD: {studentData.ad}</span>
+                      <span className="text-[9px] font-black text-sky-500 uppercase tracking-widest bg-white px-1.5 py-0.5 rounded border border-sky-100">Class {studentData.classNum}</span>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => removeShortLeaveStudent(shortLeaveStudents.findIndex(s => s.ad === studentData.ad))}
+                    className="w-8 h-8 rounded-xl bg-white text-rose-500 border border-rose-50 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-sm"
+                  >
+                    <Minus size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Search Input for adding new students */}
+            <div className="space-y-4">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={shortLeaveStudents[shortLeaveStudents.length - 1]?.student ? "" : shortLeaveStudents[shortLeaveStudents.length - 1]?.ad || ""}
+                  onChange={(e) => {
+                    const value = e.target.value.trim();
+                    const lastIndex = shortLeaveStudents.length - 1;
+                    
+                    // If last one is already a student, create a new entry
+                    if (shortLeaveStudents[lastIndex].student) {
+                      setShortLeaveStudents([...shortLeaveStudents, { ad: value, name: '', classNum: '', student: null }]);
+                      setActiveSuggestionIndex(lastIndex + 1);
+                    } else {
+                      updateShortLeaveStudent(lastIndex, 'ad', value);
+                      setActiveSuggestionIndex(lastIndex);
+                    }
+
+                    if (value === "") { setShortLeaveSuggestions([]); return; }
+                    const isNumber = /^\d+$/.test(value);
+                    const filtered = isNumber ? students.filter(std => String(std.ADNO).startsWith(value)) : students.filter(std => (std["SHORT NAME"] || "").toLowerCase().includes(value.toLowerCase()));
+                    setShortLeaveSuggestions(filtered.slice(0, 5));
+                  }}
+                  className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all"
+                  placeholder="Search student to add..."
+                />
+                {shortLeaveSuggestions.length > 0 && (
+                  <div className="absolute left-0 right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-slate-50">
+                    {shortLeaveSuggestions.map((s) => (
+                      <div
+                        key={s.ADNO}
+                        className="px-4 py-4 hover:bg-sky-50 cursor-pointer flex items-center justify-between transition-colors"
+                        onClick={() => {
+                          const lastIndex = shortLeaveStudents.length - 1;
+                          if (shortLeaveStudents[lastIndex].student) {
+                            setShortLeaveStudents([...shortLeaveStudents, { ad: String(s.ADNO), name: s["SHORT NAME"] || s["FULL NAME"], classNum: s.CLASS, student: s }]);
+                          } else {
+                            updateShortLeaveStudent(lastIndex, 'ad', s.ADNO);
+                          }
+                          setShortLeaveSuggestions([]);
+                          setActiveSuggestionIndex(null);
+                        }}
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-xs font-black text-slate-800">{s["SHORT NAME"] || s["FULL NAME"]}</span>
+                          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">AD: {s.ADNO} • Class {s.CLASS}</span>
+                        </div>
+                        <Plus size={16} className="text-sky-500" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50 space-y-4">
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Select Period Range</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <span className="text-[10px] font-black text-slate-300 uppercase px-1">From Period</span>
+                <select
+                  value={shortLeaveFromPeriod}
+                  onChange={(e) => setShortLeaveFromPeriod(parseInt(e.target.value))}
+                  className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3 text-sm font-bold text-slate-700 outline-none focus:border-sky-400 transition-all appearance-none"
+                >
+                  {Array.from({ length: 11 }, (_, i) => (
+                    <option key={i} value={i}>{i === 0 ? "Custom" : `Period ${i}`}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <span className="text-[10px] font-black text-slate-300 uppercase px-1">To Period</span>
+                <select
+                  value={shortLeaveToPeriod}
+                  onChange={(e) => setShortLeaveToPeriod(parseInt(e.target.value))}
+                  className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3 text-sm font-bold text-slate-700 outline-none focus:border-sky-400 transition-all appearance-none"
+                >
+                  {Array.from({ length: 11 }, (_, i) => (
+                    <option key={i} value={i}>{i === 0 ? "Custom" : `Period ${i}`}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50">
+            <ReasonPicker
+              selectedReason={shortLeaveReason}
+              setSelectedReason={setShortLeaveReason}
+              customReason={shortLeaveCustomReason}
+              setCustomReason={setShortLeaveCustomReason}
+              leaveType={leaveType}
+            />
+          </div>
+
+          <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-slate-100 z-40">
+            <button
+              type="button"
+              onClick={handleShortLeaveSubmit}
+              disabled={loading}
+              className="w-full max-w-xl mx-auto py-4 bg-amber-500 text-white text-xs font-black uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-amber-500/20 hover:bg-amber-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+            >
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                  Processing...
+                </>
+              ) : 'Approve Pass'}
+            </button>
+          </div>
+        </div>
+      )}
+      {/* Custom Alert Modal */}
+      <CustomAlert
+        isOpen={alertState.isOpen}
+        title={alertState.title}
+        message={alertState.message}
+        type={alertState.type}
+        onClose={() => setAlertState({ ...alertState, isOpen: false })}
+      />
+    </div>
+  );
+}
+
+export default LeaveForm;

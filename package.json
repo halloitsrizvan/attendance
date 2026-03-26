@@ -1,0 +1,40 @@
+{
+  "name": "attendance",
+  "version": "1.0.0",
+  "description": "A full-stack web application designed for managing attendance, leave requests, and related data in an educational institution. It provides separate portals for teachers and students, enabling efficient tracking and reporting of attendance records.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/halloitsrizvan/attendance.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/halloitsrizvan/attendance/issues"
+  },
+  "homepage": "https://github.com/halloitsrizvan/attendance#readme",
+  "dependencies": {
+    "axios": "^1.13.6",
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "jsonwebtoken": "^9.0.3",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.7",
+    "lucide-react": "^1.0.1",
+    "mongoose": "^9.3.1",
+    "next": "^14.2.35",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-icons": "^5.6.0",
+    "xlsx": "^0.18.5"
+  }
+}
