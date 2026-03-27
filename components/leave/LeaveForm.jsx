@@ -414,6 +414,13 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     }
   }, [reason, showEndDateForMedical]);
 
+  // Set startImmediately to true if fromTime is Now
+  useEffect(() => {
+    if (fromTime === 'Now' && fromDate === 'Today') {
+      setStartImmediately(true);
+    }
+  }, [fromTime, fromDate]);
+
   // Short Leave Functions
   const addShortLeaveStudent = () => {
     setShortLeaveStudents([...shortLeaveStudents, { ad: '', name: '', classNum: '', student: null }]);
