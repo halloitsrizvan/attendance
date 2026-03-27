@@ -196,7 +196,7 @@ function Header() {
                     className="w-full flex items-center justify-between px-4 py-5 font-bold text-slate-800 hover:bg-sky-50 transition-colors"
                     onClick={() => toggleDropdown('mb-leave')}
                   >
-                    <span className="text-lg">Apply Leave</span>
+                    <span className="text-lg">Leave</span>
                     <svg className={`w-6 h-6 transition-transform duration-200 text-slate-400 ${openDropdown === 'mb-leave' ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                     </svg>
