@@ -11,7 +11,11 @@ function SelectionButton({ label, isSelected, onClick, type }) {
         ${isSelected
           ? type === "Reason"
             ? 'bg-rose-500 text-white border-rose-500 shadow-lg shadow-rose-500/20 scale-[1.02]'
-            : 'bg-sky-500 text-white border-sky-500 shadow-lg shadow-sky-500/20 scale-[1.02]'
+            : type === "From"
+              ? 'bg-sky-500 text-white border-sky-500 shadow-lg shadow-sky-500/20 scale-[1.02]'
+              : type === "To"
+                ? 'bg-amber-500 text-white border-amber-500 shadow-lg shadow-amber-500/20 scale-[1.02]'
+                : 'bg-sky-500 text-white border-sky-500 shadow-lg shadow-sky-500/20 scale-[1.02]'
           : 'bg-white text-slate-400 border-slate-50 hover:border-sky-100'
         }
       `}

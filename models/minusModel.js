@@ -20,7 +20,10 @@ const minusSchema = new Schema({
         required: true
     },
     teacher:{type:String},
-    minusNum:{type: Number}
+    minusNum:{type: Number},
+    academicYear: {
+        type: String,
+    }
 }, { timestamps: true });
 
 export default mongoose.models['Minus'] || mongoose.model('Minus', minusSchema);

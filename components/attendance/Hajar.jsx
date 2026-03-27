@@ -44,6 +44,17 @@ function Hajar() {
   const [shortLeaveData, setShortLeaveData] = useState([]);
   const [leaveData, setLeaveData] = useState([]); // New state for medical leaves
   const [returnedStudents, setReturnedStudents] = useState([]); // Track students returned locally
+  const [academicYear, setAcademicYear] = useState('');
+
+  useEffect(() => {
+    axios.get(`${API_PORT}/settings`)
+      .then(res => {
+        if (res.data.academicYear) {
+          setAcademicYear(res.data.academicYear);
+        }
+      })
+      .catch(err => console.error("Error fetching academic year:", err));
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -255,6 +266,7 @@ function Hajar() {
         attendanceTime: time,
         attendanceDate: new Date(),
         teacher: teacher?.name || 'Unknown',
+        academicYear: academicYear,
         ...(period && { period: period }),
         ...(more && { custom: more }),
         onLeave: isOnLeave,
@@ -319,6 +331,10 @@ function Hajar() {
   const [copy, setCopy] = useState(false);
 
   const handleCopyAbsentees = () => {
+    const attendanceDate = date ? new Date(date).toLocaleDateString("en-US", { dateStyle: "long" }) : new Date().toLocaleDateString("en-US", { dateStyle: "long" });
+    const attendanceTime = `${time}${period ? ` (P${period})` : ""}${more ? ` - ${more}` : ""}`;
+    const headText = `Class ${id} Attendance\n${attendanceDate} | ${attendanceTime}\n\n`;
+
     if (absentees.length > 0) {
       // Separate regular absentees, short leave, medical leave, and on-leave students
       const regularAbsentees = absentees.filter(s => {
@@ -340,7 +356,6 @@ function Hajar() {
       );
 
       let text = "";
-      const classofStd = `Class ${absentees[0].CLASS}`;
 
       // Add regular absentees
       if (regularAbsentees.length > 0) {
@@ -373,7 +388,7 @@ function Hajar() {
           .join("\n");
       }
 
-      navigator.clipboard.writeText(classofStd + "\n" + text)
+      navigator.clipboard.writeText(headText + text)
         .then(() => {
           setCopy(true);
         })
@@ -381,7 +396,7 @@ function Hajar() {
           console.error("Failed to copy: ", err);
         });
     } else {
-      navigator.clipboard.writeText("No absentees 🎉");
+      navigator.clipboard.writeText(headText + "No absentees 🎉");
       setCopy(true);
     }
     setTimeout(() => {

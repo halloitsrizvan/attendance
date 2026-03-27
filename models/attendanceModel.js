@@ -46,6 +46,9 @@ const attendanceSchema = new Schema({
     },
     onLeave: {
         type: Boolean,
+    },
+    academicYear: {
+        type: String,
     }
 }, { timestamps: true });
 

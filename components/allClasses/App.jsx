@@ -17,6 +17,17 @@ export default function App({ students }) {
     const [load, setLoad] = useState(false);
     const [teacher, setTeacher] = useState(null);
     const [status, setStatus] = useState(null);
+    const [academicYear, setAcademicYear] = useState('');
+
+    useEffect(() => {
+        axios.get(`${API_PORT}/settings`)
+            .then(res => {
+                if (res.data.academicYear) {
+                    setAcademicYear(res.data.academicYear);
+                }
+            })
+            .catch(err => console.error("Error fetching academic year:", err));
+    }, []);
 
     useEffect(() => {
         const storedTeacher = getSafeLocalStorage().getItem("teacher");
@@ -42,7 +53,8 @@ export default function App({ students }) {
                 classNum,
                 minusNum: minusCount,
                 reason: finalReason,
-                teacher: teacher?.name || 'Unknown'
+                teacher: teacher?.name || 'Unknown',
+                academicYear: academicYear
             };
 
             await axios.post(`${API_PORT}/minus`, payload);
@@ -63,7 +75,7 @@ export default function App({ students }) {
     };
 
     return (
-        <div className="flex items-center justify-center p-6 min-h-[70vh] bg-slate-50/50">
+        <div className="flex items-center justify-center p-2 min-h-[70vh] bg-slate-50/50">
             <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
                 {/* Header */}
                 <div className="mb-8">

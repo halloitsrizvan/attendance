@@ -24,6 +24,17 @@ function EditAtt() {
   const [copy, setCopy] = useState(false)
     const latestDate=students[0]?.attendanceDate
     const latestTime=students[0]?.attentenceTime
+    const [academicYear, setAcademicYear] = useState('');
+
+    useEffect(() => {
+        axios.get(`${API_PORT}/settings`)
+            .then(res => {
+                if (res.data.academicYear) {
+                    setAcademicYear(res.data.academicYear);
+                }
+            })
+            .catch(err => console.error("Error fetching academic year:", err));
+    }, []);
     useEffect(() => {
       setLoad(true)
       console.log(latestDate,latestTime);
@@ -90,15 +101,19 @@ function EditAtt() {
   }
   
   const handleCopyAbsentees = () => {
+    const attendanceDate = students[0]?.attendanceDate ? new Date(students[0].attendanceDate).toLocaleDateString("en-US", { dateStyle: "long" }) : "N/A";
+    const attendanceTime = students[0]?.attendanceTime || students[0]?.attentenceTime || "N/A";
+    const headText = `Class ${id} Attendance\n${attendanceDate} | ${attendanceTime}\n\n`;
+
     if (absentees.length > 0) {
       const text = absentees
         .map((s) => `${s.nameOfStd} (AdNo: ${s.ad})`)
         .join("\n");
-      navigator.clipboard.writeText("Class :"+absentees[0].class+"\n"+text)
+      navigator.clipboard.writeText(headText + text)
         .then(() => setCopy(true))
         .catch((err) => console.error("Failed to copy: ", err));
     } else {
-      navigator.clipboard.writeText("No absentees 🎉");
+      navigator.clipboard.writeText(headText + "No absentees 🎉");
       setCopy(true)
     }
     setTimeout(() => setCopy(false), 4000)
@@ -117,7 +132,7 @@ function EditAtt() {
           SL: student.SL,
           attendanceTime: student.attentenceTime,
           attendanceDate: student.attendanceDate ? (typeof student.attendanceDate === 'string' ? new Date(student.attendanceDate).toISOString() : new Date(student.attendanceDate).toISOString()) : new Date().toISOString(),
-          
+          academicYear: academicYear,
         }));
 
         await axios.patch(`${API_PORT}/set-attendance`,{updates:updatedData})

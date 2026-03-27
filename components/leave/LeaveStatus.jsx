@@ -14,19 +14,18 @@ const getSafeLocalStorage = () => {
   }
   return {
     getItem: () => null,
-    setItem: () => {},
-    removeItem: () => {},
+    setItem: () => { },
+    removeItem: () => { },
   };
 };
 
 const TabButton = ({ label, isActive, onClick }) => (
   <button
     onClick={onClick}
-    className={`py-2 px-3 sm:px-4 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 whitespace-nowrap ${
-      isActive
+    className={`py-2 px-3 sm:px-4 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 whitespace-nowrap ${isActive
         ? 'bg-sky-500 text-white shadow-md shadow-sky-500/30'
         : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
-    }`}
+      }`}
   >
     {label}
   </button>
@@ -263,11 +262,11 @@ function LeaveStatus() {
   };
 
   const medicalRoomStatus = useMemo(() => {
-    return leaveData.filter(student => student.reason === 'Medical (Room)' && !student.returnedAt && matchesSearch(student));
+    return leaveData.filter(student => (student.reason === 'Medical (Room)' || student.reason === 'Room') && !student.returnedAt && matchesSearch(student));
   }, [leaveData, searchValue]);
 
   const medicalRoomStatusDB = useMemo(() => {
-    return leaveData.filter(student => student.reason === 'Medical (Room)' && !student.returnedAt && student.teacher === teacher?.name && matchesSearch(student));
+    return leaveData.filter(student => (student.reason === 'Medical (Room)' || student.reason === 'Room') && !student.returnedAt && student.teacher === teacher?.name && matchesSearch(student));
   }, [leaveData, searchValue, teacher]);
 
 
@@ -673,7 +672,7 @@ function LeaveStatus() {
                           type="Generalactions"
                         />
                         : activeTabActions === "Medical (without end date)" ?
-                           <div>
+                          <div>
                             <ShortLeave
                               statusData={leaveData.filter(student => student.reason === "Medical" && !student.toDate && !student.returnedAt && matchesSearch(student))}
                               type="medicalWithoutEndDate"

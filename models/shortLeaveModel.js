@@ -30,6 +30,9 @@ const shortLeaveSchema = new Schema({
     date: { type: Date },
     teacher: {
         type: String
+    },
+    academicYear: {
+        type: String,
     }
 }, { timestamps: true });
 

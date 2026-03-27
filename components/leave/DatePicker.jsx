@@ -3,7 +3,7 @@
 import React from 'react';
 import SelectionButton from './SelectionButton';
 
-function DatePicker({ label, selectedDate, setSelectedDate, customDate, setCustomDate }) {
+function DatePicker({ label, selectedDate, setSelectedDate, customDate, setCustomDate, type }) {
   const dateOptions = ['Today', 'Tomorrow', 'Day After', 'Calendar'];
 
   const handleDateSelect = (option) => {
@@ -23,7 +23,7 @@ function DatePicker({ label, selectedDate, setSelectedDate, customDate, setCusto
             label={option}
             isSelected={selectedDate === option}
             onClick={() => handleDateSelect(option)}
-            type={label}
+            type={type || label}
           />
         ))}
       </div>

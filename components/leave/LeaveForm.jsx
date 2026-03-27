@@ -15,14 +15,14 @@ import { Plus, Minus } from 'lucide-react';
 import Header from '../Header/Header';
 import './styles/leaveForm.css';
 
-const TimePicker = ({ label, selectedTime, setSelectedTime, options, customTime, setCustomTime }) => (
+const TimePicker = ({ label, selectedTime, setSelectedTime, options, customTime, setCustomTime, type }) => (
   <div className="space-y-3">
     {label && <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">{label}</h3>}
     <div className="grid grid-cols-2 gap-2">
       {options.map(option => (
         <SelectionButton
           key={option}
-          type={label}
+          type={type || label}
           label={option}
           isSelected={selectedTime === option}
           onClick={() => {
@@ -213,6 +213,17 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   const [shortLeaveCustomDate, setShortLeaveCustomDate] = useState('')
   const fromTimeOptions = ['Morning', 'Evening', 'Now', 'Clock'];
   const toTimeOptions = ['Morning', 'Evening', 'Clock'];
+  const [academicYear, setAcademicYear] = useState('');
+
+  useEffect(() => {
+    axios.get(`${API_PORT}/settings`)
+      .then(res => {
+        if (res.data.academicYear) {
+          setAcademicYear(res.data.academicYear);
+        }
+      })
+      .catch(err => console.error("Error fetching academic year:", err));
+  }, []);
   const [alertState, setAlertState] = useState({ isOpen: false, title: '', message: '', type: 'info' });
 
   const showAlert = (message, title = "Notice", type = "info") => {
@@ -343,7 +354,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
 
   // Reset showEndDateForMedical when reason changes
   useEffect(() => {
-    if (reason !== 'Medical' && reason !== 'Medical (Room)') {
+    if (reason !== 'Medical' && reason !== 'Room') {
       setShowEndDateForMedical(true);
     } else {
       setShowEndDateForMedical(false);
@@ -460,7 +471,8 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         toTime: finalToTime,
         reason: finalReason,
         teacher: teacher.name,
-        date: finalDate
+        date: finalDate,
+        academicYear: academicYear
       };
 
       return axios.post(`${API_PORT}/class-excused-pass`, payload);
@@ -550,7 +562,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     const finalReason = reason === 'Custom' ? customReason : reason;
 
     // For medical reasons, set toDate and toTime to null unless user explicitly sets them
-    const isMedicalReason = reason === 'Medical' || reason === 'Medical (Room)';
+    const isMedicalReason = reason === 'Medical' || reason === 'Medical (Room)' || reason === 'Room';
 
     let finalToDate = null;
     let finalToTime = null;
@@ -587,6 +599,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       toTime: finalToTime,
       reason: finalReason,
       teacher: teacher.name,
+      academicYear: academicYear,
       status: "Scheduled"
     };
 
@@ -745,7 +758,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     const finalReason = reason === 'Custom' ? customReason : reason;
 
     // For medical reasons, set toDate and toTime to null unless user explicitly sets them
-    const isMedicalReason = reason === 'Medical' || reason === 'Medical (Room)';
+    const isMedicalReason = reason === 'Medical' || reason === 'Medical (Room)' || reason === 'Room';
 
     let finalToDate = null;
     let finalToTime = null;
@@ -784,6 +797,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         toTime: finalToTime,
         reason: finalReason,
         teacher: teacher.name,
+        academicYear: academicYear,
         status: "Scheduled"
       };
 
@@ -871,8 +885,8 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         {["HOD", "HOS", "super_admin"].includes(teacher?.role) && (
           <button
             className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold shadow-sm transition-all ${leaveType === "leave"
-                ? "bg-sky-500 text-white hover:bg-sky-600 shadow-sky-500/20"
-                : "bg-amber-500 text-white hover:bg-amber-600 shadow-amber-500/20"
+              ? "bg-sky-500 text-white hover:bg-sky-600 shadow-sky-500/20"
+              : "bg-amber-500 text-white hover:bg-amber-600 shadow-amber-500/20"
               }`}
             onClick={() => setLeaveType(leaveType === "leave" ? 'short-leave' : 'leave')}
           >
@@ -1095,6 +1109,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
                 setSelectedDate={setFromDate}
                 customDate={fromCustomDate}
                 setCustomDate={setFromCustomDate}
+                type="From"
               />
               <TimePicker
                 label="Time"
@@ -1103,6 +1118,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
                 options={fromTimeOptions}
                 customTime={fromCustomTime}
                 setCustomTime={setFromCustomTime}
+                type="From"
               />
             </div>
           </div>
@@ -1117,6 +1133,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
                   setSelectedDate={setToDate}
                   customDate={toCustomDate}
                   setCustomDate={setToCustomDate}
+                  type="To"
                 />
                 <TimePicker
                   label="Time"
@@ -1125,6 +1142,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
                   options={toTimeOptions}
                   customTime={toCustomTime}
                   setCustomTime={setToCustomTime}
+                  type="To"
                 />
               </div>
             </div>
@@ -1134,7 +1152,9 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
                 <div className="w-12 h-12 bg-sky-50 rounded-full flex items-center justify-center mx-auto">
                   <span className="text-sky-500 font-black italic text-xl">m</span>
                 </div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Medical leave - No end date needed</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  {reason === 'Room' ? "Medical Room- No end date needed" : "Medical leave - No end date needed"}
+                </p>
                 <button
                   type="button"
                   onClick={() => setShowEndDateForMedical(true)}
@@ -1174,7 +1194,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
           {/* Short Leave Pass Section */}
           <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50 space-y-6">
             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Class Excused Pass</h3>
-            
+
             {/* Added Students Chips */}
             <div className="space-y-3">
               {shortLeaveStudents.filter(s => s.student).map((studentData, index) => (
@@ -1186,7 +1206,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
                       <span className="text-[9px] font-black text-sky-500 uppercase tracking-widest bg-white px-1.5 py-0.5 rounded border border-sky-100">Class {studentData.classNum}</span>
                     </div>
                   </div>
-                  <button 
+                  <button
                     onClick={() => removeShortLeaveStudent(shortLeaveStudents.findIndex(s => s.ad === studentData.ad))}
                     className="w-8 h-8 rounded-xl bg-white text-rose-500 border border-rose-50 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-sm"
                   >
@@ -1205,7 +1225,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
                   onChange={(e) => {
                     const value = e.target.value.trim();
                     const lastIndex = shortLeaveStudents.length - 1;
-                    
+
                     // If last one is already a student, create a new entry
                     if (shortLeaveStudents[lastIndex].student) {
                       setShortLeaveStudents([...shortLeaveStudents, { ad: value, name: '', classNum: '', student: null }]);

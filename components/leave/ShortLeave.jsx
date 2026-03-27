@@ -57,6 +57,17 @@ function ShortLeave({ statusData: initialStatusData, type, onDataUpdate }) {
   const teacher = typeof window !== "undefined" && localStorage.getItem("teacher") ? JSON.parse(localStorage.getItem("teacher")) : null;
   const [statusData, setStatusData] = useState(initialStatusData || []);
   const [processingId, setProcessingId] = useState(null);
+  const [academicYear, setAcademicYear] = useState('');
+
+  useEffect(() => {
+    axios.get(`${API_PORT}/settings`)
+      .then(res => {
+        if (res.data.academicYear) {
+          setAcademicYear(res.data.academicYear);
+        }
+      })
+      .catch(err => console.error("Error fetching academic year:", err));
+  }, []);
 
   // Confirmation Modal State
   const [confirmationModal, setConfirmationModal] = useState({
@@ -154,6 +165,7 @@ function ShortLeave({ statusData: initialStatusData, type, onDataUpdate }) {
           toTime: null,
           reason: 'Medical',
           teacher: teacher.name,
+          academicYear: academicYear,
           status: "active"
         };
 

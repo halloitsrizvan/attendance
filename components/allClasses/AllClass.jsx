@@ -197,7 +197,13 @@ function AllClass({edit,id}) {
         {/* Time */}
         <select
           value={time}
-          onChange={(e) => setTime(e.target.value)}
+          onChange={(e) => {
+            setTime(e.target.value)
+            if(e.target.value!=="Period"){
+              setPeriod('')
+            }
+
+          }}
           className="flex-1 border border-sky-100 bg-sky-50/30 rounded-xl px-3 py-3 text-xs sm:text-sm font-bold text-slate-700 focus:ring-2 focus:ring-sky-400 focus:outline-none transition-all"
         >
           <option value="Period">Period</option>
@@ -213,21 +219,21 @@ function AllClass({edit,id}) {
           <div className="flex flex-col gap-2 w-full">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Select Period</label>
             <div className="grid grid-cols-6 sm:grid-cols-11 gap-2 pb-2">
-              {Array.from({ length: 11 }, (_, i) => (
+              {Array.from({ length: 10 }, (_, i) => (
                 <button
                   key={i}
                   type="button"
                   onClick={() => {
-                    setPeriod(i);
+                    setPeriod(i + 1);
                     setErr('');
                   }}
                   className={`h-11 rounded-xl flex items-center justify-center text-sm font-black transition-all duration-200 ${
-                    String(period) === String(i)
+                    String(period) === String(i + 1)
                       ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/20 scale-105'
                       : 'bg-white border-2 border-slate-50 text-slate-400 hover:border-sky-100 hover:bg-sky-50/50'
                   }`}
                 >
-                  {i}
+                  {i + 1}
                 </button>
               ))}
             </div>

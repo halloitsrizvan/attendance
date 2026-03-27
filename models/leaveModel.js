@@ -47,8 +47,12 @@ const leaveSchema = new Schema({
     },
     leaveStartTeacher: {
         type: String
-    }, markReturnedTeacher: {
+    },
+    markReturnedTeacher: {
         type: String
+    },
+    academicYear: {
+        type: String,
     }
 }, { timestamps: true });
 

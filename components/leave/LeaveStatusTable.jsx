@@ -667,7 +667,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
                   // >
                   //   <Edit size={16} className="ml-1" />
                   // </button>
-                  <span>{ad}</span> 
+                  <span>{ad}</span>
                 )}
               </div>
             </div>
@@ -702,15 +702,15 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
             <buttonState.icon size={14} />
             <span className="sm:inline"> {buttonState.text}</span>
           </button>
-          {type!=="Generalactions"&&
-          <button
-            className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg transition-colors duration-200 flex-shrink-0 bg-blue-600 text-white hover:bg-blue-700`}
-             onClick={() => setShowEdit(true)}
-            title="Edit Leave"
-          >
-            <Edit size={16} className="ml-1" />
-           
-          </button>}
+          {type !== "Generalactions" &&
+            <button
+              className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg transition-colors duration-200 flex-shrink-0 bg-blue-600 text-white hover:bg-blue-700`}
+              onClick={() => setShowEdit(true)}
+              title="Edit Leave"
+            >
+              <Edit size={16} className="ml-1" />
+
+            </button>}
         </div>
 
         {/* Status Bar */}
@@ -813,9 +813,9 @@ function LeaveStatusTable({ classData: initialClassData1, onDataUpdate, getLeave
   let initialClassData = "";
   if (type === "MyDashboard") {
     // Filter for MyDashboard: teacher's data only, exclude Medical Room, include Scheduled status
-    initialClassData = initialClassData1.filter((leave) => 
-      leave.reason !== "Medical (Room)" && 
-      leave.toDate && 
+    initialClassData = initialClassData1.filter((leave) =>
+      leave.reason !== "Medical (Room)" &&
+      leave.toDate &&
       leave.teacher === teacher?.name &&
       (leave.status !== "returned" || leave.status === "Scheduled") // Include Scheduled status
     );

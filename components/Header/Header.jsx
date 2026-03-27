@@ -82,6 +82,7 @@ function Header() {
                   <a href="#" className="text-white/90 hover:text-white transition-colors duration-200 font-medium" onClick={()=>{navigate.push('/teachers-management')}}>Teachers</a>
                   <a href="#" className="text-white/90 hover:text-white transition-colors duration-200 font-medium"  onClick={()=>{navigate.push('/report')}}>Report</a>
                   <a href="#" className="text-white/90 hover:text-white transition-colors duration-200 font-medium" onClick={()=>{navigate.push('/minus-report')}}>Minus Report</a>
+                  <a href="#" className="text-white/90 hover:text-white transition-colors duration-200 font-medium" onClick={()=>{navigate.push('/settings')}}>Settings</a>
                 </>
               )}
               
@@ -132,6 +133,7 @@ function Header() {
                     <a href="#" className="block px-4 py-3 rounded-xl text-base font-medium text-slate-700 hover:text-sky-600 hover:bg-sky-50 transition-all duration-200" onClick={()=>{navigate.push('/teachers-management'); setIsMenuOpen(false)}}>Teachers</a>
                     <a href="#" className="block px-4 py-3 rounded-xl text-base font-medium text-slate-700 hover:text-sky-600 hover:bg-sky-50 transition-all duration-200"  onClick={()=>{navigate.push('/report'); setIsMenuOpen(false)}}>Report</a>
                     <a href="#" className="block px-4 py-3 rounded-xl text-base font-medium text-slate-700 hover:text-sky-600 hover:bg-sky-50 transition-all duration-200" onClick={()=>{navigate.push('/minus-report'); setIsMenuOpen(false)}}>Minus Report</a>
+                    <a href="#" className="block px-4 py-3 rounded-xl text-base font-medium text-slate-700 hover:text-sky-600 hover:bg-sky-50 transition-all duration-200" onClick={()=>{navigate.push('/settings'); setIsMenuOpen(false)}}>Settings</a>
                   </>
                 )}
                 
