@@ -214,6 +214,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   const fromTimeOptions = ['Morning', 'Evening', 'Now', 'Clock'];
   const toTimeOptions = ['Morning', 'Evening', 'Clock'];
   const [academicYear, setAcademicYear] = useState('');
+  const [startImmediately, setStartImmediately] = useState(false);
 
   useEffect(() => {
     axios.get(`${API_PORT}/settings`)
@@ -356,10 +357,19 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   useEffect(() => {
     if (reason !== 'Medical' && reason !== 'Room') {
       setShowEndDateForMedical(true);
+      setStartImmediately(false);
     } else {
       setShowEndDateForMedical(false);
+      // For immediate medical/room needs, set time to Now and auto-start
+      if (reason === 'Room') {
+        setFromTime('Now');
+        setFromDate('Today');
+        setStartImmediately(true);
+      } else if (reason === 'Medical' && !showEndDateForMedical) {
+        setStartImmediately(true);
+      }
     }
-  }, [reason]);
+  }, [reason, showEndDateForMedical]);
 
   // Short Leave Functions
   const addShortLeaveStudent = () => {
@@ -600,7 +610,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       reason: finalReason,
       teacher: teacher.name,
       academicYear: academicYear,
-      status: "Scheduled"
+      status: startImmediately ? "active" : "Scheduled"
     };
 
     console.log('Submitting leave:', payload);
@@ -614,10 +624,10 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         setName('');
         setClassNum('');
         setFromDate('Today');
-        setFromTime('Evening');
+        setFromTime('Now');
         setFromCustomDate('');
         setFromCustomTime('');
-        setToDate('Tomorrow');
+        setToDate('Today');
         setToTime('Evening');
         setToCustomDate('');
         setToCustomTime('');
@@ -625,6 +635,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         setCustomReason('');
         setSuggestions([]);
         setShowEndDateForMedical(false);
+        setStartImmediately(false);
       })
       .catch((err) => {
         console.error("Error submitting leave", err);
@@ -798,7 +809,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         reason: finalReason,
         teacher: teacher.name,
         academicYear: academicYear,
-        status: "Scheduled"
+        status: startImmediately ? "active" : "Scheduled"
       };
 
       return axios.post(`${API_PORT}/leave`, payload);
@@ -832,8 +843,9 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       setSuggestions([]);
       setShowEndDateForMedical(false);
 
-      showAlert(`Bulk leave approved for ${selectedBulkStudents.length} students.`, "Success", "success");
+      showAlert(`Leave approved for ${selectedBulkStudents.length} students.`, "Approval Successful", "success");
       setSelectedBulkStudents([]);
+      setStartImmediately(false);
       setShowBulkModal(false);
     } catch (error) {
       console.error("Error submitting bulk leaves:", error);
@@ -1168,25 +1180,40 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
 
           {/* Submit Button */}
           <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-slate-100 z-40">
-            <button
-              type="button"
-              onClick={(e) => {
-                if (showBulkModal) {
-                  handleBulkSubmit();
-                } else {
-                  handleSubmit(e);
-                }
-              }}
-              disabled={loading}
-              className="w-full max-w-xl mx-auto py-4 bg-emerald-500 text-white text-xs font-black uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-            >
-              {loading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-                  Processing...
-                </>
-              ) : leaveType === 'leave' ? 'Approve Leave' : 'Approve Pass'}
-            </button>
+            <div className="max-w-xl mx-auto flex items-center gap-3">
+              <button
+                type="button"
+                onClick={(e) => {
+                  if (showBulkModal) {
+                    handleBulkSubmit();
+                  } else {
+                    handleSubmit(e);
+                  }
+                }}
+                disabled={loading}
+                className="flex-1 py-4 bg-emerald-500 text-white text-xs font-black uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+              >
+                {loading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                    Processing...
+                  </>
+                ) : leaveType === 'leave' ? 'Approve Leave' : 'Approve Pass'}
+              </button>
+
+              <label className="flex flex-col items-center gap-1 cursor-pointer select-none">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={startImmediately}
+                    onChange={(e) => setStartImmediately(e.target.checked)}
+                  />
+                  <div className="w-10 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 transition-colors"></div>
+                </div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Start</span>
+              </label>
+            </div>
           </div>
         </div>
       ) : (

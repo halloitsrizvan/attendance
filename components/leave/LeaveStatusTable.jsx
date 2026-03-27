@@ -38,6 +38,8 @@ const EditLeaveModal = ({ classInfo, onSave, onClose, isOpen, onDelete }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const isMedical = (reason) => reason === 'Medical' || reason === 'Medical (Room)' || reason === 'Room';
+
   // Initialize form data when modal opens or classInfo changes
   useEffect(() => {
     if (isOpen && classInfo) {
@@ -338,7 +340,7 @@ const EditLeaveModal = ({ classInfo, onSave, onClose, isOpen, onDelete }) => {
 };
 
 const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassData, teacher, type }) => {
-  const { _id, classNum, ad, name, remainingTime, status, returnedAt, toDate, toTime, fromTime, fromDate } = classInfo;
+  const { _id, classNum, ad, name, remainingTime, status, returnedAt, toDate, toTime, fromTime, fromDate, reason } = classInfo;
   const [showConfirm, setShowConfirm] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
@@ -648,15 +650,46 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
     }
   };
 
+  const handleUpdateStatus = async (newStatus) => {
+    setIsProcessing(true);
+    try {
+      await axios.put(`${API_PORT}/leave/${classInfo._id}`, {
+        status: newStatus
+      });
+      onDataUpdate();
+    } catch (error) {
+      console.error('Error updating status:', error);
+      alert('Failed to update status');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const getStatusStyle = (status) => {
+    switch(status) {
+      case 'On Leave': return 'bg-orange-500';
+      case 'Late': return 'bg-red-500';
+      case 'Pending': return 'bg-blue-500';
+      case 'Returned':
+      case 'Late Returned': return 'bg-green-500';
+      case 'Scheduled': return 'bg-gray-400';
+      default: return 'bg-gray-400';
+    }
+  };
+
+  const statusColor = getStatusStyle(status);
+
   return (
     <>
       {/* Compact Card Design */}
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
+        {/* Status Indicator Bar */}
+        <div className={`h-1 ${statusColor}`}></div>
         {/* Header - Student Info & Action Button */}
         <div className="p-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className="flex-shrink-0">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+              <div className={`w-10 h-10 ${statusColor} rounded-lg flex items-center justify-center text-white font-bold text-sm`}>
                 {type === "Generalactions" ? (
                   <span>{ad}</span>
                 ) : (
@@ -682,11 +715,24 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
               <div className="flex items-center gap-3 text-xs text-gray-500">
                 <span>From: {formatDate(fromDate)},</span>
                 <span>{formatDateTime(fromDate, fromTime)}</span>
-
               </div>
-              <div className="flex items-center gap-3 text-xs text-gray-500">
-                <span>To: {formatDate(toDate)},</span>
-                <span>{formatDateTime(toDate, toTime)}</span>
+              
+              {toDate && toTime && (
+                <div className="flex items-center gap-3 text-xs text-gray-500">
+                  <span>To: {formatDate(toDate)},</span>
+                  <span>{formatDateTime(toDate, toTime)}</span>
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center gap-2 mt-2 pt-2 border-t border-gray-50">
+                {classInfo.teacher && (
+                  <div className="flex items-center gap-1 text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded text-[10px] font-bold">
+                    <span>{classInfo.teacher}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-1 text-slate-500 bg-slate-50 px-2 py-0.5 rounded text-[10px] font-medium italic">
+                  <span>{classInfo.reason}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -694,23 +740,47 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
                 <span>From: {formatDateTime(fromDate, fromTime)}</span>
                 <span>To: {formatDateTime(toDate, toTime)}</span>
               </div> */}
-          <button
-            className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg transition-colors duration-200 flex-shrink-0 ${buttonState.className}`}
-            disabled={buttonState.disabled || isProcessing}
-            onClick={() => !buttonState.disabled && setShowConfirm(true)}
-          >
-            <buttonState.icon size={14} />
-            <span className="sm:inline"> {buttonState.text}</span>
-          </button>
-          {type !== "Generalactions" &&
-            <button
-              className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg transition-colors duration-200 flex-shrink-0 bg-blue-600 text-white hover:bg-blue-700`}
-              onClick={() => setShowEdit(true)}
-              title="Edit Leave"
-            >
-              <Edit size={16} className="ml-1" />
-
-            </button>}
+          {/* Action Buttons */}
+          {reason === 'Room' && status === 'On Leave' ? (
+            <div className="flex flex-col gap-1.5 flex-shrink-0">
+              <button
+                className="flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white transition-all shadow-sm shadow-orange-500/20 active:scale-95"
+                onClick={() => handleUpdateStatus('Pending')}
+                disabled={isProcessing}
+              >
+                leave
+              </button>
+              <button
+                className="flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-all shadow-sm shadow-blue-500/20 active:scale-95"
+                disabled={isProcessing}
+                onClick={() => setShowConfirm(true)}
+              >
+                <CheckCircle size={12} />
+                Return
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg transition-colors duration-200 flex-shrink-0 ${buttonState.className}`}
+                disabled={buttonState.disabled || isProcessing}
+                onClick={() => !buttonState.disabled && setShowConfirm(true)}
+              >
+                <buttonState.icon size={14} />
+                <span className="sm:inline"> {buttonState.text}</span>
+              </button>
+              
+              {type !== "Generalactions" && (
+                <button
+                  className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg transition-colors duration-200 flex-shrink-0 bg-blue-600 text-white hover:bg-blue-700"
+                  onClick={() => setShowEdit(true)}
+                  title="Edit Leave"
+                >
+                  <Edit size={16} className="ml-1" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Status Bar */}
@@ -812,12 +882,10 @@ function LeaveStatusTable({ classData: initialClassData1, onDataUpdate, getLeave
 
   let initialClassData = "";
   if (type === "MyDashboard") {
-    // Filter for MyDashboard: teacher's data only, exclude Medical Room, include Scheduled status
+    // Filter for MyDashboard: teacher's data only, include all statuses that need action
     initialClassData = initialClassData1.filter((leave) =>
-      leave.reason !== "Medical (Room)" &&
-      leave.toDate &&
       leave.teacher === teacher?.name &&
-      (leave.status !== "returned" || leave.status === "Scheduled") // Include Scheduled status
+      ['Pending', 'Late', 'On Leave'].includes(leave.status)
     );
   } else {
     initialClassData = initialClassData1;

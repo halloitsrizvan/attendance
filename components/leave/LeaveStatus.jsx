@@ -274,21 +274,31 @@ function LeaveStatus() {
   const getLeaveStatus = (item) => {
     const now = new Date();
     const fromDateTime = new Date(`${item.fromDate}T${item.fromTime}`);
-    const toDateTime = new Date(`${item.toDate}T${item.toTime}`);
+    const toDateTime = item.toDate && item.toTime ? new Date(`${item.toDate}T${item.toTime}`) : null;
 
     if (item.status === 'returned') {
-      if (item.returnedAt && new Date(item.returnedAt) > toDateTime) {
+      if (toDateTime && item.returnedAt && new Date(item.returnedAt) > toDateTime) {
         return 'Late Returned';
       }
       return 'Returned';
     }
 
     if (now < fromDateTime) return 'Scheduled';
+    
+    // If it's a medical / room leave without end date
+    if (!toDateTime && (item.status === 'active' || item.status === 'returned')) {
+       if (item.status === 'returned') return 'Returned';
+       return 'On Leave';
+    }
+
     if (now >= fromDateTime && item.status === 'Scheduled') {
       return 'Pending';
     }
-    if (now >= fromDateTime && now <= toDateTime && item.status === 'active') return 'On Leave';
-    if (now > toDateTime && item.status !== 'returned') return 'Late';
+
+    if (toDateTime) {
+      if (now >= fromDateTime && now <= toDateTime && item.status === 'active') return 'On Leave';
+      if (now > toDateTime && item.status !== 'returned') return 'Late';
+    }
 
     return item.status || 'Scheduled';
   };
@@ -348,51 +358,16 @@ function LeaveStatus() {
       });
   };
 
-  const getLeaveStatusForTable = (item) => {
-    const now = new Date();
-    const fromDateTime = new Date(`${item.fromDate}T${item.fromTime}`);
-    const toDateTime = new Date(`${item.toDate}T${item.toTime}`);
-
-    if (item.status === 'returned') {
-      if (item.returnedAt && new Date(item.returnedAt) > toDateTime) {
-        return 'Late Returned';
-      }
-      return 'Returned';
-    }
-
-    if (now < fromDateTime) return 'Scheduled';
-    if (now >= fromDateTime && item.status === 'Scheduled') {
-      return 'Pending';
-    }
-    if (now >= fromDateTime && now <= toDateTime && item.status === 'active') return 'On Leave';
-    if (now > toDateTime && item.status !== 'returned') return 'Late';
-
-    return item.status;
-  };
-
   const actionsTableData = useMemo(() => {
     return leaveData
       .filter(matchesSearch)
       .map(item => ({
         ...item,
-        status: getLeaveStatusForTable(item)
+        status: getLeaveStatus(item)
       }))
-      .filter(data => {
-        const endDateTime = new Date(`${data.toDate}T${data.toTime}`);
-        const now = new Date();
-        const diffHours = (endDateTime - now) / (1000 * 60 * 60);
-
-        const isPendingOrLate =
-          ['Pending', 'Late', 'On Leave'].includes(data.status) &&
-          data.reason !== 'Medical (Room)';
-
-        const isFourHourOnLeave =
-          data.status === 'On Leave' &&
-          diffHours <= 4 &&
-          diffHours > 0;
-
-        return (isPendingOrLate) && data.toDate;
-      });
+      .filter(data => 
+        ['Pending', 'Late', 'On Leave'].includes(data.status)
+      );
   }, [leaveData, searchValue]);
 
   const refreshLeaveData = () => {
@@ -579,19 +554,9 @@ function LeaveStatus() {
             <>
               <div className="flex flex-wrap  gap-2  p-1  bg-white rounded-lg shadow-sm  w-full sm:w-auto mb-2">
                 <TabButton
-                  label={`Actions`}
+                  label={`Actions(${actionsTableData.filter(student => student.teacher === teacher?.name).length})`}
                   isActive={activeTabMyDB === 'allActions'}
                   onClick={() => setActiveTabMyDB('allActions')}
-                />
-                <TabButton
-                  label={`Medical Room(${medicalRoomStatusDB.length})`}
-                  isActive={activeTabMyDB === 'Medical Room'}
-                  onClick={() => setActiveTabMyDB('Medical Room')}
-                />
-                <TabButton
-                  label={`Medical No End(${leaveData.filter(student => student.reason === "Medical" && !student.toDate && !student.returnedAt && student.teacher === teacher?.name).length})`}
-                  isActive={activeTabMyDB === 'MWED'}
-                  onClick={() => setActiveTabMyDB('MWED')}
                 />
                 <TabButton
                   label={`History(${filterDB.length})`}
@@ -601,87 +566,41 @@ function LeaveStatus() {
               </div>
               {activeTabMyDB === "allActions" ?
                 <LeaveStatusTable
-                  classData={actionsTableData}
+                  classData={actionsTableData.filter(student => student.teacher === teacher?.name)}
                   onDataUpdate={refreshLeaveData}
-                  getLeaveStatus={getLeaveStatusForTable}
+                  getLeaveStatus={getLeaveStatus}
                   type="MyDashboard"
                 />
-                : activeTabMyDB === "Medical Room" ?
-                  <div>
-                    <ShortLeave
-                      statusData={medicalRoomStatusDB}
-                      type="medicalRoom"
-                    />
-                  </div>
-                  : activeTabMyDB === "MWED" ?
-                    <div>
-                      <ShortLeave
-                        statusData={leaveData.filter(student => student.reason === "Medical" && !student.toDate && !student.returnedAt && student.teacher === teacher?.name && matchesSearch(student))}
-                        type="medicalWithoutEndDate"
-                      />
-                    </div>
-                    :
-                    <div>
+                :
+                <div>
+                  {activeTabMyDB === "History" && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {filterDB.map((student) => (
                         <StudentStatusCard key={student._id} student={student} />
                       ))}
                     </div>
+                  )}
+                </div>
               }
             </>
             :
             activeTab === "shortLeave" ?
               <div>
                 <ShortLeave
-                  statusData={activeTab === 'actions' ? shortLeaveStatus.filter(matchesSearch) : shortLeaveStatus}
+                  statusData={shortLeaveStatus.filter(matchesSearch)}
                   type="shortLeave"
                 />
               </div>
               :
               <div>
-                {activeTab === "actions" &&
-                  <>
-                    <div className="flex flex-wrap  gap-2  p-1  bg-white rounded-lg shadow-sm  w-full sm:w-auto mb-2">
-                      <TabButton
-                        label={`General`}
-                        isActive={activeTabActions === 'General'}
-                        onClick={() => setActiveTabActions('General')}
-                      />
-                      <TabButton
-                        label={`Medical Room(${medicalRoomStatus.length})`}
-                        isActive={activeTabActions === 'Medical (room)'}
-                        onClick={() => setActiveTabActions('Medical (room)')}
-                      />
-                      <TabButton
-                        label={`Medical No End(${leaveData.filter(student => student.reason === "Medical" && !student.toDate && student.status !== 'returned' && matchesSearch(student)).length})`}
-                        isActive={activeTabActions === 'Medical (without end date)'}
-                        onClick={() => setActiveTabActions('Medical (without end date)')}
-                      />
-                    </div>
-                    {activeTabActions === "Medical (room)" ?
-                      <div>
-                        <ShortLeave
-                          statusData={medicalRoomStatus}
-                          type="medicalRoom"
-                        />
-                      </div> :
-                      activeTabActions === "General" ?
-                        <LeaveStatusTable
-                          classData={actionsTableData}
-                          onDataUpdate={refreshLeaveData}
-                          getLeaveStatus={getLeaveStatusForTable}
-                          type="Generalactions"
-                        />
-                        : activeTabActions === "Medical (without end date)" ?
-                          <div>
-                            <ShortLeave
-                              statusData={leaveData.filter(student => student.reason === "Medical" && !student.toDate && !student.returnedAt && matchesSearch(student))}
-                              type="medicalWithoutEndDate"
-                            />
-                          </div>
-                          :
-                          ""}
-                  </>
-                }
+                {activeTab === "actions" && (
+                  <LeaveStatusTable
+                    classData={actionsTableData}
+                    onDataUpdate={refreshLeaveData}
+                    getLeaveStatus={getLeaveStatus}
+                    type="Generalactions"
+                  />
+                )}
               </div>
         }
       </div>
