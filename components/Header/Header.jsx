@@ -73,7 +73,12 @@ function Header() {
               <a href="#" className="text-white/90 hover:text-white transition-colors duration-200 font-medium"  onClick={()=>{navigate.push('/edit-attendance-classes')}}>Edit</a>
           
               { teacher?.role && ["class_teacher","super_admin","HOD","HOS","Principal"].includes(teacher?.role) && (
-                <a href="#" className="text-white/90 hover:text-white transition-colors duration-200 font-medium"  onClick={()=>{navigate.push('/leave-form')}}>Leave</a>
+                <>
+                  <a href="#" className="text-white/90 hover:text-white transition-colors duration-200 font-medium"  onClick={()=>{navigate.push('/leave-form')}}>Leave</a>
+                  {teacher?.role === "class_teacher" && (
+                    <a href="#" className="text-white/90 hover:text-white transition-colors duration-200 font-medium"  onClick={()=>{navigate.push('/leave-recovery')}}>Recovery</a>
+                  )}
+                </>
               )}
               <a href="#" className="text-white/90 hover:text-white transition-colors duration-200 font-medium"  onClick={()=>{navigate.push('/leave-dashboard')}}>Leave Dashboard</a> 
               { teacher?.role === "super_admin" && (
@@ -123,7 +128,12 @@ function Header() {
                 <a href="#" className="block px-4 py-3 rounded-xl text-base font-medium text-slate-700 hover:text-sky-600 hover:bg-sky-50 transition-all duration-200"  onClick={()=>{navigate.push('/edit-attendance-classes'); setIsMenuOpen(false)}}>Edit</a>
                 
                 { teacher?.role && ["class_teacher","super_admin","HOD","HOS","Principal"].includes(teacher?.role) && (
-                  <a href="#" className="block px-4 py-3 rounded-xl text-base font-medium text-slate-700 hover:text-sky-600 hover:bg-sky-50 transition-all duration-200"  onClick={()=>{navigate.push('/leave-form'); setIsMenuOpen(false)}}>Leave</a>
+                  <>
+                    <a href="#" className="block px-4 py-3 rounded-xl text-base font-medium text-slate-700 hover:text-sky-600 hover:bg-sky-50 transition-all duration-200"  onClick={()=>{navigate.push('/leave-form'); setIsMenuOpen(false)}}>Leave</a>
+                    {teacher?.role === "class_teacher" && (
+                      <a href="#" className="block px-4 py-3 rounded-xl text-base font-medium text-slate-700 hover:text-sky-600 hover:bg-sky-50 transition-all duration-200"  onClick={()=>{navigate.push('/leave-recovery'); setIsMenuOpen(false)}}>Recovery</a>
+                    )}
+                  </>
                 )}
                 <a href="#" className="block px-4 py-3 rounded-xl text-base font-medium text-slate-700 hover:text-sky-600 hover:bg-sky-50 transition-all duration-200"  onClick={()=>{navigate.push('/leave-dashboard'); setIsMenuOpen(false)}}>Leave Dashboard</a>
                

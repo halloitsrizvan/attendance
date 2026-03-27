@@ -53,6 +53,10 @@ const leaveSchema = new Schema({
     },
     academicYear: {
         type: String,
+    },
+    recovery: {
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true });
 

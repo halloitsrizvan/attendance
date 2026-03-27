@@ -501,6 +501,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
           }
         } else if (newStatus === 'returned') {
           payload.markReturnedTeacher = teacher.name;
+          payload.returnedAt = new Date().toISOString();
           try {
             await axios.patch(`${API_PORT}/students/on-leave/${leave.ad}`, { onLeave: false });
           } catch (error) {

@@ -320,10 +320,48 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       const status = latestLeave.status ? latestLeave.status.toLowerCase() : '';
 
       return status !== 'returned';
-
     } catch (error) {
       console.error("Error checking leave status:", error);
       return false;
+    }
+  };
+
+  const checkRecoveryStatus = (studentAd) => {
+    try {
+      const studentLeaves = leaveData.filter(leave =>
+        String(leave.ad) === String(studentAd) &&
+        (leave.status === 'returned' || (leave.status && leave.status.toLowerCase() === 'returned'))
+      );
+
+      if (studentLeaves.length === 0) return true;
+
+      // Sort by returnedAt desc to get the most recent return
+      studentLeaves.sort((a, b) => {
+        const dateA = a.returnedAt ? new Date(a.returnedAt) : new Date(0);
+        const dateB = b.returnedAt ? new Date(b.returnedAt) : new Date(0);
+        return dateB - dateA;
+      });
+
+      const lastReturn = studentLeaves[0];
+      if (lastReturn.recovery) return true;
+
+      // Calculate leave duration
+      const start = new Date(lastReturn.fromDate);
+      const returned = new Date(lastReturn.returnedAt);
+      const diffMs = returned - start;
+      const leaveDays = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+      const graceDays = leaveDays * 2;
+
+      const deadline = new Date(returned.getTime() + (graceDays * 24 * 60 * 60 * 1000));
+      const now = new Date();
+
+      if (now > deadline) {
+        return false; // Recovery not completed and deadline passed
+      }
+      return true;
+    } catch (error) {
+      console.error("Error checking recovery status:", error);
+      return true;
     }
   };
 
@@ -343,6 +381,11 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       setClassNum(found.CLASS);
       if (checkLeaveStatus(found.ADNO)) {
         showAlert(`${found["SHORT NAME"] || found["FULL NAME"]} is currently marked as on leave or absent.`, "Student Unavailable", "error");
+        setAd('');
+        return;
+      }
+      if (!checkRecoveryStatus(found.ADNO)) {
+        showAlert(`${found["SHORT NAME"] || found["FULL NAME"]} has an uncompleted recovery from their previous leave.`, "Recovery Not Completed", "error");
         setAd('');
         return;
       }
@@ -396,6 +439,10 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         updatedStudents[index].classNum = found.CLASS;
         if (checkLeaveStatus(found.ADNO)) {
           showAlert(`${found["SHORT NAME"] || found.name} is currently marked as on leave.`, "Student Unavailable", "error");
+          updatedStudents[index].ad = '';
+        } else if (!checkRecoveryStatus(found.ADNO)) {
+          showAlert(`${found["SHORT NAME"] || found.name} has an uncompleted recovery.`, "Recovery Not Completed", "error");
+          updatedStudents[index].ad = '';
         }
       } else {
         updatedStudents[index].student = null;
@@ -442,11 +489,11 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       return;
     }
 
-    // Check if any student is already on leave
-    const onLeaveStudents = shortLeaveStudents.filter(student => checkLeaveStatus(student.ad));
-    if (onLeaveStudents.length > 0) {
-      const names = onLeaveStudents.map(s => s.name).join(', ');
-      showAlert(`Cannot submit. These students are already on leave: ${names}`, "Multiple Absentees", "error");
+    // Check if any student is already on leave or has incomplete recovery
+    const unavailableStudents = shortLeaveStudents.filter(student => checkLeaveStatus(student.ad) || !checkRecoveryStatus(student.ad));
+    if (unavailableStudents.length > 0) {
+      const names = unavailableStudents.map(s => s.name).join(', ');
+      showAlert(`Cannot submit. These students are currently unavailable (On Leave or Incomplete Recovery): ${names}`, "Student Status Error", "error");
       return;
     }
 
@@ -610,7 +657,8 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       reason: finalReason,
       teacher: teacher.name,
       academicYear: academicYear,
-      status: startImmediately ? "active" : "Scheduled"
+      status: startImmediately ? "active" : "Scheduled",
+      recovery: false
     };
 
     console.log('Submitting leave:', payload);
@@ -809,7 +857,8 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         reason: finalReason,
         teacher: teacher.name,
         academicYear: academicYear,
-        status: startImmediately ? "active" : "Scheduled"
+        status: startImmediately ? "active" : "Scheduled",
+        recovery: false
       };
 
       return axios.post(`${API_PORT}/leave`, payload);
