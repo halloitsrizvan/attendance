@@ -149,11 +149,11 @@ const StudentStatusCard = ({ student }) => {
         >
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg ${statusColor} flex items-center justify-center text-white font-bold text-sm sm:text-base flex-shrink-0`}>
-              {student.ad}
+              {student.studentId?.ADNO || student.ad}
             </div>
             <div className="min-w-0 flex-1">
-              <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{student.name}</h3>
-              <p className="text-xs text-gray-500">Class {student.classNum}</p>
+              <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{student.studentId?.['SHORT NAME'] || student.studentId?.['FULL NAME'] || student.name}</h3>
+              <p className="text-xs text-gray-500">Class {student.studentId?.CLASS || student.classNum}</p>
             </div>
           </div>
           <div className="flex flex-col items-end gap-1">
@@ -198,10 +198,10 @@ const StudentStatusCard = ({ student }) => {
 
             <div className="flex flex-wrap items-center gap-2 text-xs pt-2 border-t border-gray-100">
 
-              {student.teacher && (
+              {student.teacherId?.name && (
                 <div className="flex items-center gap-1 text-indigo-600 bg-indigo-50 px-2 py-1 rounded">
                   <FileSignature size={12} />
-                  <span className="font-medium">{student.teacher}</span>
+                  <span className="font-medium">{student.teacherId.name}</span>
                 </div>
               )}
 
@@ -255,9 +255,11 @@ function LeaveStatus() {
   const matchesSearch = (student) => {
     if (!searchValue) return true;
     const searchLower = searchValue.toLowerCase();
+    const ad = student.studentId?.ADNO || student.ad;
+    const name = (student.studentId?.['SHORT NAME'] || student.studentId?.['FULL NAME'] || student.name || '').toLowerCase();
     return (
-      (student.name && student.name.toLowerCase().includes(searchLower)) ||
-      (student.ad && String(student.ad).toLowerCase().includes(searchLower))
+      name.includes(searchLower) ||
+      String(ad).toLowerCase().includes(searchLower)
     );
   };
 
@@ -266,7 +268,7 @@ function LeaveStatus() {
   }, [leaveData, searchValue]);
 
   const medicalRoomStatusDB = useMemo(() => {
-    return leaveData.filter(student => (student.reason === 'Medical (Room)' || student.reason === 'Room') && !student.returnedAt && student.teacher === teacher?.name && matchesSearch(student));
+    return leaveData.filter(student => (student.reason === 'Medical (Room)' || student.reason === 'Room') && !student.returnedAt && (student.teacherId?.name === teacher?.name || student.teacher === teacher?.name) && matchesSearch(student));
   }, [leaveData, searchValue, teacher]);
 
 
@@ -392,7 +394,7 @@ function LeaveStatus() {
   }, [leaveData]);
 
   const filterDB = useMemo(() => {
-    return leaveData.filter(student => student.teacher === teacher?.name && matchesSearch(student));
+    return leaveData.filter(student => (student.teacherId?.name === teacher?.name || student.teacher === teacher?.name) && matchesSearch(student));
   }, [leaveData, teacher, searchValue]);
 
   useEffect(() => {
@@ -511,20 +513,22 @@ function LeaveStatus() {
                         {(() => {
                           const classAbsentees = {};
                           filteredData.forEach(student => {
-                            const classNum = student.classNum;
-                            if (!classAbsentees[classNum]) {
-                              classAbsentees[classNum] = 0;
+                            const classNum = student.studentId?.CLASS || student.classNum;
+                            if (classNum) {
+                              if (!classAbsentees[classNum]) {
+                                classAbsentees[classNum] = 0;
+                              }
+                              classAbsentees[classNum]++;
                             }
-                            classAbsentees[classNum]++;
                           });
 
                           const sortedClasses = Object.entries(classAbsentees)
-                            .map(([classNum, count]) => ({ classNum, count }))
+                            .map(([classNum, count]) => ({ classNum: Number(classNum), count }))
                             .sort((a, b) => a.classNum - b.classNum);
 
                           return sortedClasses.map(({ classNum, count }) => (
-                            <div key={classNum} className="text-center p-3 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer"
-                              onClick={() => setSelectedClass(Number(classNum))}
+                             <div key={classNum} className="text-center p-3 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer"
+                              onClick={() => setSelectedClass(classNum)}
                             >
                               <div className="text-xs text-gray-600 border-b">Class {classNum}</div>
                               <div className="text-2xl font-bold text-red-700">{count}</div>
@@ -536,7 +540,7 @@ function LeaveStatus() {
                   </div>
                 }
 
-                {filteredDataForOnleave.map((student) => (
+                {(activeTab === 'onLeave' ? filteredDataForOnleave : filteredData).map((student) => (
                   <StudentStatusCard key={student._id} student={student} />
                 ))}
               </>
@@ -566,7 +570,7 @@ function LeaveStatus() {
               </div>
               {activeTabMyDB === "allActions" ?
                 <LeaveStatusTable
-                  classData={actionsTableData.filter(student => student.teacher === teacher?.name)}
+                  classData={actionsTableData.filter(student => student.teacherId?.name === teacher?.name || student.teacher === teacher?.name)}
                   onDataUpdate={refreshLeaveData}
                   getLeaveStatus={getLeaveStatus}
                   type="MyDashboard"
@@ -622,12 +626,12 @@ function LeaveStatus() {
 
             <div className="p-4 overflow-y-auto max-h-96">
               {filteredData
-                .filter(student => student.classNum === selectedClass)
+                .filter(student => (student.studentId?.CLASS || student.classNum) === selectedClass)
                 .map(student => (
                   <div key={student._id} className="flex items-center justify-between py-2 px-3 border-b border-gray-100 last:border-b-0">
                     <div className="flex-1">
-                      <div className="font-medium text-gray-900">{student.name}</div>
-                      <div className="text-sm text-gray-500">AD: {student.ad}</div>
+                      <div className="font-medium text-gray-900">{student.studentId?.['SHORT NAME'] || student.name}</div>
+                      <div className="text-sm text-gray-500">AD: {student.studentId?.ADNO || student.ad}</div>
                     </div>
                     <StatusBadge status={student.displayStatus} />
                   </div>
@@ -643,7 +647,7 @@ function LeaveStatus() {
 
             <div className="p-4 border-t border-gray-200 bg-gray-50">
               <div className="text-sm text-gray-600 text-center">
-                Total: {filteredData.filter(student => student.classNum === selectedClass).length} students
+                Total: {filteredData.filter(student => (student.studentId?.CLASS || student.classNum) === selectedClass).length} students
               </div>
             </div>
           </div>

@@ -31,7 +31,8 @@ const StudentManagement = () => {
     ADNO: '',
     CLASS: '',
     Password: '',
-    onLeave: false
+    onLeave: false,
+    active: true
   });
 
   // Pagination states
@@ -49,7 +50,7 @@ const StudentManagement = () => {
   const fetchStudents = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_PORT}/students`);
+      const response = await axios.get(`${API_PORT}/students?includeInactive=true`);
       setStudents(response.data);
       setLoading(false);
     } catch (err) {
@@ -67,7 +68,8 @@ const StudentManagement = () => {
       ADNO: '',
       CLASS: '',
       Password: '',
-      onLeave: false
+      onLeave: false,
+      active: true
     });
     setSelectedStudent(null);
     setIsModalOpen(true);
@@ -83,7 +85,8 @@ const StudentManagement = () => {
       ADNO: student.ADNO || '',
       CLASS: student.CLASS || '',
       Password: student.Password || '',
-      onLeave: student.onLeave || false
+      onLeave: student.onLeave || false,
+      active: student.active !== false
     });
     setIsModalOpen(true);
   };
@@ -159,7 +162,8 @@ const StudentManagement = () => {
         "SHORT NAME": "John",
         CLASS: 1,
         Password_PIN: 1234,
-        onLeave: "false"
+        onLeave: "false",
+        active: "true"
       }
     ];
     const ws = XLSX.utils.json_to_sheet(templateData);
@@ -196,7 +200,8 @@ const StudentManagement = () => {
           "SHORT NAME": item["SHORT NAME"] || item.ShortName || '',
           CLASS: item.CLASS || item.Class || '',
           Password_PIN: item.Password_PIN || item.Password || item.PIN || '1234',
-          onLeave: item.onLeave === 'true' || item.onLeave === true
+          onLeave: item.onLeave === 'true' || item.onLeave === true,
+          active: item.active === undefined ? true : (item.active === 'true' || item.active === true)
         }));
 
         setImportPreviewData(formattedData);
@@ -376,15 +381,21 @@ const StudentManagement = () => {
                         </span>
                       </td>
                       <td className="p-6 text-center">
-                        {student.onLeave ? (
-                          <span className="inline-flex bg-rose-50 text-rose-500 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border border-rose-100">
-                            On Leave
-                          </span>
-                        ) : (
-                          <span className="inline-flex bg-emerald-50 text-emerald-500 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-100">
-                            Present
-                          </span>
-                        )}
+                        <div className="flex flex-col items-center gap-1">
+                          {student.active === false ? (
+                            <span className="inline-flex bg-slate-100 text-slate-400 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-200">
+                              Inactive
+                            </span>
+                          ) : student.onLeave ? (
+                            <span className="inline-flex bg-rose-50 text-rose-500 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border border-rose-100">
+                              On Leave
+                            </span>
+                          ) : (
+                            <span className="inline-flex bg-emerald-50 text-emerald-500 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-100">
+                              Present
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="p-6">
                         <div className="flex justify-end items-center gap-2">
@@ -443,7 +454,11 @@ const StudentManagement = () => {
                   <div className="flex items-center justify-between pt-2">
                     <div className="flex items-center gap-2">
                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Status:</span>
-                       {student.onLeave ? (
+                       {student.active === false ? (
+                          <span className="inline-flex bg-slate-100 text-slate-400 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-slate-200">
+                            Inactive
+                          </span>
+                        ) : student.onLeave ? (
                           <span className="inline-flex bg-rose-50 text-rose-500 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-rose-100">
                             On Leave
                           </span>
@@ -540,6 +555,7 @@ const StudentManagement = () => {
                       <th className="p-4">Short Name</th>
                       <th className="p-4 w-24 text-center">Class</th>
                       <th className="p-4 w-32">PIN</th>
+                      <th className="p-4 w-24 text-center">Active</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 bg-white">
@@ -592,6 +608,15 @@ const StudentManagement = () => {
                             onChange={(e) => handleUpdatePreviewItem(idx, 'Password_PIN', e.target.value)}
                             className="w-full bg-transparent p-2 text-xs font-mono font-bold text-violet-500 focus:bg-white rounded-lg outline-none border-b border-transparent focus:border-violet-300"
                           />
+                        </td>
+                        <td className="p-2 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleUpdatePreviewItem(idx, 'active', !student.active)}
+                            className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${student.active ? 'bg-emerald-500 text-white' : 'bg-slate-300 text-white'}`}
+                          >
+                            {student.active ? 'Yes' : 'No'}
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -739,15 +764,31 @@ const StudentManagement = () => {
                   />
                 </div>
 
-                <div className="sm:col-span-2 flex items-center justify-between p-4 bg-slate-50 rounded-2xl mt-4">
-                  <span className="text-sm font-black text-slate-600 uppercase tracking-widest">Student is currently on leave</span>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({...formData, onLeave: !formData.onLeave})}
-                    className={`w-14 h-8 rounded-full transition-all relative ${formData.onLeave ? 'bg-rose-500' : 'bg-slate-300'}`}
-                  >
-                    <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all ${formData.onLeave ? 'left-7' : 'left-1'}`}></div>
-                  </button>
+                <div className="sm:col-span-2 space-y-4 pt-4 border-t border-slate-100">
+                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-black text-slate-600 uppercase tracking-widest">Active Status</span>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Active students show in all lists</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({...formData, active: !formData.active})}
+                      className={`w-14 h-8 rounded-full transition-all relative ${formData.active ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                    >
+                      <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all ${formData.active ? 'left-7' : 'left-1'}`}></div>
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                    <span className="text-sm font-black text-slate-600 uppercase tracking-widest">On Leave</span>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({...formData, onLeave: !formData.onLeave})}
+                      className={`w-14 h-8 rounded-full transition-all relative ${formData.onLeave ? 'bg-rose-500' : 'bg-slate-300'}`}
+                    >
+                      <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all ${formData.onLeave ? 'left-7' : 'left-1'}`}></div>
+                    </button>
+                  </div>
                 </div>
               </div>
 

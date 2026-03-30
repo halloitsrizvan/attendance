@@ -152,8 +152,8 @@ const EditLeaveModal = ({ classInfo, onSave, onClose, isOpen, onDelete }) => {
                 {classInfo.ad}
               </div>
               <div>
-                <h4 className="font-semibold text-gray-900 text-sm">{classInfo.name}</h4>
-                <p className="text-xs text-gray-600">Class: {classInfo.classNum} | AD: {classInfo.ad}</p>
+                <h4 className="font-semibold text-gray-900 text-sm">{classInfo.studentId?.['SHORT NAME'] || classInfo.studentId?.['FULL NAME'] || classInfo.name}</h4>
+                <p className="text-xs text-gray-600">Class: {classInfo.studentId?.CLASS || classInfo.classNum} | AD: {classInfo.studentId?.ADNO || classInfo.ad}</p>
               </div>
             </div>
           </div>
@@ -292,7 +292,7 @@ const EditLeaveModal = ({ classInfo, onSave, onClose, isOpen, onDelete }) => {
               </p>
               <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                 <p className="text-xs font-semibold text-red-800 text-center">
-                  {classInfo.name} - Class {classInfo.classNum}
+                  {classInfo.studentId?.['SHORT NAME'] || classInfo.name} - Class {classInfo.studentId?.CLASS || classInfo.classNum}
                 </p>
                 <p className="text-xs text-red-700 text-center mt-1">
                   {classInfo.fromDate} to {classInfo.toDate}
@@ -340,8 +340,13 @@ const EditLeaveModal = ({ classInfo, onSave, onClose, isOpen, onDelete }) => {
 };
 
 const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassData, teacher, type }) => {
-  const { _id, classNum, ad, name, remainingTime, status, returnedAt, toDate, toTime, fromTime, fromDate, reason } = classInfo;
+  const { _id, studentId, teacherId, remainingTime, status, returnedAt, toDate, toTime, fromTime, fromDate, reason } = classInfo;
+  const ad = studentId?.ADNO || classInfo.ad;
+  const name = studentId?.['SHORT NAME'] || studentId?.['FULL NAME'] || classInfo.name;
+  const classNum = studentId?.CLASS || classInfo.classNum;
+  const teacherName = teacherId?.name || classInfo.teacher;
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showRoomTransitionConfirm, setShowRoomTransitionConfirm] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
 
@@ -467,6 +472,67 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
     }
   };
 
+  const hasAccessToStudent = () => {
+    if (!teacher) return false;
+    // Admins have access to everyone
+    if (['super_admin', 'HOD', 'HOS'].includes(teacher.role)) return true;
+    
+    // Check if teacher is the one who created the leave
+    const currentTeacherId = teacher.id || teacher._id;
+    if (teacherId?._id === currentTeacherId || classInfo.teacher === teacher.name) return true;
+    
+    // Check if teacher's assigned class matches the student's class
+    if (teacher.class && String(teacher.class) === String(classNum)) return true;
+    
+    return false;
+  };
+
+  const handleRoomToMedicalTransition = async () => {
+    try {
+      setIsProcessing(true);
+      const now = new Date();
+      const currentTeacherId = teacher?.id || teacher?._id;
+
+      // 1. Mark current Room record as returned
+      const returnPayload = {
+        status: 'returned',
+        markReturnedTeacher: teacher?.name || 'Unknown',
+        returnedAt: now.toISOString()
+      };
+      
+      await axios.put(`${API_PORT}/leave/${_id}`, returnPayload);
+      
+      // Briefly update student (optional but safe)
+      await axios.patch(`${API_PORT}/students/on-leave/${ad}`, { onLeave: false });
+
+      // 2. Create new Medical record
+      const sid = (studentId && typeof studentId === 'object') ? studentId._id : studentId;
+      const newLeavePayload = {
+        studentId: sid, 
+        teacherId: currentTeacherId,
+        fromDate: now.toISOString().split('T')[0],
+        fromTime: now.toTimeString().split(' ')[0].substring(0, 5),
+        reason: 'Medical',
+        status: 'active',
+        leaveStartTeacher: teacher?.name || 'Unknown',
+        academicYearId: classInfo.academicYearId || undefined
+      };
+      
+      await axios.post(`${API_PORT}/leave`, newLeavePayload);
+      
+      await axios.patch(`${API_PORT}/students/on-leave/${ad}`, { onLeave: true });
+      setShowRoomTransitionConfirm(false);
+      // alert("Student moved from Room to Medical Leave successfully!");
+      if (onReturn) onReturn();
+      
+    } catch (err) {
+      console.error('Transition Error:', err);
+      alert("Failed to transition student to Medical Leave. Check console.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleReturn = async () => {
     try {
       setIsProcessing(true);
@@ -495,7 +561,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
         if (newStatus === 'active') {
           payload.leaveStartTeacher = teacher.name;
           try {
-            await axios.patch(`${API_PORT}/students/on-leave/${leave.ad}`, { onLeave: true });
+            await axios.patch(`${API_PORT}/students/on-leave/${leave.studentId?.ADNO || leave.ad}`, { onLeave: true });
           } catch (error) {
             console.error('Error updating student onLeave status:', error);
           }
@@ -503,7 +569,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
           payload.markReturnedTeacher = teacher.name;
           payload.returnedAt = new Date().toISOString();
           try {
-            await axios.patch(`${API_PORT}/students/on-leave/${leave.ad}`, { onLeave: false });
+            await axios.patch(`${API_PORT}/students/on-leave/${leave.studentId?.ADNO || leave.ad}`, { onLeave: false });
           } catch (error) {
             console.error('Error updating student onLeave status:', error);
           }
@@ -726,13 +792,13 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
               )}
 
               <div className="flex flex-wrap items-center gap-2 mt-2 pt-2 border-t border-gray-50">
-                {classInfo.teacher && (
+                {(teacherName) && (
                   <div className="flex items-center gap-1 text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded text-[10px] font-bold">
-                    <span>{classInfo.teacher}</span>
+                    <span>{teacherName}</span>
                   </div>
                 )}
                 <div className="flex items-center gap-1 text-slate-500 bg-slate-50 px-2 py-0.5 rounded text-[10px] font-medium italic">
-                  <span>{classInfo.reason}</span>
+                  <span>{reason}</span>
                 </div>
               </div>
             </div>
@@ -744,13 +810,15 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
           {/* Action Buttons */}
           {reason === 'Room' && status === 'On Leave' ? (
             <div className="flex flex-col gap-1.5 flex-shrink-0">
-              <button
-                className="flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white transition-all shadow-sm shadow-orange-500/20 active:scale-95"
-                onClick={() => handleUpdateStatus('Pending')}
-                disabled={isProcessing}
-              >
-                leave
-              </button>
+              {hasAccessToStudent() && (
+                <button
+                  className="flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white transition-all shadow-sm shadow-orange-500/20 active:scale-95"
+                  onClick={() => setShowRoomTransitionConfirm(true)}
+                  disabled={isProcessing}
+                >
+                  leave
+                </button>
+              )}
               <button
                 className="flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-all shadow-sm shadow-blue-500/20 active:scale-95"
                 disabled={isProcessing}
@@ -811,6 +879,44 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
         onClose={() => setShowEdit(false)}
         isOpen={showEdit}
       />
+
+      {/* Room Transition Confirmation Modal */}
+      {showRoomTransitionConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 animate-in zoom-in-95 duration-200">
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center mx-auto">
+                <PlayCircle size={32} className="text-orange-500" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-800 tracking-tight">Move to Medical Leave?</h3>
+                <p className="text-sm text-slate-500 mt-1 font-medium px-4 leading-relaxed">
+                  Are you sure you want to move <strong>{name}</strong> to full Medical Leave? 
+                  This will finish the Room session and start a new Home Leave record.
+                </p>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setShowRoomTransitionConfirm(false)}
+                  className="flex-1 px-4 py-3 bg-slate-50 text-slate-500 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-100 transition-all"
+                  disabled={isProcessing}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleRoomToMedicalTransition}
+                  className="flex-1 px-4 py-3 bg-orange-500 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2"
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? (
+                    <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                  ) : 'Confirm Move'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Confirmation Modal */}
       {showConfirm && (

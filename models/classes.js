@@ -18,7 +18,11 @@ const classSchema = new Schema({
     batch: {
         type: String,
         required: true
-    }
+    },
+    totalStudents: Number,
+    presentStudents: Number,
+    absentStudents: Number,
+    percentage: String
 }, { timestamps: true });
 
 export default mongoose.models['Classes'] || mongoose.model('Classes', classSchema);

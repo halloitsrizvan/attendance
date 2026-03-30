@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import { Calendar } from 'lucide-react';
 import SelectionButton from './SelectionButton';
 
 function DatePicker({ label, selectedDate, setSelectedDate, customDate, setCustomDate, type }) {
@@ -15,7 +16,12 @@ function DatePicker({ label, selectedDate, setSelectedDate, customDate, setCusto
 
   return (
     <div className="space-y-3">
-      {label && <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">{label}</h3>}
+      {label && (
+        <div className="flex items-center gap-2 px-1">
+          <Calendar size={12} className="text-slate-400" />
+          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</h3>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-2">
         {dateOptions.map(option => (
           <SelectionButton

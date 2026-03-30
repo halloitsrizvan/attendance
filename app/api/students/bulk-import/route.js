@@ -21,7 +21,8 @@ export async function POST(req) {
             SL: Number(s.SL),
             CLASS: Number(s.CLASS),
             Password: Number(s.Password || s.Password_PIN || 1234), // Default to 1234 if missing
-            onLeave: s.onLeave === 'true' || s.onLeave === true
+            onLeave: s.onLeave === 'true' || s.onLeave === true,
+            active: s.active === undefined ? true : (s.active === 'true' || s.active === true)
           }
         },
         upsert: true

@@ -1,5 +1,7 @@
 import dbConnect from "@/lib/mongodb";
 import Leave from "@/models/leaveModel";
+import Student from "@/models/studentsModel";
+import Teacher from "@/models/teachersModel";
 import { NextResponse } from "next/server";
 
 export async function GET(req) {
@@ -10,9 +12,18 @@ export async function GET(req) {
   try {
     let query = {};
     if (ad) {
-      query.ad = ad;
+      const student = await Student.findOne({ ADNO: Number(ad) });
+      if (student) {
+        query.studentId = student._id;
+      } else {
+        // If student not found, returned an empty set
+        return NextResponse.json([]);
+      }
     }
-    const leaves = await Leave.find(query).sort({ createdAt: -1 });
+    const leaves = await Leave.find(query)
+      .populate('studentId')
+      .populate('teacherId')
+      .sort({ createdAt: -1 });
     return NextResponse.json(leaves);
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

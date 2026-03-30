@@ -24,6 +24,7 @@ function Hajar() {
   const [load, setLoad] = useState(false);
   const [dataLoad, setDataLoad] = useState(false);
   const [alertState, setAlertState] = useState({ isOpen: false, title: '', message: '', type: 'info' });
+  const [isAlreadyTaken, setIsAlreadyTaken] = useState(false);
 
   const showAlert = (message, title = "Notice", type = "info") => {
     setAlertState({ isOpen: true, title, message, type });
@@ -45,13 +46,13 @@ function Hajar() {
   const [leaveData, setLeaveData] = useState([]); // New state for medical leaves
   const [returnedStudents, setReturnedStudents] = useState([]); // Track students returned locally
   const [academicYear, setAcademicYear] = useState('');
+  const [academicYearId, setAcademicYearId] = useState('');
 
   useEffect(() => {
     axios.get(`${API_PORT}/settings`)
       .then(res => {
-        if (res.data.academicYear) {
-          setAcademicYear(res.data.academicYear);
-        }
+        if (res.data.academicYear) setAcademicYear(res.data.academicYear);
+        if (res.data.academicYearId) setAcademicYearId(res.data.academicYearId);
       })
       .catch(err => console.error("Error fetching academic year:", err));
   }, []);
@@ -194,6 +195,27 @@ function Hajar() {
         console.error(err);
         setDataLoad(false);
       });
+    const checkAttendanceTaken = async () => {
+      try {
+        const queryParams = {
+          classNumber: id,
+          date: date || new Date().toISOString().split('T')[0],
+          time: time
+        };
+        if (period) queryParams.period = period;
+
+        const res = await axios.get(`${API_PORT}/set-attendance`, { params: queryParams });
+        if (res.data && res.data.length > 0) {
+          setIsAlreadyTaken(true);
+        } else {
+          setIsAlreadyTaken(false);
+        }
+      } catch (err) {
+        console.error("Error checking existing attendance:", err);
+      }
+    };
+
+    checkAttendanceTaken();
   }, [id, period, date, time]);
 
   const handleCheckboxChange = (ad, isChecked) => {
@@ -246,8 +268,12 @@ function Hajar() {
       }
     } catch (err) {
       console.error("Error updating return status:", err);
-      // Continue with attendance submission even if return update fails? 
-      // Maybe better to alert but for now we proceed or the main attendance might fail too.
+    }
+
+    if (!teacher?.id && !teacher?._id) {
+      setLoad(false);
+      showAlert("Your session is missing teacher details. Please Logout and Login again to continue.", "Update Failed", "error");
+      return;
     }
 
     const payload = students.map((student) => {
@@ -258,18 +284,16 @@ function Hajar() {
       const status = isOnLeave ? "Absent" : (attendance[student.ADNO] || "Absent");
 
       return {
-        nameOfStd: student["SHORT NAME"] || student["FULL NAME"] || student.name || "Unknown",
-        ad: student.ADNO,
-        class: student.CLASS,
+        studentId: student._id,
+        teacherId: teacher?.id || teacher?._id,
+        classNumber: Number(id),
+        ...(academicYearId && { academicYearId }),
         status: status,
-        SL: student.SL,
         attendanceTime: time,
         attendanceDate: new Date(),
-        teacher: teacher?.name || 'Unknown',
-        academicYear: academicYear,
-        ...(period && { period: period }),
-        ...(more && { custom: more }),
         onLeave: isOnLeave,
+        ...(period && { period: Number(period) }),
+        ...(more && { custom: more })
       };
     });
 
@@ -453,6 +477,14 @@ function Hajar() {
             <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest pl-1">
               {date ? new Date(date).toLocaleDateString("en-US", { dateStyle: "long" }) : "N/A"}
             </div>
+            {isAlreadyTaken && (
+              <div className="mt-2 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl animate-in slide-in-from-top-2 duration-500">
+                <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-1">
+                  <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
+                  Attendance already taken for this session
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2">

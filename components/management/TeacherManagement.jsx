@@ -38,7 +38,7 @@ const TeacherManagement = () => {
   const fetchTeachers = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_PORT}/teachers`);
+      const response = await axios.get(`${API_PORT}/teachers?includeInactive=true`);
       setTeachers(response.data);
       setLoading(false);
     } catch (err) {

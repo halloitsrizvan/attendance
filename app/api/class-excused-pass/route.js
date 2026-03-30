@@ -1,11 +1,16 @@
 import dbConnect from "@/lib/mongodb";
 import ClassExcusedPass from "@/models/shortLeaveModel";
+import Student from "@/models/studentsModel";
+import Teacher from "@/models/teachersModel";
 import { NextResponse } from "next/server";
 
 export async function GET() {
   await dbConnect();
   try {
-    const passes = await ClassExcusedPass.find({}).sort({ createdAt: -1 });
+    const passes = await ClassExcusedPass.find({})
+      .populate('studentId')
+      .populate('teacherId')
+      .sort({ createdAt: -1 });
     return NextResponse.json(passes);
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

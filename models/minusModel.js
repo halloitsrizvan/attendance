@@ -3,26 +3,24 @@ import mongoose from 'mongoose';
 const Schema = mongoose.Schema;
 
 const minusSchema = new Schema({
-    ad: {
-        type: Number,
-        required: true
-    },
-    classNum: {
-        type: Number,
-        required: true
-    },
-    name: {
-        type: String,
+    studentId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Student',
         required: true
     },
     reason: {
         type: String,
         required: true
     },
-    teacher:{type:String},
+    teacherId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Teacher',
+        required: true
+    },
     minusNum:{type: Number},
-    academicYear: {
-        type: String,
+    academicYearId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'AcademicYear'
     }
 }, { timestamps: true });
 

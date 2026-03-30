@@ -315,8 +315,10 @@ function AllClass({edit,id}) {
             ? record.attendanceDate.split('T')[0] 
             : new Date(record.attendanceDate).toISOString().split('T')[0])
         : null;
+      
+      // Use classNumber from our new relational model
       const isSameClassAndDate =
-        record.class === cls.class && recordDate === date;
+        (record.classNumber === cls.class || record.class === cls.class) && recordDate === date;
 
       if (time === "Period") {
         return (
@@ -359,21 +361,28 @@ function AllClass({edit,id}) {
               >
                 <div className={`relative h-full p-4 rounded-2xl border-2 transition-all duration-300 flex flex-col items-center justify-center text-center ${
                   alreadyTaken 
-                    ? 'bg-slate-50 border-slate-100' 
+                    ? 'bg-slate-50/80 border-slate-200 cursor-not-allowed shadow-none' 
                     : 'bg-white border-sky-50 shadow-sm hover:border-sky-400 hover:shadow-xl hover:shadow-sky-500/10'
                 }`}>
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-black mb-2 transition-all ${
-                    alreadyTaken ? 'bg-slate-100 text-slate-300' : 'bg-sky-500 text-white shadow-md shadow-sky-500/20 group-hover:scale-110'
+                    alreadyTaken ? 'bg-slate-200 text-slate-400' : 'bg-sky-500 text-white shadow-md shadow-sky-500/20 group-hover:scale-110'
                   }`}>
                     {cls.class}
+                    {alreadyTaken && (
+                      <div className="absolute -top-1 -right-1 bg-emerald-500 text-white rounded-full p-0.5 shadow-sm">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="space-y-0.5">
-                    <h3 className={`font-extrabold text-sm ${alreadyTaken ? 'text-slate-300' : 'text-slate-900'}`}>
+                    <h3 className={`font-extrabold text-sm ${alreadyTaken ? 'text-slate-400' : 'text-slate-900'}`}>
                       Class {cls.class}
                     </h3>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
-                      {cls.totalStudents} Studs
+                    <p className={`text-[10px] font-bold uppercase tracking-tighter ${alreadyTaken ? 'text-slate-300' : 'text-slate-400'}`}>
+                      {cls.totalStudents || cls.students_count || 0} Studs
                     </p>
                   </div>
 
@@ -382,9 +391,9 @@ function AllClass({edit,id}) {
                   )}
 
                   {alreadyTaken && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-slate-50/60 rounded-2xl pointer-events-none">
-                      <div className="bg-white px-2 py-0.5 rounded-full border border-slate-200 shadow-sm">
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Done</span>
+                    <div className="mt-2 w-full">
+                      <div className="bg-emerald-50 py-0.5 rounded-full border border-emerald-100 flex items-center justify-center gap-1">
+                        <span className="text-[7px] font-black text-emerald-600 uppercase tracking-widest">Completed</span>
                       </div>
                     </div>
                   )}

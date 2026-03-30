@@ -1,18 +1,43 @@
 import dbConnect from "@/lib/mongodb";
 import Attendance from "@/models/attendanceModel";
+import Student from "@/models/studentsModel";
+import Teacher from "@/models/teachersModel";
 import { NextResponse } from "next/server";
 
 export async function GET(req) {
   await dbConnect();
   const { searchParams } = new URL(req.url);
   const ad = searchParams.get('ad');
+  const classNumber = searchParams.get('classNumber');
+  const date = searchParams.get('date');
+  const time = searchParams.get('time');
+  const period = searchParams.get('period');
 
   try {
     let query = {};
     if (ad) {
-      query.ad = ad;
+      const student = await Student.findOne({ ADNO: Number(ad) });
+      if (student) {
+        query.studentId = student._id;
+      } else {
+        return NextResponse.json([]);
+      }
     }
-    const attendance = await Attendance.find(query).sort({ createdAt: -1 });
+    if (classNumber) query.classNumber = Number(classNumber);
+    if (date) {
+      const startDate = new Date(date);
+      startDate.setHours(0,0,0,0);
+      const endDate = new Date(date);
+      endDate.setHours(23,59,59,999);
+      query.attendanceDate = { $gte: startDate, $lte: endDate };
+    }
+    if (time) query.attendanceTime = time;
+    if (period) query.period = Number(period);
+
+    const attendance = await Attendance.find(query)
+      .populate('studentId')
+      .populate('teacherId')
+      .sort({ createdAt: -1 });
     return NextResponse.json(attendance);
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

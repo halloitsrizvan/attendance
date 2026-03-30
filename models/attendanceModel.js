@@ -1,27 +1,20 @@
 import mongoose from 'mongoose';
 
 const Schema = mongoose.Schema;
-
 const attendanceSchema = new Schema({
-    nameOfStd: {
-        type: String,
+    studentId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Student',
         required: true
     },
-    ad: {
-        type: Number,
-        required: true
-    },
-    class: {
-        type: Number,
+    teacherId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Teacher',
         required: true
     },
     status: {
         type: String,
         required: true,
-    },
-    SL: {
-        type: Number,
-        required: true
     },
     attendanceTime: {
         type: String,
@@ -29,10 +22,6 @@ const attendanceSchema = new Schema({
     },
     attendanceDate: {
         type: Date,
-        required: true
-    },
-    teacher: {
-        type: String,
         required: true
     },
     period: {
@@ -47,12 +36,18 @@ const attendanceSchema = new Schema({
     onLeave: {
         type: Boolean,
     },
-    academicYear: {
-        type: String,
+    academicYearId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'AcademicYear'
+    },
+    classNumber: {
+        type: Number,
+        required: true
     }
 }, { timestamps: true });
 
-attendanceSchema.index({ attendanceDate: 1, class: 1, attendanceTime: 1 });
-attendanceSchema.index({ ad: 1, class: 1 });
+attendanceSchema.index({ attendanceDate: 1, attendanceTime: 1 });
+attendanceSchema.index({ studentId: 1 });
+attendanceSchema.index({ classNumber: 1 });
 
 export default mongoose.models['Attendance'] || mongoose.model('Attendance', attendanceSchema);

@@ -3,10 +3,18 @@ import Teacher from "@/models/teachersModel";
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 
-export async function GET() {
+export async function GET(req) {
   await dbConnect();
   try {
-    const teachers = await Teacher.find({}).select("-password").sort({ createdAt: -1 });
+    const { searchParams } = new URL(req.url);
+    const includeInactive = searchParams.get("includeInactive") === 'true';
+    
+    let query = {};
+    if (!includeInactive) {
+      query.active = { $ne: false };
+    }
+    
+    const teachers = await Teacher.find(query).select("-password").sort({ createdAt: -1 });
     return NextResponse.json(teachers);
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -1,5 +1,6 @@
 import dbConnect from "@/lib/mongodb";
 import Attendance from "@/models/attendanceModel";
+import Student from "@/models/studentsModel";
 import { NextResponse } from "next/server";
 
 export async function GET(req) {
@@ -38,31 +39,33 @@ export async function GET(req) {
     };
 
     if (classNumber) {
-      matchFilter.class = parseInt(classNumber, 10);
+      const studentsInClass = await Student.find({ CLASS: parseInt(classNumber, 10) });
+      matchFilter.studentId = { $in: studentsInClass.map(s => s._id) };
     }
     if (attendanceTime) {
       matchFilter.attendanceTime = attendanceTime;
     }
 
-    const attendanceRecords = await Attendance.find(matchFilter).sort({
-      class: 1,
-      ad: 1,
-      attendanceDate: 1,
-      attendanceTime: 1,
-      period: 1
-    });
+    const attendanceRecords = await Attendance.find(matchFilter)
+      .populate('studentId')
+      .sort({
+        attendanceDate: 1,
+        attendanceTime: 1,
+        period: 1
+      });
 
     const studentMap = new Map();
     const availableTimeSlots = new Set();
 
     attendanceRecords.forEach(record => {
-      const key = `${record.ad}-${record.class}`;
+      if (!record.studentId) return;
+      const key = record.studentId._id.toString();
       if (!studentMap.has(key)) {
         studentMap.set(key, {
-          SL: record.SL,
-          ad: record.ad,
-          nameOfStd: record.nameOfStd,
-          class: record.class,
+          SL: record.studentId.SL || 0,
+          ad: record.studentId.ADNO,
+          nameOfStd: record.studentId["SHORT NAME"] || record.studentId["FULL NAME"],
+          class: record.studentId.CLASS,
           dailyAttendance: new Map()
         });
       }

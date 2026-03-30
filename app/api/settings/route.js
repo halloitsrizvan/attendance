@@ -16,6 +16,7 @@ export async function GET() {
         const activeYear = await AcademicYear.findOne({ isActive: true });
         if (activeYear) {
             settingsMap.academicYear = activeYear.name;
+            settingsMap.academicYearId = activeYear._id;
         }
 
         return NextResponse.json(settingsMap);

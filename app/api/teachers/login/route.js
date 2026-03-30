@@ -18,6 +18,10 @@ export async function POST(req) {
       return NextResponse.json({ error: "User not found" }, { status: 401 });
     }
 
+    if (teacher.active === false) {
+      return NextResponse.json({ error: "Your account is inactive. Please contact the administrator." }, { status: 403 });
+    }
+
     const isPasswordValid = await bcrypt.compare(password, teacher.password);
     if (!isPasswordValid) {
       return NextResponse.json({ error: "Incorrect password" }, { status: 401 });

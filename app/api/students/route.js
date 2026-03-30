@@ -7,10 +7,15 @@ export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const classNum = searchParams.get("class");
+    const includeInactive = searchParams.get("includeInactive") === 'true';
     
     let query = {};
     if (classNum) {
       query.CLASS = Number(classNum);
+    }
+
+    if (!includeInactive) {
+      query.active = { $ne: false };
     }
     
     // Performance: Only select required fields for common listing

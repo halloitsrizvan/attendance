@@ -22,6 +22,10 @@ export async function POST(req) {
       return NextResponse.json({ error: "Student not found" }, { status: 401 });
     }
 
+    if (student.active === false) {
+      return NextResponse.json({ error: "Your account is inactive. Please contact your teacher." }, { status: 403 });
+    }
+
     const isPasswordValid = numericPassword === student.Password;
     if (!isPasswordValid) {
       return NextResponse.json({ error: "Incorrect password" }, { status: 401 });

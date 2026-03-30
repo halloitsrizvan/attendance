@@ -58,13 +58,13 @@ function ShortLeave({ statusData: initialStatusData, type, onDataUpdate }) {
   const [statusData, setStatusData] = useState(initialStatusData || []);
   const [processingId, setProcessingId] = useState(null);
   const [academicYear, setAcademicYear] = useState('');
+  const [academicYearId, setAcademicYearId] = useState('');
 
   useEffect(() => {
     axios.get(`${API_PORT}/settings`)
       .then(res => {
-        if (res.data.academicYear) {
-          setAcademicYear(res.data.academicYear);
-        }
+        if (res.data.academicYear) setAcademicYear(res.data.academicYear);
+        if (res.data.academicYearId) setAcademicYearId(res.data.academicYearId);
       })
       .catch(err => console.error("Error fetching academic year:", err));
   }, []);
@@ -93,12 +93,12 @@ function ShortLeave({ statusData: initialStatusData, type, onDataUpdate }) {
 
     if (actionType === 'returnToClass' || actionType === 'markReturn') {
       title = 'Confirm Return';
-      message = `Are you sure you want to mark ${leave.name} as returned?`;
+      message = `Are you sure you want to mark ${leave.studentId?.['SHORT NAME'] || leave.name} as returned?`;
       confirmText = 'Mark Returned';
       isDangerous = false;
     } else if (actionType === 'medicalLeave') {
       title = 'Confirm Medical Leave';
-      message = `Are you sure you want to create a medical leave without end date for ${leave.name}? This will mark the medical room leave as returned.`;
+      message = `Are you sure you want to create a medical leave without end date for ${leave.studentId?.['SHORT NAME'] || leave.name}? This will mark the medical room leave as returned.`;
       confirmText = 'Create Medical Leave';
       isDangerous = false;
     }
@@ -156,16 +156,14 @@ function ShortLeave({ statusData: initialStatusData, type, onDataUpdate }) {
         const fromTime = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
 
         const payload = {
-          ad: leave.ad,
-          name: leave.name,
-          classNum: leave.classNum,
+          studentId: leave.studentId?._id || leave.studentId?.id || leave.ad, // Fallback to id if already populated
+          teacherId: teacher?.id || teacher?._id,
           fromDate: new Date().toISOString().split('T')[0],
           fromTime: fromTime,
           toDate: null,
           toTime: null,
           reason: 'Medical',
-          teacher: teacher.name,
-          academicYear: academicYear,
+          academicYearId: academicYearId,
           status: "active"
         };
 
@@ -368,11 +366,11 @@ function ShortLeave({ statusData: initialStatusData, type, onDataUpdate }) {
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg ${statusColor} flex items-center justify-center text-white font-bold text-sm sm:text-base flex-shrink-0`}>
-                    {leave.ad}
+                    {leave.studentId?.ADNO || leave.ad}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{leave.name}</h3>
-                    <p className="text-xs text-gray-500">Class {leave.classNum}</p>
+                    <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{leave.studentId?.['SHORT NAME'] || leave.studentId?.['FULL NAME'] || leave.name}</h3>
+                    <p className="text-xs text-gray-500">Class {leave.studentId?.CLASS || leave.classNum}</p>
                   </div>
                 </div>
 
@@ -492,10 +490,10 @@ function ShortLeave({ statusData: initialStatusData, type, onDataUpdate }) {
 
               {/* Teacher & Reason */}
               <div className="flex flex-wrap items-center gap-2 text-xs pt-2 border-t border-gray-100">
-                {leave.teacher && (
+                {(leave.teacherId?.name || leave.teacher) && (
                   <div className="flex items-center gap-1 text-indigo-600 bg-indigo-50 px-2 py-1 rounded">
                     <FileSignature size={12} />
-                    <span className="font-medium">{leave.teacher}</span>
+                    <span className="font-medium">{leave.teacherId?.name || leave.teacher}</span>
                   </div>
                 )}
 

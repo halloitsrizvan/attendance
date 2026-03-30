@@ -11,13 +11,18 @@ import SelectionButton from './SelectionButton';
 const getSafeLocalStorage = () => typeof window !== 'undefined' ? localStorage : { getItem: () => null, setItem: () => { }, removeItem: () => { } };
 
 import { FaHome, FaSadCry } from "react-icons/fa";
-import { Plus, Minus } from 'lucide-react';
+import { Plus, Minus, Calendar, Clock, CalendarClock } from 'lucide-react';
 import Header from '../Header/Header';
 import './styles/leaveForm.css';
 
 const TimePicker = ({ label, selectedTime, setSelectedTime, options, customTime, setCustomTime, type }) => (
   <div className="space-y-3">
-    {label && <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">{label}</h3>}
+    {label && (
+      <div className="flex items-center gap-2 px-1">
+        <Clock size={12} className="text-slate-400" />
+        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</h3>
+      </div>
+    )}
     <div className="grid grid-cols-2 gap-2">
       {options.map(option => (
         <SelectionButton
@@ -214,14 +219,14 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   const fromTimeOptions = ['Morning', 'Evening', 'Now', 'Clock'];
   const toTimeOptions = ['Morning', 'Evening', 'Clock'];
   const [academicYear, setAcademicYear] = useState('');
+  const [academicYearId, setAcademicYearId] = useState('');
   const [startImmediately, setStartImmediately] = useState(false);
 
   useEffect(() => {
     axios.get(`${API_PORT}/settings`)
       .then(res => {
-        if (res.data.academicYear) {
-          setAcademicYear(res.data.academicYear);
-        }
+        if (res.data.academicYear) setAcademicYear(res.data.academicYear);
+        if (res.data.academicYearId) setAcademicYearId(res.data.academicYearId);
       })
       .catch(err => console.error("Error fetching academic year:", err));
   }, []);
@@ -396,7 +401,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     }
   }, [ad, students, teacher, navigate, leaveData]);
 
-  // Reset showEndDateForMedical when reason changes
+  // Reset showEndDateForMedical ONLY when reason changes
   useEffect(() => {
     if (reason !== 'Medical' && reason !== 'Room') {
       setShowEndDateForMedical(true);
@@ -408,11 +413,11 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         setFromTime('Now');
         setFromDate('Today');
         setStartImmediately(true);
-      } else if (reason === 'Medical' && !showEndDateForMedical) {
+      } else if (reason === 'Medical') {
         setStartImmediately(true);
       }
     }
-  }, [reason, showEndDateForMedical]);
+  }, [reason]);
 
   // Set startImmediately to true if fromTime is Now
   useEffect(() => {
@@ -525,18 +530,24 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       finalDate = new Date();
     }
 
+    if (!teacher?.id && !teacher?._id) {
+      setLoading(false);
+      showAlert("Your session is missing teacher details. Please Logout and Login again to continue.", "Update Failed", "error");
+      return;
+    }
+
+    const currentTeacherId = teacher?.id || teacher?._id;
+
     // Submit for each student
     const submitPromises = shortLeaveStudents.map(studentData => {
       const payload = {
-        ad: studentData.ad,
-        name: studentData.name,
-        classNum: studentData.classNum,
+        studentId: studentData.student?._id || studentData.student?.id,
+        teacherId: currentTeacherId,
         fromTime: finalFromTime,
         toTime: finalToTime,
         reason: finalReason,
-        teacher: teacher.name,
         date: finalDate,
-        academicYear: academicYear
+        ...(academicYearId && { academicYearId })
       };
 
       return axios.post(`${API_PORT}/class-excused-pass`, payload);
@@ -654,16 +665,14 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     }
 
     const payload = {
-      ad,
-      name,
-      classNum,
+      studentId: student?._id || student?.id,
+      teacherId: teacher?.id || teacher?._id,
+      ...(academicYearId && { academicYearId }),
       fromDate: finalFromDate,
       fromTime: finalFromTime,
       toDate: finalToDate,
       toTime: finalToTime,
       reason: finalReason,
-      teacher: teacher.name,
-      academicYear: academicYear,
       status: startImmediately ? "active" : "Scheduled",
       recovery: false
     };
@@ -851,19 +860,27 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       finalToTime = getFormattedTime(toTime, toCustomTime, 'To Time');
     }
 
+    if (!teacher?.id && !teacher?._id) {
+      setLoading(false);
+      showAlert("Your session is missing teacher details. Please Logout and Login again to continue.", "Update Failed", "error");
+      return;
+    }
+
+    const currentTeacherId = teacher?.id || teacher?._id;
+
     // Create an array of promises for all selected students
     const submitPromises = selectedBulkStudents.map(studentData => {
+      const studentObj = students.find(s => String(s.ADNO) === String(studentData.ADNO));
+      
       const payload = {
-        ad: studentData.ADNO,
-        name: studentData.name,
-        classNum: studentData.classNum,
+        studentId: studentObj?._id || studentData.studentId || studentData._id || studentData.id,
+        teacherId: currentTeacherId,
+        ...(academicYearId && { academicYearId }),
         fromDate: finalFromDate,
         fromTime: finalFromTime,
         toDate: finalToDate,
         toTime: finalToTime,
         reason: finalReason,
-        teacher: teacher.name,
-        academicYear: academicYear,
         status: startImmediately ? "active" : "Scheduled",
         recovery: false
       };
@@ -1169,7 +1186,10 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
           </div>
 
           <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50 space-y-6">
-            <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">From Date & Time</h2>
+            <div className="flex items-center gap-2 px-1">
+              <CalendarClock size={16} className="text-sky-500" />
+              <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">From Date & Time</h2>
+            </div>
             <div className="space-y-6"> {/* Stacked for clarity on mobile */}
               <DatePicker
                 label="Date"
@@ -1193,7 +1213,10 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
 
           {(reason !== 'Medical' && reason !== 'Room') || showEndDateForMedical ? (
             <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50 space-y-6">
-              <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">To Date & Time</h2>
+              <div className="flex items-center gap-2 px-1">
+                <CalendarClock size={16} className="text-amber-500" />
+                <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">To Date & Time</h2>
+              </div>
               <div className="space-y-6">
                 <DatePicker
                   label="Date"

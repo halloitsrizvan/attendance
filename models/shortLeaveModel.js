@@ -3,19 +3,12 @@ import mongoose from 'mongoose';
 const Schema = mongoose.Schema;
 
 const shortLeaveSchema = new Schema({
-    ad: {
-        type: Number,
-        required: true
-    },
-    classNum: {
-        type: Number,
+    studentId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Student',
         required: true
     },
     fromTime: {
-        type: String,
-        required: true
-    },
-    name: {
         type: String,
         required: true
     },
@@ -28,11 +21,14 @@ const shortLeaveSchema = new Schema({
         required: true
     },
     date: { type: Date },
-    teacher: {
-        type: String
+    teacherId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Teacher',
+        required: true
     },
-    academicYear: {
-        type: String,
+    academicYearId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'AcademicYear'
     }
 }, { timestamps: true });
 

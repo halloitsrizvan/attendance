@@ -3,12 +3,9 @@ import mongoose from 'mongoose';
 const Schema = mongoose.Schema;
 
 const leaveSchema = new Schema({
-    ad: {
-        type: Number,
-        required: true
-    },
-    classNum: {
-        type: Number,
+    studentId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Student',
         required: true
     },
     fromDate: {
@@ -16,10 +13,6 @@ const leaveSchema = new Schema({
         required: true
     },
     fromTime: {
-        type: String,
-        required: true
-    },
-    name: {
         type: String,
         required: true
     },
@@ -38,8 +31,10 @@ const leaveSchema = new Schema({
         enum: ['Scheduled', 'pending', 'active', 'late', 'returned'],
         default: "Scheduled"
     },
-    teacher: {
-        type: String
+    teacherId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Teacher',
+        required: true
     },
     returnedAt: {
         type: Date,
@@ -51,8 +46,9 @@ const leaveSchema = new Schema({
     markReturnedTeacher: {
         type: String
     },
-    academicYear: {
-        type: String,
+    academicYearId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'AcademicYear'
     },
     recovery: {
         type: Boolean,
