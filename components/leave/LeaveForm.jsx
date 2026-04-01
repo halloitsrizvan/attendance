@@ -23,7 +23,7 @@ const TimePicker = ({ label, selectedTime, setSelectedTime, options, customTime,
         <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</h3>
       </div>
     )}
-    <div className="grid grid-cols-2 gap-2">
+    <div className="grid grid-cols-4 gap-2">
       {options.map(option => (
         <SelectionButton
           key={option}
