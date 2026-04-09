@@ -48,7 +48,7 @@ function SelectionButton({ label, isSelected, onClick, type }) {
     <button
       type="button"
       onClick={onClick}
-      className={`w-full py-4 px-2 text-[9px] font-base uppercase tracking-widest rounded-2xl transition-all duration-300 border-2 flex flex-col items-center justify-center gap-1
+      className={`w-full py-4 px-2 text-[9px] font-medium uppercase tracking-widest rounded-2xl transition-all duration-300 border-2 flex flex-col items-center justify-center gap-1
         ${isSelected 
           ? type === "Reason"
             ? 'bg-rose-500 text-white border-rose-500 shadow-lg shadow-rose-500/20 scale-[1.02]'
@@ -56,7 +56,9 @@ function SelectionButton({ label, isSelected, onClick, type }) {
               ? 'bg-sky-500 text-white border-sky-500 shadow-lg shadow-sky-500/20 scale-[1.02]'
               : type === "To"
                 ? 'bg-amber-500 text-white border-amber-500 shadow-lg shadow-amber-500/20 scale-[1.02]'
-                : 'bg-sky-500 text-white border-sky-500 shadow-lg shadow-sky-500/20 scale-[1.02]'
+                : type === "Template"
+                  ? 'bg-violet-500 text-white border-violet-500 shadow-lg shadow-violet-500/20 scale-[1.02]'
+                  : 'bg-sky-500 text-white border-sky-500 shadow-lg shadow-sky-500/20 scale-[1.02]'
           : 'bg-white text-slate-400 border-slate-50 hover:border-sky-100 hover:bg-sky-50/30'
         }
       `}
