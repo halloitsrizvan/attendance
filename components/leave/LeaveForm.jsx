@@ -117,13 +117,25 @@ const TemplatePicker = ({ selectedTemplate, setSelectedTemplate, onTemplateSelec
   const templates = [
     { id: 'today-tmw-eve', label: 'Today Eve - Tmrw Eve' },
     { id: 'today-tmw-morn', label: 'Today Eve - Tmrw Morn' },
+    { id: 'tmrw-dayafter-eve', label: 'Tmrw Eve - DayAfter Eve' },
     { id: 'thu-fri-eve', label: 'Thu Eve - Fri Eve' },
   ];
 
   return (
     <div className="space-y-4">
-      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Quick Templates</h3>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="flex items-center justify-between px-1">
+        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Quick Templates</h3>
+        <button
+          onClick={() => {
+            setSelectedTemplate(null);
+            setShowEndDateForMedical(false);
+          }}
+          className="text-[10px] font-black text-rose-500 uppercase tracking-widest hover:text-rose-600 transition-colors"
+        >
+          Clear
+        </button>
+      </div>
+      <div className="grid grid-cols-4 gap-1">
         {templates.map(t => (
           <SelectionButton
             key={t.id}
@@ -137,15 +149,6 @@ const TemplatePicker = ({ selectedTemplate, setSelectedTemplate, onTemplateSelec
             }}
           />
         ))}
-        <SelectionButton
-          label="Clear"
-          type={'Template'}
-          isSelected={false}
-          onClick={() => {
-            setSelectedTemplate(null);
-            setShowEndDateForMedical(false);
-          }}
-        />
       </div>
     </div>
   );
@@ -155,17 +158,37 @@ const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCust
   const classNum = teacher?.classNum;
 
   let reasonOptions = [];
+  const classTeacher_reasons_for_primary = ['Medical', 'Room', 'Marriage', 'Hospital', 'Urgent (Death)', 'Custom'];
+  const classTeacher_reasons_for_s5_ss_d = ['Medical', 'Room', 'Hospital', 'Urgent (Death)', 'Custom'];
+  const teacher_reasons_for_hos_hod = ['Medical', 'Room', 'Marriage', 'Custom'];
+  const super_admin_reasons = ['Medical', 'Room', 'Marriage', 'Custom'];
   if (leaveType === "leave") {
-    if (classNum > 4) {
-      reasonOptions = ['Medical', 'Room', 'Hospital'];
-    } else {
-      reasonOptions = teacher?.role === "class_teacher"
-        ? ['Medical', 'Room', 'Marriage', 'Hospital', 'Custom']
-        : ['Medical', 'Room', 'Marriage', 'Custom']; //function
+    // if (teacher?.role === "super_admin") {
+    //   reasonOptions = ['Medical', 'Room', 'Marriage', 'Custom'];
+    // } else if (classNum > 4) {
+    //   reasonOptions = ['Medical', 'Room', 'Hospital'];
+    // } else {
+    //   reasonOptions = teacher?.classNum
+    //     ? ['Medical', 'Room', 'Marriage', 'Hospital', 'Custom']
+    //     : ['Medical', 'Room', 'Marriage', 'Custom']; //function 
+    // }
+    if (teacher?.classNum) {
+      if (teacher?.classNum <= 4) {
+        reasonOptions = classTeacher_reasons_for_primary;
+      } else if (teacher?.classNum > 4) {
+        reasonOptions = classTeacher_reasons_for_s5_ss_d;
+      }
+    } else if (["hod", "hos"].includes(teacher?.role)) {
+      reasonOptions = teacher_reasons_for_hos_hod;
+    }
+
+    else if (teacher?.role === "super_admin") {
+      reasonOptions = super_admin_reasons;
     }
   } else {
     reasonOptions = ["Custom"];
   }
+
 
   return (
     <div className="space-y-4">
@@ -246,7 +269,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   const [leaveType, setLeaveType] = useState('leave'); // 'leave' or 'short'
 
   const handleTemplateSelect = (templateId) => {
-    switch(templateId) {
+    switch (templateId) {
       case 'today-tmw-eve':
         setFromDate('Today');
         setFromTime('Evening');
@@ -259,17 +282,23 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         setToDate('Tomorrow');
         setToTime('Morning');
         break;
+      case 'tmrw-dayafter-eve':
+        setFromDate('Tomorrow');
+        setFromTime('Evening');
+        setToDate('Day After');
+        setToTime('Evening');
+        break;
       case 'thu-fri-eve': {
         const now = new Date();
         const day = now.getDay();
-        
+
         // Calculate Thursday (4) and Friday (5) of this week
         let Thu = new Date(now);
         Thu.setDate(now.getDate() + (4 - day));
-        
+
         let Fri = new Date(now);
         Fri.setDate(now.getDate() + (5 - day));
-        
+
         // If today is уже Friday or later, move to next week
         if (day >= 5) {
           Thu.setDate(Thu.getDate() + 7);
@@ -294,7 +323,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
           setFromCustomDate(thuStr);
         }
         setFromTime('Evening');
-        
+
         // Set To Date
         if (friStr === todayStr) {
           setToDate('Today');
@@ -353,14 +382,14 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   useEffect(() => {
     if (initialStudents) {
       let filteredStudents = initialStudents;
-      if (teacher && teacher?.role === "class_teacher") {
+      if (teacher && teacher?.role === "super_admin") {
+        // Super admin sees all students
+      } else if (teacher && teacher?.role === "class_teacher") {
         filteredStudents = initialStudents.filter(std => std.CLASS === teacher.classNum);
       } else if (teacher && teacher?.role === "HOD") {
         filteredStudents = initialStudents.filter(std => [8, 9, 10].includes(std.CLASS));
       } else if (teacher && teacher?.role === "HOS") {
         filteredStudents = initialStudents.filter(std => [5, 6, 7].includes(std.CLASS));
-      } else if (teacher && teacher.name === "SHANOOB HUDAWI") {
-        filteredStudents = initialStudents.filter(std => std.CLASS === 10);
       }
       setStudents(filteredStudents);
       return;
@@ -370,14 +399,14 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     axios.get(`${API_PORT}/students`)
       .then((res) => {
         let filteredStudents = res.data;
-        if (teacher && teacher?.role === "class_teacher") {
+        if (teacher && teacher?.role === "super_admin") {
+          // Super admin sees all students
+        } else if (teacher && teacher?.role === "class_teacher") {
           filteredStudents = res.data.filter(std => std.CLASS === teacher.classNum);
         } else if (teacher && teacher?.role === "HOD") {
           filteredStudents = res.data.filter(std => [8, 9, 10].includes(std.CLASS));
         } else if (teacher && teacher?.role === "HOS") {
           filteredStudents = res.data.filter(std => [5, 6, 7].includes(std.CLASS));
-        } else if (teacher && teacher.name === "SHANOOB HUDAWI") {
-          filteredStudents = res.data.filter(std => std.CLASS === 10);
         }
         setStudents(filteredStudents);
       })
@@ -1282,7 +1311,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
           )}
           {/* Reason */}
           <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50">
-            <ReasonPicker 
+            <ReasonPicker
               selectedReason={reason}
               setSelectedReason={setReason}
               customReason={customReason}
@@ -1294,12 +1323,12 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
 
           {/* templates */}
           <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50">
-           <TemplatePicker
-            selectedTemplate={selectedTemplate}
-            setSelectedTemplate={setSelectedTemplate}
-            onTemplateSelect={handleTemplateSelect}
-            setShowEndDateForMedical={setShowEndDateForMedical}
-           />
+            <TemplatePicker
+              selectedTemplate={selectedTemplate}
+              setSelectedTemplate={setSelectedTemplate}
+              onTemplateSelect={handleTemplateSelect}
+              setShowEndDateForMedical={setShowEndDateForMedical}
+            />
           </div>
 
           <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50 space-y-6">

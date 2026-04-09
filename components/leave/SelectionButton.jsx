@@ -48,8 +48,8 @@ function SelectionButton({ label, isSelected, onClick, type }) {
     <button
       type="button"
       onClick={onClick}
-      className={`w-full py-4 px-2 text-[10px] font-black uppercase tracking-widest rounded-2xl transition-all duration-300 border-2 flex flex-col items-center justify-center gap-2
-        ${isSelected
+      className={`w-full py-4 px-2 text-[9px] font-base uppercase tracking-widest rounded-2xl transition-all duration-300 border-2 flex flex-col items-center justify-center gap-1
+        ${isSelected 
           ? type === "Reason"
             ? 'bg-rose-500 text-white border-rose-500 shadow-lg shadow-rose-500/20 scale-[1.02]'
             : type === "From"
