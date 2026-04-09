@@ -25,6 +25,87 @@ function EditAtt() {
     const latestDate=students[0]?.attendanceDate
     const latestTime=students[0]?.attentenceTime
     const [academicYear, setAcademicYear] = useState('');
+    const [shortLeaveData, setShortLeaveData] = useState([]);
+    const [leaveData, setLeaveData] = useState([]);
+    const [returnedStudents, setReturnedStudents] = useState([]);
+    const [showReturnModal, setShowReturnModal] = useState(false);
+    const [selectedReturnStudent, setSelectedReturnStudent] = useState(null);
+    const [teacher, setTeacher] = useState(null);
+
+    useEffect(() => {
+        const storedTeacher = localStorage.getItem("teacher");
+        if (storedTeacher) {
+          try {
+            setTeacher(JSON.parse(storedTeacher));
+          } catch (e) {
+            console.error("Failed to parse teacher");
+          }
+        }
+    }, []);
+
+    const convertTimeToMinutes = (timeString) => {
+      if (!timeString) return 0;
+      const [hours, minutes] = timeString.split(':').map(Number);
+      return hours * 60 + minutes;
+    };
+
+    const getCurrentTimeString = () => {
+      const now = new Date();
+      return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    };
+
+    const isStudentOnShortLeave = (studentAdno) => {
+      const today = students[0]?.attendanceDate ? new Date(students[0].attendanceDate) : new Date();
+      const currentTime = convertTimeToMinutes(getCurrentTimeString());
+
+      return shortLeaveData.some(leave => {
+        if (leave.ad !== studentAdno) return false;
+        const leaveDate = new Date(leave.date);
+        const isSameDate =
+          leaveDate.getDate() === today.getDate() &&
+          leaveDate.getMonth() === today.getMonth() &&
+          leaveDate.getFullYear() === today.getFullYear();
+
+        if (!isSameDate) return false;
+        const fromTime = convertTimeToMinutes(leave.fromTime);
+        const toTime = convertTimeToMinutes(leave.toTime);
+        return currentTime >= fromTime && currentTime <= toTime;
+      });
+    };
+
+    const isStudentOnMedicalLeave = (studentAdno) => {
+      const today = students[0]?.attendanceDate ? new Date(students[0].attendanceDate) : new Date();
+      const currentTime = convertTimeToMinutes(getCurrentTimeString());
+
+      return leaveData.some(leave => {
+        if (leave.ad !== studentAdno) return false;
+        const isMedicalLeave = leave.reason === 'Medical' || leave.reason === 'Medical (Room)';
+        if (!isMedicalLeave) return false;
+        const fromDate = new Date(leave.fromDate);
+        const toDate = leave.toDate ? new Date(leave.toDate) : null;
+        const isInDateRange = today >= fromDate && (toDate === null || today <= toDate);
+        if (!isInDateRange) return false;
+        if (leave.status === 'returned') return false;
+        const fromTime = convertTimeToMinutes(leave.fromTime);
+        if (!leave.toTime) return currentTime >= fromTime;
+        const toTime = convertTimeToMinutes(leave.toTime);
+        return currentTime >= fromTime && currentTime <= toTime;
+      });
+    };
+
+    const openReturnModal = (student) => {
+      setSelectedReturnStudent(student);
+      setShowReturnModal(true);
+    };
+
+    const confirmReturn = () => {
+      if (!selectedReturnStudent) return;
+      const ad = selectedReturnStudent.studentId?.ADNO || selectedReturnStudent.ad;
+      setReturnedStudents(prev => [...prev, ad]);
+      setStatus(prev => ({ ...prev, [ad]: "Present" }));
+      setShowReturnModal(false);
+      setSelectedReturnStudent(null);
+    };
 
     useEffect(() => {
         axios.get(`${API_PORT}/settings`)
@@ -36,52 +117,51 @@ function EditAtt() {
             .catch(err => console.error("Error fetching academic year:", err));
     }, []);
     useEffect(() => {
-      setLoad(true)
-      console.log(latestDate,latestTime);
-      
-      axios
-        .get(`${API_PORT}/set-attendance`)
-        .then((res) => {
-          const filteredData = res.data.filter(
-            (student) => student.class === Number(id)
+      setLoad(true);
+      Promise.all([
+        axios.get(`${API_PORT}/class-excused-pass`),
+        axios.get(`${API_PORT}/leave`),
+        axios.get(`${API_PORT}/set-attendance`)
+      ]).then(([shortLeaveRes, leaveRes, attendanceRes]) => {
+        setShortLeaveData(shortLeaveRes.data);
+        setLeaveData(leaveRes.data);
+        
+        const filteredData = attendanceRes.data.filter(
+          (student) => String(student.classNumber || student.class) === String(id)
+        );
+    
+        if (filteredData.length > 0) {
+          const latestByStudent = {};
+          filteredData.forEach((s) => {
+            const studentAd = s.studentId?.ADNO || s.ad;
+            if (!studentAd) return;
+            const existing = latestByStudent[studentAd];
+            const existingDate = existing?.attendanceDate ? new Date(existing.attendanceDate) : null;
+            const currentDate = s.attendanceDate ? new Date(s.attendanceDate) : null;
+            if (!existing || (currentDate && existingDate && currentDate > existingDate)) {
+              latestByStudent[studentAd] = s;
+            }
+          });
+    
+          const latestData = Object.values(latestByStudent).sort(
+            (a, b) => (a.studentId?.SL || a.SL) - (b.studentId?.SL || b.SL)
           );
-    
-          if (filteredData.length > 0) {
-            // Group by AD (unique student)
-            const latestByStudent = {};
-            filteredData.forEach((s) => {
-              const existing = latestByStudent[s.ad];
-              const existingDate = existing?.attendanceDate ? new Date(existing.attendanceDate) : null;
-              const currentDate = s.attendanceDate ? new Date(s.attendanceDate) : null;
-              if (!existing || (currentDate && existingDate && currentDate > existingDate)) {
-                latestByStudent[s.ad] = s;
-              }
-            });
-    
-            // Convert to array + sort by SL
-            const latestData = Object.values(latestByStudent).sort(
-              (a, b) => a.SL - b.SL
-            );
-            console.log("data",latestData);
-            
-            setStudents(latestData);
-    
-            // initial status
-            const initialStatus = {};
-            latestData.forEach((s) => {
-              initialStatus[s.ad] = s.status;
-            });
-            setStatus(initialStatus);
-
-          } else {
-            setStudents([]);
-          }
-          setLoad(false)
-        })
-        .catch((err) => {
-          setErr(err.message);
-          setLoad(false)
-        });
+          
+          setStudents(latestData);
+          const initialStatus = {};
+          latestData.forEach((s) => {
+            const ad = s.studentId?.ADNO || s.ad;
+            initialStatus[ad] = s.status;
+          });
+          setStatus(initialStatus);
+        } else {
+          setStudents([]);
+        }
+        setLoad(false);
+      }).catch((err) => {
+        setErr(err.message);
+        setLoad(false);
+      });
     }, [id]);
     
     
@@ -94,11 +174,16 @@ function EditAtt() {
     };
 
   const preSubmit = (e) => {
-    e.preventDefault()
-    const absentList = students.filter((s) => (status[s.ad] ?? s.status) !== "Present")
-    setAbsentees(absentList)
-    setConfirmAttendance(true)
-  }
+    if (e) e.preventDefault();
+    const absentList = students.filter((s) => {
+      const ad = s.studentId?.ADNO || s.ad;
+      const isReturned = returnedStudents.includes(ad);
+      const isOnLeave = (isStudentOnShortLeave(ad) || isStudentOnMedicalLeave(ad)) && !isReturned;
+      return (status[ad] ?? s.status) !== "Present" || isOnLeave;
+    });
+    setAbsentees(absentList);
+    setConfirmAttendance(true);
+  };
   
   const handleCopyAbsentees = () => {
     const attendanceDate = students[0]?.attendanceDate ? new Date(students[0].attendanceDate).toLocaleDateString("en-US", { dateStyle: "long" }) : "N/A";
@@ -107,7 +192,7 @@ function EditAtt() {
 
     if (absentees.length > 0) {
       const text = absentees
-        .map((s) => `${s.nameOfStd} (AdNo: ${s.ad})`)
+        .map((s) => `${s.studentId?.['SHORT NAME'] || s.studentId?.['FULL NAME'] || s.nameOfStd || s.name} (AdNo: ${s.studentId?.ADNO || s.ad})`)
         .join("\n");
       navigator.clipboard.writeText(headText + text)
         .then(() => setCopy(true))
@@ -122,18 +207,39 @@ function EditAtt() {
     const handleSubmit=async(e)=>{
       if (e) e.preventDefault();
       try{
-        setSummaryLoad(true)
-        const updatedData = students.map((student) => ({
-          _id: student._id,
-          nameOfStd: student.name, 
-          ad: student.ad,
-          class: student.class,
-          status: status[student.ad] || student.status, 
-          SL: student.SL,
-          attendanceTime: student.attentenceTime,
-          attendanceDate: student.attendanceDate ? (typeof student.attendanceDate === 'string' ? new Date(student.attendanceDate).toISOString() : new Date(student.attendanceDate).toISOString()) : new Date().toISOString(),
-          academicYear: academicYear,
-        }));
+        setSummaryLoad(true);
+        
+        // Save Return Data for Medical Leaves
+        if (returnedStudents.length > 0) {
+          await Promise.all(returnedStudents.map(async (ad) => {
+            const findStd = leaveData.find(leave => leave.ad === ad && leave.status !== 'returned');
+            if (findStd) {
+              await axios.put(`${API_PORT}/leave/${findStd._id}`, { 
+                status: 'returned', 
+                markReturnedTeacher: teacher?.name || 'Unknown' 
+              });
+              await axios.put(`${API_PORT}/students/${ad}`, { onLeave: false });
+            }
+          }));
+        }
+
+        const updatedData = students.map((student) => {
+          const ad = student.studentId?.ADNO || student.ad;
+          const isReturned = returnedStudents.includes(ad);
+          const isOnLeave = (isStudentOnShortLeave(ad) || isStudentOnMedicalLeave(ad)) && !isReturned;
+          const finalStatus = isOnLeave ? "Absent" : (status[ad] || student.status);
+
+          return {
+            _id: student._id,
+            nameOfStd: student.studentId?.['SHORT NAME'] || student.name || student.nameOfStd, 
+            ad: ad,
+            class: student.class,
+            status: finalStatus, 
+            SL: student.studentId?.SL || student.SL,
+            attendanceTime: student.attentenceTime || student.attendanceTime,
+            onLeave: isOnLeave
+          };
+        });
 
         await axios.patch(`${API_PORT}/set-attendance`,{updates:updatedData})
 
@@ -152,26 +258,12 @@ function EditAtt() {
           percentage: percent,
         });
 
-        const payload2 = students.map((student) => {
-          // attendance record keys: ad, nameOfStd, SL, class, status, attendanceTime, attendanceDate
-          const ad = student.ad ?? student.ADNO; // prefer attendance 'ad'
-          const fullName = student.nameOfStd ?? student["FULL NAME"] ?? "";
-          const shortName = student.nameOfStd ?? student["SHORT NAME"] ?? "";
-        
-          return {
-            ADNO: Number(ad),                            // important: ADNO must match Number in DB
-            "FULL NAME": fullName,
-            "SHORT NAME": shortName,
-            SL: student.SL ?? student.SL,
-            CLASS: student.class ?? student.CLASS,
-            Status: status[ad] ?? student.status ?? "Absent",
-            Time: student.attentenceTime ?? student.Time ?? new Date().toLocaleTimeString(),
-            Date: student.attendanceDate ? (typeof student.attendanceDate === 'string' ? student.attendanceDate.split('T')[0] : new Date(student.attendanceDate).toISOString().split('T')[0]) : new Date().toISOString().split("T")[0]
-          };
-        });
-        
-        // debug log (temporarily) — check payload in browser console
-        console.log("students bulk payload:", payload2);
+        const payload2 = updatedData.map((s) => ({
+          _id: s._id,
+          Status: s.status,
+          Time: s.attendanceTime,
+          Date: students[0]?.attendanceDate ? (typeof students[0].attendanceDate === 'string' ? students[0].attendanceDate.split('T')[0] : new Date(students[0].attendanceDate).toISOString().split('T')[0]) : new Date().toISOString().split("T")[0]
+        }));
   
         await axios.patch(`${API_PORT}/students/bulk-update/students`,{updates:payload2})
         setSummaryLoad(false)
@@ -190,7 +282,7 @@ function EditAtt() {
     const handleQuickAction = () => {
       setQuickAction(prev => prev === "Previous" ? "All Present" : prev === "All Present" ? "All Absent" : "Previous");
       const updated = {};
-      students.forEach((s) => (updated[s.ADNO] = quickAction === "Previous" ? s.Status : quickAction === "All Present" ? "Present" : "Absent"));
+      students.forEach((s) => (updated[s.ad] = quickAction === "Previous" ? s.status : quickAction === "All Present" ? "Present" : "Absent"));
       setStatus(updated);
     }
 
@@ -255,37 +347,80 @@ function EditAtt() {
                 <tbody className="divide-y divide-slate-50">
                   {students.length > 0 ? (
                     students.map((student, index) => {
-                      const currentStatus = status[student.ad] !== undefined ? status[student.ad] : student.status;
+                      const ad = student.studentId?.ADNO || student.ad;
+                      const currentStatus = status[ad] !== undefined ? status[ad] : student.status;
+                      const isOnShortLeave = isStudentOnShortLeave(ad);
+                      const isOnMedicalLeave = isStudentOnMedicalLeave(ad);
+                      const isReturned = returnedStudents.includes(ad);
+                      const isOnLeave = (isOnShortLeave || isOnMedicalLeave);
+                      const displayOnLeave = isOnLeave && !isReturned;
+
+                      let leaveType = "";
+                      if (displayOnLeave) {
+                        if (isOnShortLeave) leaveType = "CEP";
+                        else if (isOnMedicalLeave) leaveType = "Medical";
+                        else leaveType = "Leave";
+                      }
+
                       return (
                         <tr
                           key={index}
-                          onClick={() => handleCheckboxChange(student.ad, currentStatus !== 'Present')}
-                          className="group hover:bg-sky-50/50 cursor-pointer transition-colors"
+                          onClick={() => {
+                            if (!displayOnLeave) {
+                              handleCheckboxChange(ad, currentStatus !== 'Present');
+                            }
+                          }}
+                          className={`group transition-colors ${displayOnLeave ? "bg-amber-50/30 cursor-not-allowed" : "hover:bg-sky-50/50 cursor-pointer"}`}
                         >
-                          <td className="hidden sm:table-cell px-6 py-4 text-sm font-medium text-slate-400">{student.SL}</td>
-                          <td className="hidden sm:table-cell px-6 py-4 text-sm font-mono text-slate-500">{student.ad}</td>
+                          <td className="hidden sm:table-cell px-6 py-4 text-sm font-medium text-slate-400">{student.studentId?.SL || student.SL}</td>
+                          <td className="hidden sm:table-cell px-6 py-4 text-sm font-mono text-slate-500">{ad}</td>
                           <td className="px-4 sm:px-6 py-4">
                             <div className="flex flex-col">
-                              <span className="font-bold text-slate-900 group-hover:text-sky-700 transition-colors leading-tight">
-                                {student.nameOfStd || student["SHORT NAME"] || student["FULL NAME"] || student.name || "Unknown"}
+                              <span className={`font-bold transition-colors leading-tight ${displayOnLeave ? "text-slate-400" : "text-slate-900 group-hover:text-sky-700"}`}>
+                                {student.studentId?.['SHORT NAME'] || student.studentId?.['FULL NAME'] || student.name || student.nameOfStd || "Unknown"}
                               </span>
                               <span className="text-[10px] sm:hidden font-mono text-slate-400 mt-0.5">
-                                AD: {student.ad} {student.SL > 0 && `• SL: ${student.SL}`}
+                                AD: {ad} {(student.studentId?.SL || student.SL) > 0 && `• SL: ${student.studentId?.SL || student.SL}`}
                               </span>
                             </div>
                           </td>
                           <td className="px-4 sm:px-6 py-4 text-center">
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); handleCheckboxChange(student.ad, currentStatus !== 'Present'); }}
-                              className={`min-w-[80px] sm:min-w-[100px] px-3 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-tighter shadow-sm transition-all duration-200 ${
-                                currentStatus === 'Present'
-                                  ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-emerald-500/20'
-                                  : 'bg-rose-500 text-white hover:bg-rose-600 shadow-rose-500/20'
-                              }`}
-                            >
-                              {currentStatus}
-                            </button>
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                type="button"
+                                disabled={displayOnLeave}
+                                onClick={(e) => { 
+                                  e.stopPropagation(); 
+                                  if (!displayOnLeave) handleCheckboxChange(ad, currentStatus !== 'Present'); 
+                                }}
+                                className={`min-w-[80px] sm:min-w-[100px] px-3 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-tighter shadow-sm transition-all duration-200 ${
+                                  displayOnLeave 
+                                    ? "bg-amber-100 text-amber-600 border border-amber-200"
+                                    : currentStatus === 'Present'
+                                      ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-emerald-500/20'
+                                      : 'bg-rose-500 text-white hover:bg-rose-600 shadow-rose-500/20'
+                                }`}
+                              >
+                                {displayOnLeave ? leaveType : currentStatus}
+                              </button>
+                              {isOnLeave && (
+                                <button 
+                                  className={`w-8 h-8 flex items-center justify-center rounded-xl text-white transition-all hover:scale-110 shadow-sm ${isReturned ? "bg-emerald-600" : "bg-sky-500"}`}
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (isReturned) {
+                                      setReturnedStudents(prev => prev.filter(id => id !== ad));
+                                      setStatus(prev => ({ ...prev, [ad]: "Absent" }));
+                                    } else {
+                                      openReturnModal(student);
+                                    }
+                                  }}
+                                >
+                                  <span className="text-[10px] font-bold">{isReturned ? "↩" : "R"}</span>
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );
@@ -324,35 +459,69 @@ function EditAtt() {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">
             {students.length > 0 ? (
               students.map((student, index) => {
-                const currentStatus = status[student.ad] || student.status;
-                const isPresent = currentStatus === "Present";
+                const ad = student.studentId?.ADNO || student.ad;
+                const isOnShortLeave = isStudentOnShortLeave(ad);
+                const isOnMedicalLeave = isStudentOnMedicalLeave(ad);
+                const isReturned = returnedStudents.includes(ad);
+                const isOnLeave = (isOnShortLeave || isOnMedicalLeave);
+                const displayOnLeave = isOnLeave && !isReturned;
+                const currentStatus = status[ad] || student.status;
+                const isPresent = currentStatus === "Present" && !displayOnLeave;
+                
                 return (
-                  <div
+                   <div
                     key={index}
-                    onClick={() => handleCheckboxChange(student.ad, currentStatus !== 'Present')}
+                    onClick={() => {
+                      if (!displayOnLeave) {
+                        handleCheckboxChange(ad, !isPresent);
+                      }
+                    }}
                     className={`relative p-5 rounded-3xl border-2 transition-all duration-300 active:scale-95 cursor-pointer ${
-                      isPresent
-                        ? 'bg-emerald-50 border-emerald-200 shadow-lg shadow-emerald-500/5'
-                        : 'bg-rose-50 border-rose-200 shadow-lg shadow-rose-500/5'
+                      displayOnLeave 
+                        ? 'bg-amber-50 border-amber-200 shadow-lg shadow-amber-500/5' 
+                        : isPresent
+                          ? 'bg-emerald-50 border-emerald-200 shadow-lg shadow-emerald-500/5'
+                          : 'bg-rose-50 border-rose-200 shadow-lg shadow-rose-500/5'
                     }`}
                   >
                     <div className="flex justify-center mb-3">
                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg shadow-lg ${
+                        displayOnLeave ? 'bg-amber-400 text-white' : 
                         isPresent ? 'bg-emerald-500 text-white shadow-emerald-500/20' : 'bg-rose-500 text-white shadow-rose-500/20'
                       }`}>
-                        {student.SL}
+                        {student.studentId?.SL || student.SL}
                       </div>
                     </div>
-                    <h3 className={`text-sm font-bold truncate mb-1 ${isPresent ? 'text-emerald-900' : 'text-rose-900'}`}>
-                      {student.nameOfStd || student["SHORT NAME"] || student["FULL NAME"] || student.name || "Unknown"}
+                    <h3 className={`text-sm font-bold truncate mb-1 ${displayOnLeave ? 'text-amber-800' : isPresent ? 'text-emerald-900' : 'text-rose-900'}`}>
+                      {student.studentId?.['SHORT NAME'] || student.studentId?.['FULL NAME'] || student.name || student.nameOfStd || "Unknown"}
                     </h3>
-                    <p className={`text-[10px] font-black uppercase tracking-widest opacity-60 mb-3 ${isPresent ? 'text-emerald-700' : 'text-rose-700'}`}>
-                      Ad: {student.ad}
+                    <p className={`text-[10px] font-black uppercase tracking-widest opacity-60 mb-3 ${displayOnLeave ? 'text-amber-700' : isPresent ? 'text-emerald-700' : 'text-rose-700'}`}>
+                      Ad: {ad}
                     </p>
-                    <div className={`py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
-                      isPresent ? 'bg-emerald-200/50 text-emerald-700' : 'bg-rose-200/50 text-rose-700'
-                    }`}>
-                      {isPresent ? "Present" : "Absent"}
+                    <div className="flex items-center gap-2">
+                      <div className={`flex-1 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest text-center ${
+                        displayOnLeave ? 'bg-amber-200/50 text-amber-700' : 
+                        isPresent ? 'bg-emerald-200/50 text-emerald-700' : 'bg-rose-200/50 text-rose-700'
+                      }`}>
+                        {displayOnLeave ? "Leave" : isPresent ? "Present" : "Absent"}
+                      </div>
+                      {isOnLeave && (
+                        <button 
+                          className={`w-7 h-7 flex items-center justify-center rounded-lg text-white transition-all hover:scale-110 shadow-sm ${isReturned ? "bg-emerald-600" : "bg-sky-500"}`}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isReturned) {
+                              setReturnedStudents(prev => prev.filter(id => id !== ad));
+                              setStatus(prev => ({ ...prev, [ad]: "Absent" }));
+                            } else {
+                              openReturnModal(student);
+                            }
+                          }}
+                        >
+                          <span className="text-[10px] font-bold">{isReturned ? "↩" : "R"}</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -371,39 +540,100 @@ function EditAtt() {
         </form>
       )}
 
+      {/* Return Confirmation Modal */}
+      {showReturnModal && selectedReturnStudent && (
+        <div className="fixed inset-0 flex items-center justify-center p-4 z-[70] animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"></div>
+          
+          <div className="relative bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl border border-white p-8">
+            <button 
+              onClick={() => setShowReturnModal(false)}
+              className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              ✕
+            </button>
+
+            <div className="text-center mb-6">
+              <h3 className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1">Status Update</h3>
+              <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">Confirm Return</h2>
+              <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase px-4 leading-relaxed">
+                Mark <span className="text-sky-600">
+                  {selectedReturnStudent.studentId?.['SHORT NAME'] || selectedReturnStudent.name || selectedReturnStudent.nameOfStd}
+                </span> as returned?
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setShowReturnModal(false)}
+                className="col-span-1 py-4 bg-slate-100 text-slate-400 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-slate-200 transition-all font-mono"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmReturn}
+                className="col-span-1 py-4 bg-sky-500 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-sky-500/20 hover:bg-sky-600 transition-all"
+              >
+                Confirm Return
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Confirm Modal */}
       {confirmAttendance && (
-        <div className="fixed inset-0 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm z-50 p-4">
-          <div className="bg-white p-8 rounded-[2rem] shadow-2xl w-full max-w-sm border border-slate-100">
-            <h3 className="text-xl font-black text-slate-900 mb-1 text-center">Confirm Changes</h3>
-            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest text-center mb-6">Review absent students below</p>
+        <div className="fixed inset-0 flex items-center justify-center p-4 z-[60] animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"></div>
+          
+          <div className="relative bg-white w-full max-w-sm sm:max-w-md rounded-[2.5rem] shadow-2xl border border-white p-8 overflow-hidden">
+            <div className="text-center mb-6">
+              <h3 className="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-1">Attention Required</h3>
+              <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">Confirm Submission</h2>
+              <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase">The following {absentees.length} students are absent</p>
+            </div>
 
             {absentees.length > 0 ? (
-              <div className="max-h-48 overflow-y-auto mb-6 space-y-1">
-                {absentees.map((s) => (
-                  <div key={s.ad} className="flex items-center gap-3 px-3 py-2 bg-rose-50 rounded-xl border border-rose-100">
-                    <span className="w-6 h-6 flex items-center justify-center bg-rose-500 text-white text-[10px] font-black rounded-lg">{s.SL}</span>
-                    <span className="text-sm font-bold text-rose-800">{s.nameOfStd}</span>
-                    <span className="text-xs text-rose-400 font-mono ml-auto">{s.ad}</span>
-                  </div>
-                ))}
+              <div className="max-h-60 overflow-y-auto mb-6 no-scrollbar rounded-3xl bg-rose-50 border border-rose-100 p-4">
+                <div className="space-y-3">
+                  {absentees.map((s) => (
+                    <div key={s.studentId?.ADNO || s.ad} className="flex flex-col border-b border-rose-100 last:border-0 pb-2 last:pb-0">
+                      <span className="text-sm font-black text-rose-600">
+                        {s.studentId?.['SHORT NAME'] || s.studentId?.['FULL NAME'] || s.nameOfStd || s.name}
+                      </span>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[9px] font-bold text-rose-400 uppercase tracking-wider">AD: {s.studentId?.ADNO || s.ad}</span>
+                        {(s.studentId?.SL || s.SL) > 0 && <span className="text-[9px] font-bold text-rose-400 uppercase tracking-wider">• SL: {s.studentId?.SL || s.SL}</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : (
-              <div className="text-center py-6 mb-6 bg-emerald-50 rounded-2xl border border-emerald-100">
-                <p className="text-2xl mb-1">🎉</p>
-                <p className="text-emerald-700 font-bold text-sm">Full attendance!</p>
+              <div className="py-8 text-center bg-emerald-50 rounded-3xl border border-emerald-100 mb-6">
+                <span className="text-4xl block mb-2">🎉</span>
+                <p className="text-sm font-black text-emerald-600 uppercase tracking-widest">No absentees found</p>
               </div>
             )}
 
-            <div className="flex gap-2">
-              <button onClick={() => setConfirmAttendance(false)} className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition text-sm">
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setConfirmAttendance(false)}
+                className="col-span-1 py-4 bg-slate-100 text-slate-400 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-slate-200 transition-all font-mono"
+              >
                 Cancel
               </button>
-              <button onClick={handleCopyAbsentees} className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition text-sm">
-                {copy ? "✅ Copied" : "Copy"}
+              <button
+                onClick={handleCopyAbsentees}
+                className="col-span-1 py-4 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-all"
+              >
+                {copy ? "Copied" : "Copy List"}
               </button>
-              <button onClick={handleSubmit} className="flex-1 py-3 bg-sky-500 text-white font-bold rounded-2xl hover:bg-sky-600 transition shadow-lg shadow-sky-500/20 text-sm">
-                Confirm
+              <button
+                onClick={handleSubmit}
+                className="col-span-2 py-4 bg-sky-500 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-sky-500/20 hover:bg-sky-600 transition-all active:scale-[0.98]"
+              >
+                Confirm Recording
               </button>
             </div>
           </div>
@@ -412,39 +642,56 @@ function EditAtt() {
 
       {/* Summary Modal */}
       {showSummary && (
-        <div className="fixed inset-0 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm z-50">
-          {summaryLoad ? (
-            <div className="flex flex-col items-center gap-4 bg-white p-10 rounded-[2rem] shadow-2xl">
-              <div className="w-14 h-14 border-4 border-sky-500/20 border-t-sky-500 rounded-full animate-spin"></div>
-              <p className="text-sky-600 font-bold tracking-wider uppercase text-sm">Saving…</p>
-            </div>
-          ) : (
-            <div className="bg-white p-8 rounded-[2rem] shadow-2xl w-full max-w-sm border border-slate-100 text-center">
-              <div className="text-4xl mb-4">📊</div>
-              <h3 className="text-2xl font-black text-slate-900 mb-6 tracking-tight">Attendance Summary</h3>
-              <div className="space-y-3 mb-8">
-                <div className="flex items-center justify-between px-4 py-3 bg-slate-50 rounded-2xl">
-                  <span className="text-sm font-bold text-slate-500">Strength</span>
-                  <span className="text-lg font-black text-slate-800">{summary.strength}</span>
+        <div className="fixed inset-0 flex items-center justify-center p-4 z-[60] animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"></div>
+          
+          <div className="relative bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl border border-white p-8 overflow-hidden">
+            {summaryLoad ? (
+              <div className="py-10 flex flex-col items-center justify-center space-y-6">
+                <div className="relative w-16 h-16">
+                  <div className="absolute inset-0 border-4 border-sky-100 rounded-full"></div>
+                  <div className="absolute inset-0 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
                 </div>
-                <div className="flex items-center justify-between px-4 py-3 bg-emerald-50 rounded-2xl">
-                  <span className="text-sm font-bold text-emerald-600">Present</span>
-                  <span className="text-lg font-black text-emerald-700">{summary.present}</span>
-                </div>
-                <div className="flex items-center justify-between px-4 py-3 bg-rose-50 rounded-2xl">
-                  <span className="text-sm font-bold text-rose-600">Absent</span>
-                  <span className="text-lg font-black text-rose-700">{summary.absent}</span>
-                </div>
-                <div className="flex items-center justify-between px-4 py-3 bg-sky-50 rounded-2xl">
-                  <span className="text-sm font-bold text-sky-600">Presence</span>
-                  <span className="text-lg font-black text-sky-700">{summary.percent}%</span>
+                <div className="text-center">
+                  <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Saving Attendance</h3>
+                  <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase">Please wait a moment...</p>
                 </div>
               </div>
-              <button onClick={handleOk} className="w-full py-4 bg-sky-500 text-white font-black rounded-2xl shadow-lg shadow-sky-500/20 hover:bg-sky-600 transition uppercase tracking-widest text-sm">
-                Done
-              </button>
-            </div>
-          )}
+            ) : (
+              <div className="space-y-8">
+                <div className="text-center space-y-1">
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Attendance Summary</h3>
+                  <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">Changes Saved</h2>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-slate-50 p-4 rounded-3xl border border-slate-100 flex flex-col items-center text-center">
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Total</span>
+                    <span className="text-xl font-black text-slate-800">{summary.strength}</span>
+                  </div>
+                  <div className="bg-emerald-50 p-4 rounded-3xl border border-emerald-100 flex flex-col items-center text-center">
+                    <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest mb-1">Present</span>
+                    <span className="text-xl font-black text-emerald-600">{summary.present}</span>
+                  </div>
+                  <div className="bg-rose-50 p-4 rounded-3xl border border-rose-100 flex flex-col items-center text-center">
+                    <span className="text-[8px] font-black text-rose-500 uppercase tracking-widest mb-1">Absent</span>
+                    <span className="text-xl font-black text-rose-600">{summary.absent}</span>
+                  </div>
+                  <div className="bg-sky-50 p-4 rounded-3xl border border-sky-100 flex flex-col items-center text-center">
+                    <span className="text-[8px] font-black text-sky-500 uppercase tracking-widest mb-1">Ratio</span>
+                    <span className="text-xl font-black text-sky-600 font-mono tracking-tighter">{summary.percent}%</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleOk}
+                  className="w-full py-4 bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all active:scale-[0.98]"
+                >
+                  Confirm & Dashboard
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

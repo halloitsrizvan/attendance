@@ -35,6 +35,15 @@ const TeacherManagement = () => {
     fetchTeachers();
   }, []);
 
+  // Automatically switch role to class_teacher if classNum is assigned
+  useEffect(() => {
+    if (formData.classNum && (formData.role === 'teacher' || formData.role === 'class_teacher')) {
+      setFormData(prev => ({ ...prev, role: 'class_teacher' }));
+    } else if (!formData.classNum && formData.role === 'class_teacher') {
+      setFormData(prev => ({ ...prev, role: 'teacher' }));
+    }
+  }, [formData.classNum]);
+
   const fetchTeachers = async () => {
     setLoading(true);
     try {
@@ -358,7 +367,8 @@ const TeacherManagement = () => {
                     onChange={e => setFormData({...formData, role: e.target.value})}
                     className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-rose-400 focus:bg-white outline-none transition-all appearance-none cursor-pointer"
                   >
-                    <option value="teacher">Class Teacher</option>
+                    <option value="teacher">Teacher</option>
+                    <option value="class_teacher">Class Teacher</option>
                     <option value="HOD">HOD</option>
                     <option value="HOS">HOS</option>
                     <option value="Principal">Principal</option>

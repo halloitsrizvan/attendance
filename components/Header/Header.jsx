@@ -109,7 +109,7 @@ function Header() {
                       <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={()=>{navigate.push('/leave-form')}}>Apply Leave</a>
                     )}
                     <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={()=>{navigate.push('/leave-dashboard')}}>Leave Dashboard</a>
-                    {teacher?.role === "class_teacher" && (
+                    {teacher?.role === "class_teacher" || teacher?.classNum && (
                       <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={()=>{navigate.push('/leave-recovery')}}>Recovery</a>
                     )}
                   </div>
@@ -145,7 +145,7 @@ function Header() {
             <div className="flex items-center space-x-3">
               <div className="text-right">
                 <p className="text-sm font-semibold text-white">{username}</p>
-                <p className="text-xs text-sky-100 opacity-90">{teacher?.role === "class_teacher" ? "Class Teacher" : (teacher?.role || "")} {teacher?.role === "class_teacher" && (teacher?.classNum)}</p>
+                <p className="text-xs text-sky-100 opacity-90">{teacher?.role === "class_teacher" ? "Class Teacher" : (teacher?.role || "")} {teacher?.role === "class_teacher" && (teacher?.classNum)} {teacher?.role !== "class_teacher" && teacher?.classNum && `& Class ${teacher?.classNum}`}</p>
               </div>
               <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white font-bold border border-white/30 shadow-inner">
                 {userInitial}

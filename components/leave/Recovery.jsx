@@ -52,17 +52,19 @@ const Recovery = () => {
 
     const teacherLeaves = useMemo(() => {
         if (!teacher) return [];
-        return leaves.filter(l => 
-            String(l.classNum) === String(teacher.classNum) && 
-            (l.status === 'returned' || (l.status && l.status.toLowerCase() === 'returned'))
-        );
+        return leaves.filter(l => {
+            const studentClass = l.studentId?.CLASS || l.classNum;
+            const isReturned = l.status === 'returned' || (l.status && l.status.toLowerCase() === 'returned');
+            return String(studentClass) === String(teacher.classNum) && isReturned;
+        });
     }, [leaves, teacher]);
 
     const filteredLeaves = useMemo(() => {
-        return teacherLeaves.filter(l => 
-            l.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-            String(l.ad).includes(searchValue)
-        );
+        return teacherLeaves.filter(l => {
+            const name = l.studentId?.['SHORT NAME'] || l.studentId?.['FULL NAME'] || l.name || "";
+            const ad = String(l.studentId?.ADNO || l.ad || "");
+            return name.toLowerCase().includes(searchValue.toLowerCase()) || ad.includes(searchValue);
+        });
     }, [teacherLeaves, searchValue]);
 
     const calculateRecoveryStatus = (leave) => {
@@ -82,7 +84,52 @@ const Recovery = () => {
         return { status: 'Ongoing', color: 'text-amber-600 bg-amber-50', icon: Clock, deadline };
     };
 
-    if (loading) return <div className="p-8 text-center text-slate-500 font-bold">Loading Recovery Data...</div>;
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-slate-50 pt-20">
+                <Header />
+                <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+                    {/* Header Skeleton */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 animate-pulse">
+                        <div className="space-y-3">
+                            <div className="h-8 bg-slate-100 rounded-xl w-48"></div>
+                            <div className="h-4 bg-slate-100 rounded-lg w-64"></div>
+                        </div>
+                        <div className="h-12 bg-slate-50 rounded-2xl w-full sm:w-64"></div>
+                    </div>
+
+                    {/* Cards Grid Skeleton */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {[...Array(6)].map((_, i) => (
+                            <div key={i} className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100 space-y-6 animate-pulse">
+                                <div className="flex items-start justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-2xl bg-slate-100"></div>
+                                        <div className="space-y-2">
+                                            <div className="h-4 bg-slate-100 rounded-lg w-32"></div>
+                                            <div className="h-3 bg-slate-50 rounded-md w-20"></div>
+                                        </div>
+                                    </div>
+                                    <div className="h-7 bg-slate-100 rounded-xl w-20"></div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50/50 rounded-2xl">
+                                    <div className="space-y-2">
+                                        <div className="h-2 bg-slate-100 rounded w-12"></div>
+                                        <div className="h-3 bg-slate-200 rounded w-20"></div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="h-2 bg-slate-100 rounded w-12"></div>
+                                        <div className="h-3 bg-slate-200 rounded w-20"></div>
+                                    </div>
+                                </div>
+                                <div className="h-14 bg-slate-100 rounded-2xl w-full"></div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-slate-50 pt-20">
@@ -114,10 +161,12 @@ const Recovery = () => {
                                 <div className="flex items-start justify-between">
                                     <div className="flex items-center gap-4">
                                         <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center font-black text-sm shadow-inner">
-                                            {leave.ad}
+                                            {leave.studentId?.ADNO || leave.ad}
                                         </div>
                                         <div>
-                                            <h3 className="text-base font-black text-slate-800 leading-tight">{leave.name}</h3>
+                                            <h3 className="text-base font-black text-slate-800 leading-tight">
+                                                {leave.studentId?.['SHORT NAME'] || leave.studentId?.['FULL NAME'] || leave.name}
+                                            </h3>
                                             <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">{leave.reason}</p>
                                         </div>
                                     </div>

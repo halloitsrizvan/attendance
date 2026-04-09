@@ -17,47 +17,89 @@ function ClassWIse({ initialClasses = null, initialAbseties = null, initialAllSt
     const [AllStudents, setAllStudents] = useState(initialAllStudents || 0)
     const [abseties, setAbseties] = useState(initialAbseties || [])
 
+
     useEffect(() => {
-        if (initialClasses && initialAbseties) return;
-        
+        // We always fetch to ensure real-time accuracy, 
+        // even if initial server data is provided.
         setLoad(true)
         setClassesLoad(true)
         setAbsenteesLoad(true)
         
-        axios.get(`${API_PORT}/classes`)
-        .then((res) => {
-          const filter = res.data.sort((a, b) => a.class - b.class);
-          setClass(filter)
-          setAllStudents(res.data.reduce((sum, item) => sum + item.presentStudents, 0))
-          setClassesLoad(false)
-        })
-        .catch((err) => {
-            console.error(err);
-            setClassesLoad(false)
-        })
+        const fetchStudents = axios.get(`${API_PORT}/students`);
+        const fetchClasses = axios.get(`${API_PORT}/classes`);
+        const fetchAttendance = axios.get(`${API_PORT}/set-attendance`);
+        const fetchLeaves = axios.get(`${API_PORT}/leave`);
 
-        axios.get(`${API_PORT}/set-attendance`)
-        .then((res) => {
+        Promise.all([fetchStudents, fetchClasses, fetchAttendance, fetchLeaves])
+        .then(([stdRes, clsRes, attRes, leaveRes]) => {
+          // Synchronize total students count
+          setAllStudents(stdRes.data.length);
+          // Populate class cards
+          const sortedClasses = clsRes.data.sort((a, b) => a.class - b.class);
+          setClass(sortedClasses);
+          setClassesLoad(false);
+
           const latestByStudent = {};
-          res.data.forEach((s) => {
-            const existing = latestByStudent[s.ad];
-            if (!existing || new Date(s.attentenceDate) > new Date(existing.attentenceDate)) {
-              latestByStudent[s.ad] = s;
+          const todayStr = new Date().toISOString().split('T')[0];
+          
+          // 1. Process manual attendance
+          attRes.data.forEach((s) => {
+            const studentId = typeof s.studentId === 'object' ? s.studentId?._id : s.studentId;
+            if (!studentId) return;
+
+            const existing = latestByStudent[studentId];
+            if (!existing || new Date(s.attendanceDate || s.createdAt) > new Date(existing.createdAt)) {
+              latestByStudent[studentId] = {
+                id: studentId,
+                ad: s.ad || s.studentId?.ADNO,
+                nameOfStd: s.nameOfStd || s.studentId?.['SHORT NAME'],
+                class: s.class || s.studentId?.CLASS,
+                status: s.status,
+                attentenceDate: s.attendanceDate,
+                createdAt: s.createdAt || s.updatedAt || new Date(0)
+              };
+            }
+          });
+          
+          // 2. Process Leave data
+          leaveRes.data.forEach((l) => {
+            // Check if student is currently on leave (active or not yet returned)
+            // and the leave has started
+            const isCurrentlyOnLeave = l.status !== 'returned' && l.status !== 'Returned' && l.fromDate <= todayStr;
+            const studentId = typeof l.studentId === 'object' ? l.studentId?._id : l.studentId;
+            
+            if (isCurrentlyOnLeave && studentId) {
+              const existing = latestByStudent[studentId];
+              const leaveDate = new Date(l.updatedAt || l.createdAt);
+              const existingDate = existing ? new Date(existing.createdAt) : new Date(0);
+
+              if (!existing || leaveDate > existingDate) {
+                latestByStudent[studentId] = {
+                  id: studentId,
+                  ad: l.studentId?.ADNO || l.ad,
+                  nameOfStd: l.studentId?.['SHORT NAME'] || l.studentId?.['FULL NAME'] || l.name,
+                  class: l.studentId?.CLASS || l.classNum,
+                  status: "Absent", // On leave counts as absent for summary
+                  displayStatus: l.status,
+                  attentenceDate: l.fromDate,
+                  createdAt: l.createdAt || l.updatedAt
+                };
+              }
             }
           });
           
           const latestAbsentStudents = Object.values(latestByStudent)
-            .filter(s => s.status === "Absent")
-            .sort((a, b) => a.SL - b.SL);
+            .filter(s => s.status === "Absent" || s.displayStatus === "active" || s.displayStatus === "Scheduled" || s.displayStatus === "late")
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
             
-          latestAbsentStudents.sort((a, b) => b.class - a.class);
           setAbseties(latestAbsentStudents);
           setAbsenteesLoad(false);
         })
         .catch((err) => {
-          console.error(err);
-          setAbsenteesLoad(false)
-        })
+          console.error('Dashboard Fetch Error:', err);
+          setClassesLoad(false);
+          setAbsenteesLoad(false);
+        });
     }, [initialClasses, initialAbseties])
 
     useEffect(() => {
@@ -75,22 +117,27 @@ function ClassWIse({ initialClasses = null, initialAbseties = null, initialAllSt
                 <h2 className="text-3xl font-black text-slate-800 tracking-tight">Status Overview</h2>
                 <div className="flex items-center justify-center gap-2 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">
                     <div className="w-8 h-px bg-slate-200"></div>
-                    Real-time Attendance
+                    Real-time Attendance 
                     <div className="w-8 h-px bg-slate-200"></div>
                 </div>
             </div>
 
             {/* Top Stat Cards */}
-            <div className="grid grid-cols-2 gap-4 mb-8">
-                <div className="bg-white p-5 rounded-3xl shadow-sm border border-emerald-50 text-center group hover:shadow-xl hover:shadow-emerald-500/5 transition-all">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Present Today</p>
-                    <p className="text-4xl font-black text-emerald-500 tracking-tighter group-hover:scale-110 transition-transform">{AllStudents}</p>
-                </div>
-                <div className="bg-white p-5 rounded-3xl shadow-sm border border-rose-50 text-center group hover:shadow-xl hover:shadow-rose-500/5 transition-all">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Absent Today</p>
-                    <p className="text-4xl font-black text-rose-500 tracking-tighter group-hover:scale-110 transition-transform">{abseties.length}</p>
-                </div>
+        <div className="grid grid-cols-2 gap-4 mb-8">
+            <div className="bg-white p-5 rounded-3xl shadow-sm border border-emerald-50 text-center group hover:shadow-xl hover:shadow-emerald-500/5 transition-all">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Present Today</p>
+                <p className="text-4xl font-black text-emerald-500 tracking-tighter group-hover:scale-110 transition-transform">
+                    {AllStudents - abseties.length}
+                </p>
             </div>
+            <div className="bg-white p-5 rounded-3xl shadow-sm border border-rose-50 text-center group hover:shadow-xl hover:shadow-rose-500/5 transition-all">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Absent Today</p>
+                <p className="text-4xl font-black text-rose-500 tracking-tighter group-hover:scale-110 transition-transform">
+                    {abseties.length}
+                </p>
+            </div>
+        </div>
+
 
             {/* Absentees Section */}
             <div className="mb-12">
@@ -121,19 +168,26 @@ function ClassWIse({ initialClasses = null, initialAbseties = null, initialAllSt
                                         <tr key={index} className="hover:bg-sky-50/30 transition-colors group">
                                             <td className="px-6 py-4">
                                                 <span className="w-10 h-10 flex items-center justify-center bg-rose-50 text-rose-600 rounded-xl text-xs font-black">
-                                                    {std.class || std.className || 'N/A'}
+                                                    {std.class || 'N/A'}
                                                 </span>
                                             </td>
                                             <td className="hidden sm:table-cell px-6 py-4 text-sm font-mono text-slate-400">
-                                                {std.ad || std.ADNO || 'N/A'}
+                                                {std.ad || 'N/A'}
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex flex-col">
-                                                    <span className="font-bold text-slate-900 group-hover:text-sky-700 transition-colors">
-                                                        {std.nameOfStd || 'Unknown Student'}
-                                                    </span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-bold text-slate-900 group-hover:text-sky-700 transition-colors">
+                                                            {std.nameOfStd || 'Unknown Student'}
+                                                        </span>
+                                                        {/* {std.displayStatus && (
+                                                            <span className="px-1.5 py-0.5 bg-sky-50 text-sky-600 text-[8px] font-black rounded uppercase border border-sky-100">
+                                                                {std.displayStatus}
+                                                            </span>
+                                                        )} */}
+                                                    </div>
                                                     <span className="text-[10px] sm:hidden font-mono text-slate-400 mt-0.5">
-                                                        AD: {std.ad || std.ADNO} • {std.attentenceDate ? new Date(std.attentenceDate).toLocaleDateString() : 'Today'}
+                                                        AD: {std.ad} • {std.attentenceDate ? new Date(std.attentenceDate).toLocaleDateString() : 'Today'}
                                                     </span>
                                                 </div>
                                             </td>

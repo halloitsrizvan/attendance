@@ -339,7 +339,7 @@ const EditLeaveModal = ({ classInfo, onSave, onClose, isOpen, onDelete }) => {
   );
 };
 
-const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassData, teacher, type }) => {
+const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassData, teacher, type, isSelected, onSelect, selectedIds }) => {
   const { _id, studentId, teacherId, remainingTime, status, returnedAt, toDate, toTime, fromTime, fromDate, reason } = classInfo;
   const ad = studentId?.ADNO || classInfo.ad;
   const name = studentId?.['SHORT NAME'] || studentId?.['FULL NAME'] || classInfo.name;
@@ -347,8 +347,11 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
   const teacherName = teacherId?.name || classInfo.teacher;
   const [showConfirm, setShowConfirm] = useState(false);
   const [showRoomTransitionConfirm, setShowRoomTransitionConfirm] = useState(false);
+  const [showDeleteQuickConfirm, setShowDeleteQuickConfirm] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+
+  const canBeSelected = status === 'Pending' || status === 'On Leave' || status === 'Late';
 
   const calculateRemainingTime = (toDate, toTime) => {
     if (!toDate || !toTime) return "—";
@@ -476,14 +479,14 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
     if (!teacher) return false;
     // Admins have access to everyone
     if (['super_admin', 'HOD', 'HOS'].includes(teacher.role)) return true;
-    
+
     // Check if teacher is the one who created the leave
     const currentTeacherId = teacher.id || teacher._id;
     if (teacherId?._id === currentTeacherId || classInfo.teacher === teacher.name) return true;
-    
+
     // Check if teacher's assigned class matches the student's class
     if (teacher.class && String(teacher.class) === String(classNum)) return true;
-    
+
     return false;
   };
 
@@ -499,16 +502,16 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
         markReturnedTeacher: teacher?.name || 'Unknown',
         returnedAt: now.toISOString()
       };
-      
+
       await axios.put(`${API_PORT}/leave/${_id}`, returnPayload);
-      
+
       // Briefly update student (optional but safe)
       await axios.patch(`${API_PORT}/students/on-leave/${ad}`, { onLeave: false });
 
       // 2. Create new Medical record
       const sid = (studentId && typeof studentId === 'object') ? studentId._id : studentId;
       const newLeavePayload = {
-        studentId: sid, 
+        studentId: sid,
         teacherId: currentTeacherId,
         fromDate: now.toISOString().split('T')[0],
         fromTime: now.toTimeString().split(' ')[0].substring(0, 5),
@@ -517,14 +520,14 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
         leaveStartTeacher: teacher?.name || 'Unknown',
         academicYearId: classInfo.academicYearId || undefined
       };
-      
+
       await axios.post(`${API_PORT}/leave`, newLeavePayload);
-      
+
       await axios.patch(`${API_PORT}/students/on-leave/${ad}`, { onLeave: true });
       setShowRoomTransitionConfirm(false);
       // alert("Student moved from Room to Medical Leave successfully!");
       if (onReturn) onReturn();
-      
+
     } catch (err) {
       console.error('Transition Error:', err);
       alert("Failed to transition student to Medical Leave. Check console.");
@@ -733,7 +736,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
   };
 
   const getStatusStyle = (status) => {
-    switch(status) {
+    switch (status) {
       case 'On Leave': return 'bg-orange-500';
       case 'Late': return 'bg-red-500';
       case 'Pending': return 'bg-blue-500';
@@ -749,26 +752,31 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
   return (
     <>
       {/* Compact Card Design */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
+      <div
+        onClick={() => canBeSelected && onSelect(_id)}
+        className={`bg-white rounded-lg border shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer ${isSelected ? 'border-blue-500 ring-1 ring-blue-500/20 bg-blue-50/10' : 'border-gray-200'
+          }`}
+      >
         {/* Status Indicator Bar */}
         <div className={`h-1 ${statusColor}`}></div>
         {/* Header - Student Info & Action Button */}
-        <div className="p-3 flex items-center justify-between gap-2">
+        <div className="p-3 flex items-center justify-between gap-2 relative">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="flex-shrink-0">
-              <div className={`w-10 h-10 ${statusColor} rounded-lg flex items-center justify-center text-white font-bold text-sm`}>
-                {type === "Generalactions" ? (
-                  <span>{ad}</span>
-                ) : (
-                  // <button
-                  //   onClick={() => setShowEdit(true)}
-                  //   className="w-full h-full flex items-center justify-center hover:bg-blue-700 rounded-lg transition-colors"
-                  //   title="Edit Leave"
-                  // >
-                  //   <Edit size={16} className="ml-1" />
-                  // </button>
-                  <span>{ad}</span>
-                )}
+            <div className="flex-shrink-0 flex flex-col items-center">
+              {canBeSelected && (isSelected || selectedIds.length > 0) && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onSelect(_id); }}
+                  className={`w-5 h-5 rounded-full border-2 transition-all flex items-center justify-center mb-4 animate-in zoom-in-50 duration-200 ${isSelected
+                    ? 'bg-blue-500 border-blue-500 text-white shadow-sm'
+                    : 'border-slate-300 hover:border-blue-400 bg-white'
+                    }`}
+                >
+                  {isSelected && <CheckCircle size={12} strokeWidth={3} />}
+                </button>
+              )}
+              <div className={`w-10 h-10 ${statusColor} rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-sm`}>
+                <span>{ad}</span>
               </div>
             </div>
             <div className="min-w-0 flex-1">
@@ -783,7 +791,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
                 <span>From: {formatDate(fromDate)},</span>
                 <span>{formatDateTime(fromDate, fromTime)}</span>
               </div>
-              
+
               {toDate && toTime && (
                 <div className="flex items-center gap-3 text-xs text-gray-500">
                   <span>To: {formatDate(toDate)},</span>
@@ -813,7 +821,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
               {hasAccessToStudent() && (
                 <button
                   className="flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white transition-all shadow-sm shadow-orange-500/20 active:scale-95"
-                  onClick={() => setShowRoomTransitionConfirm(true)}
+                  onClick={(e) => { e.stopPropagation(); setShowRoomTransitionConfirm(true); }}
                   disabled={isProcessing}
                 >
                   leave
@@ -822,32 +830,45 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
               <button
                 className="flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-all shadow-sm shadow-blue-500/20 active:scale-95"
                 disabled={isProcessing}
-                onClick={() => setShowConfirm(true)}
+                onClick={(e) => { e.stopPropagation(); setShowConfirm(true); }}
               >
                 <CheckCircle size={12} />
                 Return
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex flex-col gap-2 flex-shrink-0 min-w-[120px]">
+              {type !== "Generalactions" && (
+                <div className="flex gap-2 w-full">
+                  <button
+                    className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold px-2 py-2 rounded-lg transition-colors duration-200 bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100"
+                    onClick={(e) => { e.stopPropagation(); setShowEdit(true); }}
+                    title="Edit Leave"
+                  >
+                    <Edit size={14} />
+                    <span>Edit</span>
+                  </button>
+                  <button
+                    className="flex items-center justify-center p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 transition-colors"
+                    onClick={(e) => { e.stopPropagation(); setShowDeleteQuickConfirm(true); }}
+                    title="Quick Delete"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              )}
+
               <button
-                className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg transition-colors duration-200 flex-shrink-0 ${buttonState.className}`}
+                className={`flex items-center justify-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg transition-colors duration-200 ${buttonState.className}`}
                 disabled={buttonState.disabled || isProcessing}
-                onClick={() => !buttonState.disabled && setShowConfirm(true)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!buttonState.disabled) setShowConfirm(true);
+                }}
               >
                 <buttonState.icon size={14} />
                 <span className="sm:inline"> {buttonState.text}</span>
               </button>
-              
-              {type !== "Generalactions" && (
-                <button
-                  className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg transition-colors duration-200 flex-shrink-0 bg-blue-600 text-white hover:bg-blue-700"
-                  onClick={() => setShowEdit(true)}
-                  title="Edit Leave"
-                >
-                  <Edit size={16} className="ml-1" />
-                </button>
-              )}
             </div>
           )}
         </div>
@@ -891,7 +912,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
               <div>
                 <h3 className="text-lg font-black text-slate-800 tracking-tight">Move to Medical Leave?</h3>
                 <p className="text-sm text-slate-500 mt-1 font-medium px-4 leading-relaxed">
-                  Are you sure you want to move <strong>{name}</strong> to full Medical Leave? 
+                  Are you sure you want to move <strong>{name}</strong> to full Medical Leave?
                   This will finish the Room session and start a new Home Leave record.
                 </p>
               </div>
@@ -913,6 +934,45 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
                   ) : 'Confirm Move'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Delete Confirmation Modal */}
+      {showDeleteQuickConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-xs w-full p-4 text-center">
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Trash2 size={24} className="text-red-600" />
+            </div>
+            <h3 className="font-semibold text-gray-900 text-sm mb-1">Delete Leave?</h3>
+            <p className="text-xs text-gray-500 mb-4">Are you sure you want to delete leave for <span className="font-bold text-gray-700">{name}</span>?</p>
+            <div className="flex gap-2">
+              <button
+                className="flex-1 py-2 bg-slate-50 text-slate-500 text-xs font-bold rounded-lg hover:bg-slate-100 transition-all"
+                onClick={() => setShowDeleteQuickConfirm(false)}
+                disabled={isProcessing}
+              >
+                Cancel
+              </button>
+              <button
+                className="flex-1 py-2 bg-red-500 text-white text-xs font-bold rounded-lg hover:bg-red-600 transition-all shadow-md shadow-red-500/20"
+                onClick={async () => {
+                  setIsProcessing(true);
+                  try {
+                    await handleDelete(_id);
+                    setShowDeleteQuickConfirm(false);
+                  } catch (e) {
+                    alert("Delete failed");
+                  } finally {
+                    setIsProcessing(false);
+                  }
+                }}
+                disabled={isProcessing}
+              >
+                {isProcessing ? "Wait..." : "Delete"}
+              </button>
             </div>
           </div>
         </div>
@@ -987,18 +1047,93 @@ function LeaveStatusTable({ classData: initialClassData1, onDataUpdate, getLeave
     }
   }, []);
 
-  let initialClassData = "";
-  if (type === "MyDashboard") {
-    // Filter for MyDashboard: teacher's data only, include all statuses that need action
-    initialClassData = initialClassData1.filter((leave) =>
-      leave.teacher === teacher?.name &&
-      ['Pending', 'Late', 'On Leave'].includes(leave.status)
-    );
-  } else {
-    initialClassData = initialClassData1;
-  }
+  const initialClassData = initialClassData1;
 
   const [classData, setClassData] = useState(initialClassData || []);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+  const [showStatusMismatch, setShowStatusMismatch] = useState(false);
+
+  const handleSelect = (id) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkAction = async () => {
+    if (selectedIds.length === 0) return;
+
+    const leavesToProcess = classData.filter(l => selectedIds.includes(l._id));
+    
+    // Check if all selected have the same logical action
+    const isAllStart = leavesToProcess.every(l => l.status === 'Pending');
+    const isAllReturn = leavesToProcess.every(l => l.status === 'On Leave' || l.status === 'Late');
+
+    if (!isAllStart && !isAllReturn) {
+      setShowStatusMismatch(true);
+      return;
+    }
+
+    setShowBulkConfirm(true);
+  };
+
+  const executeBulkAction = async () => {
+    const leavesToProcess = classData.filter(l => selectedIds.includes(l._id));
+    const isAllStart = leavesToProcess.every(l => l.status === 'Pending');
+
+    setIsBulkProcessing(true);
+    try {
+      const promises = selectedIds.map(async (id) => {
+        const leave = classData.find(l => l._id === id);
+        const newStatus = isAllStart ? 'active' : 'returned';
+        const payload = {
+          status: newStatus,
+          timestamp: new Date().toISOString()
+        };
+
+        if (teacher?.name) {
+          if (newStatus === 'active') {
+            payload.leaveStartTeacher = teacher.name;
+          } else {
+            payload.markReturnedTeacher = teacher.name;
+            payload.returnedAt = new Date().toISOString();
+          }
+        }
+
+        // Update Leave record
+        await axios.put(`${API_PORT}/leave/${id}`, payload);
+
+        // Update Student status
+        const studentAd = leave.studentId?.ADNO || leave.ad;
+        await axios.patch(`${API_PORT}/students/on-leave/${studentAd}`, { onLeave: newStatus === 'active' });
+      });
+
+      await Promise.all(promises);
+
+      setSelectedIds([]);
+      setShowBulkConfirm(false);
+      if (onDataUpdate) onDataUpdate();
+      // For success, we can use a Toast eventually, but for now we'll close the modal
+    } catch (error) {
+      console.error("Bulk action failed:", error);
+      alert("Something went wrong during bulk processing.");
+    } finally {
+      setIsBulkProcessing(false);
+    }
+  };
+
+  const matchingLeaves = classData.filter(l => l.status === 'Pending' || l.status === 'On Leave' || l.status === 'Late');
+  const allSelected = matchingLeaves.length > 0 && selectedIds.length === matchingLeaves.length;
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(matchingLeaves.map(l => l._id));
+    }
+  };
+
 
   useEffect(() => {
     setClassData(initialClassData || []);
@@ -1043,6 +1178,22 @@ function LeaveStatusTable({ classData: initialClassData1, onDataUpdate, getLeave
   return (
     <div className="min-h-64 bg-gray-50 p-3 sm:p-4">
       <div className="max-w-2xl mx-auto space-y-3">
+        {/* Selection Header Row - Only shows during active selection */}
+        {selectedIds.length > 0 && matchingLeaves.length > 0 && (
+          <div className="px-3 pb-2 flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+            <button
+              onClick={toggleSelectAll}
+              className={`w-5 h-5 rounded-full border-2 transition-all flex items-center justify-center ${allSelected
+                  ? 'bg-blue-500 border-blue-500 text-white shadow-sm'
+                  : 'border-slate-300 hover:border-blue-400 bg-white'
+                }`}
+            >
+              {allSelected && <CheckCircle size={12} strokeWidth={3} />}
+            </button>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Select All</span>
+          </div>
+        )}
+
         {classData.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-gray-500 text-sm">No pending actions found.</p>
@@ -1058,10 +1209,129 @@ function LeaveStatusTable({ classData: initialClassData1, onDataUpdate, getLeave
               getLeaveStatus={getLeaveStatus}
               teacher={teacher}
               type={type}
+              isSelected={selectedIds.includes(item._id)}
+              onSelect={handleSelect}
+              selectedIds={selectedIds}
             />
           ))
         )}
       </div>
+
+      {/* Floating Bulk Action Bar */}
+      {selectedIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] w-full max-w-sm px-4 animate-in slide-in-from-bottom-5 duration-300">
+          <div className="bg-slate-900 text-white rounded-2xl p-4 shadow-2xl flex items-center justify-between border border-white/10 backdrop-blur-md bg-opacity-95">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center font-bold text-sm">
+                {selectedIds.length}
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-bold">Students Selected</span>
+                <button
+                  onClick={() => setSelectedIds([])}
+                  className="text-[10px] text-slate-400 hover:text-white transition-colors text-left"
+                >
+                  Clear Selection
+                </button>
+              </div>
+            </div>
+
+            <button
+              onClick={handleBulkAction}
+              disabled={isBulkProcessing}
+              className="px-6 py-2.5 bg-sky-500 hover:bg-sky-600 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-sky-500/30 flex items-center gap-2 disabled:opacity-50"
+            >
+              {isBulkProcessing ? (
+                <div className="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+              ) : <CheckCircle size={14} />}
+              Process Bulk
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Action Confirmation Modal */}
+      {showBulkConfirm && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 animate-in zoom-in-95 duration-200">
+            <div className="text-center space-y-6">
+              <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto">
+                <CheckCircle size={40} className="text-blue-500" />
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="text-xl font-black text-slate-800 tracking-tight">Bulk Leave Processing</h3>
+                <p className="text-sm text-slate-500 leading-relaxed px-6">
+                  You are about to process <strong>{selectedIds.length} students</strong>. All selected students will be moved to their next leave status simultaneously.
+                </p>
+              </div>
+
+              <div className="bg-slate-50 rounded-2xl p-4 overflow-hidden">
+                <div className="flex items-center justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                  <span>Selected List</span>
+                  <span>{selectedIds.length} Total</span>
+                </div>
+                <div className="max-h-32 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                  {classData.filter(l => selectedIds.includes(l._id)).map(student => (
+                    <div key={student._id} className="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-slate-100 shadow-sm">
+                      <span className="text-xs font-bold text-slate-700 truncate">{student.studentId?.['SHORT NAME'] || student.name}</span>
+                      <span className="text-[10px] font-black text-slate-400">#{student.ad}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-4 pt-2">
+                <button
+                  onClick={() => setShowBulkConfirm(false)}
+                  className="flex-1 px-4 py-3 bg-slate-100 text-slate-500 text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-slate-200 transition-all active:scale-95"
+                  disabled={isBulkProcessing}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={executeBulkAction}
+                  className="flex-1 px-4 py-3 bg-blue-500 text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 active:scale-95"
+                  disabled={isBulkProcessing}
+                >
+                  {isBulkProcessing ? (
+                    <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                  ) : 'Confirm Bulk'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Status Mismatch Error Modal */}
+      {showStatusMismatch && (
+        <div className="fixed inset-0 z-[210] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 animate-in zoom-in-95 duration-200">
+            <div className="text-center space-y-6">
+              <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto">
+                <PlayCircle size={40} className="text-amber-500" />
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="text-xl font-black text-slate-800 tracking-tight">Status Mismatch</h3>
+                <p className="text-sm text-slate-500 leading-relaxed px-4">
+                  Please select students with the <strong>same status</strong>. You cannot mix "Start Leave" and "Return" actions in a single bulk process.
+                </p>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  onClick={() => setShowStatusMismatch(false)}
+                  className="w-full px-4 py-3 bg-slate-900 text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-900/20"
+                >
+                  Understood
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -113,6 +113,44 @@ const ShortLeaveTimePicker = ({ fromPeriod, setFromPeriod, toPeriod, setToPeriod
   );
 };
 
+const TemplatePicker = ({ selectedTemplate, setSelectedTemplate, onTemplateSelect, setShowEndDateForMedical }) => {
+  const templates = [
+    { id: 'today-tmw-eve', label: 'Today Eve - Tmrw Eve' },
+    { id: 'today-tmw-morn', label: 'Today Eve - Tmrw Morn' },
+    { id: 'thu-fri-eve', label: 'Thu Eve - Fri Eve' },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Quick Templates</h3>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {templates.map(t => (
+          <SelectionButton
+            key={t.id}
+            label={t.label}
+            type={'Template'}
+            isSelected={selectedTemplate === t.id}
+            onClick={() => {
+              setSelectedTemplate(t.id);
+              onTemplateSelect(t.id);
+              setShowEndDateForMedical(true);
+            }}
+          />
+        ))}
+        <SelectionButton
+          label="Clear"
+          type={'Template'}
+          isSelected={false}
+          onClick={() => {
+            setSelectedTemplate(null);
+            setShowEndDateForMedical(false);
+          }}
+        />
+      </div>
+    </div>
+  );
+};
+
 const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCustomReason, leaveType, teacher }) => {
   const classNum = teacher?.classNum;
 
@@ -123,7 +161,7 @@ const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCust
     } else {
       reasonOptions = teacher?.role === "class_teacher"
         ? ['Medical', 'Room', 'Marriage', 'Hospital', 'Custom']
-        : ['Medical', 'Room', 'Marriage', 'Function', 'Custom'];
+        : ['Medical', 'Room', 'Marriage', 'Custom']; //function
     }
   } else {
     reasonOptions = ["Custom"];
@@ -132,7 +170,7 @@ const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCust
   return (
     <div className="space-y-4">
       <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Select Reason</h3>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <div className="grid grid-cols-4 gap-2 sm:grid-cols-3">
         {reasonOptions.map(option => (
           <SelectionButton
             key={option}
@@ -196,6 +234,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   const [fromCustomDate, setFromCustomDate] = useState('');
   const [fromCustomTime, setFromCustomTime] = useState('');
   const [reason, setReason] = useState('Medical');
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [toDate, setToDate] = useState('Tomorrow');
   const [toTime, setToTime] = useState('Evening');
   const [toCustomDate, setToCustomDate] = useState('');
@@ -204,7 +243,75 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   const [showEndDateForMedical, setShowEndDateForMedical] = useState(false);
 
   // Short Leave states
-  const [leaveType, setLeaveType] = useState('leave');
+  const [leaveType, setLeaveType] = useState('leave'); // 'leave' or 'short'
+
+  const handleTemplateSelect = (templateId) => {
+    switch(templateId) {
+      case 'today-tmw-eve':
+        setFromDate('Today');
+        setFromTime('Evening');
+        setToDate('Tomorrow');
+        setToTime('Evening');
+        break;
+      case 'today-tmw-morn':
+        setFromDate('Today');
+        setFromTime('Evening');
+        setToDate('Tomorrow');
+        setToTime('Morning');
+        break;
+      case 'thu-fri-eve': {
+        const now = new Date();
+        const day = now.getDay();
+        
+        // Calculate Thursday (4) and Friday (5) of this week
+        let Thu = new Date(now);
+        Thu.setDate(now.getDate() + (4 - day));
+        
+        let Fri = new Date(now);
+        Fri.setDate(now.getDate() + (5 - day));
+        
+        // If today is уже Friday or later, move to next week
+        if (day >= 5) {
+          Thu.setDate(Thu.getDate() + 7);
+          Fri.setDate(Fri.getDate() + 7);
+        }
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        const tmrw = new Date();
+        tmrw.setDate(tmrw.getDate() + 1);
+        const tmrwStr = tmrw.toISOString().split('T')[0];
+
+        const thuStr = Thu.toISOString().split('T')[0];
+        const friStr = Fri.toISOString().split('T')[0];
+
+        // Set From Date
+        if (thuStr === todayStr) {
+          setFromDate('Today');
+        } else if (thuStr === tmrwStr) {
+          setFromDate('Tomorrow');
+        } else {
+          setFromDate('Custom');
+          setFromCustomDate(thuStr);
+        }
+        setFromTime('Evening');
+        
+        // Set To Date
+        if (friStr === todayStr) {
+          setToDate('Today');
+        } else if (friStr === tmrwStr) {
+          setToDate('Tomorrow');
+        } else {
+          setToDate('Custom');
+          setToCustomDate(friStr);
+        }
+        setToTime('Evening');
+        break;
+      }
+      default:
+        break;
+    }
+  };
+
   const [shortLeaveStudents, setShortLeaveStudents] = useState([{ ad: '', name: '', classNum: '', student: null }]);
   const [shortLeaveFromPeriod, setShortLeaveFromPeriod] = useState(1);
   const [shortLeaveToPeriod, setShortLeaveToPeriod] = useState(1);
@@ -293,28 +400,23 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
 
   const checkLeaveStatus = (studentAd) => {
     try {
+      const studentObj = students.find(s => String(s.ADNO) === String(studentAd));
+      if (!studentObj) return false;
 
-      // Filter leaves for this student
-      const studentLeaves = leaveData.filter(leave =>
-        String(leave.ad) === String(studentAd)
-      );
+      // Filter leaves for this student by matching studentId
+      const studentLeaves = leaveData.filter(leave => {
+        const leaveStudentId = typeof leave.studentId === 'object' ? leave.studentId?._id : leave.studentId;
+        return String(leaveStudentId) === String(studentObj._id);
+      });
 
       if (studentLeaves.length === 0) return false;
 
       // Sort by creation time (descending) to get the latest document
-      // Primary sort: createdAt, Secondary sort: _id (as proxy for time)
       studentLeaves.sort((a, b) => {
         const dateA = a.createdAt ? new Date(a.createdAt) : null;
         const dateB = b.createdAt ? new Date(b.createdAt) : null;
-
-        if (dateA && dateB) {
-          return dateB - dateA;
-        }
-
-        // Fallback to _id comparison if createdAt is missing or invalid
-        if (a._id && b._id) {
-          return a._id < b._id ? 1 : -1;
-        }
+        if (dateA && dateB) return dateB - dateA;
+        if (a._id && b._id) return a._id < b._id ? 1 : -1;
         return 0;
       });
 
@@ -333,10 +435,15 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
 
   const checkRecoveryStatus = (studentAd) => {
     try {
-      const studentLeaves = leaveData.filter(leave =>
-        String(leave.ad) === String(studentAd) &&
-        (leave.status === 'returned' || (leave.status && leave.status.toLowerCase() === 'returned'))
-      );
+      const studentObj = students.find(s => String(s.ADNO) === String(studentAd));
+      if (!studentObj) return true;
+
+      const studentLeaves = leaveData.filter(leave => {
+        const leaveStudentId = typeof leave.studentId === 'object' ? leave.studentId?._id : leave.studentId;
+        const isStudentMatch = String(leaveStudentId) === String(studentObj._id);
+        const isReturned = leave.status === 'returned' || (leave.status && leave.status.toLowerCase() === 'returned');
+        return isStudentMatch && isReturned;
+      });
 
       if (studentLeaves.length === 0) return true;
 
@@ -385,7 +492,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       setName(found["SHORT NAME"] || found["FULL NAME"] || found.name || "Unknown");
       setClassNum(found.CLASS);
       if (checkLeaveStatus(found.ADNO)) {
-        showAlert(`${found["SHORT NAME"] || found["FULL NAME"]} is currently marked as on leave or absent.`, "Student Unavailable", "error");
+        showAlert(`Student on Leave: ${found["SHORT NAME"] || found["FULL NAME"]} already has an active or scheduled leave record.`, "Student on Leave", "warning");
         setAd('');
         return;
       }
@@ -450,7 +557,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         updatedStudents[index].name = found["SHORT NAME"] || found["FULL NAME"] || found.name || "Unknown";
         updatedStudents[index].classNum = found.CLASS;
         if (checkLeaveStatus(found.ADNO)) {
-          showAlert(`${found["SHORT NAME"] || found.name} is currently marked as on leave.`, "Student Unavailable", "error");
+          showAlert(`Student on Leave: ${found["SHORT NAME"] || found.name} already has an active or scheduled leave record.`, "Student on Leave", "warning");
           updatedStudents[index].ad = '';
         } else if (!checkRecoveryStatus(found.ADNO)) {
           showAlert(`${found["SHORT NAME"] || found.name} has an uncompleted recovery.`, "Recovery Not Completed", "error");
@@ -763,7 +870,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
 
     if (!isAlreadyAdded) {
       if (checkLeaveStatus(student.ADNO)) {
-        showAlert(`${student["SHORT NAME"]} is already on leave.`, "Student Unavailable", "error");
+        showAlert(`Student on Leave: ${student["SHORT NAME"]} already has an active or scheduled leave record.`, "Student on Leave", "warning");
         return;
       }
       // Add student to selected list
@@ -871,7 +978,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     // Create an array of promises for all selected students
     const submitPromises = selectedBulkStudents.map(studentData => {
       const studentObj = students.find(s => String(s.ADNO) === String(studentData.ADNO));
-      
+
       const payload = {
         studentId: studentObj?._id || studentData.studentId || studentData._id || studentData.id,
         teacherId: currentTeacherId,
@@ -1175,7 +1282,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
           )}
           {/* Reason */}
           <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50">
-            <ReasonPicker
+            <ReasonPicker 
               selectedReason={reason}
               setSelectedReason={setReason}
               customReason={customReason}
@@ -1183,6 +1290,16 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
               leaveType={leaveType}
               teacher={teacher}
             />
+          </div>
+
+          {/* templates */}
+          <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50">
+           <TemplatePicker
+            selectedTemplate={selectedTemplate}
+            setSelectedTemplate={setSelectedTemplate}
+            onTemplateSelect={handleTemplateSelect}
+            setShowEndDateForMedical={setShowEndDateForMedical}
+           />
           </div>
 
           <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50 space-y-6">

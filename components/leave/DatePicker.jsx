@@ -21,7 +21,7 @@ function DatePicker({ label, selectedDate, setSelectedDate, customDate, setCusto
           <Calendar size={12} className="text-slate-400" />
           <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</h3>
         </div>
-      )}
+      )} 
       <div className="grid grid-cols-4 gap-2">
         {dateOptions.map(option => (
           <SelectionButton

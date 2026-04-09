@@ -390,7 +390,9 @@ function LeaveStatus() {
   }, [leaveData, activeTab, searchValue]);
 
   const filteredDataForOnleave = useMemo(() => {
-    return leaveData.filter(student => student.returnedAt === null);
+    return leaveData.filter(student =>
+      ['On Leave', 'Late'].includes(student.displayStatus)
+    );
   }, [leaveData]);
 
   const filterDB = useMemo(() => {
@@ -540,7 +542,7 @@ function LeaveStatus() {
                   </div>
                 }
 
-                {(activeTab === 'onLeave' ? filteredDataForOnleave : filteredData).map((student) => (
+                {filteredData.map((student) => (
                   <StudentStatusCard key={student._id} student={student} />
                 ))}
               </>
@@ -558,7 +560,7 @@ function LeaveStatus() {
             <>
               <div className="flex flex-wrap  gap-2  p-1  bg-white rounded-lg shadow-sm  w-full sm:w-auto mb-2">
                 <TabButton
-                  label={`Actions(${actionsTableData.filter(student => student.teacher === teacher?.name).length})`}
+                  label={`Actions(${actionsTableData.filter(student => student.teacherId?.name === teacher?.name || student.teacher === teacher?.name).length})`}
                   isActive={activeTabMyDB === 'allActions'}
                   onClick={() => setActiveTabMyDB('allActions')}
                 />

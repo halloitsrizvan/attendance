@@ -4,6 +4,32 @@ import AuthGuard from '@/components/auth/AuthGuard';
 export const metadata = {
   title: 'Attendance App',
   description: 'Full-stack web application designed for managing attendance',
+  icons: {
+    icon: '/circled-logo.png', // Circular favicon
+    apple: '/circled-logo.png', // Apple touch icon
+  },
+  openGraph: {
+    title: 'Attendance App',
+    description: 'Full-stack web application designed for managing attendance',
+    url: 'https://attendance-v1.vercel.app', // You might want to update this to your actual URL
+    siteName: 'Attendance App',
+    images: [
+      {
+        url: '/logo.png',
+        width: 800,
+        height: 600,
+        alt: 'Attendance App Logo',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Attendance App',
+    description: 'Full-stack web application designed for managing attendance',
+    images: ['/logo.png'],
+  },
 };
 
 export default function RootLayout({ children }) {
@@ -11,7 +37,6 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <head>
         <script src="https://cdn.tailwindcss.com"></script>
-        <title>Attendance</title>
       </head>
       <body>
         <div className="App">
@@ -23,3 +48,4 @@ export default function RootLayout({ children }) {
     </html>
   );
 }
+
