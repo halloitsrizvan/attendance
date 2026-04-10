@@ -462,6 +462,38 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     }
   };
 
+  const getActiveLeaveDays = (fromDateStr, fromTimeStr, returnedAt) => {
+    const start = new Date(`${fromDateStr}T${fromTimeStr}`);
+    const end = new Date(returnedAt);
+    
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
+
+    let count = 0;
+    let current = new Date(start);
+    current.setHours(0, 0, 0, 0);
+    
+    const endDay = new Date(end);
+    endDay.setHours(0, 0, 0, 0);
+
+    while (current <= endDay) {
+      if (current.getDay() !== 5) { // Skip Fridays
+        const dayStart = new Date(current);
+        dayStart.setHours(7, 0, 0, 0);
+        const dayEnd = new Date(current);
+        dayEnd.setHours(16, 0, 0, 0);
+        
+        const overlapStart = start > dayStart ? start : dayStart;
+        const overlapEnd = end < dayEnd ? end : dayEnd;
+        
+        if (overlapStart < overlapEnd) {
+          count++;
+        }
+      }
+      current.setDate(current.getDate() + 1);
+    }
+    return count;
+  };
+
   const checkRecoveryStatus = (studentAd) => {
     try {
       const studentObj = students.find(s => String(s.ADNO) === String(studentAd));
@@ -486,13 +518,14 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       const lastReturn = studentLeaves[0];
       if (lastReturn.recovery) return true;
 
-      // Calculate leave duration
-      const start = new Date(lastReturn.fromDate);
-      const returned = new Date(lastReturn.returnedAt);
-      const diffMs = returned - start;
-      const leaveDays = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
-      const graceDays = leaveDays * 2;
+      // Calculate active leave days
+      const leaveDays = getActiveLeaveDays(lastReturn.fromDate, lastReturn.fromTime, lastReturn.returnedAt);
+      
+      // If no class days were missed, recovery is effectively complete
+      if (leaveDays === 0) return true;
 
+      const graceDays = leaveDays * 2;
+      const returned = new Date(lastReturn.returnedAt);
       const deadline = new Date(returned.getTime() + (graceDays * 24 * 60 * 60 * 1000));
       const now = new Date();
 

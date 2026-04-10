@@ -67,14 +67,49 @@ const Recovery = () => {
         });
     }, [teacherLeaves, searchValue]);
 
+    const getActiveLeaveDays = (fromDateStr, fromTimeStr, returnedAt) => {
+        const start = new Date(`${fromDateStr}T${fromTimeStr}`);
+        const end = new Date(returnedAt);
+        
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
+
+        let count = 0;
+        let current = new Date(start);
+        current.setHours(0, 0, 0, 0);
+        
+        const endDay = new Date(end);
+        endDay.setHours(0, 0, 0, 0);
+
+        while (current <= endDay) {
+            if (current.getDay() !== 5) { // Skip Fridays
+                const dayStart = new Date(current);
+                dayStart.setHours(7, 0, 0, 0);
+                const dayEnd = new Date(current);
+                dayEnd.setHours(16, 0, 0, 0);
+                
+                const overlapStart = start > dayStart ? start : dayStart;
+                const overlapEnd = end < dayEnd ? end : dayEnd;
+                
+                if (overlapStart < overlapEnd) {
+                    count++;
+                }
+            }
+            current.setDate(current.getDate() + 1);
+        }
+        return count;
+    };
+
     const calculateRecoveryStatus = (leave) => {
         if (leave.recovery) return { status: 'Recovered', color: 'text-green-600 bg-green-50', icon: ShieldCheck };
         
-        const start = new Date(leave.fromDate);
-        const returned = new Date(leave.returnedAt);
-        const diffMs = returned - start;
-        const leaveDays = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+        const leaveDays = getActiveLeaveDays(leave.fromDate, leave.fromTime, leave.returnedAt);
+        
+        // If no class days were missed, no recovery is needed (or it's effectively 0 days)
+        // User said "if student leave from thu eve to fri eve then it not consider in recovery"
+        if (leaveDays === 0) return { status: 'Recovered', color: 'text-green-600 bg-green-50', icon: ShieldCheck };
+
         const graceDays = leaveDays * 2;
+        const returned = new Date(leave.returnedAt);
         const deadline = new Date(returned.getTime() + (graceDays * 24 * 60 * 60 * 1000));
         
         const now = new Date();
@@ -190,7 +225,7 @@ const Recovery = () => {
                                 </div>
 
                                 <div className="pt-2">
-                                    {!leave.recovery && (
+                                    {!leave.recovery && statusInfo.status !== 'Recovered' && (
                                         <button 
                                             onClick={() => {
                                                 setConfirmId(leave._id);
@@ -202,7 +237,7 @@ const Recovery = () => {
                                             {updatingId === leave._id ? 'Updating...' : 'Mark Recovered'}
                                         </button>
                                     )}
-                                    {leave.recovery && (
+                                    {(leave.recovery || statusInfo.status === 'Recovered') && (
                                         <div className="w-full py-4 bg-slate-100 text-slate-400 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-center">
                                             Recovery Record Clear
                                         </div>
