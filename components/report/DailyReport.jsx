@@ -6,7 +6,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { API_PORT } from '../../Constants';
 import axios from 'axios';
-import { Calendar, Download, FileText, Search, Clock, Users, FileSpreadsheet, AlertCircle } from 'lucide-react';
+import { Calendar, Download, FileText, Search, Clock, Users, FileSpreadsheet, AlertCircle, X, CheckCircle } from 'lucide-react';
 
 const getSafeLocalStorage = () => typeof window !== 'undefined' ? localStorage : { getItem: () => null, setItem: () => {}, removeItem: () => {} };
 
@@ -20,6 +20,9 @@ function DailyReport() {
   const [data, setData] = useState([]);
   const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
   const [teacher, setTeacher] = useState(null);
+  const [selectedEntry, setSelectedEntry] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [updating, setUpdating] = useState(false);
   
   // Set default dates to today on mount
   useEffect(() => {
@@ -197,6 +200,80 @@ function DailyReport() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Attendance');
     XLSX.writeFile(wb, `Detailed_Report_${fromDate}_to_${toDate}.xlsx`);
+  };
+
+  const handleEntryClick = (student, day, slot, periodNum = null) => {
+    const id = periodNum ? day.PeriodIds?.[periodNum] : day.SlotIds?.[slot];
+    const status = periodNum ? day.Period?.[periodNum] : day?.[slot];
+    
+    if (!id || (status !== 'P' && status !== 'A')) return;
+
+    setSelectedEntry({
+      studentName: student.nameOfStd,
+      ad: student.ad,
+      class: student.class,
+      date: day.date,
+      slot,
+      periodNum,
+      status: status === 'P' ? 'Present' : 'Absent',
+      id
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleStatusUpdate = async (newStatus) => {
+    if (!selectedEntry || updating) return;
+
+    try {
+      setUpdating(true);
+      const res = await axios.patch(`${API_PORT}/set-attendance`, {
+        updates: [{ _id: selectedEntry.id, status: newStatus }]
+      });
+
+      if (res.status === 200) {
+        // Update local state
+        setData(prevData => prevData.map(student => {
+          if (student.ad === selectedEntry.ad) {
+            return {
+              ...student,
+              dailyAttendance: student.dailyAttendance.map(day => {
+                if (day.date === selectedEntry.date) {
+                  const newDay = { ...day };
+                  const shortStatus = newStatus === 'Present' ? 'P' : 'A';
+                  
+                  if (selectedEntry.slot === 'Period') {
+                    newDay.Period = { ...newDay.Period, [selectedEntry.periodNum]: shortStatus };
+                  } else {
+                    newDay[selectedEntry.slot] = shortStatus;
+                  }
+
+                  // Recalculate student totals if necessary, or just let it be (re-fetching is cleaner but heavier)
+                  // Actually the 'present' and 'absent' totals at student level also need update
+                  return newDay;
+                }
+                return day;
+              }),
+              // Recalculate student level totals
+              present: newStatus === 'Present' 
+                ? (selectedEntry.status === 'Absent' ? student.present + 1 : student.present)
+                : (selectedEntry.status === 'Present' ? student.present - 1 : student.present),
+              absent: newStatus === 'Absent'
+                ? (selectedEntry.status === 'Present' ? student.absent + 1 : student.absent)
+                : (selectedEntry.status === 'Absent' ? student.absent - 1 : student.absent)
+            };
+          }
+          return student;
+        }));
+        
+        setIsModalOpen(false);
+        setSelectedEntry(null);
+      }
+    } catch (e) {
+      console.error("Update failed", e);
+      alert("Failed to update status: " + (e.response?.data?.error || e.message));
+    } finally {
+      setUpdating(false);
+    }
   };
 
   const handleDownloadPDF = () => {
@@ -506,7 +583,11 @@ function DailyReport() {
                                       if (periodValue === 'A') bg = 'bg-rose-50 text-rose-600 font-bold';
                                       
                                       return (
-                                        <td key={`${timeSlot}-${periodNum}`} className={`p-2 border-r-2 border-white border-y-2 text-center text-xs ${bg}`}>
+                                        <td 
+                                          key={`${timeSlot}-${periodNum}`} 
+                                          onClick={() => handleEntryClick(r, day, timeSlot, periodNum)}
+                                          className={`p-2 border-r-2 border-white border-y-2 text-center text-xs ${bg} cursor-pointer hover:opacity-80 transition-opacity`}
+                                        >
                                           {periodValue}
                                         </td>
                                       );
@@ -515,7 +596,11 @@ function DailyReport() {
                                 );
                               } else if (timeSlot !== 'Period') {
                                 return (
-                                  <td key={timeSlot} className={`p-2 border-r-2 border-white border-y-2 text-center text-xs ${getCellBgClass(day, timeSlot)}`}>
+                                  <td 
+                                    key={timeSlot} 
+                                    onClick={() => handleEntryClick(r, day, timeSlot)}
+                                    className={`p-2 border-r-2 border-white border-y-2 text-center text-xs ${getCellBgClass(day, timeSlot)} cursor-pointer hover:opacity-80 transition-opacity`}
+                                  >
                                     {day?.[timeSlot] || '-'}
                                   </td>
                                 );
@@ -546,6 +631,112 @@ function DailyReport() {
         )}
 
       </div>
+
+      {/* Detail Popup Modal */}
+      {isModalOpen && selectedEntry && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" 
+            onClick={() => !updating && setIsModalOpen(false)}
+          />
+          <div className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 overflow-hidden transform transition-all animate-in fade-in zoom-in duration-300">
+            
+            {/* Modal Header */}
+            <div className={`p-6 flex items-center justify-between ${selectedEntry.status === 'Present' ? 'bg-emerald-50' : 'bg-rose-50'}`}>
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${selectedEntry.status === 'Present' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
+                  {selectedEntry.status === 'Present' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-800 tracking-tight">Attendance Detail</h3>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-black uppercase tracking-widest ${selectedEntry.status === 'Present' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      Currently {selectedEntry.status}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="w-10 h-10 bg-white/50 hover:bg-white text-slate-400 hover:text-slate-600 rounded-2xl flex items-center justify-center transition-all"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-8 space-y-6">
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2 bg-slate-50 p-4 rounded-2xl border border-slate-100/50">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Student Name</label>
+                  <p className="font-bold text-slate-800">{selectedEntry.studentName}</p>
+                </div>
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100/50">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">AD NO</label>
+                  <p className="font-bold text-slate-800 uppercase">{selectedEntry.ad}</p>
+                </div>
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100/50">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Class</label>
+                  <p className="font-bold text-slate-800 uppercase">{selectedEntry.class}</p>
+                </div>
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100/50">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Date</label>
+                  <p className="font-bold text-slate-800">{new Date(selectedEntry.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                </div>
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100/50">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Time Slot</label>
+                  <p className="font-bold text-slate-800 uppercase">{selectedEntry.slot} {selectedEntry.periodNum ? `(P${selectedEntry.periodNum})` : ''}</p>
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block px-1 text-center">Change Attendance Status To</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    disabled={updating || selectedEntry.status === 'Present'}
+                    onClick={() => handleStatusUpdate('Present')}
+                    className={`p-4 rounded-2xl font-black text-xs uppercase tracking-widest border-2 transition-all flex flex-col items-center gap-2 ${
+                      selectedEntry.status === 'Present' 
+                      ? 'border-emerald-500 bg-emerald-50 text-emerald-600' 
+                      : 'border-slate-100 bg-white text-slate-400 hover:border-emerald-400 hover:text-emerald-500'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${selectedEntry.status === 'Present' ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                      P
+                    </div>
+                    Present
+                  </button>
+                  <button
+                    disabled={updating || selectedEntry.status === 'Absent'}
+                    onClick={() => handleStatusUpdate('Absent')}
+                    className={`p-4 rounded-2xl font-black text-xs uppercase tracking-widest border-2 transition-all flex flex-col items-center gap-2 ${
+                      selectedEntry.status === 'Absent' 
+                      ? 'border-rose-500 bg-rose-50 text-rose-600' 
+                      : 'border-slate-100 bg-white text-slate-400 hover:border-rose-400 hover:text-rose-500'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${selectedEntry.status === 'Absent' ? 'bg-rose-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                      A
+                    </div>
+                    Absent
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            {updating && (
+              <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex items-center justify-center z-10">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-10 h-10 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-xs font-black text-sky-600 uppercase tracking-widest">Updating...</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -85,10 +85,14 @@ export async function GET(req) {
       if (timeKey === 'Period') {
         const periodNum = record.period || 1;
         if (!dayAttendance.Period) dayAttendance.Period = {};
+        if (!dayAttendance.PeriodIds) dayAttendance.PeriodIds = {};
         dayAttendance.Period[periodNum] = record.status === 'Present' ? 'P' : 'A';
+        dayAttendance.PeriodIds[periodNum] = record._id;
         availableTimeSlots.add('Period');
       } else {
         dayAttendance[timeKey] = record.status === 'Present' ? 'P' : 'A';
+        if (!dayAttendance.SlotIds) dayAttendance.SlotIds = {};
+        dayAttendance.SlotIds[timeKey] = record._id;
         availableTimeSlots.add(timeKey);
       }
     });
