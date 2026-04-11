@@ -394,7 +394,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       } else if (teacher && teacher?.role?.includes("HOD")) {
         filteredStudents = initialStudents.filter(std => [8, 9, 10].includes(std.CLASS));
       } else if (teacher && teacher?.role?.includes("HOS")) {
-        filteredStudents = initialStudents.filter(std => [5, 6, 7].includes(std.CLASS));
+        filteredStudents = initialStudents.filter(std => [1, 2, 3, 4, 5, 6, 7].includes(std.CLASS));
       }
       setStudents(filteredStudents);
       return;
