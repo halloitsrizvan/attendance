@@ -292,14 +292,14 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         const now = new Date();
         const day = now.getDay();
 
-        // Calculate Thursday (4) and Friday (5) of this week
+        // Calculate Thursday (4) and Friday (5)
         let Thu = new Date(now);
         Thu.setDate(now.getDate() + (4 - day));
 
         let Fri = new Date(now);
         Fri.setDate(now.getDate() + (5 - day));
 
-        // If today is уже Friday or later, move to next week
+        // If today is Friday or later, move to next week's Thu/Fri
         if (day >= 5) {
           Thu.setDate(Thu.getDate() + 7);
           Fri.setDate(Fri.getDate() + 7);
@@ -309,30 +309,35 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         const tmrw = new Date();
         tmrw.setDate(tmrw.getDate() + 1);
         const tmrwStr = tmrw.toISOString().split('T')[0];
+        
+        const dayAfter = new Date();
+        dayAfter.setDate(dayAfter.getDate() + 2);
+        const dayAfterStr = dayAfter.toISOString().split('T')[0];
 
         const thuStr = Thu.toISOString().split('T')[0];
         const friStr = Fri.toISOString().split('T')[0];
 
-        // Set From Date
-        if (thuStr === todayStr) {
-          setFromDate('Today');
-        } else if (thuStr === tmrwStr) {
-          setFromDate('Tomorrow');
-        } else {
-          setFromDate('Custom');
-          setFromCustomDate(thuStr);
-        }
+        // Helper to set date state correctly matching DatePicker options
+        const setDateHelper = (dateStr, setDateFn, setCustomFn) => {
+          if (dateStr === todayStr) {
+            setDateFn('Today');
+            setCustomFn('');
+          } else if (dateStr === tmrwStr) {
+            setDateFn('Tomorrow');
+            setCustomFn('');
+          } else if (dateStr === dayAfterStr) {
+            setDateFn('Day After');
+            setCustomFn('');
+          } else {
+            setDateFn('Calendar');
+            setCustomFn(dateStr);
+          }
+        };
+
+        setDateHelper(thuStr, setFromDate, setFromCustomDate);
         setFromTime('Evening');
 
-        // Set To Date
-        if (friStr === todayStr) {
-          setToDate('Today');
-        } else if (friStr === tmrwStr) {
-          setToDate('Tomorrow');
-        } else {
-          setToDate('Custom');
-          setToCustomDate(friStr);
-        }
+        setDateHelper(friStr, setToDate, setToCustomDate);
         setToTime('Evening');
         break;
       }
