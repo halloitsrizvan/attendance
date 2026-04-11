@@ -1,0 +1,22 @@
+{
+  "_id": {
+    "$oid": "69ce2bc4f445ec277f169229"
+  },
+  "ADNO": 267,
+  "CLASS": 7,
+  "FULL NAME": "MUHAMMED RIZWAN",
+  "Password": 267,
+  "SHORT NAME": "RIZWAN",
+  "SL": 5,
+  "__v": 0,
+  "active": true,
+  "createdAt": {
+    "$date": "2026-04-02T08:41:39.753Z"
+  },
+  "onLeave": false,
+  "updatedAt": {
+    "$date": "2026-04-10T02:49:15.389Z"
+  },
+  "Date": "2026-04-10",
+  "Status": "Present"
+}

@@ -40,9 +40,11 @@ export default function AuthGuard({ children }) {
                 return;
             }
 
+            const teacherRoles = Array.isArray(teacher?.role) ? teacher.role : [teacher?.role];
+
             // 3. Role-based access control for admin pages
             const isAdminPage = ADMIN_PAGES.some(page => pathname === page || pathname.startsWith(page + '/'));
-            if (token && isAdminPage && teacher?.role !== 'super_admin') {
+            if (token && isAdminPage && !teacherRoles.includes('super_admin')) {
                 router.replace('/');
                 return;
             }
@@ -50,7 +52,7 @@ export default function AuthGuard({ children }) {
             // 4. Role-based access for leave-form
             const isLeaveForm = pathname === '/leave-form' || pathname.startsWith('/leave-form/');
             const allowedLeaveRoles = ["class_teacher", "super_admin", "HOD", "HOS", "Principal"];
-            if (token && isLeaveForm && !allowedLeaveRoles.includes(teacher?.role)) {
+            if (token && isLeaveForm && !teacherRoles.some(r => allowedLeaveRoles.includes(r))) {
                 router.replace('/');
                 return;
             }

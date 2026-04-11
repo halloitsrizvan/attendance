@@ -32,8 +32,8 @@ const teacherSchema = new Schema({
         type: String
     },
     role: {
-        type: String,
-        default: "teacher"
+        type: [String],
+        default: ["teacher"]
     },
     subjectsTaught: [
         {
@@ -49,5 +49,19 @@ const teacherSchema = new Schema({
         type: Number
     }
 }, { timestamps: true });
+
+// Ensure role is always an array of strings
+teacherSchema.post('init', function(doc) {
+    if (typeof doc.role === 'string') {
+        doc.role = [doc.role];
+    }
+});
+
+teacherSchema.pre('save', function(next) {
+    if (typeof this.role === 'string') {
+        this.role = [this.role];
+    }
+    next();
+});
 
 export default mongoose.models['Teacher'] || mongoose.model('Teacher', teacherSchema);

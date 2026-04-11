@@ -43,6 +43,20 @@ function Header() {
       navigate.push('/login')
     }
 
+    const hasRole = (role) => {
+      if (!teacher?.role) return false;
+      if (Array.isArray(teacher.role)) {
+        return teacher.role.includes(role);
+      }
+      return teacher.role === role;
+    };
+
+    const displayRoles = () => {
+      if (!teacher?.role) return "";
+      const roles = Array.isArray(teacher.role) ? teacher.role : [teacher.role];
+      return roles.map(r => r.replace('_', ' ')).join(', ');
+    };
+
   return (
     <>
       <header className="header-gradient shadow-lg fixed top-0 left-0 w-full z-50">
@@ -105,11 +119,11 @@ function Header() {
                 </button>
                 <div className="absolute top-full left-0 mt-0 pt-3 w-60 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-200 z-50">
                   <div className="bg-white shadow-2xl py-3 border border-slate-100 rounded-xl">
-                    { teacher?.role && ["class_teacher","super_admin","HOD","HOS","Principal"].includes(teacher?.role) && (
+                    { (hasRole("class_teacher") || hasRole("super_admin") || hasRole("HOD") || hasRole("HOS") || hasRole("Principal")) && (
                       <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={()=>{navigate.push('/leave-form')}}>Apply Leave</a>
                     )}
                     <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={()=>{navigate.push('/leave-dashboard')}}>Leave Dashboard</a>
-                    {teacher?.role === "class_teacher" || teacher?.classNum && (
+                    {(hasRole("class_teacher") || teacher?.classNum) && (
                       <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={()=>{navigate.push('/leave-recovery')}}>Recovery</a>
                     )}
                   </div>
@@ -117,7 +131,7 @@ function Header() {
               </div>
               
               {/* Admin Dropdown */}
-              { teacher?.role === "super_admin" && (
+              { hasRole("super_admin") && (
                 <div className="relative group">
                   <button 
                     className="text-white hover:text-sky-100 transition-colors duration-200 font-semibold text-lg flex items-center gap-1 px-2 py-1"
@@ -145,7 +159,7 @@ function Header() {
             <div className="flex items-center space-x-3">
               <div className="text-right">
                 <p className="text-sm font-semibold text-white">{username}</p>
-                <p className="text-xs text-sky-100 opacity-90">{teacher?.role === "class_teacher" ? "Class Teacher" : (teacher?.role || "")} {teacher?.role === "class_teacher" && (teacher?.classNum)} {teacher?.role !== "class_teacher" && teacher?.classNum && `& Class ${teacher?.classNum}`}</p>
+                <p className="text-xs text-sky-100 opacity-90 capitalize">{displayRoles()} {teacher?.classNum && `(Class ${teacher.classNum})`}</p>
               </div>
               <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white font-bold border border-white/30 shadow-inner">
                 {userInitial}
@@ -203,11 +217,11 @@ function Header() {
                   </button>
                   {openDropdown === 'mb-leave' && (
                     <div className="bg-slate-50/50 pb-3">
-                      { teacher?.role && ["class_teacher","super_admin","HOD","HOS","Principal"].includes(teacher?.role) && (
+                      { (hasRole("class_teacher") || hasRole("super_admin") || hasRole("HOD") || hasRole("HOS") || hasRole("Principal")) && (
                         <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={()=>{navigate.push('/leave-form'); setIsMenuOpen(false)}}>Apply Leave</a>
                       )}
                       <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={()=>{navigate.push('/leave-dashboard'); setIsMenuOpen(false)}}>Leave Dashboard</a>
-                      {teacher?.role === "class_teacher" && (
+                      {(hasRole("class_teacher") || teacher?.classNum) && (
                         <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={()=>{navigate.push('/leave-recovery'); setIsMenuOpen(false)}}>Recovery</a>
                       )}
                     </div>
@@ -215,7 +229,7 @@ function Header() {
                 </div>
 
                 {/* Admin Panel Group */}
-                { teacher?.role === "super_admin" && (
+                { hasRole("super_admin") && (
                   <div className="border-t border-slate-100">
                     <button 
                       className="w-full flex items-center justify-between px-4 py-5 font-bold text-slate-800 hover:bg-sky-50 transition-colors"

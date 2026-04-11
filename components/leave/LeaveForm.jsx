@@ -172,18 +172,18 @@ const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCust
     //     ? ['Medical', 'Room', 'Marriage', 'Hospital', 'Custom']
     //     : ['Medical', 'Room', 'Marriage', 'Custom']; //function 
     // }
-    if (teacher?.classNum) {
+    if (teacher?.role?.includes("super_admin")) {
+      reasonOptions = super_admin_reasons;
+    } else if (teacher?.classNum) {
       if (teacher?.classNum <= 4) {
         reasonOptions = classTeacher_reasons_for_primary;
-      } else if (teacher?.classNum > 4) {
+      } else {
         reasonOptions = classTeacher_reasons_for_s5_ss_d;
       }
-    } else if (["hod", "hos"].includes(teacher?.role)) {
+    } else if (teacher?.role?.includes("HOD") || teacher?.role?.includes("HOS")) {
       reasonOptions = teacher_reasons_for_hos_hod;
-    }
-
-    else if (teacher?.role === "super_admin") {
-      reasonOptions = super_admin_reasons;
+    } else {
+      reasonOptions = ['Custom'];
     }
   } else {
     reasonOptions = ["Custom"];
@@ -378,7 +378,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   };
 
   useEffect(() => {
-    if (teacher?.role === "teacher") {
+    if (teacher?.role?.includes("teacher") && teacher?.role?.length === 1) {
       navigate.push('/leave-dashboard');
     }
   }, [teacher?.role]);
@@ -387,13 +387,13 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   useEffect(() => {
     if (initialStudents) {
       let filteredStudents = initialStudents;
-      if (teacher && teacher?.role === "super_admin") {
+      if (teacher && teacher?.role?.includes("super_admin")) {
         // Super admin sees all students
-      } else if (teacher && teacher?.role === "class_teacher") {
+      } else if (teacher && teacher?.role?.includes("class_teacher")) {
         filteredStudents = initialStudents.filter(std => std.CLASS === teacher.classNum);
-      } else if (teacher && teacher?.role === "HOD") {
+      } else if (teacher && teacher?.role?.includes("HOD")) {
         filteredStudents = initialStudents.filter(std => [8, 9, 10].includes(std.CLASS));
-      } else if (teacher && teacher?.role === "HOS") {
+      } else if (teacher && teacher?.role?.includes("HOS")) {
         filteredStudents = initialStudents.filter(std => [5, 6, 7].includes(std.CLASS));
       }
       setStudents(filteredStudents);
@@ -404,13 +404,13 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     axios.get(`${API_PORT}/students`)
       .then((res) => {
         let filteredStudents = res.data;
-        if (teacher && teacher?.role === "super_admin") {
+        if (teacher && teacher?.role?.includes("super_admin")) {
           // Super admin sees all students
-        } else if (teacher && teacher?.role === "class_teacher") {
+        } else if (teacher && teacher?.role?.includes("class_teacher")) {
           filteredStudents = res.data.filter(std => std.CLASS === teacher.classNum);
-        } else if (teacher && teacher?.role === "HOD") {
+        } else if (teacher && teacher?.role?.includes("HOD")) {
           filteredStudents = res.data.filter(std => [8, 9, 10].includes(std.CLASS));
-        } else if (teacher && teacher?.role === "HOS") {
+        } else if (teacher && teacher?.role?.includes("HOS")) {
           filteredStudents = res.data.filter(std => [5, 6, 7].includes(std.CLASS));
         }
         setStudents(filteredStudents);
@@ -919,11 +919,11 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   // Also, update the initial classValue to be dynamic based on teacher
 
   let classValues = [];
-  if (teacher?.role === "class_teacher") {
+  if (teacher?.role?.includes("class_teacher")) {
     classValues = [teacher?.classNum];
-  } else if (teacher?.role === "HOD") {
+  } else if (teacher?.role?.includes("HOD")) {
     classValues = [8, 9, 10];
-  } else if (teacher?.role === "HOS") {
+  } else if (teacher?.role?.includes("HOS")) {
     classValues = [5, 6, 7];
   } else {
     classValues = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -1141,7 +1141,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         >
           <FaHome size={16} /> Leave Dashboard
         </button>
-        {["HOD", "HOS", "super_admin"].includes(teacher?.role) && (
+        {(Array.isArray(teacher?.role) ? teacher.role.some(r => ["HOD", "HOS", "super_admin"].includes(r)) : ["HOD", "HOS", "super_admin"].includes(teacher?.role)) && (
           <button
             className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold shadow-sm transition-all ${leaveType === "leave"
               ? "bg-sky-500 text-white hover:bg-sky-600 shadow-sky-500/20"

@@ -27,7 +27,7 @@ const TeacherManagement = () => {
     password: '',
     phone: '',
     classNum: '',
-    role: 'teacher',
+    role: ['teacher'],
     active: true
   });
 
@@ -37,10 +37,20 @@ const TeacherManagement = () => {
 
   // Automatically switch role to class_teacher if classNum is assigned
   useEffect(() => {
-    if (formData.classNum && (formData.role === 'teacher' || formData.role === 'class_teacher')) {
-      setFormData(prev => ({ ...prev, role: 'class_teacher' }));
-    } else if (!formData.classNum && formData.role === 'class_teacher') {
-      setFormData(prev => ({ ...prev, role: 'teacher' }));
+    // Check if classNum is set and role doesn't already include class_teacher
+    if (formData.classNum && (formData.role.includes('teacher') || formData.role.includes('class_teacher'))) {
+      if (!formData.role.includes('class_teacher')) {
+        setFormData(prev => ({ 
+          ...prev, 
+          role: [...prev.role.filter(r => r !== 'teacher'), 'class_teacher'] 
+        }));
+      }
+    } else if (!formData.classNum && formData.role.includes('class_teacher')) {
+      // If classNum is cleared, replace class_teacher with teacher if it was the main role
+      setFormData(prev => ({ 
+        ...prev, 
+        role: prev.role.map(r => r === 'class_teacher' ? 'teacher' : r) 
+      }));
     }
   }, [formData.classNum]);
 
@@ -64,7 +74,7 @@ const TeacherManagement = () => {
       password: '',
       phone: '',
       classNum: '',
-      role: 'teacher',
+      role: ['teacher'],
       active: true
     });
     setSelectedTeacher(null);
@@ -80,7 +90,7 @@ const TeacherManagement = () => {
       password: '', // Keep password blank for security, only update if entered
       phone: teacher.phone || '',
       classNum: teacher.classNum || '',
-      role: teacher.role || 'teacher',
+      role: Array.isArray(teacher.role) ? teacher.role : [teacher.role || 'teacher'],
       active: teacher.active !== undefined ? teacher.active : true
     });
     setIsModalOpen(true);
@@ -193,22 +203,30 @@ const TeacherManagement = () => {
               <div key={teacher._id} className="relative bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100 hover:shadow-xl transition-all duration-300 group overflow-hidden">
                 {/* Accent line based on role */}
                 <div className={`absolute top-0 left-0 w-1/4 h-1.5 ${
-                  teacher.role === 'super_admin' ? 'bg-amber-400' : 'bg-sky-400'
+                  teacher.role?.includes('super_admin') ? 'bg-amber-400' : 'bg-sky-400'
                 }`}></div>
                 
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-4">
                     <div className={`w-14 h-14 ${
-                      teacher.role === 'super_admin' ? 'bg-amber-100 text-amber-600' : 'bg-sky-100 text-sky-600'
+                      teacher.role?.includes('super_admin') ? 'bg-amber-100 text-amber-600' : 'bg-sky-100 text-sky-600'
                     } flex items-center justify-center rounded-2xl shadow-inner font-black text-lg`}>
                       {teacher.name.slice(0, 2).toUpperCase()}
                     </div>
                     <div>
                       <h3 className="font-black text-slate-800 tracking-tight">{teacher.name}</h3>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                        {teacher.role === 'super_admin' && <Shield size={10} className="text-amber-500" />}
-                        {teacher.role?.replace('_', ' ')}
-                      </p>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {Array.isArray(teacher.role) ? teacher.role.map(r => (
+                          <p key={r} className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1 bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-100">
+                            {r === 'super_admin' && <Shield size={8} className="text-amber-500" />}
+                            {r.replace('_', ' ')}
+                          </p>
+                        )) : (
+                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1 bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-100">
+                             {teacher.role?.replace('_', ' ')}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="flex flex-col gap-2">
@@ -358,22 +376,46 @@ const TeacherManagement = () => {
                   />
                 </div>
 
-                <div>
-                  <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2">
-                    <Shield size={14} className="text-rose-500" /> Access Level
+                <div className="col-span-full">
+                  <label className="flex items-center gap-2 text-[10px] font-black text-slate-600 uppercase tracking-widest px-1 mb-3">
+                    <Shield size={14} className="text-rose-500" /> Professional Roles (Multiple possible)
                   </label>
-                  <select
-                    value={formData.role}
-                    onChange={e => setFormData({...formData, role: e.target.value})}
-                    className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-rose-400 focus:bg-white outline-none transition-all appearance-none cursor-pointer"
-                  >
-                    <option value="teacher">Teacher</option>
-                    <option value="class_teacher">Class Teacher</option>
-                    <option value="HOD">HOD</option>
-                    <option value="HOS">HOS</option>
-                    <option value="Principal">Principal</option>
-                    <option value="super_admin">Super Admin</option>
-                  </select>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-slate-50/50 p-4 rounded-3xl border-2 border-slate-50">
+                    {[
+                      { id: 'teacher', label: 'Teacher' },
+                      { id: 'class_teacher', label: 'Class Teacher' },
+                      { id: 'HOD', label: 'HOD' },
+                      { id: 'HOS', label: 'HOS' },
+                      { id: 'Principal', label: 'Principal' },
+                      { id: 'super_admin', label: 'Super Admin' }
+                    ].map((roleObj) => {
+                      const isSelected = formData.role.includes(roleObj.id);
+                      return (
+                        <button
+                          key={roleObj.id}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              // Don't allow removing all roles
+                              if (formData.role.length > 1) {
+                                setFormData({ ...formData, role: formData.role.filter(r => r !== roleObj.id) });
+                              }
+                            } else {
+                              setFormData({ ...formData, role: [...formData.role, roleObj.id] });
+                            }
+                          }}
+                          className={`flex items-center justify-center p-3 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all border-2 ${
+                            isSelected 
+                              ? 'bg-rose-500 border-rose-500 text-white shadow-md shadow-rose-500/20' 
+                              : 'bg-white border-slate-100 text-slate-400 hover:border-rose-100'
+                          }`}
+                        >
+                          {isSelected && <Check size={12} className="mr-1.5" />}
+                          {roleObj.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
