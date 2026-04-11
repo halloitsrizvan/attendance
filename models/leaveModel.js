@@ -53,7 +53,28 @@ const leaveSchema = new Schema({
     recovery: {
         type: Boolean,
         default: false
-    }
+    },
+    approved: {
+        type: Boolean,
+        default: true
+    },
+    reasonHistory: [
+        {
+            reason: String,
+            timestamp: { type: Date, default: Date.now },
+            teacherId: { type: mongoose.Schema.Types.ObjectId, ref: 'Teacher' }
+        }
+    ],
+    extensionHistory: [
+        {
+            previousToDate: String,
+            previousToTime: String,
+            newToDate: String,
+            newToTime: String,
+            timestamp: { type: Date, default: Date.now },
+            teacherId: { type: mongoose.Schema.Types.ObjectId, ref: 'Teacher' }
+        }
+    ]
 }, { timestamps: true });
 
 export default mongoose.models['Leave'] || mongoose.model('Leave', leaveSchema);

@@ -15,8 +15,8 @@ import { Plus, Minus, Calendar, Clock, CalendarClock } from 'lucide-react';
 import Header from '../Header/Header';
 import './styles/leaveForm.css';
 
-const TimePicker = ({ label, selectedTime, setSelectedTime, options, customTime, setCustomTime, type }) => (
-  <div className="space-y-3">
+const TimePicker = ({ label, selectedTime, setSelectedTime, options, customTime, setCustomTime, type, disabled }) => (
+  <div className={`space-y-3 ${disabled ? 'pointer-events-none' : ''}`}>
     {label && (
       <div className="flex items-center gap-2 px-1">
         <Clock size={12} className="text-slate-400" />
@@ -31,11 +31,13 @@ const TimePicker = ({ label, selectedTime, setSelectedTime, options, customTime,
           label={option}
           isSelected={selectedTime === option}
           onClick={() => {
+            if (disabled) return;
             setSelectedTime(option);
             if (option !== 'Clock') {
               setCustomTime('');
             }
           }}
+          disabled={disabled}
         />
       ))}
     </div>
@@ -46,7 +48,8 @@ const TimePicker = ({ label, selectedTime, setSelectedTime, options, customTime,
           type="time"
           value={customTime}
           onChange={(e) => setCustomTime(e.target.value)}
-          className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all"
+          disabled={disabled}
+          className={`w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all ${disabled ? 'opacity-50' : ''}`}
         />
       </div>
     )}
@@ -227,6 +230,8 @@ const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCust
 
 function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   const [teacher, setTeacher] = useState(null);
+  const [formMode, setFormMode] = useState('create'); // 'create', 'extend', 'add', 'schedule'
+  const [activeLeave, setActiveLeave] = useState(null);
 
   useEffect(() => {
     const storedTeacher = getSafeLocalStorage().getItem("teacher");
@@ -250,6 +255,8 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [leaveData, setLeaveData] = useState(initialLeaves || []);
+  const [originalToDate, setOriginalToDate] = useState('');
+  const [originalToTime, setOriginalToTime] = useState('');
 
   // Form states
   const [fromDate, setFromDate] = useState('Today');
@@ -371,10 +378,10 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       })
       .catch(err => console.error("Error fetching academic year:", err));
   }, []);
-  const [alertState, setAlertState] = useState({ isOpen: false, title: '', message: '', type: 'info' });
+  const [alertState, setAlertState] = useState({ isOpen: false, title: '', message: '', type: 'info', actions: null });
 
-  const showAlert = (message, title = "Notice", type = "info") => {
-    setAlertState({ isOpen: true, title, message, type });
+  const showAlert = (message, title = "Notice", type = "info", actions = null) => {
+    setAlertState({ isOpen: true, title, message, type, actions });
   };
 
   useEffect(() => {
@@ -460,10 +467,10 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       // Check if the latest leave is NOT returned
       const status = latestLeave.status ? latestLeave.status.toLowerCase() : '';
 
-      return status !== 'returned';
+      return status !== 'returned' ? latestLeave : null;
     } catch (error) {
       console.error("Error checking leave status:", error);
-      return false;
+      return null;
     }
   };
 
@@ -558,11 +565,40 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       setStudent(found);
       setName(found["SHORT NAME"] || found["FULL NAME"] || found.name || "Unknown");
       setClassNum(found.CLASS);
-      if (checkLeaveStatus(found.ADNO)) {
-        showAlert(`Student on Leave: ${found["SHORT NAME"] || found["FULL NAME"]} already has an active or scheduled leave record.`, "Student on Leave", "warning");
-        setAd('');
+      
+      const activeRecord = checkLeaveStatus(found.ADNO);
+      if (activeRecord) {
+        setActiveLeave(activeRecord);
+        showAlert(
+          `${found["SHORT NAME"]} is already on ${activeRecord.reason} leave until ${activeRecord.toDate || 'Unknown'}. What would you like to do?`, 
+          "Student Already on Leave", 
+          "warning",
+          [
+            { 
+              label: "Extend Existing Leave", 
+              onClick: () => handleExtendMode(activeRecord),
+              className: "bg-sky-500 hover:bg-sky-600 shadow-sky-500/20"
+            },
+            { 
+              label: "Add Another Reason", 
+              onClick: () => handleAddReasonMode(activeRecord), 
+              className: "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20"
+            },
+            { 
+              label: "Schedule Future Leave", 
+              onClick: () => handleScheduleNextMode(activeRecord),
+              className: "bg-violet-500 hover:bg-violet-600 shadow-violet-500/20"
+            },
+            { 
+              label: "Cancel Selection", 
+              onClick: () => { setAd(''); setStudent(null); },
+              className: "bg-slate-400 hover:bg-slate-500 shadow-slate-400/20"
+            }
+          ]
+        );
         return;
       }
+      
       if (!checkRecoveryStatus(found.ADNO)) {
         showAlert(`${found["SHORT NAME"] || found["FULL NAME"]} has an uncompleted recovery from their previous leave.`, "Recovery Not Completed", "error");
         setAd('');
@@ -599,6 +635,97 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       setStartImmediately(true);
     }
   }, [fromTime, fromDate]);
+
+  // Helper to map DB values back to form options
+  const mapDataToForm = (leave) => {
+    // 1. Map Reason
+    // We need to know current reason options to see if it's "Custom"
+    // Since ReasonPicker determines this, we'll try to find a match
+    const standardReasons = ['Medical (Home)', 'Room', 'Marriage', 'Hospital', 'Urgent (Death)'];
+    if (standardReasons.includes(leave.reason)) {
+      setReason(leave.reason);
+      setCustomReason('');
+    } else {
+      setReason('Custom');
+      setCustomReason(leave.reason);
+    }
+
+    // 2. Map Dates
+    const today = new Date().toISOString().split('T')[0];
+    const tmw = new Date(); tmw.setDate(tmw.getDate() + 1);
+    const tomorrow = tmw.toISOString().split('T')[0];
+    const da = new Date(); da.setDate(da.getDate() + 2);
+    const dayAfter = da.toISOString().split('T')[0];
+
+    const processDate = (dateStr, setDate, setCustom) => {
+      if (dateStr === today) setDate('Today');
+      else if (dateStr === tomorrow) setDate('Tomorrow');
+      else if (dateStr === dayAfter) setDate('Day After');
+      else if (!dateStr) setDate('');
+      else { setDate('Calendar'); setCustom(dateStr); }
+    };
+
+    processDate(leave.fromDate, setFromDate, setFromCustomDate);
+    processDate(leave.toDate, setToDate, setToCustomDate);
+
+    // 3. Map Times
+    const processTime = (timeStr, setTime, setCustom, isFrom) => {
+      const morning = isFrom ? "05:30" : "07:00";
+      const evening = isFrom ? "16:30" : "18:00";
+
+      if (timeStr === morning) setTime('Morning');
+      else if (timeStr === evening) setTime('Evening');
+      else { setTime('Clock'); setCustom(timeStr); }
+    };
+
+    processTime(leave.fromTime, setFromTime, setFromCustomTime, true);
+    processTime(leave.toTime, setToTime, setToCustomTime, false);
+  };
+
+  // Handle Extension Mode
+  const handleExtendMode = (leave) => {
+    setFormMode('extend');
+    mapDataToForm(leave);
+    setOriginalToDate(leave.toDate);
+    setOriginalToTime(leave.toTime);
+  };
+
+  // Handle Add Reason Mode
+  const handleAddReasonMode = (leave) => {
+    setFormMode('add');
+    mapDataToForm(leave);
+    // Overwrite reason for "add" mode to let them pick something else
+    setReason('Custom');
+    setCustomReason('');
+  };
+
+  // Handle Schedule Next Mode
+  const handleScheduleNextMode = (leave) => {
+    setFormMode('schedule');
+    // Set from date to the day after existing toDate
+    if (leave.toDate && leave.toDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const nextDay = new Date(leave.toDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+      const nextDayStr = nextDay.toISOString().split('T')[0];
+      
+      const today = new Date().toISOString().split('T')[0];
+      const tmw = new Date(); tmw.setDate(tmw.getDate() + 1);
+      const tomorrow = tmw.toISOString().split('T')[0];
+
+      if (nextDayStr === today) setFromDate('Today');
+      else if (nextDayStr === tomorrow) setFromDate('Tomorrow');
+      else { setFromDate('Calendar'); setFromCustomDate(nextDayStr); }
+      
+      setFromTime('Morning');
+    } else {
+      setFromDate('Tomorrow');
+      setFromTime('Morning');
+    }
+    setToDate('Tomorrow');
+    setToTime('Evening');
+    setReason('Medical (Home)');
+    setCustomReason('');
+  };
 
   // Short Leave Functions
   const addShortLeaveStudent = () => {
@@ -758,7 +885,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       return;
     }
 
-    if (checkLeaveStatus(ad)) {
+    if (formMode === 'create' && checkLeaveStatus(ad)) {
       showAlert(`${name} is currently marked as on leave or absent.`, "Student Unavailable", "error");
       setAd('');
       return;
@@ -838,6 +965,51 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       finalToTime = getFormattedTime(toTime, toCustomTime, 'To Time');
     }
 
+    if (formMode === 'extend' || formMode === 'add') {
+      const updatePayload = {};
+      
+      if (formMode === 'extend') {
+        updatePayload.toDate = finalToDate;
+        updatePayload.toTime = finalToTime;
+        updatePayload.extensionHistory = [
+          ...(activeLeave.extensionHistory || []),
+          {
+            previousToDate: originalToDate,
+            previousToTime: originalToTime,
+            newToDate: finalToDate,
+            newToTime: finalToTime,
+            teacherId: teacher?.id || teacher?._id,
+            timestamp: new Date()
+          }
+        ];
+      } else if (formMode === 'add') {
+        updatePayload.reason = finalReason;
+        updatePayload.toDate = finalToDate;
+        updatePayload.toTime = finalToTime;
+        updatePayload.reasonHistory = [
+          ...(activeLeave.reasonHistory || []),
+          {
+            reason: finalReason,
+            teacherId: teacher?.id || teacher?._id,
+            timestamp: new Date()
+          }
+        ];
+      }
+
+      axios.patch(`${API_PORT}/leave/${activeLeave._id}`, updatePayload)
+        .then(() => {
+          showAlert(`Leave ${formMode === 'extend' ? 'extended' : 'reason updated'} successfully for ${name}.`, "Update Successful", "success");
+          resetForm();
+        })
+        .catch((err) => {
+          console.error(`Error updating leave (${formMode})`, err);
+          showAlert("Error updating leave request. Please try again.", "Error", "error");
+        })
+        .finally(() => setLoading(false));
+      
+      return;
+    }
+
     const payload = {
       studentId: student?._id || student?.id,
       teacherId: teacher?.id || teacher?._id,
@@ -848,7 +1020,9 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       toTime: finalToTime,
       reason: finalReason,
       status: startImmediately ? "active" : "Scheduled",
-      recovery: false
+      recovery: false,
+      approved: true,
+      reasonHistory: [{ reason: finalReason, teacherId: teacher?.id || teacher?._id, timestamp: new Date() }]
     };
 
     console.log('Submitting leave:', payload);
@@ -856,24 +1030,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     axios.post(`${API_PORT}/leave`, payload)
       .then(() => {
         showAlert(`Leave approved for ${name}.`, "Approval Successful", "success");
-        // Reset form
-        setAd('');
-        setStudent(null);
-        setName('');
-        setClassNum('');
-        setFromDate('Today');
-        setFromTime('Now');
-        setFromCustomDate('');
-        setFromCustomTime('');
-        setToDate('Today');
-        setToTime('Evening');
-        setToCustomDate('');
-        setToCustomTime('');
-        setReason('Medical (Home)');
-        setCustomReason('');
-        setSuggestions([]);
-        setShowEndDateForMedical(false);
-        setStartImmediately(false);
+        resetForm();
       })
       .catch((err) => {
         console.error("Error submitting leave", err);
@@ -882,6 +1039,28 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       .finally(() => {
         setLoading(false);
       });
+  };
+
+  const resetForm = () => {
+    setAd('');
+    setStudent(null);
+    setName('');
+    setClassNum('');
+    setFromDate('Today');
+    setFromTime('Now');
+    setFromCustomDate('');
+    setFromCustomTime('');
+    setToDate('Today');
+    setToTime('Evening');
+    setToCustomDate('');
+    setToCustomTime('');
+    setReason('Medical (Home)');
+    setCustomReason('');
+    setSuggestions([]);
+    setShowEndDateForMedical(false);
+    setStartImmediately(false);
+    setFormMode('create');
+    setActiveLeave(null);
   };
 
 
@@ -1360,14 +1539,16 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
           </div>
 
           {/* templates */}
-          <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50">
-            <TemplatePicker
-              selectedTemplate={selectedTemplate}
-              setSelectedTemplate={setSelectedTemplate}
-              onTemplateSelect={handleTemplateSelect}
-              setShowEndDateForMedical={setShowEndDateForMedical}
-            />
-          </div>
+          {formMode !== 'extend' && formMode !== 'add' && (
+            <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50">
+              <TemplatePicker
+                selectedTemplate={selectedTemplate}
+                setSelectedTemplate={setSelectedTemplate}
+                onTemplateSelect={handleTemplateSelect}
+                setShowEndDateForMedical={setShowEndDateForMedical}
+              />
+            </div>
+          )}
 
           <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50 space-y-6">
             <div className="flex items-center gap-2 px-1">
@@ -1382,6 +1563,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
                 customDate={fromCustomDate}
                 setCustomDate={setFromCustomDate}
                 type="From"
+                disabled={formMode === 'extend' || formMode === 'add'}
               />
               <TimePicker
                 label="Time"
@@ -1391,6 +1573,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
                 customTime={fromCustomTime}
                 setCustomTime={setFromCustomTime}
                 type="From"
+                disabled={formMode === 'extend' || formMode === 'add'}
               />
             </div>
           </div>
@@ -1626,6 +1809,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         title={alertState.title}
         message={alertState.message}
         type={alertState.type}
+        actions={alertState.actions}
         onClose={() => setAlertState({ ...alertState, isOpen: false })}
       />
     </div>

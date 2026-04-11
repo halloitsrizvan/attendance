@@ -42,13 +42,14 @@ const iconMap = {
   'Custom': Edit3,
 };
 
-function SelectionButton({ label, isSelected, onClick, type }) {
+function SelectionButton({ label, isSelected, onClick, type, disabled }) {
   const Icon = iconMap[label];
 
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
       className={`w-full py-4 px-2 text-[9px] font-medium uppercase tracking-widest rounded-2xl transition-all duration-300 border-2 flex flex-col items-center justify-center gap-1
         ${isSelected 
           ? type === "Reason"
@@ -62,12 +63,13 @@ function SelectionButton({ label, isSelected, onClick, type }) {
                   : 'bg-sky-500 text-white border-sky-500 shadow-lg shadow-sky-500/20 scale-[1.02]'
           : 'bg-white text-slate-500 border-slate-50 hover:border-sky-100 hover:bg-sky-50/30'
         }
+        ${disabled ? 'opacity-40 cursor-not-allowed grayscale-[0.5]' : ''}
       `}
     >
       {Icon && <Icon size={18} className={`${isSelected ? 'text-white' : 'text-slate-400'}`} />}
       <span>{label}</span>
     </button>
-  )
+  );
 }
 
 export default SelectionButton

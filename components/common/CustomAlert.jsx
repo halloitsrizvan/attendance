@@ -9,7 +9,8 @@ const CustomAlert = ({
   title,
   message,
   type = "info", // "info", "error", "success"
-  confirmText = "Okay"
+  confirmText = "Okay",
+  actions = null
 }) => {
   if (!isOpen) return null;
 
@@ -52,12 +53,29 @@ const CustomAlert = ({
             </p>
           </div>
 
-          <button
-            onClick={onClose}
-            className={`w-full py-4 ${theme.btn} text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-lg transition-all active:scale-95`}
-          >
-            {confirmText}
-          </button>
+          <div className="space-y-2">
+            {actions && actions.length > 0 ? (
+              actions.map((action, index) => (
+                <button
+                  key={index}
+                  onClick={() => {
+                    action.onClick();
+                    if (action.autoClose !== false) onClose();
+                  }}
+                  className={`w-full py-4 ${action.className || theme.btn} text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-lg transition-all active:scale-95`}
+                >
+                  {action.label}
+                </button>
+              ))
+            ) : (
+              <button
+                onClick={onClose}
+                className={`w-full py-4 ${theme.btn} text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-lg transition-all active:scale-95`}
+              >
+                {confirmText}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
