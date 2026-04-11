@@ -20,7 +20,7 @@ const TimePicker = ({ label, selectedTime, setSelectedTime, options, customTime,
     {label && (
       <div className="flex items-center gap-2 px-1">
         <Clock size={12} className="text-slate-400" />
-        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</h3>
+        <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{label}</h3>
       </div>
     )}
     <div className="grid grid-cols-4 gap-2">
@@ -60,7 +60,7 @@ const ShortLeaveTimePicker = ({ fromPeriod, setFromPeriod, toPeriod, setToPeriod
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">From Period</label>
+          <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">From Period</label>
           <select
             value={fromPeriod}
             onChange={(e) => setFromPeriod(parseInt(e.target.value))}
@@ -85,7 +85,7 @@ const ShortLeaveTimePicker = ({ fromPeriod, setFromPeriod, toPeriod, setToPeriod
         </div>
 
         <div className="space-y-2">
-          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">To Period</label>
+          <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">To Period</label>
           <select
             value={toPeriod}
             onChange={(e) => setToPeriod(parseInt(e.target.value))}
@@ -124,7 +124,7 @@ const TemplatePicker = ({ selectedTemplate, setSelectedTemplate, onTemplateSelec
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between px-1">
-        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Quick Templates</h3>
+        <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Quick Templates</h3>
         <button
           onClick={() => {
             setSelectedTemplate(null);
@@ -192,7 +192,7 @@ const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCust
 
   return (
     <div className="space-y-4">
-      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Select Reason</h3>
+      <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">Select Reason</h3>
       <div className="grid grid-cols-4 gap-2 sm:grid-cols-3">
         {reasonOptions.map(option => (
           <SelectionButton
@@ -1161,7 +1161,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
             <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50 space-y-6">
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2 relative">
-                  <label htmlFor="ad" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">
+                  <label htmlFor="ad" className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 px-1">
                     Student Search
                   </label>
                   <input
@@ -1229,7 +1229,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
                 </div>
 
                 <div className="col-span-2">
-                  <label htmlFor="name" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">
+                  <label htmlFor="name" className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 px-1">
                     Selected Student
                   </label>
                   <input
@@ -1243,7 +1243,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
                 </div>
 
                 <div className="col-span-1">
-                  <label htmlFor="classNum" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">
+                  <label htmlFor="classNum" className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 px-1">
                     Class
                   </label>
                   <input
@@ -1262,7 +1262,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
             <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50 space-y-6">
               <div className="flex justify-between items-center px-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Class</span>
+                  <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Class</span>
                   <select
                     value={classValue}
                     onChange={(e) => setClassValue(e.target.value)}
@@ -1308,7 +1308,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
                   <thead className="bg-slate-50 border-b border-slate-100">
                     <tr>
                       <th className="p-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest w-12">No</th>
-                      <th className="p-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Student</th>
+                      <th className="p-3 text-left text-[10px] font-black text-slate-600 uppercase tracking-widest">Student</th>
                       <th className="p-3 text-center">
                         <button onClick={handleSelectAll} className="w-8 h-8 rounded-lg bg-sky-500 text-white text-lg font-black">+</button>
                       </th>
@@ -1372,7 +1372,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
           <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50 space-y-6">
             <div className="flex items-center gap-2 px-1">
               <CalendarClock size={16} className="text-sky-500" />
-              <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">From Date & Time</h2>
+              <h2 className="text-[10px] font-black text-slate-600 uppercase tracking-widest">From Date & Time</h2>
             </div>
             <div className="space-y-6"> {/* Stacked for clarity on mobile */}
               <DatePicker
@@ -1399,7 +1399,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
             <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50 space-y-6">
               <div className="flex items-center gap-2 px-1">
                 <CalendarClock size={16} className="text-amber-500" />
-                <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">To Date & Time</h2>
+                <h2 className="text-[10px] font-black text-slate-600 uppercase tracking-widest">To Date & Time</h2>
               </div>
               <div className="space-y-6">
                 <DatePicker
@@ -1427,7 +1427,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
                 <div className="w-12 h-12 bg-sky-50 rounded-full flex items-center justify-center mx-auto">
                   <span className="text-sky-500 font-black italic text-xl">m</span>
                 </div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">
                   {reason === 'Room' ? "Medical Room- No end date needed" : "Medical leave - No end date needed"}
                 </p>
                 <button
@@ -1474,7 +1474,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
                   />
                   <div className="w-10 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 transition-colors"></div>
                 </div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Start</span>
+                <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest whitespace-nowrap">Start</span>
               </label>
             </div>
           </div>
@@ -1483,7 +1483,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         <div className="max-w-xl mx-auto space-y-4 pb-16">
           {/* Short Leave Pass Section */}
           <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50 space-y-6">
-            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Class Excused Pass</h3>
+            <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">Class Excused Pass</h3>
 
             {/* Added Students Chips */}
             <div className="space-y-3">
@@ -1564,7 +1564,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
           </div>
 
           <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50 space-y-4">
-            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Select Period Range</h3>
+            <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">Select Period Range</h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <span className="text-[10px] font-black text-slate-300 uppercase px-1">From Period</span>

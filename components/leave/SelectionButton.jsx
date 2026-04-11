@@ -60,11 +60,11 @@ function SelectionButton({ label, isSelected, onClick, type }) {
                 : type === "Template"
                   ? 'bg-violet-500 text-white border-violet-500 shadow-lg shadow-violet-500/20 scale-[1.02]'
                   : 'bg-sky-500 text-white border-sky-500 shadow-lg shadow-sky-500/20 scale-[1.02]'
-          : 'bg-white text-slate-400 border-slate-50 hover:border-sky-100 hover:bg-sky-50/30'
+          : 'bg-white text-slate-500 border-slate-50 hover:border-sky-100 hover:bg-sky-50/30'
         }
       `}
     >
-      {Icon && <Icon size={18} className={`${isSelected ? 'text-white' : 'text-slate-300'}`} />}
+      {Icon && <Icon size={18} className={`${isSelected ? 'text-white' : 'text-slate-400'}`} />}
       <span>{label}</span>
     </button>
   )
