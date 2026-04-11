@@ -55,11 +55,11 @@ function MinusReportPage() {
 
     const handleDownloadExcel = () => {
         const wsData = minusList.map(item => ({
-            "Admission No": item.ad,
-            "Student Name": item.name,
-            "Class": item.classNum,
+            "Admission No": item.studentId?.ADNO || item.ad,
+            "Student Name": item.studentId?.['SHORT NAME'] || item.studentId?.['FULL NAME'] || item.name,
+            "Class": item.studentId?.CLASS || item.classNum,
             "Reason": item.reason,
-            "Teacher": item.teacher,
+            "Teacher": item.teacherId?.name || item.teacher,
             "Minus Count": parseFloat(item.minusNum).toFixed(2),
             "Date": new Date(item.createdAt).toLocaleDateString('en-GB'),
             "Time": new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -82,11 +82,11 @@ function MinusReportPage() {
 
         const tableData = minusList.map((item, idx) => [
             idx + 1,
-            item.ad,
-            item.name,
-            item.classNum,
+            item.studentId?.ADNO || item.ad,
+            item.studentId?.['SHORT NAME'] || item.studentId?.['FULL NAME'] || item.name,
+            item.studentId?.CLASS || item.classNum,
             item.reason,
-            item.teacher,
+            item.teacherId?.name || item.teacher,
             parseFloat(item.minusNum).toFixed(2),
             new Date(item.createdAt).toLocaleDateString('en-GB')
         ]);
@@ -180,11 +180,15 @@ function MinusReportPage() {
                             <div className="flex items-start justify-between mb-3">
                                 <div className="flex items-center gap-4">
                                     <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center text-white font-black">
-                                        {item.ad}
+                                        {item.studentId?.ADNO || item.ad}
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-slate-800 text-sm sm:text-base leading-tight uppercase tracking-tight">{item.name}</h3>
-                                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Class {item.classNum}</p>
+                                        <h3 className="font-bold text-slate-800 text-sm sm:text-base leading-tight uppercase tracking-tight">
+                                            {item.studentId?.['SHORT NAME'] || item.studentId?.['FULL NAME'] || item.name}
+                                        </h3>
+                                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                                            Class {item.studentId?.CLASS || item.classNum}
+                                        </p>
                                     </div>
                                 </div>
                                 <button
@@ -208,7 +212,7 @@ function MinusReportPage() {
                                     <Calendar size={12} strokeWidth={3} /> {formatDate(item.createdAt)}
                                 </span>
                                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-50 text-sky-600 rounded-lg text-[10px] font-black uppercase tracking-wider border border-sky-100">
-                                    <FileSignature size={12} strokeWidth={3} /> {item.teacher || 'Unknown'}
+                                    <FileSignature size={12} strokeWidth={3} /> {item.teacherId?.name || item.teacher || 'Unknown'}
                                 </span>
                                 <span className="inline-flex items-center px-3 py-1.5 bg-slate-50 text-slate-500 rounded-lg text-[11px] font-medium italic border border-slate-100 max-w-full truncate">
                                     {item.reason || 'No reason specified'}

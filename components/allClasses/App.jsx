@@ -18,12 +18,15 @@ export default function App({ students }) {
     const [teacher, setTeacher] = useState(null);
     const [status, setStatus] = useState(null);
     const [academicYear, setAcademicYear] = useState('');
+    const [academicYearId, setAcademicYearId] = useState('');
+    const [studentId, setStudentId] = useState('');
 
     useEffect(() => {
         axios.get(`${API_PORT}/settings`)
             .then(res => {
                 if (res.data.academicYear) {
                     setAcademicYear(res.data.academicYear);
+                    setAcademicYearId(res.data.academicYearId);
                 }
             })
             .catch(err => console.error("Error fetching academic year:", err));
@@ -48,13 +51,11 @@ export default function App({ students }) {
         try {
             const finalReason = reason || 'Skipping Jamath';
             const payload = {
-                ad,
-                name,
-                classNum,
-                minusNum: minusCount,
+                studentId: studentId,
                 reason: finalReason,
-                teacher: teacher?.name || 'Unknown',
-                academicYear: academicYear
+                teacherId: teacher?.id || teacher?._id,
+                minusNum: minusCount,
+                academicYearId: academicYearId
             };
 
             await axios.post(`${API_PORT}/minus`, payload);
@@ -131,6 +132,7 @@ export default function App({ students }) {
                                                 setAd(s.ADNO);
                                                 setName(s["SHORT NAME"]);
                                                 setClassNum(s.CLASS);
+                                                setStudentId(s._id);
                                                 setSuggestions([]);
                                             }}
                                         >
