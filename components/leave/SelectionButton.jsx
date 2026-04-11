@@ -34,6 +34,7 @@ const iconMap = {
   
   // Reason
   'Medical': Stethoscope,
+  'Medical (Home)': Stethoscope,
   'Room': Bed,
   'Hospital': Building2,
   'Marriage': Heart,

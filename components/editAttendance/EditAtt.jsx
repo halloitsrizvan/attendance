@@ -79,7 +79,7 @@ function EditAtt() {
 
       return leaveData.some(leave => {
         if (leave.ad !== studentAdno) return false;
-        const isMedicalLeave = leave.reason === 'Medical' || leave.reason === 'Medical (Room)';
+        const isMedicalLeave = leave.reason === 'Medical' || leave.reason === 'Medical (Home)' || leave.reason === 'Medical (Room)';
         if (!isMedicalLeave) return false;
         const fromDate = new Date(leave.fromDate);
         const toDate = leave.toDate ? new Date(leave.toDate) : null;

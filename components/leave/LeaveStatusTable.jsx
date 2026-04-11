@@ -38,7 +38,7 @@ const EditLeaveModal = ({ classInfo, onSave, onClose, isOpen, onDelete }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const isMedical = (reason) => reason === 'Medical' || reason === 'Medical (Room)' || reason === 'Room';
+  const isMedical = (reason) => reason === 'Medical' || reason === 'Medical (Home)' || reason === 'Medical (Room)' || reason === 'Room';
 
   // Initialize form data when modal opens or classInfo changes
   useEffect(() => {
@@ -515,7 +515,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
         teacherId: currentTeacherId,
         fromDate: now.toISOString().split('T')[0],
         fromTime: now.toTimeString().split(' ')[0].substring(0, 5),
-        reason: 'Medical',
+        reason: 'Medical (Home)',
         status: 'active',
         leaveStartTeacher: teacher?.name || 'Unknown',
         academicYearId: classInfo.academicYearId || undefined

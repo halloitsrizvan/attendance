@@ -162,7 +162,7 @@ function ShortLeave({ statusData: initialStatusData, type, onDataUpdate }) {
           fromTime: fromTime,
           toDate: null,
           toTime: null,
-          reason: 'Medical',
+          reason: 'Medical (Home)',
           academicYearId: academicYearId,
           status: "active"
         };

@@ -158,10 +158,10 @@ const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCust
   const classNum = teacher?.classNum;
 
   let reasonOptions = [];
-  const classTeacher_reasons_for_primary = ['Medical', 'Room', 'Marriage', 'Hospital', 'Urgent (Death)', 'Custom'];
-  const classTeacher_reasons_for_s5_ss_d = ['Medical', 'Room', 'Hospital', 'Urgent (Death)', 'Custom'];
-  const teacher_reasons_for_hos_hod = ['Medical', 'Room', 'Marriage', 'Custom'];
-  const super_admin_reasons = ['Medical', 'Room', 'Marriage', 'Custom'];
+  const classTeacher_reasons_for_primary = ['Medical (Home)', 'Room', 'Marriage', 'Hospital', 'Urgent (Death)', 'Custom'];
+  const classTeacher_reasons_for_s5_ss_d = ['Medical (Home)', 'Room', 'Hospital', 'Urgent (Death)'];
+  const teacher_reasons_for_hos_hod = ['Medical (Home)', 'Room', 'Marriage', 'Custom'];
+  const super_admin_reasons = ['Medical (Home)', 'Room', 'Marriage', 'Custom'];
   if (leaveType === "leave") {
     // if (teacher?.role === "super_admin") {
     //   reasonOptions = ['Medical', 'Room', 'Marriage', 'Custom'];
@@ -256,7 +256,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   const [fromTime, setFromTime] = useState('Evening');
   const [fromCustomDate, setFromCustomDate] = useState('');
   const [fromCustomTime, setFromCustomTime] = useState('');
-  const [reason, setReason] = useState('Medical');
+  const [reason, setReason] = useState('Medical (Home)');
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [toDate, setToDate] = useState('Tomorrow');
   const [toTime, setToTime] = useState('Evening');
@@ -577,7 +577,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
 
   // Reset showEndDateForMedical ONLY when reason changes
   useEffect(() => {
-    if (reason !== 'Medical' && reason !== 'Room') {
+    if (reason !== 'Medical' && reason !== 'Medical (Home)' && reason !== 'Room') {
       setShowEndDateForMedical(true);
       setStartImmediately(false);
     } else {
@@ -587,7 +587,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         setFromTime('Now');
         setFromDate('Today');
         setStartImmediately(true);
-      } else if (reason === 'Medical') {
+      } else if (reason === 'Medical' || reason === 'Medical (Home)') {
         setStartImmediately(true);
       }
     }
@@ -811,7 +811,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     const finalReason = reason === 'Custom' ? customReason : reason;
 
     // For medical reasons, set toDate and toTime to null unless user explicitly sets them
-    const isMedicalReason = reason === 'Medical' || reason === 'Medical (Room)' || reason === 'Room';
+    const isMedicalReason = reason === 'Medical' || reason === 'Medical (Home)' || reason === 'Medical (Room)' || reason === 'Room';
 
     let finalToDate = null;
     let finalToTime = null;
@@ -869,7 +869,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         setToTime('Evening');
         setToCustomDate('');
         setToCustomTime('');
-        setReason('Medical');
+        setReason('Medical (Home)');
         setCustomReason('');
         setSuggestions([]);
         setShowEndDateForMedical(false);
@@ -1007,7 +1007,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     const finalReason = reason === 'Custom' ? customReason : reason;
 
     // For medical reasons, set toDate and toTime to null unless user explicitly sets them
-    const isMedicalReason = reason === 'Medical' || reason === 'Medical (Room)' || reason === 'Room';
+    const isMedicalReason = reason === 'Medical' || reason === 'Medical (Home)' || reason === 'Medical (Room)' || reason === 'Room';
 
     let finalToDate = null;
     let finalToTime = null;
@@ -1085,7 +1085,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       setToTime('Evening');
       setToCustomDate('');
       setToCustomTime('');
-      setReason('Medical');
+      setReason('Medical (Home)');
       setCustomReason('');
       setSuggestions([]);
       setShowEndDateForMedical(false);
@@ -1395,7 +1395,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
             </div>
           </div>
 
-          {(reason !== 'Medical' && reason !== 'Room') || showEndDateForMedical ? (
+          {(reason !== 'Medical' && reason !== 'Medical (Home)' && reason !== 'Room') || showEndDateForMedical ? (
             <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50 space-y-6">
               <div className="flex items-center gap-2 px-1">
                 <CalendarClock size={16} className="text-amber-500" />
@@ -1422,7 +1422,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
               </div>
             </div>
           ) : (
-            (reason === 'Medical' || reason === 'Room') && (
+            (reason === 'Medical' || reason === 'Medical (Home)' || reason === 'Room') && (
               <div className="bg-white p-8 rounded-[2rem] shadow-sm border-2 border-dashed border-slate-100 text-center space-y-4">
                 <div className="w-12 h-12 bg-sky-50 rounded-full flex items-center justify-center mx-auto">
                   <span className="text-sky-500 font-black italic text-xl">m</span>
