@@ -4,7 +4,8 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import Header from '@/components/Header/Header';
 import { API_PORT } from '@/Constants';
-import { Plus, Loader2, CheckCircle, AlertCircle, Calendar, Trash2 } from 'lucide-react';
+import { Plus, Loader2, CheckCircle, AlertCircle, Calendar, Trash2, Download, Database } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 const getSafeLocalStorage = () => typeof window !== 'undefined' ? localStorage : { getItem: () => null, setItem: () => {}, removeItem: () => {} };
 
@@ -15,6 +16,8 @@ export default function SettingsPage() {
     const [fetching, setFetching] = useState(true);
     const [status, setStatus] = useState(null);
     const [teacher, setTeacher] = useState(null);
+
+    const [downloading, setDownloading] = useState(false);
 
     const fetchAcademicYears = async () => {
         try {
@@ -64,6 +67,102 @@ export default function SettingsPage() {
             setStatus({ type: 'error', message: 'Failed to create academic year' });
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDownloadAll = async () => {
+        const activeYear = years.find(y => y.isActive);
+        if (!activeYear) {
+            setStatus({ type: 'error', message: 'No active academic year found' });
+            return;
+        }
+
+        setDownloading(true);
+        setStatus({ type: 'info', message: 'Fetching institutional data...' });
+
+        try {
+            const endpoints = [
+                { key: 'Attendance', url: `${API_PORT}/set-attendance` },
+                { key: 'Minus Points', url: `${API_PORT}/minus` },
+                { key: 'Medical Leaves', url: `${API_PORT}/leave` },
+                { key: 'Pass History', url: `${API_PORT}/class-excused-pass` },
+                { key: 'Students', url: `${API_PORT}/students` },
+                { key: 'Teachers', url: `${API_PORT}/teachers` }
+            ];
+
+            const results = await Promise.all(endpoints.map(e => axios.get(e.url)));
+            const wb = XLSX.utils.book_new();
+
+            endpoints.forEach((e, idx) => {
+                let data = results[idx].data;
+
+                // Filter by academic year for transactional data
+                if (['Attendance', 'Minus Points', 'Medical Leaves', 'Pass History'].includes(e.key)) {
+                    data = data.filter(item => 
+                        item.academicYearId === activeYear._id || 
+                        item.academicYear === activeYear.name
+                    );
+                }
+
+                // Format data for sheet
+                const formatted = data.map(item => {
+                    if (e.key === 'Attendance') return {
+                        Date: item.attendanceDate ? new Date(item.attendanceDate).toLocaleDateString() : 'N/A',
+                        Time: item.attendanceTime || 'N/A',
+                        Student: item.studentId?.['SHORT NAME'] || 'N/A',
+                        Status: item.status,
+                        Teacher: item.teacherId?.name || 'N/A'
+                    };
+                    if (e.key === 'Minus Points') return {
+                        Date: new Date(item.createdAt).toLocaleDateString(),
+                        Student: item.studentId?.['SHORT NAME'] || item.name || 'N/A',
+                        Reason: item.reason,
+                        Points: item.minusNum,
+                        Teacher: item.teacherId?.name || item.teacher || 'N/A'
+                    };
+                    if (e.key === 'Medical Leaves') return {
+                        Student: item.studentId?.['SHORT NAME'] || 'N/A',
+                        From: `${item.fromDate} ${item.fromTime}`,
+                        To: `${item.toDate || ''} ${item.toTime || ''}`,
+                        Reason: item.reason,
+                        Status: item.status
+                    };
+                    if (e.key === 'Pass History') return {
+                        Date: item.date ? new Date(item.date).toLocaleDateString() : 'N/A',
+                        Student: item.studentId?.['SHORT NAME'] || item.name || 'N/A',
+                        Reason: item.reason,
+                        Time: `${item.fromTime} - ${item.toTime}`
+                    };
+                    if (e.key === 'Students') return {
+                        ADNO: item.ADNO,
+                        Name: item.name || item['FULL NAME'],
+                        Class: item.CLASS,
+                        SL: item.SL,
+                        Status: item.onLeave ? 'On Leave' : 'Active'
+                    };
+                    if (e.key === 'Teachers') return {
+                        Name: item.name,
+                        Email: item.email,
+                        Role: item.role,
+                        Class: item.assignedClass || 'N/A'
+                    };
+                    return item;
+                });
+
+                const ws = XLSX.utils.json_to_sheet(formatted);
+                XLSX.utils.book_append_sheet(wb, ws, e.key);
+            });
+
+            const fileName = `Institutional_Data_${activeYear.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+            
+            setStatus({ type: 'success', message: 'All data exported successfully' });
+            setTimeout(() => setStatus(null), 3000);
+        } catch (error) {
+            console.error("Export failed:", error);
+            setStatus({ type: 'error', message: 'Data export failed' });
+        } finally {
+            setDownloading(false);
         }
     };
 
@@ -138,6 +237,29 @@ export default function SettingsPage() {
                                 Create
                             </button>
                         </form>
+                    </div>
+
+                    {/* Database Tools */}
+                    <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Institutional Storage</h3>
+                            <div className="p-2 bg-indigo-50 text-indigo-500 rounded-lg">
+                                <Database size={16} />
+                            </div>
+                        </div>
+                        <div className="space-y-4">
+                            <p className="text-[11px] font-bold text-slate-400 uppercase leading-relaxed px-1">
+                                Backup your entire institutional database for the current academic year in a multi-sheet Excel format.
+                            </p>
+                            <button
+                                onClick={handleDownloadAll}
+                                disabled={downloading || years.length === 0}
+                                className="w-full py-5 bg-indigo-500 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-3xl shadow-xl shadow-indigo-500/20 hover:bg-indigo-600 transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50"
+                            >
+                                {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download size={18} />}
+                                {downloading ? "Extracting Data..." : "Download Full Institutional Backup"}
+                            </button>
+                        </div>
                     </div>
 
                     {/* Academic Year List */}

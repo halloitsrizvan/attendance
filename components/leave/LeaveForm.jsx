@@ -352,6 +352,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   const [shortLeaveToPeriod, setShortLeaveToPeriod] = useState(1);
   const [shortLeaveFromCustomTime, setShortLeaveFromCustomTime] = useState('');
   const [shortLeaveToCustomTime, setShortLeaveToCustomTime] = useState('');
+  const [cepMode, setCepMode] = useState('period'); // 'period' or 'dars'
   const [shortLeaveReason, setShortLeaveReason] = useState('Custom');
   const [shortLeaveCustomReason, setShortLeaveCustomReason] = useState('');
   const [shortLeaveSuggestions, setShortLeaveSuggestions] = useState([]);
@@ -977,8 +978,8 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
 
     setLoading(true);
 
-    const finalFromTime = getPeriodTime(shortLeaveFromPeriod, shortLeaveFromCustomTime, true);
-    const finalToTime = getPeriodTime(shortLeaveToPeriod, shortLeaveToCustomTime, false);
+    const finalFromTime = cepMode === 'dars' ? '19:00' : getPeriodTime(shortLeaveFromPeriod, shortLeaveFromCustomTime, true);
+    const finalToTime = cepMode === 'dars' ? '20:30' : getPeriodTime(shortLeaveToPeriod, shortLeaveToCustomTime, false);
     const finalReason = shortLeaveReason === 'Custom' ? shortLeaveCustomReason : shortLeaveReason;
 
     let finalDate;
@@ -1912,34 +1913,66 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50 space-y-4">
-            <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">Select Period Range</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <span className="text-[10px] font-black text-slate-300 uppercase px-1">From Period</span>
-                <select
-                  value={shortLeaveFromPeriod}
-                  onChange={(e) => setShortLeaveFromPeriod(parseInt(e.target.value))}
-                  className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3 text-sm font-bold text-slate-700 outline-none focus:border-sky-400 transition-all appearance-none"
+          <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50 space-y-6">
+            <div className="flex items-center justify-between px-1">
+              <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Select Time</h3>
+              <div className="flex bg-slate-100 p-1 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setCepMode('period')}
+                  className={`px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-lg transition-all ${cepMode === 'period' ? 'bg-white text-sky-500 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                 >
-                  {Array.from({ length: 11 }, (_, i) => (
-                    <option key={i} value={i}>{i === 0 ? "Custom" : `Period ${i}`}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <span className="text-[10px] font-black text-slate-300 uppercase px-1">To Period</span>
-                <select
-                  value={shortLeaveToPeriod}
-                  onChange={(e) => setShortLeaveToPeriod(parseInt(e.target.value))}
-                  className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3 text-sm font-bold text-slate-700 outline-none focus:border-sky-400 transition-all appearance-none"
+                  Periods
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCepMode('dars');
+                    setShortLeaveReason('Dars');
+                  }}
+                  className={`px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-lg transition-all ${cepMode === 'dars' ? 'bg-white text-emerald-500 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                 >
-                  {Array.from({ length: 11 }, (_, i) => (
-                    <option key={i} value={i}>{i === 0 ? "Custom" : `Period ${i}`}</option>
-                  ))}
-                </select>
+                  Dars
+                </button>
               </div>
             </div>
+
+            {cepMode === 'period' ? (
+              <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="space-y-2">
+                  <span className="text-[10px] font-black text-slate-300 uppercase px-1">From Period</span>
+                  <select
+                    value={shortLeaveFromPeriod}
+                    onChange={(e) => setShortLeaveFromPeriod(parseInt(e.target.value))}
+                    className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3 text-sm font-bold text-slate-700 outline-none focus:border-sky-400 transition-all appearance-none"
+                  >
+                    {Array.from({ length: 11 }, (_, i) => (
+                      <option key={i} value={i}>{i === 0 ? "Custom" : `Period ${i}`}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <span className="text-[10px] font-black text-slate-300 uppercase px-1">To Period</span>
+                  <select
+                    value={shortLeaveToPeriod}
+                    onChange={(e) => setShortLeaveToPeriod(parseInt(e.target.value))}
+                    className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3 text-sm font-bold text-slate-700 outline-none focus:border-sky-400 transition-all appearance-none"
+                  >
+                    {Array.from({ length: 11 }, (_, i) => (
+                      <option key={i} value={i}>{i === 0 ? "Custom" : `Period ${i}`}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-emerald-50/50 p-6 rounded-2xl border-2 border-dashed border-emerald-100 text-center space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="flex items-center justify-center gap-3 text-emerald-600">
+                   <Clock size={20} strokeWidth={2.5} />
+                   <span className="text-sm font-black uppercase tracking-widest">7:00 pm - 8:30 pm</span>
+                </div>
+                <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-tight">Time set for Dars session</p>
+              </div>
+            )}
           </div>
 
           <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50">

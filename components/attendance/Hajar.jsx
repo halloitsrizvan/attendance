@@ -75,6 +75,36 @@ function Hajar() {
     return hours * 60 + minutes;
   };
 
+  const getPeriodTimeRange = (periodNum) => {
+    const timeMap = {
+      1: { from: "07:30", to: "08:10" },
+      2: { from: "08:10", to: "08:50" },
+      3: { from: "08:50", to: "10:00" },
+      4: { from: "10:00", to: "10:40" },
+      5: { from: "10:40", to: "11:20" },
+      6: { from: "11:30", to: "12:10" },
+      7: { from: "12:10", to: "12:50" },
+      8: { from: "14:00", to: "14:40" },
+      9: { from: "14:40", to: "15:20" },
+      10: { from: "15:20", to: "16:10" }
+    };
+    return timeMap[periodNum] || { from: "07:30", to: "16:10" };
+  };
+
+  const getContextTimeRange = () => {
+    if (period && !isNaN(parseInt(period))) {
+      const p = parseInt(period);
+      const range = getPeriodTimeRange(p);
+      return { from: convertTimeToMinutes(range.from), to: convertTimeToMinutes(range.to), isRange: true };
+    }
+    if (time === 'Night') {
+      return { from: convertTimeToMinutes('19:00'), to: convertTimeToMinutes('20:30'), isRange: true };
+    }
+    // Default to current time for Morning or others if not specific
+    const now = convertTimeToMinutes(getCurrentTimeString());
+    return { from: now, to: now, isRange: false };
+  };
+
   const getRelativeDate = (dateInput) => {
     if (!dateInput) return '';
     try {
@@ -105,11 +135,12 @@ function Hajar() {
   // Get active short leave object
   const getStudentActiveShortLeave = (studentAdno) => {
     const today = date ? new Date(date) : new Date();
-    const currentTime = convertTimeToMinutes(getCurrentTimeString());
+    const ctx = getContextTimeRange();
 
     return shortLeaveData.find(leave => {
       // Check ADNO match
-      if (Number(leave.ad) !== Number(studentAdno)) return false;
+      const leaveAdno = leave.ad || leave.studentId?.ADNO;
+      if (Number(leaveAdno) !== Number(studentAdno)) return false;
 
       // Check date match
       const leaveDate = new Date(leave.date);
@@ -121,10 +152,17 @@ function Hajar() {
       if (!isSameDate) return false;
 
       // Check time range
-      const fromTime = convertTimeToMinutes(leave.fromTime);
-      const toTime = convertTimeToMinutes(leave.toTime);
+      const leaveFrom = convertTimeToMinutes(leave.fromTime);
+      const leaveTo = convertTimeToMinutes(leave.toTime);
 
-      return currentTime >= fromTime && currentTime <= toTime;
+      if (ctx.isRange) {
+        // Overlap check: leave session overlaps with attendance period
+        return Math.max(leaveFrom, ctx.from) < Math.min(leaveTo, ctx.to) || 
+               (leaveFrom === ctx.from && leaveTo === ctx.to);
+      } else {
+        // Simple point check: attendance time is within leave duration
+        return ctx.from >= leaveFrom && ctx.from <= leaveTo;
+      }
     });
   };
 
@@ -135,10 +173,10 @@ function Hajar() {
   const getStudentActiveLeave = (studentAdno) => {
     const today = date ? new Date(date) : new Date();
     today.setHours(0, 0, 0, 0);
-    const currentTime = convertTimeToMinutes(getCurrentTimeString());
+    const ctx = getContextTimeRange();
 
     return leaveData.find(leave => {
-      // Check ADNO match (check both flattened 'ad' and populated 'studentId.ADNO')
+      // Check ADNO match
       const leaveAdno = leave.ad || leave.studentId?.ADNO;
       if (Number(leaveAdno) !== Number(studentAdno)) return false;
 
@@ -151,26 +189,35 @@ function Hajar() {
       const toDate = leave.toDate ? new Date(leave.toDate) : null;
       if (toDate) toDate.setHours(0, 0, 0, 0);
 
-      const fromTime = convertTimeToMinutes(leave.fromTime);
-      const toTime = leave.toTime ? convertTimeToMinutes(leave.toTime) : null;
+      const leaveFrom = convertTimeToMinutes(leave.fromTime);
+      const leaveTo = leave.toTime ? convertTimeToMinutes(leave.toTime) : null;
 
       const isStartDay = today.getTime() === fromDate.getTime();
       const isEndDay = toDate && today.getTime() === toDate.getTime();
 
-      // If it's the start day, check if leave has already begun
+      // If it's the start day, check if leave session overlaps with attendance context
       if (isStartDay) {
-        if (currentTime < fromTime) return false;
-        // If it's also the end day, check if it hasn't ended yet
-        if (isEndDay && toTime !== null && currentTime > toTime) return false;
-        return true;
+        if (ctx.isRange) {
+           return Math.max(leaveFrom, ctx.from) < (leaveTo !== null ? Math.min(leaveTo, ctx.to) : ctx.to + 1);
+        } else {
+           if (ctx.from < leaveFrom) return false;
+           if (isEndDay && leaveTo !== null && ctx.from > leaveTo) return false;
+           return true;
+        }
       }
 
       // If it's an intermediate day or past the end day (Late)
       if (today > fromDate) {
         // If it's the end day today, check if it hasn't ended yet
-        if (isEndDay && toTime !== null && currentTime > toTime) return false;
+        if (isEndDay && leaveTo !== null) {
+          if (ctx.isRange) {
+            return ctx.from < leaveTo;
+          } else {
+            if (ctx.from > leaveTo) return false;
+          }
+        }
         
-        // If it's past the end day, they are "Late", so they are still "On Leave"
+        // Past end day or full day intermediate
         return true;
       }
 
