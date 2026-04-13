@@ -230,19 +230,36 @@ function ShortLeave({ statusData: initialStatusData, type, onDataUpdate }) {
     }
   };
 
+  const getRelativeDate = (dateInput) => {
+    if (!dateInput) return '';
+    try {
+      const datePart = typeof dateInput === 'string' && dateInput.includes('T') 
+        ? dateInput.split('T')[0] 
+        : dateInput;
+      
+      const date = new Date(datePart);
+      const today = new Date();
+      
+      const d1 = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const d2 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      
+      const diffTime = d1 - d2;
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 0) return "Today";
+      if (diffDays === -1) return "Yesterday";
+      if (diffDays === 1) return "Tomorrow";
+      if (diffDays === 2) return "Day After";
+      
+      return d1.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } catch (e) {
+      return typeof dateInput === 'string' ? dateInput : '';
+    }
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return '—';
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        weekday: 'short'
-      });
-    } catch (error) {
-      return dateString;
-    }
+    return getRelativeDate(dateString);
   };
 
   // For medical room (regular leave data)

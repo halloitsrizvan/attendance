@@ -75,6 +75,33 @@ function Hajar() {
     return hours * 60 + minutes;
   };
 
+  const getRelativeDate = (dateInput) => {
+    if (!dateInput) return '';
+    try {
+      const datePart = typeof dateInput === 'string' && dateInput.includes('T') 
+        ? dateInput.split('T')[0] 
+        : dateInput;
+      
+      const date = new Date(datePart);
+      const today = new Date();
+      
+      const d1 = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const d2 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      
+      const diffTime = d1 - d2;
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 0) return "Today";
+      if (diffDays === -1) return "Yesterday";
+      if (diffDays === 1) return "Tomorrow";
+      if (diffDays === 2) return "Day After";
+      
+      return d1.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } catch (e) {
+      return typeof dateInput === 'string' ? dateInput : '';
+    }
+  };
+
   // Get active short leave object
   const getStudentActiveShortLeave = (studentAdno) => {
     const today = date ? new Date(date) : new Date();
@@ -875,7 +902,7 @@ function Hajar() {
                       <div className="flex justify-between items-center border-b border-slate-200/50 pb-3">
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">From</span>
                         <div className="flex flex-col items-end">
-                          <span className="text-[10px] font-bold text-slate-700 font-mono italic">{medical.fromDate || "N/A"}</span>
+                          <span className="text-[10px] font-bold text-slate-700 font-mono italic">{getRelativeDate(medical.fromDate) || "N/A"}</span>
                           <span className="text-[10px] font-bold text-slate-700 font-mono">{medical.fromTime || "N/A"}</span>
                         </div>
                       </div>
@@ -883,7 +910,7 @@ function Hajar() {
                         <div className="flex justify-between items-center pt-1">
                           <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Until</span>
                           <div className="flex flex-col items-end text-rose-500">
-                            {medical.toDate && <span className="text-[10px] font-bold font-mono italic">{medical.toDate}</span>}
+                            {medical.toDate && <span className="text-[10px] font-bold font-mono italic">{getRelativeDate(medical.toDate)}</span>}
                             {medical.toTime && <span className="text-[10px] font-bold font-mono">{medical.toTime}</span>}
                           </div>
                         </div>
@@ -903,7 +930,7 @@ function Hajar() {
                       </div>
                       <div className="flex justify-between items-center border-b border-slate-200/50 pb-3">
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Date</span>
-                        <span className="text-[10px] font-bold text-slate-700 font-mono italic uppercase">{cep.date || "N/A"}</span>
+                        <span className="text-[10px] font-bold text-slate-700 font-mono italic uppercase">{getRelativeDate(cep.date) || "N/A"}</span>
                       </div>
                       <div className="flex justify-between items-center pt-1">
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Duration</span>

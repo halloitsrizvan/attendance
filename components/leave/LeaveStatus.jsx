@@ -92,18 +92,46 @@ const StatusBadge = ({ status }) => {
 };
 
 const StudentStatusCard = ({ student }) => {
+  const getRelativeDate = (dateInput) => {
+    if (!dateInput) return '';
+    try {
+      // Handle either a full ISO string or just a date Part
+      const datePart = typeof dateInput === 'string' && dateInput.includes('T') 
+        ? dateInput.split('T')[0] 
+        : dateInput;
+      
+      const date = new Date(datePart);
+      const today = new Date();
+      
+      // Reset hours for accurate day difference
+      const d1 = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const d2 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      
+      const diffTime = d1 - d2;
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 0) return "Today";
+      if (diffDays === -1) return "Yesterday";
+      if (diffDays === 1) return "Tomorrow";
+      if (diffDays === 2) return "Day After";
+      
+      return d1.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } catch (e) {
+      return typeof dateInput === 'string' ? dateInput : '';
+    }
+  };
+
   const formatTime = (date, time) => {
     if (!date || !time) return '—';
     try {
+      const relDate = getRelativeDate(date);
       const dateTime = new Date(`${date}T${time}`);
-      return dateTime.toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
+      const timeStr = dateTime.toLocaleTimeString('en-US', {
         hour: 'numeric',
         minute: '2-digit',
-        hour12: true,
-        weekday: 'short',
+        hour12: true
       });
+      return `${relDate}, ${timeStr}`;
     } catch (error) {
       return `${date} ${time}`;
     }
@@ -112,14 +140,14 @@ const StudentStatusCard = ({ student }) => {
   const formatReturnedTime = (returnedAt) => {
     if (!returnedAt) return null;
     try {
+      const relDate = getRelativeDate(returnedAt);
       const returnedDate = new Date(returnedAt);
-      return returnedDate.toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
+      const timeStr = returnedDate.toLocaleTimeString('en-US', {
         hour: 'numeric',
         minute: '2-digit',
         hour12: true
       });
+      return `${relDate}, ${timeStr}`;
     } catch (error) {
       return null;
     }

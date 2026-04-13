@@ -441,38 +441,59 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
     return calculateRemainingTime(toDate, toTime);
   };
 
+  const getRelativeDate = (dateInput) => {
+    if (!dateInput) return '';
+    try {
+      const datePart = typeof dateInput === 'string' && dateInput.includes('T') 
+        ? dateInput.split('T')[0] 
+        : dateInput;
+      
+      const date = new Date(datePart);
+      const today = new Date();
+      
+      const d1 = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const d2 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      
+      const diffTime = d1 - d2;
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 0) return "Today";
+      if (diffDays === -1) return "Yesterday";
+      if (diffDays === 1) return "Tomorrow";
+      if (diffDays === 2) return "Day After";
+      
+      return d1.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } catch (e) {
+      return typeof dateInput === 'string' ? dateInput : '';
+    }
+  };
+
   const formatReturnedTime = (returnedAt) => {
     if (!returnedAt) return "—";
-
+    const relDate = getRelativeDate(returnedAt);
     const returnedDate = new Date(returnedAt);
-    return returnedDate.toLocaleTimeString([], {
+    const timeStr = returnedDate.toLocaleTimeString([], {
       hour: '2-digit',
       minute: '2-digit'
     });
+    return `${relDate}, ${timeStr}`;
   };
 
   const formatDateTime = (date, time) => {
     if (!date || !time) return "—";
+    const relDate = getRelativeDate(date);
     const dateTime = new Date(`${date}T${time}`);
-    return dateTime.toLocaleTimeString([], {
+    const timeStr = dateTime.toLocaleTimeString([], {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true
     });
+    return `${relDate}, ${timeStr}`;
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return '—';
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        weekday: 'short'
-      });
-    } catch (error) {
-      return dateString;
-    }
+    return getRelativeDate(dateString);
   };
 
   const hasAccessToStudent = () => {
@@ -788,14 +809,12 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
                 <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">C:{classNum}</span>
               </div>
               <div className="flex items-center gap-3 text-xs text-gray-500">
-                <span>From: {formatDate(fromDate)},</span>
-                <span>{formatDateTime(fromDate, fromTime)}</span>
+                <span>From: {formatDateTime(fromDate, fromTime)}</span>
               </div>
 
               {toDate && toTime && (
                 <div className="flex items-center gap-3 text-xs text-gray-500">
-                  <span>To: {formatDate(toDate)},</span>
-                  <span>{formatDateTime(toDate, toTime)}</span>
+                  <span>To: {formatDateTime(toDate, toTime)}</span>
                 </div>
               )}
 
