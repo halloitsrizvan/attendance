@@ -157,7 +157,7 @@ const TemplatePicker = ({ selectedTemplate, setSelectedTemplate, onTemplateSelec
   );
 };
 
-const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCustomReason, leaveType, teacher }) => {
+const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCustomReason, leaveType, teacher, disabled }) => {
   const classNum = teacher?.classNum;
 
   let reasonOptions = [];
@@ -166,15 +166,6 @@ const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCust
   const teacher_reasons_for_hos_hod = ['Medical (Home)', 'Room', 'Marriage', 'Custom'];
   const super_admin_reasons = ['Medical (Home)', 'Room', 'Marriage', 'Custom'];
   if (leaveType === "leave") {
-    // if (teacher?.role === "super_admin") {
-    //   reasonOptions = ['Medical', 'Room', 'Marriage', 'Custom'];
-    // } else if (classNum > 4) {
-    //   reasonOptions = ['Medical', 'Room', 'Hospital'];
-    // } else {
-    //   reasonOptions = teacher?.classNum
-    //     ? ['Medical', 'Room', 'Marriage', 'Hospital', 'Custom']
-    //     : ['Medical', 'Room', 'Marriage', 'Custom']; //function 
-    // }
     if (teacher?.role?.includes("super_admin")) {
       reasonOptions = super_admin_reasons;
     } else if (teacher?.classNum) {
@@ -194,7 +185,7 @@ const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCust
 
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${disabled ? 'pointer-events-none opacity-60' : ''}`}>
       <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">Select Reason</h3>
       <div className="grid grid-cols-4 gap-2 sm:grid-cols-3">
         {reasonOptions.map(option => (
@@ -203,7 +194,9 @@ const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCust
             label={option}
             type={'Reason'}
             isSelected={selectedReason === option}
+            disabled={disabled}
             onClick={() => {
+              if (disabled) return;
               setSelectedReason(option);
               if (option !== 'Custom') {
                 setCustomReason('');
@@ -219,7 +212,8 @@ const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCust
             type="text"
             value={customReason}
             onChange={(e) => setCustomReason(e.target.value)}
-            className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all"
+            disabled={disabled}
+            className={`w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all ${disabled ? 'opacity-50' : ''}`}
             placeholder="Type your reason here..."
           />
         </div>
@@ -426,6 +420,129 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       .finally(() => setLoading(false));
   }, [teacher?.role, teacher?.classNum, initialStudents]);
 
+  const formatTimeTo12h = (timeStr) => {
+    if (!timeStr) return '';
+    try {
+      const [hours, minutes] = timeStr.split(':');
+      let h = parseInt(hours);
+      const m = minutes || '00';
+      const ampm = h >= 12 ? 'pm' : 'am';
+      h = h % 12;
+      h = h ? h : 12;
+      return `${h}:${m} ${ampm}`;
+    } catch (e) {
+      return timeStr;
+    }
+  };
+
+  const getRelativeDate = (dateStr) => {
+    if (!dateStr) return '';
+    const today = new Date().toISOString().split('T')[0];
+    const tmw = new Date(); tmw.setDate(tmw.getDate() + 1);
+    const tomorrow = tmw.toISOString().split('T')[0];
+    const da = new Date(); da.setDate(da.getDate() + 2);
+    const dayAfter = da.toISOString().split('T')[0];
+    const yest = new Date(); yest.setDate(yest.getDate() - 1);
+    const yesterday = yest.toISOString().split('T')[0];
+
+    if (dateStr === today) return "Today";
+    if (dateStr === tomorrow) return "Tomorrow";
+    if (dateStr === dayAfter) return "Day After";
+    if (dateStr === yesterday) return "Yesterday";
+    
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const handleMarkReturned = async (leave) => {
+    setLoading(true);
+    try {
+      const payload = { 
+        status: 'returned', 
+        markReturnedTeacher: teacher?.name || 'Unknown',
+        returnedAt: new Date().toISOString() 
+      };
+      await axios.put(`${API_PORT}/leave/${leave._id}`, payload);
+      await axios.patch(`${API_PORT}/students/on-leave/${leave.studentId?.ADNO || leave.ad}`, { onLeave: false });
+      
+      // Refresh local data
+      const res = await axios.get(`${API_PORT}/leave`);
+      setLeaveData(res.data);
+      
+      setAd('');
+      setAlertState(prev => ({ ...prev, isOpen: false }));
+      showAlert(`${leave.studentId?.['SHORT NAME'] || 'Student'} marked as returned.`, "Success", "success");
+    } catch (err) {
+      console.error(err);
+      showAlert("Failed to update status.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStartLeave = async (leave) => {
+    setLoading(true);
+    try {
+      const payload = { 
+        status: 'active', 
+        leaveStartTeacher: teacher?.name || 'Unknown' 
+      };
+      await axios.put(`${API_PORT}/leave/${leave._id}`, payload);
+      await axios.patch(`${API_PORT}/students/on-leave/${leave.studentId?.ADNO || leave.ad}`, { onLeave: true });
+      
+      const res = await axios.get(`${API_PORT}/leave`);
+      setLeaveData(res.data);
+
+      setAd('');
+      setAlertState(prev => ({ ...prev, isOpen: false }));
+      showAlert(`Leave started for ${leave.studentId?.['SHORT NAME'] || 'student'}.`, "Success", "success");
+    } catch (err) {
+      console.error(err);
+      showAlert("Failed to start leave.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRoomToMedical = async (leave) => {
+    setLoading(true);
+    try {
+      const now = new Date();
+      // 1. Return from room
+      await axios.put(`${API_PORT}/leave/${leave._id}`, {
+        status: 'returned',
+        markReturnedTeacher: teacher?.name || 'Unknown',
+        returnedAt: now.toISOString()
+      });
+
+      // 2. Create medical leave
+      const sid = (leave.studentId && typeof leave.studentId === 'object') ? leave.studentId._id : leave.studentId;
+      await axios.post(`${API_PORT}/leave`, {
+        studentId: sid,
+        teacherId: teacher?.id || teacher?._id,
+        fromDate: now.toISOString().split('T')[0],
+        fromTime: now.toTimeString().substring(0, 5),
+        reason: 'Medical (Home)',
+        status: 'active',
+        leaveStartTeacher: teacher?.name || 'Unknown',
+        academicYearId: academicYearId || undefined
+      });
+
+      await axios.patch(`${API_PORT}/students/on-leave/${leave.studentId?.ADNO || leave.ad}`, { onLeave: true });
+      
+      const res = await axios.get(`${API_PORT}/leave`);
+      setLeaveData(res.data);
+
+      setAd('');
+      setAlertState(prev => ({ ...prev, isOpen: false }));
+      showAlert("Student transitioned to Medical Home leave.", "Success", "success");
+    } catch (err) {
+      console.error(err);
+      showAlert("Transition failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Fetch leave data
   useEffect(() => {
     if (initialLeaves) return;
@@ -568,33 +685,81 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       
       const activeRecord = checkLeaveStatus(found.ADNO);
       if (activeRecord) {
+        const now = new Date();
+        const fromDateTime = new Date(`${activeRecord.fromDate}T${activeRecord.fromTime}`);
+        const isScheduled = now < fromDateTime;
+        const isRoom = activeRecord.reason === 'Room' || activeRecord.reason === 'Medical (Room)';
+
+        const leaveInfo = (
+          <div className="space-y-4 text-left p-3 bg-slate-50/50 rounded-2xl border border-slate-100">
+             <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Reason</span>
+                   <span className="px-2 py-0.5 bg-sky-100 text-sky-700 rounded-full text-[10px] font-black uppercase">
+                     {activeRecord.reason}
+                   </span>
+                </div>
+                <div className="grid grid-cols-2 gap-4 mt-2">
+                   <div>
+                      <div className="text-[9px] font-black text-slate-400 uppercase tracking-tight">Started</div>
+                      <div className="text-xs font-bold text-slate-700">{getRelativeDate(activeRecord.fromDate)} • {formatTimeTo12h(activeRecord.fromTime)}</div>
+                   </div>
+                   {activeRecord.toDate && (
+                     <div>
+                        <div className="text-[9px] font-black text-slate-400 uppercase tracking-tight">Ending</div>
+                        <div className="text-xs font-bold text-slate-700">{getRelativeDate(activeRecord.toDate)} • {formatTimeTo12h(activeRecord.toTime)}</div>
+                     </div>
+                   )}
+                </div>
+             </div>
+             <div className="pt-2 border-t border-slate-100 text-[11px] font-medium text-slate-500 italic">
+               What would you like to do with this record?
+             </div>
+          </div>
+        );
+
         setActiveLeave(activeRecord);
+        
+        const popupButtons = [
+          { 
+            label: isScheduled ? "Start Leave Now" : (isRoom ? "Return to Class" : "Mark Returned"), 
+            onClick: () => isScheduled ? handleStartLeave(activeRecord) : handleMarkReturned(activeRecord),
+            className: "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20"
+          }
+        ];
+
+        // Add "Medical Home" transition for Room patients
+        if (isRoom) {
+          popupButtons.push({
+            label: "Move to Medical Home",
+            onClick: () => handleRoomToMedical(activeRecord),
+            className: "bg-amber-500 hover:bg-amber-600 shadow-amber-500/20"
+          });
+        }
+
+        popupButtons.push(
+          { 
+            label: isScheduled ? "Modify Scheduled" : "Extend Leave", 
+            onClick: () => handleExtendMode(activeRecord),
+            className: "bg-sky-500 hover:bg-sky-600 shadow-sky-500/20"
+          },
+          { 
+            label: "Add Another Reason", 
+            onClick: () => handleAddReasonMode(activeRecord), 
+            className: "bg-indigo-500 hover:bg-indigo-600 shadow-indigo-500/20"
+          },
+          { 
+            label: "Schedule Future Leave", 
+            onClick: () => handleScheduleNextMode(activeRecord),
+            className: "bg-violet-500 hover:bg-violet-600 shadow-violet-500/20"
+          }
+        );
+
         showAlert(
-          `${found["SHORT NAME"]} is already on ${activeRecord.reason} leave until ${activeRecord.toDate || 'Unknown'}. What would you like to do?`, 
-          "Student Already on Leave", 
-          "warning",
-          [
-            { 
-              label: "Extend Existing Leave", 
-              onClick: () => handleExtendMode(activeRecord),
-              className: "bg-sky-500 hover:bg-sky-600 shadow-sky-500/20"
-            },
-            { 
-              label: "Add Another Reason", 
-              onClick: () => handleAddReasonMode(activeRecord), 
-              className: "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20"
-            },
-            { 
-              label: "Schedule Future Leave", 
-              onClick: () => handleScheduleNextMode(activeRecord),
-              className: "bg-violet-500 hover:bg-violet-600 shadow-violet-500/20"
-            },
-            { 
-              label: "Cancel Selection", 
-              onClick: () => { setAd(''); setStudent(null); },
-              className: "bg-slate-400 hover:bg-slate-500 shadow-slate-400/20"
-            }
-          ]
+          leaveInfo, 
+          isScheduled ? `${found["SHORT NAME"]} has Scheduled Leave` : `${found["SHORT NAME"]} is Already on Leave`, 
+          isScheduled ? "info" : "warning",
+          popupButtons
         );
         return;
       }
@@ -1535,6 +1700,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
               setCustomReason={setCustomReason}
               leaveType={leaveType}
               teacher={teacher}
+              disabled={formMode === 'extend'}
             />
           </div>
 
@@ -1810,7 +1976,16 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         message={alertState.message}
         type={alertState.type}
         actions={alertState.actions}
-        onClose={() => setAlertState({ ...alertState, isOpen: false })}
+        onClose={() => {
+          setAlertState({ ...alertState, isOpen: false });
+          // If it was a student status alert, clear the selection
+          if (alertState.title?.includes("Leave") || alertRecord) {
+            setAd('');
+            setStudent(null);
+            setName('');
+            setClassNum('');
+          }
+        }}
       />
     </div>
   );
