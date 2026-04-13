@@ -75,14 +75,14 @@ function Hajar() {
     return hours * 60 + minutes;
   };
 
-  // Check if student is currently on short leave
-  const isStudentOnShortLeave = (studentAdno) => {
+  // Get active short leave object
+  const getStudentActiveShortLeave = (studentAdno) => {
     const today = date ? new Date(date) : new Date();
     const currentTime = convertTimeToMinutes(getCurrentTimeString());
 
-    return shortLeaveData.some(leave => {
+    return shortLeaveData.find(leave => {
       // Check ADNO match
-      if (leave.ad !== studentAdno) return false;
+      if (Number(leave.ad) !== Number(studentAdno)) return false;
 
       // Check date match
       const leaveDate = new Date(leave.date);
@@ -101,13 +101,16 @@ function Hajar() {
     });
   };
 
-  // Check if student is on active leave (any reason)
-  const isStudentOnActiveLeave = (studentAdno) => {
+  // Check if student is currently on short leave
+  const isStudentOnShortLeave = (studentAdno) => !!getStudentActiveShortLeave(studentAdno);
+
+  // Get active medical leave object
+  const getStudentActiveLeave = (studentAdno) => {
     const today = date ? new Date(date) : new Date();
     today.setHours(0, 0, 0, 0);
     const currentTime = convertTimeToMinutes(getCurrentTimeString());
 
-    return leaveData.some(leave => {
+    return leaveData.find(leave => {
       // Check ADNO match (check both flattened 'ad' and populated 'studentId.ADNO')
       const leaveAdno = leave.ad || leave.studentId?.ADNO;
       if (Number(leaveAdno) !== Number(studentAdno)) return false;
@@ -147,6 +150,12 @@ function Hajar() {
       return false;
     });
   };
+
+  // Check if student is on active leave (any reason)
+  const isStudentOnActiveLeave = (studentAdno) => !!getStudentActiveLeave(studentAdno);
+
+  // Alias for backward compatibility/typo fix
+  const isStudentOnMedicalLeave = isStudentOnActiveLeave;
 
   // Get current time in HH:MM format
   const getCurrentTimeString = () => {
@@ -269,7 +278,7 @@ function Hajar() {
     try {
       if (returnedStudents.length > 0) {
         await Promise.all(returnedStudents.map(async (ad) => {
-          const findStd = leaveData.find(leave => leave.ad === ad && leave.status !== 'returned');
+          const findStd = getStudentActiveLeave(ad);
           if (findStd) {
             await axios.put(`${API_PORT}/leave/${findStd._id}`, { status: 'returned', markReturnedTeacher: teacher?.name || 'Unknown' });
             await axios.put(`${API_PORT}/students/${ad}`, { onLeave: false });
@@ -849,20 +858,8 @@ function Hajar() {
             <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 mb-8 space-y-4">
               {(() => {
                 const ad = selectedReturnStudent.ADNO;
-                const medical = leaveData.find(leave => leave.ad === ad && leave.status !== 'returned');
-                const today = date ? new Date(date) : new Date();
-                const currentTime = convertTimeToMinutes(getCurrentTimeString());
-                const cep = shortLeaveData.find(leave => {
-                  if (leave.ad !== ad) return false;
-                  const leaveDate = new Date(leave.date);
-                  const isSameDate = leaveDate.getDate() === today.getDate() &&
-                    leaveDate.getMonth() === today.getMonth() &&
-                    leaveDate.getFullYear() === today.getFullYear();
-                  if (!isSameDate) return false;
-                  const fromTime = convertTimeToMinutes(leave.fromTime);
-                  const toTime = convertTimeToMinutes(leave.toTime);
-                  return currentTime >= fromTime && currentTime <= toTime;
-                });
+                const medical = getStudentActiveLeave(ad);
+                const cep = getStudentActiveShortLeave(ad);
 
                 if (medical) {
                   return (

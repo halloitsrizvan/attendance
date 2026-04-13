@@ -367,9 +367,28 @@ function LeaveStatus() {
         ...item,
         status: getLeaveStatus(item)
       }))
-      .filter(data => 
-        ['Pending', 'Late', 'On Leave'].includes(data.status)
-      );
+      .filter(data => {
+        // Basic list of actionable statuses
+        const statuses = ['Pending', 'Late', 'On Leave'];
+        if (!statuses.includes(data.status)) return false;
+
+        // If searching, show all matches regardless of time
+        if (searchValue) return true;
+
+        // For individuals On Leave, only show if they are within 4 hours of their scheduled return
+        if (data.status === 'On Leave') {
+          if (!data.toDate || !data.toTime) return true; // Keep open-ended leaves like Room
+          const toDateTime = new Date(`${data.toDate}T${data.toTime}`);
+          const now = new Date();
+          const diffHrs = (toDateTime - now) / (1000 * 60 * 60);
+
+          // Only show if scheduled return is within 4 hours (or past - though past is 'Late' status)
+          return diffHrs <= 4;
+        }
+
+        // Pending and Late students always show in the actions list
+        return true;
+      });
   }, [leaveData, searchValue]);
 
   const refreshLeaveData = () => {
