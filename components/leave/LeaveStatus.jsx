@@ -551,8 +551,8 @@ function LeaveStatus() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {filteredData.length > 0 ? (
               <>
-                {activeTab === 'onLeave' &&
-                  <div className="mb-4">
+                 {activeTab === 'onLeave' &&
+                  <div className="mb-4 col-span-full">
                     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                       <div className="flex items-center gap-2 mb-3">
                         <h2 className="text-lg font-semibold text-gray-900">Class-wise Absentees</h2>
@@ -561,6 +561,11 @@ function LeaveStatus() {
                       <div className="grid grid-cols-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                         {(() => {
                           const classAbsentees = {};
+                          // Initialize classes 1-10 to ensure they are always displayed
+                          for (let i = 1; i <= 10; i++) {
+                            classAbsentees[i] = 0;
+                          }
+
                           filteredData.forEach(student => {
                             const classNum = student.studentId?.CLASS || student.classNum;
                             if (classNum) {
@@ -576,11 +581,11 @@ function LeaveStatus() {
                             .sort((a, b) => a.classNum - b.classNum);
 
                           return sortedClasses.map(({ classNum, count }) => (
-                             <div key={classNum} className="text-center p-3 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer"
+                            <div key={classNum} className="text-center p-3 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer"
                               onClick={() => setSelectedClass(classNum)}
                             >
-                              <div className="text-xs text-gray-600 border-b">Class {classNum}</div>
-                              <div className="text-2xl font-bold text-red-700">{count}</div>
+                              <div className="text-[10px] uppercase font-black text-gray-500 border-b border-gray-100 pb-1 mb-1">Class {classNum}</div>
+                              <div className={`text-2xl font-black ${count > 0 ? 'text-red-600' : 'text-slate-300'}`}>{count}</div>
                             </div>
                           ));
                         })()}
