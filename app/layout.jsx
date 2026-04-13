@@ -5,8 +5,8 @@ export const metadata = {
   title: 'Attendance App',
   description: 'Full-stack web application designed for managing attendance',
   icons: {
-    icon: '/circled-logo.png', // Circular favicon
-    apple: '/circled-logo.png', // Apple touch icon
+    icon: '/cirlced-logo.png', // Circular favicon
+    apple: '/cirlced-logo.png', // Apple touch icon
   },
   openGraph: {
     title: 'Attendance App',
