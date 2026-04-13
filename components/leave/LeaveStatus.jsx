@@ -284,37 +284,6 @@ function LeaveStatus() {
     return storedTeacher ? JSON.parse(storedTeacher) : null;
   }, []);
 
-  const matchesFilters = (student) => {
-    // 1. Search Text
-    const searchLower = searchValue.toLowerCase();
-    const ad = student.studentId?.ADNO || student.ad;
-    const name = (student.studentId?.['SHORT NAME'] || student.studentId?.['FULL NAME'] || student.name || '').toLowerCase();
-    const matchesSearch = !searchValue || name.includes(searchLower) || String(ad).toLowerCase().includes(searchLower);
-
-    if (!matchesSearch) return false;
-
-    // 2. Class Filter
-    const classNum = student.studentId?.CLASS || student.classNum;
-    const matchesClass = filterClass === 'All' || String(classNum) === String(filterClass);
-
-    if (!matchesClass) return false;
-
-    // 3. Action / Status Filter
-    const status = getLeaveStatus(student);
-    const matchesAction = filterAction === 'All' || status === filterAction;
-
-    return matchesAction;
-  };
-
-  const medicalRoomStatus = useMemo(() => {
-    return leaveData.filter(student => (student.reason === 'Medical (Room)' || student.reason === 'Room') && !student.returnedAt && matchesFilters(student));
-  }, [leaveData, searchValue, filterClass, filterAction]);
-
-  const medicalRoomStatusDB = useMemo(() => {
-    return leaveData.filter(student => (student.reason === 'Medical (Room)' || student.reason === 'Room') && !student.returnedAt && (student.teacherId?.name === teacher?.name || student.teacher === teacher?.name) && matchesFilters(student));
-  }, [leaveData, searchValue, teacher, filterClass, filterAction]);
-
-
   // Calculate leave status
   const getLeaveStatus = (item) => {
     const now = new Date();
@@ -347,6 +316,36 @@ function LeaveStatus() {
 
     return item.status || 'Scheduled';
   };
+
+  const matchesFilters = (student) => {
+    // 1. Search Text
+    const searchLower = searchValue.toLowerCase();
+    const ad = student.studentId?.ADNO || student.ad;
+    const name = (student.studentId?.['SHORT NAME'] || student.studentId?.['FULL NAME'] || student.name || '').toLowerCase();
+    const matchesSearch = !searchValue || name.includes(searchLower) || String(ad).toLowerCase().includes(searchLower);
+
+    if (!matchesSearch) return false;
+
+    // 2. Class Filter
+    const classNum = student.studentId?.CLASS || student.classNum;
+    const matchesClass = filterClass === 'All' || String(classNum) === String(filterClass);
+
+    if (!matchesClass) return false;
+
+    // 3. Action / Status Filter
+    const status = getLeaveStatus(student);
+    const matchesAction = filterAction === 'All' || status === filterAction;
+
+    return matchesAction;
+  };
+
+  const medicalRoomStatus = useMemo(() => {
+    return leaveData.filter(student => (student.reason === 'Medical (Room)' || student.reason === 'Room') && !student.returnedAt && matchesFilters(student));
+  }, [leaveData, searchValue, filterClass, filterAction]);
+
+  const medicalRoomStatusDB = useMemo(() => {
+    return leaveData.filter(student => (student.reason === 'Medical (Room)' || student.reason === 'Room') && !student.returnedAt && (student.teacherId?.name === teacher?.name || student.teacher === teacher?.name) && matchesFilters(student));
+  }, [leaveData, searchValue, teacher, filterClass, filterAction]);
 
   const getDisplayStatus = (status) => {
     const statusMap = {
@@ -645,6 +644,11 @@ function LeaveStatus() {
             onClick={() => setActiveTab('all')}
           />
           <TabButton
+            label={`Medical Room (${medicalRoomStatus.length})`}
+            isActive={activeTab === 'medicalRoom'}
+            onClick={() => setActiveTab('medicalRoom')}
+          />
+          <TabButton
             label="My Dashboard"
             isActive={activeTab === 'My Dashboard'}
             onClick={() => setActiveTab('My Dashboard')}
@@ -752,6 +756,19 @@ function LeaveStatus() {
                   statusData={shortLeaveStatus.filter(matchesFilters)}
                   type="shortLeave"
                 />
+              </div>
+              :
+              activeTab === "medicalRoom" ?
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                {medicalRoomStatus.length > 0 ? (
+                  medicalRoomStatus.map((student) => (
+                    <StudentStatusCard key={student._id} student={student} />
+                  ))
+                ) : (
+                  <div className="col-span-full py-20 text-center bg-white rounded-2xl border-2 border-dashed border-slate-100">
+                    <div className="text-slate-300 font-black uppercase tracking-widest text-sm">No students in Medical Room</div>
+                  </div>
+                )}
               </div>
               :
               <div>
