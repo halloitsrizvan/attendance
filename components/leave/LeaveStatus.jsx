@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from 'react';
-import { Calendar, Clock, CheckCircle, AlertCircle, User, XCircle, RefreshCw, ChevronRight, ChevronDown, FileSignature, DropletIcon, Search, X } from 'lucide-react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
+import { Calendar, Clock, CheckCircle, AlertCircle, User, XCircle, RefreshCw, ChevronRight, ChevronDown, FileSignature, DropletIcon, Search, X, Filter } from 'lucide-react';
 import axios from 'axios';
 import { API_PORT } from '../../Constants';
 import LeaveStatusTable from './LeaveStatusTable';
@@ -272,7 +272,11 @@ function LeaveStatus() {
   const [error, setError] = useState(null);
   const [selectedClass, setSelectedClass] = useState(null);
   const [searchValue, setSearchValue] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterClass, setFilterClass] = useState('All');
+  const [filterAction, setFilterAction] = useState('All');
   const [shortLeaveStatus, setShortLeaveStatus] = useState([]);
+  const filterRef = useRef(null);
 
   const teacher = useMemo(() => {
     const ls = getSafeLocalStorage();
@@ -280,24 +284,35 @@ function LeaveStatus() {
     return storedTeacher ? JSON.parse(storedTeacher) : null;
   }, []);
 
-  const matchesSearch = (student) => {
-    if (!searchValue) return true;
+  const matchesFilters = (student) => {
+    // 1. Search Text
     const searchLower = searchValue.toLowerCase();
     const ad = student.studentId?.ADNO || student.ad;
     const name = (student.studentId?.['SHORT NAME'] || student.studentId?.['FULL NAME'] || student.name || '').toLowerCase();
-    return (
-      name.includes(searchLower) ||
-      String(ad).toLowerCase().includes(searchLower)
-    );
+    const matchesSearch = !searchValue || name.includes(searchLower) || String(ad).toLowerCase().includes(searchLower);
+
+    if (!matchesSearch) return false;
+
+    // 2. Class Filter
+    const classNum = student.studentId?.CLASS || student.classNum;
+    const matchesClass = filterClass === 'All' || String(classNum) === String(filterClass);
+
+    if (!matchesClass) return false;
+
+    // 3. Action / Status Filter
+    const status = getLeaveStatus(student);
+    const matchesAction = filterAction === 'All' || status === filterAction;
+
+    return matchesAction;
   };
 
   const medicalRoomStatus = useMemo(() => {
-    return leaveData.filter(student => (student.reason === 'Medical (Room)' || student.reason === 'Room') && !student.returnedAt && matchesSearch(student));
-  }, [leaveData, searchValue]);
+    return leaveData.filter(student => (student.reason === 'Medical (Room)' || student.reason === 'Room') && !student.returnedAt && matchesFilters(student));
+  }, [leaveData, searchValue, filterClass, filterAction]);
 
   const medicalRoomStatusDB = useMemo(() => {
-    return leaveData.filter(student => (student.reason === 'Medical (Room)' || student.reason === 'Room') && !student.returnedAt && (student.teacherId?.name === teacher?.name || student.teacher === teacher?.name) && matchesSearch(student));
-  }, [leaveData, searchValue, teacher]);
+    return leaveData.filter(student => (student.reason === 'Medical (Room)' || student.reason === 'Room') && !student.returnedAt && (student.teacherId?.name === teacher?.name || student.teacher === teacher?.name) && matchesFilters(student));
+  }, [leaveData, searchValue, teacher, filterClass, filterAction]);
 
 
   // Calculate leave status
@@ -390,7 +405,7 @@ function LeaveStatus() {
 
   const actionsTableData = useMemo(() => {
     return leaveData
-      .filter(matchesSearch)
+      .filter(matchesFilters)
       .map(item => ({
         ...item,
         status: getLeaveStatus(item)
@@ -398,6 +413,11 @@ function LeaveStatus() {
       .filter(data => {
         // Basic list of actionable statuses
         const statuses = ['Pending', 'Late', 'On Leave'];
+        
+        // If filterAction is set to something specific, we bypass the default actionable statuses restriction
+        // to show what the user explicitly requested
+        if (filterAction !== 'All') return true;
+
         if (!statuses.includes(data.status)) return false;
 
         // If searching, show all matches regardless of time
@@ -417,7 +437,7 @@ function LeaveStatus() {
         // Pending and Late students always show in the actions list
         return true;
       });
-  }, [leaveData, searchValue]);
+  }, [leaveData, searchValue, filterClass, filterAction]);
 
   const refreshLeaveData = () => {
     fetchLeaveData();
@@ -425,16 +445,19 @@ function LeaveStatus() {
 
   const filteredData = useMemo(() => {
     let data = leaveData;
-    if (activeTab === 'actions' && searchValue) {
-      data = data.filter(matchesSearch);
+    if (activeTab === 'actions' && (searchValue || filterClass !== 'All' || filterAction !== 'All')) {
+      data = data.filter(matchesFilters);
     }
     if (activeTab === 'onLeave') {
       return data.filter(student =>
-        ['On Leave', 'Late'].includes(student.displayStatus)
+        ['On Leave', 'Late'].includes(student.displayStatus) && matchesFilters(student)
       );
     }
+    if (activeTab === 'all') {
+      return data.filter(matchesFilters);
+    }
     return data;
-  }, [leaveData, activeTab, searchValue]);
+  }, [leaveData, activeTab, searchValue, filterClass, filterAction]);
 
   const filteredDataForOnleave = useMemo(() => {
     return leaveData.filter(student =>
@@ -443,8 +466,18 @@ function LeaveStatus() {
   }, [leaveData]);
 
   const filterDB = useMemo(() => {
-    return leaveData.filter(student => (student.teacherId?.name === teacher?.name || student.teacher === teacher?.name) && matchesSearch(student));
-  }, [leaveData, teacher, searchValue]);
+    return leaveData.filter(student => (student.teacherId?.name === teacher?.name || student.teacher === teacher?.name) && matchesFilters(student));
+  }, [leaveData, teacher, searchValue, filterClass, filterAction]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (filterRef.current && !filterRef.current.contains(event.target)) {
+        setShowFilters(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (activeTab !== "actions") {
@@ -490,18 +523,20 @@ function LeaveStatus() {
         {/* Header */}
         <div className="flex items-center justify-between mb-4 gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-sky-100 text-sky-600 flex items-center justify-center rounded-2xl shadow-inner flex-shrink-0">
+            {/* <div className="w-10 h-10 bg-sky-100 text-sky-600 flex items-center justify-center rounded-2xl shadow-inner flex-shrink-0">
               <Calendar size={20} />
-            </div>
-            <div>
+            </div> */}
+            <div className="flex items-center gap-2 ml-2">
               <h1 className="text-lg sm:text-xl font-black text-slate-800 tracking-tight">Leave Status</h1>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden sm:block">Dashboard</p>
             </div>
           </div>
 
-          {/* Search — only visible on Actions tab */}
-          <div className={`flex items-center gap-2 transition-all duration-300 ${activeTab === "actions" ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
-            <div className="flex items-center bg-slate-50 border-2 border-slate-100 rounded-2xl px-3 py-2 gap-2 focus-within:border-sky-400 focus-within:bg-white transition-all">
+          {/* Search & Filter */}
+          <div className={`flex items-center gap-2 relative transition-all duration-300 ${activeTab !== "shortLeave" ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+            ref={filterRef}
+          >
+            <div className="flex items-center bg-slate-50 border-2 border-slate-100 rounded-2xl px-3 py-2 gap-2 focus-within:border-sky-400 focus-within:bg-white transition-all shadow-sm">
               <Search size={15} className="text-slate-400 flex-shrink-0" />
               <input
                 placeholder="Search student…"
@@ -515,6 +550,75 @@ function LeaveStatus() {
                 </button>
               )}
             </div>
+
+            <button 
+              onClick={() => setShowFilters(!showFilters)}
+              className={`p-2.5 rounded-xl border-2 transition-all flex items-center justify-center ${
+                showFilters || filterClass !== 'All' || filterAction !== 'All'
+                ? 'bg-sky-500 border-sky-500 text-white shadow-lg shadow-sky-500/20' 
+                : 'bg-white border-slate-100 text-slate-400 hover:border-sky-200 hover:text-sky-500'
+              }`}
+              title="Filter Students"
+            >
+              <Filter size={18} />
+            </button>
+
+            {/* Filter Popup */}
+            {showFilters && (
+              <div className="absolute top-full right-0 mt-3 w-64 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-100 p-5 z-[100] animate-in slide-in-from-top-2 duration-200">
+                <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-50">
+                  <span className="text-xs font-black text-slate-800 uppercase tracking-tighter">Quick Filters</span>
+                  {(filterClass !== 'All' || filterAction !== 'All') && (
+                    <button 
+                      onClick={() => { setFilterClass('All'); setFilterAction('All'); }}
+                      className="text-[10px] font-bold text-sky-500 hover:underline"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Class</label>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {['All', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'].map(c => (
+                        <button
+                          key={c}
+                          onClick={() => setFilterClass(c)}
+                          className={`py-1 text-[11px] font-bold rounded-lg border transition-all ${
+                            filterClass === c 
+                            ? 'bg-sky-500 border-sky-500 text-white shadow-sm' 
+                            : 'bg-slate-50 border-slate-100 text-slate-500 hover:bg-slate-100'
+                          }`}
+                        >
+                          {c}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Action / Status</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {['All', 'Pending', 'On Leave', 'Late', 'Scheduled', 'Returned'].map(s => (
+                        <button
+                          key={s}
+                          onClick={() => setFilterAction(s)}
+                          className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border transition-all ${
+                            filterAction === s 
+                            ? 'bg-sky-500 border-sky-500 text-white' 
+                            : 'bg-slate-50 border-slate-100 text-slate-500 hover:bg-slate-100'
+                          }`}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -645,7 +749,7 @@ function LeaveStatus() {
             activeTab === "shortLeave" ?
               <div>
                 <ShortLeave
-                  statusData={shortLeaveStatus.filter(matchesSearch)}
+                  statusData={shortLeaveStatus.filter(matchesFilters)}
                   type="shortLeave"
                 />
               </div>
