@@ -164,26 +164,23 @@ function Header() {
                   {teacher?.classNum && (
                     <p className="text-[10px] text-sky-100 opacity-90 font-bold uppercase tracking-wider">Class {teacher.classNum}</p>
                   )}
-                  <button 
+                  <button
                     onClick={() => navigate.push('/')}
-                    className="group text-[9px] text-white/70 hover:text-white transition-all font-black uppercase tracking-[0.2em] mt-1 flex items-center gap-1.5"
+                    className="text-[9px] text-white/70 hover:text-white transition-colors font-black uppercase tracking-widest mt-0.5 flex items-center gap-1"
                   >
-                    <svg className="w-2.5 h-2.5 opacity-60 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                    </svg>
+                    <div className="w-1 h-1 bg-white/40 rounded-full"></div>
                     Home
                   </button>
                 </div>
               </div>
-              
+
               {/* Profile Icon Button */}
-              <button 
+              <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold border transition-all duration-300 ${
-                  isProfileOpen 
-                    ? 'bg-white shadow-lg text-sky-600 border-white scale-110' 
+                className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold border transition-all duration-300 ${isProfileOpen
+                    ? 'bg-white shadow-lg text-sky-600 border-white scale-110'
                     : 'bg-white/20 backdrop-blur-md border-white/30 shadow-inner hover:bg-white/30'
-                }`}
+                  }`}
               >
                 {userInitial}
               </button>
@@ -191,8 +188,8 @@ function Header() {
               {/* Profile Dropdown */}
               {isProfileOpen && (
                 <>
-                  <div 
-                    className="fixed inset-0 z-40" 
+                  <div
+                    className="fixed inset-0 z-40"
                     onClick={() => setIsProfileOpen(false)}
                   ></div>
                   <div className="absolute top-full right-0 mt-3 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
@@ -216,7 +213,7 @@ function Header() {
 
                     {/* Quick Actions */}
                     <div className="p-2 border-t border-slate-100">
-                      <button 
+                      <button
                         onClick={() => handleLogout()}
                         className="w-full flex items-center gap-3 px-4 py-3 text-rose-500 hover:bg-rose-50 rounded-xl transition-colors text-sm font-bold uppercase tracking-wider"
                       >

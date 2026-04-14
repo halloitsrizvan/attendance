@@ -23,8 +23,8 @@ const TabButton = ({ label, isActive, onClick }) => (
   <button
     onClick={onClick}
     className={`py-2 px-3 sm:px-4 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 whitespace-nowrap ${isActive
-        ? 'bg-sky-500 text-white shadow-md shadow-sky-500/30'
-        : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+      ? 'bg-sky-500 text-white shadow-md shadow-sky-500/30'
+      : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
       }`}
   >
     {label}
@@ -96,25 +96,25 @@ const StudentStatusCard = ({ student }) => {
     if (!dateInput) return '';
     try {
       // Handle either a full ISO string or just a date Part
-      const datePart = typeof dateInput === 'string' && dateInput.includes('T') 
-        ? dateInput.split('T')[0] 
+      const datePart = typeof dateInput === 'string' && dateInput.includes('T')
+        ? dateInput.split('T')[0]
         : dateInput;
-      
+
       const date = new Date(datePart);
       const today = new Date();
-      
+
       // Reset hours for accurate day difference
       const d1 = new Date(date.getFullYear(), date.getMonth(), date.getDate());
       const d2 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      
+
       const diffTime = d1 - d2;
       const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-      
+
       if (diffDays === 0) return "Today";
       if (diffDays === -1) return "Yesterday";
       if (diffDays === 1) return "Tomorrow";
       if (diffDays === 2) return "Day After";
-      
+
       return d1.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     } catch (e) {
       return typeof dateInput === 'string' ? dateInput : '';
@@ -275,6 +275,7 @@ function LeaveStatus() {
   const [showFilters, setShowFilters] = useState(false);
   const [filterClass, setFilterClass] = useState('All');
   const [filterAction, setFilterAction] = useState('All');
+  const [filterStartReturn, setFilterStartReturn] = useState('All');
   const [shortLeaveStatus, setShortLeaveStatus] = useState([]);
   const filterRef = useRef(null);
 
@@ -298,11 +299,11 @@ function LeaveStatus() {
     }
 
     if (now < fromDateTime) return 'Scheduled';
-    
+
     // If it's a medical / room leave without end date
     if (!toDateTime && (item.status === 'active' || item.status === 'returned')) {
-       if (item.status === 'returned') return 'Returned';
-       return 'On Leave';
+      if (item.status === 'returned') return 'Returned';
+      return 'On Leave';
     }
 
     if (now >= fromDateTime && item.status === 'Scheduled') {
@@ -332,7 +333,14 @@ function LeaveStatus() {
 
     if (!matchesClass) return false;
 
-    // 3. Action / Status Filter
+    // 3. Start / Return Group Filter
+    if (filterStartReturn !== 'All') {
+      const status = getLeaveStatus(student);
+      if (filterStartReturn === 'To Start' && !['Pending', 'Scheduled'].includes(status)) return false;
+      if (filterStartReturn === 'To Return' && !['On Leave', 'Late'].includes(status)) return false;
+    }
+
+    // 4. Action / Status Filter
     const status = getLeaveStatus(student);
     const matchesAction = filterAction === 'All' || status === filterAction;
 
@@ -341,11 +349,11 @@ function LeaveStatus() {
 
   const medicalRoomStatus = useMemo(() => {
     return leaveData.filter(student => (student.reason === 'Medical (Room)' || student.reason === 'Room') && !student.returnedAt && matchesFilters(student));
-  }, [leaveData, searchValue, filterClass, filterAction]);
+  }, [leaveData, searchValue, filterClass, filterAction, filterStartReturn]);
 
   const medicalRoomStatusDB = useMemo(() => {
     return leaveData.filter(student => (student.reason === 'Medical (Room)' || student.reason === 'Room') && !student.returnedAt && (student.teacherId?.name === teacher?.name || student.teacher === teacher?.name) && matchesFilters(student));
-  }, [leaveData, searchValue, teacher, filterClass, filterAction]);
+  }, [leaveData, searchValue, teacher, filterClass, filterAction, filterStartReturn]);
 
   const getDisplayStatus = (status) => {
     const statusMap = {
@@ -412,7 +420,7 @@ function LeaveStatus() {
       .filter(data => {
         // Basic list of actionable statuses
         const statuses = ['Pending', 'Late', 'On Leave'];
-        
+
         // If filterAction is set to something specific, we bypass the default actionable statuses restriction
         // to show what the user explicitly requested
         if (filterAction !== 'All') return true;
@@ -436,7 +444,7 @@ function LeaveStatus() {
         // Pending and Late students always show in the actions list
         return true;
       });
-  }, [leaveData, searchValue, filterClass, filterAction]);
+  }, [leaveData, searchValue, filterClass, filterAction, filterStartReturn]);
 
   const refreshLeaveData = () => {
     fetchLeaveData();
@@ -444,7 +452,7 @@ function LeaveStatus() {
 
   const filteredData = useMemo(() => {
     let data = leaveData;
-    if (activeTab === 'actions' && (searchValue || filterClass !== 'All' || filterAction !== 'All')) {
+    if (activeTab === 'actions' && (searchValue || filterClass !== 'All' || filterAction !== 'All' || filterStartReturn !== 'All')) {
       data = data.filter(matchesFilters);
     }
     if (activeTab === 'onLeave') {
@@ -456,7 +464,7 @@ function LeaveStatus() {
       return data.filter(matchesFilters);
     }
     return data;
-  }, [leaveData, activeTab, searchValue, filterClass, filterAction]);
+  }, [leaveData, activeTab, searchValue, filterClass, filterAction, filterStartReturn]);
 
   const filteredDataForOnleave = useMemo(() => {
     return leaveData.filter(student =>
@@ -466,7 +474,7 @@ function LeaveStatus() {
 
   const filterDB = useMemo(() => {
     return leaveData.filter(student => (student.teacherId?.name === teacher?.name || student.teacher === teacher?.name) && matchesFilters(student));
-  }, [leaveData, teacher, searchValue, filterClass, filterAction]);
+  }, [leaveData, teacher, searchValue, filterClass, filterAction, filterStartReturn]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -553,7 +561,7 @@ function LeaveStatus() {
             <button 
               onClick={() => setShowFilters(!showFilters)}
               className={`p-2.5 rounded-xl border-2 transition-all flex items-center justify-center ${
-                showFilters || filterClass !== 'All' || filterAction !== 'All'
+                showFilters || filterClass !== 'All' || filterAction !== 'All' || filterStartReturn !== 'All'
                 ? 'bg-sky-500 border-sky-500 text-white shadow-lg shadow-sky-500/20' 
                 : 'bg-white border-slate-100 text-slate-400 hover:border-sky-200 hover:text-sky-500'
               }`}
@@ -567,9 +575,9 @@ function LeaveStatus() {
               <div className="absolute top-full right-0 mt-3 w-64 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-100 p-5 z-[100] animate-in slide-in-from-top-2 duration-200">
                 <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-50">
                   <span className="text-xs font-black text-slate-800 uppercase tracking-tighter">Quick Filters</span>
-                  {(filterClass !== 'All' || filterAction !== 'All') && (
+                  {(filterClass !== 'All' || filterAction !== 'All' || filterStartReturn !== 'All') && (
                     <button 
-                      onClick={() => { setFilterClass('All'); setFilterAction('All'); }}
+                      onClick={() => { setFilterClass('All'); setFilterAction('All'); setFilterStartReturn('All'); }}
                       className="text-[10px] font-bold text-sky-500 hover:underline"
                     >
                       Reset
@@ -585,13 +593,29 @@ function LeaveStatus() {
                         <button
                           key={c}
                           onClick={() => setFilterClass(c)}
-                          className={`py-1 text-[11px] font-bold rounded-lg border transition-all ${
-                            filterClass === c 
-                            ? 'bg-sky-500 border-sky-500 text-white shadow-sm' 
-                            : 'bg-slate-50 border-slate-100 text-slate-500 hover:bg-slate-100'
-                          }`}
+                          className={`py-1 text-[11px] font-bold rounded-lg border transition-all ${filterClass === c
+                              ? 'bg-sky-500 border-sky-500 text-white shadow-sm'
+                              : 'bg-slate-50 border-slate-100 text-slate-500 hover:bg-slate-100'
+                            }`}
                         >
                           {c}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Start / Return</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {['All', 'To Start', 'To Return'].map(s => (
+                        <button
+                          key={s}
+                          onClick={() => setFilterStartReturn(s)}
+                          className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border transition-all ${filterStartReturn === s
+                              ? 'bg-sky-500 border-sky-500 text-white'
+                              : 'bg-slate-50 border-slate-100 text-slate-500 hover:bg-slate-100'
+                            }`}
+                        >
+                          {s}
                         </button>
                       ))}
                     </div>
@@ -604,11 +628,10 @@ function LeaveStatus() {
                         <button
                           key={s}
                           onClick={() => setFilterAction(s)}
-                          className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border transition-all ${
-                            filterAction === s 
-                            ? 'bg-sky-500 border-sky-500 text-white' 
-                            : 'bg-slate-50 border-slate-100 text-slate-500 hover:bg-slate-100'
-                          }`}
+                          className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border transition-all ${filterAction === s
+                              ? 'bg-sky-500 border-sky-500 text-white'
+                              : 'bg-slate-50 border-slate-100 text-slate-500 hover:bg-slate-100'
+                            }`}
                         >
                           {s}
                         </button>
@@ -659,7 +682,7 @@ function LeaveStatus() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {filteredData.length > 0 ? (
               <>
-                 {activeTab === 'onLeave' &&
+                {activeTab === 'onLeave' &&
                   <div className="mb-4 col-span-full">
                     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                       <div className="flex items-center gap-2 mb-3">
@@ -759,28 +782,28 @@ function LeaveStatus() {
               </div>
               :
               activeTab === "medicalRoom" ?
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                {medicalRoomStatus.length > 0 ? (
-                  medicalRoomStatus.map((student) => (
-                    <StudentStatusCard key={student._id} student={student} />
-                  ))
-                ) : (
-                  <div className="col-span-full py-20 text-center bg-white rounded-2xl border-2 border-dashed border-slate-100">
-                    <div className="text-slate-300 font-black uppercase tracking-widest text-sm">No students in Medical Room</div>
-                  </div>
-                )}
-              </div>
-              :
-              <div>
-                {activeTab === "actions" && (
-                  <LeaveStatusTable
-                    classData={actionsTableData}
-                    onDataUpdate={refreshLeaveData}
-                    getLeaveStatus={getLeaveStatus}
-                    type="Generalactions"
-                  />
-                )}
-              </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                  {medicalRoomStatus.length > 0 ? (
+                    medicalRoomStatus.map((student) => (
+                      <StudentStatusCard key={student._id} student={student} />
+                    ))
+                  ) : (
+                    <div className="col-span-full py-20 text-center bg-white rounded-2xl border-2 border-dashed border-slate-100">
+                      <div className="text-slate-300 font-black uppercase tracking-widest text-sm">No students in Medical Room</div>
+                    </div>
+                  )}
+                </div>
+                :
+                <div>
+                  {activeTab === "actions" && (
+                    <LeaveStatusTable
+                      classData={actionsTableData}
+                      onDataUpdate={refreshLeaveData}
+                      getLeaveStatus={getLeaveStatus}
+                      type="Generalactions"
+                    />
+                  )}
+                </div>
         }
       </div>
 
