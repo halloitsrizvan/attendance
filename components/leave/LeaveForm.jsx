@@ -11,7 +11,7 @@ import SelectionButton from './SelectionButton';
 const getSafeLocalStorage = () => typeof window !== 'undefined' ? localStorage : { getItem: () => null, setItem: () => { }, removeItem: () => { } };
 
 import { FaHome, FaSadCry } from "react-icons/fa";
-import { Plus, Minus, Calendar, Clock, CalendarClock } from 'lucide-react';
+import { Plus, Minus, Calendar, Clock, CalendarClock, X, Database } from 'lucide-react';
 import Header from '../Header/Header';
 import './styles/leaveForm.css';
 
@@ -1231,6 +1231,8 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
 
 
   const [showBulkModal, setShowBulkModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [studentHistory, setStudentHistory] = useState([]);
   const [Bulkstudents, setBulkStudents] = useState([]);
   const [classValue, setClassValue] = useState(teacher?.classNum || "3");
   const [selectedBulkStudents, setSelectedBulkStudents] = useState([]);
@@ -1501,6 +1503,85 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
 
       {leaveType === "leave" ? (
         <div className="max-w-xl mx-auto space-y-8 pb-16">
+          {/* History Modal */}
+      {showHistoryModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowHistoryModal(false)}></div>
+          <div className="relative bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-yellow-500 p-6 flex items-center justify-between text-white">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black tracking-tight">{name}</h3>
+                  <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">Full Leave History (AD: {ad})</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowHistoryModal(false)}
+                className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full transition-colors flex items-center justify-center"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 max-h-[60vh] overflow-y-auto">
+              {studentHistory.length > 0 ? (
+                <div className="space-y-4">
+                  {studentHistory.sort((a,b) => new Date(b.fromDate) - new Date(a.fromDate)).map((leave, idx) => (
+                    <div key={idx} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[10px] font-black text-slate-400 capitalize px-2 py-0.5 bg-white border border-slate-100 rounded-md">
+                            {leave.reason || 'General Leave'}
+                          </span>
+                          <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
+                            leave.status === 'returned' || leave.status === 'Arrived' ? 'text-green-600 bg-green-50' : 'text-amber-600 bg-amber-50'
+                          }`}>
+                            {leave.status}
+                          </span>
+                        </div>
+                        <p className="text-sm font-bold text-slate-700 truncate">
+                          {leave.fromDate === leave.toDate ? leave.fromDate : `${leave.fromDate} to ${leave.toDate || 'End'}`}
+                        </p>
+                        <p className="text-[10px] font-medium text-slate-500">
+                           {leave.fromTime} {leave.toTime ? `→ ${leave.toTime}` : ''}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        {leave.markReturnedTeacher && (
+                          <div className="flex flex-col items-end">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase">Returned To</span>
+                            <span className="text-[10px] font-black text-sky-600">{leave.markReturnedTeacher}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-12 text-center">
+                  <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-dashed border-slate-200">
+                    <Database className="w-6 h-6 text-slate-300" />
+                  </div>
+                  <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">No Leave Records Found</p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
+              <button
+                onClick={() => setShowHistoryModal(false)}
+                className="px-6 py-3 bg-slate-800 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 transition-colors"
+              >
+                Close Record
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
           {/* Regular Leave Form */}
           {!showBulkModal && (
             <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50 space-y-6">
@@ -1563,7 +1644,25 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
                   )}
                 </div>
 
-                <div className="col-span-1 pt-6">
+                <div className="col-span-1">
+                  <label 
+                    onClick={() => {
+                        if (ad && student) {
+                            const studentId = student?._id || student?.id;
+                            const history = leaveData.filter(leave => {
+                                const leaveStudentId = typeof leave.studentId === 'object' ? leave.studentId?._id : leave.studentId;
+                                const adMatch = String(leave.hasOwnProperty('ad') ? leave.ad : leave.studentId?.ADNO) === String(ad);
+                                const idMatch = studentId && String(leaveStudentId) === String(studentId);
+                                return idMatch || adMatch;
+                            });
+                            setStudentHistory(history);
+                            setShowHistoryModal(true);
+                        }
+                    }}
+                    className={`block text-[10px] font-black uppercase tracking-widest px-1 mb-2 cursor-pointer transition-colors ${ad ? 'text-yellow-500 hover:text-yellow-600' : 'text-slate-300'}`}
+                  >
+                    History {ad && "• View"}
+                  </label>
                   <button
                     type="button"
                     className="w-full h-[46px] rounded-2xl bg-white border-2 border-sky-100 text-sky-500 font-black text-[10px] uppercase tracking-widest hover:bg-sky-50 transition-all flex items-center justify-center"
@@ -2012,7 +2111,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         onClose={() => {
           setAlertState({ ...alertState, isOpen: false });
           // If it was a student status alert, clear the selection
-          if (alertState.title?.includes("Leave") || alertRecord) {
+          if (alertState.title?.includes("Leave")) {
             setAd('');
             setStudent(null);
             setName('');
