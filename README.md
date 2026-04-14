@@ -75,4 +75,4 @@ Darul Irfan is a premium, full-stack institutional management solution designed 
 This project is licensed under the ISC License.
 
 ---
-*Built with precision for BrightPath Institutions.*
+*Built with precision for Darul Irfan.*
