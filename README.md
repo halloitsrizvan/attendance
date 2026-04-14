@@ -1,8 +1,8 @@
-# BrightPath | Advanced Attendance & Leave Management
+# Advanced Attendance & Leave Management
 
-![BrightPath Banner](public/logo.png)
+![Darul Irfan Banner](public/logo.png)
 
-BrightPath is a premium, full-stack institutional management solution designed to streamline student attendance, complex leave workflows, and administrative reporting. Built with a focus on precision and professional aesthetics, it serves as a central hub for teachers, administrators, and students.
+Darul Irfan is a premium, full-stack institutional management solution designed to streamline student attendance, complex leave workflows, and administrative reporting. Built with a focus on precision and professional aesthetics, it serves as a central hub for teachers, administrators, and students.
 
 ## 🚀 Key Features
 
