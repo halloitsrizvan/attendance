@@ -13,7 +13,7 @@ const VerifyingAccess = () => {
                 {/* Logo in Circle */}
                 <div className="w-24 h-24 bg-white rounded-full overflow-hidden flex items-center justify-center shadow-lg border border-slate-100 z-10 p-1">
                     <Image 
-                        src="/logo.png" 
+                        src="/cirlced-logo.png" 
                         alt="Logo" 
                         width={80} 
                         height={80} 

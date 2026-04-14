@@ -1,127 +1,78 @@
-# Attendance Management System
+# BrightPath | Advanced Attendance & Leave Management
 
-## Description
+![BrightPath Banner](public/logo.png)
 
-A full-stack web application designed for managing attendance, leave requests, and related data in an educational institution. It provides separate portals for teachers and students, enabling efficient tracking and reporting of attendance records.
+BrightPath is a premium, full-stack institutional management solution designed to streamline student attendance, complex leave workflows, and administrative reporting. Built with a focus on precision and professional aesthetics, it serves as a central hub for teachers, administrators, and students.
 
-## Features
+## 🚀 Key Features
 
-- **User Authentication**: Secure login for teachers and students using JWT tokens
-- **Attendance Tracking**: Record and manage daily attendance for students
-- **Leave Management**: Handle regular leave and short leave requests
-- **Class-wise Reports**: Generate reports based on classes
-- **Student Portal**: Students can view their attendance and apply for leave
-- **Minus Reports**: Track and report attendance deductions
-- **Daily Reports**: Generate daily attendance summaries
-- **PDF and Excel Export**: Export reports in PDF and Excel formats
+### 📅 Precision Attendance
+- **Context-Aware Recording**: Mark attendance for specific periods (1-10) with automatic time-range mapping.
+- **Session Support**: Dedicated workflows for "Morning" and "Night/Dars" (7:00 PM - 8:30 PM) sessions.
+- **Real-Time Leave Integration**: Students on authorized leave (Medical or CEP) are automatically flagged and protected from accidental marking during their leave window.
 
-## Technologies Used
+### 🏥 Advanced Leave Management
+- **Medical Leave Suite**: Multi-tier tracking for "Medical Home" and "Medical Room" stays.
+- **Class Excused Pass (CEP)**: Precise short-term absence management with period-range or session-based (Dars) pass generation.
+- **One-Click Returns**: Seamlessly mark students as returned from the attendance dashboard, instantly updating their status across the institution.
 
-### Backend
-- **Node.js**: Runtime environment
-- **Express.js**: Web framework
-- **MongoDB**: Database (via Mongoose ODM)
-- **JWT**: JSON Web Tokens for authentication
-- **bcrypt**: Password hashing
-- **CORS**: Cross-origin resource sharing
+### 📊 Administrative Intelligence
+- **Full Institutional Backup**: Export all institutional data—Attendance, Disciplinary (Minus), Leaves, CEPs, and User directories—into a single, professionally organized multi-sheet Excel workbook.
+- **Academic Year Management**: Lifecycle management for institutional sessions, enabling clean data separation between years.
+- **Dynamic Action Popups**: Context-aware student status alerts that allow admins to extend leaves, mark returns, or transition between medical states in just two clicks.
 
-### Frontend
-- **React**: UI library
-- **React Router**: Client-side routing
-- **Axios**: HTTP client for API calls
-- **jsPDF**: PDF generation
-- **jsPDF-AutoTable**: Table generation in PDFs
-- **xlsx**: Excel file handling
-- **Lucide React**: Icon library
-- **React Icons**: Additional icons
+### 🛡️ Security & Performance
+- **Role-Based Access Control (RBAC)**: Fine-grained permissions for Teachers, HODs, HOS, and Super-Admins.
+- **Middleware Protection**: Automated session verification and unauthorized route shielding.
+- **Mobile Optimized**: A fully responsive interface designed for rapid use on smartphones and tablets.
 
-## Installation
+## 🛠️ Technology Stack
+
+- **Framework**: [Next.js 14](https://nextjs.org/) (App Router)
+- **Language**: JavaScript (ES6+)
+- **Styling**: Vanilla CSS with modern Design Tokens & Lucide Icons
+- **Database**: [MongoDB](https://www.mongodb.com/) via Mongoose ODM
+- **Exports**: [SheetJS (XLSX)](https://sheetjs.com/) & [jsPDF](https://parall.ax/products/jspdf)
+- **Deployment**: Optimized for Vercel/Node.js environments
+
+## 📦 Installation & Setup
 
 1. **Clone the repository**:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/halloitsrizvan/attendance.git
    cd attendance
    ```
 
-2. **Install backend dependencies**:
+2. **Install dependencies**:
    ```bash
-   cd backend
    npm install
    ```
 
-3. **Install frontend dependencies**:
-   ```bash
-   cd ../frontend
-   npm install
+3. **Configure Environment**:
+   Create a `.env` file in the root directory:
+   ```env
+   MONGODB_URI=your_mongodb_connection_string
+   JWT_SECRET=your_secure_secret
+   API_PORT=http://localhost:3000/api
    ```
 
-4. **Set up environment variables**:
-   - Create a `.env` file in the `backend/` directory with the following variables:
-     ```
-     MONGO_URI=your_mongodb_connection_string
-     JWT_SECRET=your_jwt_secret
-     PORT=4000
-     ```
-
-5. **Start the backend server**:
+4. **Launch Development Server**:
    ```bash
-   cd backend
-   npm start
+   npm run dev
    ```
-   The server will run on `http://localhost:4000` (or the port specified in `.env`).
+   The application will be available at `http://localhost:3000`.
 
-6. **Start the frontend application**:
-   ```bash
-   cd ../frontend
-   npm start
-   ```
-   The app will be available at `http://localhost:3000`.
+## 📁 Project Structure
 
-## Usage
+- `/app`: Next.js App Router (Pages & API Routes)
+- `/components`: High-fidelity React components (Atomic selection)
+- `/models`: Mongoose Schemas for Students, Teachers, Attendance, and Leaves
+- `/public`: Branded assets and icons
+- `/lib`: Database connection and shared utility functions
 
-- **Teacher Portal**: Log in as a teacher to manage classes, record attendance, view reports, and handle leave requests.
-- **Student Portal**: Students can log in to view their attendance records, apply for leave, and check their status.
-- **Reports**: Generate and export various reports including daily attendance, class-wise summaries, and minus reports.
-
-## API Endpoints
-
-The backend provides the following main API routes:
-
-- `/classes`: Manage class information
-- `/teachers`: Teacher-related operations
-- `/students`: Student management
-- `/set-attendance`: Attendance recording
-- `/leave`: Leave request management
-- `/minus`: Minus/deduction tracking
-- `/class-excused-pass`: Short leave handling
-
-## Project Structure
-
-```
-attendance/
-├── backend/
-│   ├── config/
-│   ├── controllers/
-│   ├── migrations/
-│   ├── models/
-│   ├── routes/
-│   ├── utils/
-│   ├── package.json
-│   └── server.js
-└── frontend/
-    ├── public/
-    ├── src/
-    │   ├── components/
-    │   ├── pages/
-    │   └── ...
-    ├── package.json
-    └── README.md
-```
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
+## 📄 License
 
 This project is licensed under the ISC License.
+
+---
+*Built with precision for BrightPath Institutions.*

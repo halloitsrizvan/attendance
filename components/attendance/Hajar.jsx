@@ -151,6 +151,9 @@ function Hajar() {
 
       if (!isSameDate) return false;
 
+      // Check status
+      if (leave.status === 'returned') return false;
+
       // Check time range
       const leaveFrom = convertTimeToMinutes(leave.fromTime);
       const leaveTo = convertTimeToMinutes(leave.toTime);
@@ -348,14 +351,26 @@ function Hajar() {
     setConfirmAttendance(false);
     setLoad(true);
 
-    // Save Return Data for Medical Leaves
+    // Save Return Data for Medical Leaves and CEPs
     try {
       if (returnedStudents.length > 0) {
         await Promise.all(returnedStudents.map(async (ad) => {
-          const findStd = getStudentActiveLeave(ad);
-          if (findStd) {
-            await axios.put(`${API_PORT}/leave/${findStd._id}`, { status: 'returned', markReturnedTeacher: teacher?.name || 'Unknown' });
+          // 1. Check Medical Leave
+          const medLeave = getStudentActiveLeave(ad);
+          if (medLeave) {
+            await axios.put(`${API_PORT}/leave/${medLeave._id}`, { 
+              status: 'returned', 
+              markReturnedTeacher: teacher?.name || 'Unknown' 
+            });
             await axios.put(`${API_PORT}/students/${ad}`, { onLeave: false });
+          }
+
+          // 2. Check CEP
+          const shortLeave = getStudentActiveShortLeave(ad);
+          if (shortLeave) {
+            await axios.put(`${API_PORT}/class-excused-pass/${shortLeave._id}`, { 
+              status: 'returned' 
+            });
           }
         }));
       }
