@@ -161,9 +161,6 @@ function Header() {
               <div className="text-right">
                 <p className="text-sm font-semibold text-white leading-tight">{username}</p>
                 <div className="flex flex-col items-end">
-                  {teacher?.classNum && (
-                    <p className="text-[10px] text-sky-100 opacity-90 font-bold uppercase tracking-wider">Class {teacher.classNum}</p>
-                  )}
                   <button
                     onClick={() => navigate.push('/')}
                     className="text-[9px] text-white/70 hover:text-white transition-colors font-black uppercase tracking-widest mt-0.5 flex items-center gap-1"
@@ -194,9 +191,17 @@ function Header() {
                   ></div>
                   <div className="absolute top-full right-0 mt-3 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
                     {/* Header of Popup */}
-                    <div className="p-5 bg-slate-50 border-b border-slate-100">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Current User</p>
-                      <p className="text-lg font-black text-slate-800 tracking-tight">{username}</p>
+                    <div className="p-5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Current User</p>
+                        <p className="text-lg font-black text-slate-800 tracking-tight">{username}</p>
+                      </div>
+                      {teacher?.classNum && (
+                        <div className="text-right">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Class</p>
+                          <p className="text-xl font-black text-sky-600">{teacher.classNum}</p>
+                        </div>
+                      )}
                     </div>
 
                     {/* Roles Section */}

@@ -248,7 +248,9 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   const [students, setStudents] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [bypassRecovery, setBypassRecovery] = useState(false);
   const searchInputRef = useRef(null);
+  const lastAdRef = useRef('');
 
   useEffect(() => {
     // Focus the search input on mount
@@ -683,7 +685,15 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       setStudent(null);
       setName('');
       setClassNum('');
+      setBypassRecovery(false);
+      lastAdRef.current = '';
       return;
+    }
+
+    // Reset bypass when AD fundamentally changes to a new student
+    if (lastAdRef.current !== ad) {
+      setBypassRecovery(false);
+      lastAdRef.current = ad;
     }
 
     const found = students.find((std) => String(std.ADNO) === String(ad));
@@ -782,9 +792,30 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         return;
       }
       
-      if (!checkRecoveryStatus(found.ADNO)) {
-        showAlert(`${found["SHORT NAME"] || found["FULL NAME"]} has an uncompleted recovery from their previous leave.`, "Recovery Not Completed", "error");
-        setAd('');
+      if (!bypassRecovery && !checkRecoveryStatus(found.ADNO)) {
+        showAlert(
+          `${found["SHORT NAME"] || found["FULL NAME"]} has an uncompleted recovery from their previous leave.`, 
+          "Recovery Not Completed", 
+          "warning",
+          [
+            {
+              label: "Urgent",
+              onClick: () => {
+                setBypassRecovery(true);
+                setAlertState(prev => ({ ...prev, isOpen: false }));
+              },
+              className: "bg-rose-500 hover:bg-rose-600 shadow-rose-500/20 text-white"
+            },
+            {
+              label: "Okay",
+              onClick: () => {
+                setAd('');
+                setAlertState(prev => ({ ...prev, isOpen: false }));
+              },
+              className: "bg-slate-400 hover:bg-slate-500 text-white"
+            }
+          ]
+        );
         return;
       }
     } else {
@@ -792,7 +823,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       setName('');
       setClassNum('');
     }
-  }, [ad, students, teacher, navigate, leaveData]);
+  }, [ad, students, teacher, navigate, leaveData, bypassRecovery]);
 
   // Reset showEndDateForMedical ONLY when reason changes
   useEffect(() => {
