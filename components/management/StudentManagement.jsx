@@ -97,7 +97,7 @@ const StudentManagement = () => {
     setIsDeleting(true);
     try {
       await axios.delete(`${API_PORT}/students/${id}`);
-      setStudents(students.filter(s => s._id !== id));
+      fetchStudents();
       setIsDeleting(false);
     } catch (err) {
       alert('Failed to delete student.');

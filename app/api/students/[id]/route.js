@@ -22,13 +22,23 @@ export async function DELETE(req, { params }) {
   await dbConnect();
   const { id } = params;
   
+  let student;
   if (mongoose.Types.ObjectId.isValid(id)) {
-    const student = await Student.findByIdAndDelete(id);
-    if (student) return NextResponse.json(student);
+    student = await Student.findByIdAndDelete(id);
+  } else {
+    student = await Student.findOneAndDelete({ ADNO: Number(id) });
   }
-  
-  const studentByAd = await Student.findOneAndDelete({ ADNO: Number(id) });
-  if (studentByAd) return NextResponse.json(studentByAd);
+
+  if (student) {
+    // If the student has a class and serial number, shift others
+    if (student.CLASS !== undefined && student.SL !== undefined) {
+      await Student.updateMany(
+        { CLASS: student.CLASS, SL: { $gt: student.SL } },
+        { $inc: { SL: -1 } }
+      );
+    }
+    return NextResponse.json(student);
+  }
   
   return NextResponse.json({ error: "Student not found" }, { status: 404 });
 }
