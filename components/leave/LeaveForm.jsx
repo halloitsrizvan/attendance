@@ -799,7 +799,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
           "warning",
           [
             {
-              label: "Urgent",
+              label: "Proceed Without Recovery",
               onClick: () => {
                 setBypassRecovery(true);
                 setAlertState(prev => ({ ...prev, isOpen: false }));
