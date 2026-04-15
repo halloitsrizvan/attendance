@@ -252,7 +252,7 @@ const StudentStatusCard = ({ student }) => {
 
               {/* Reason */}
               {student.reason && (
-                <div className="flex items-center gap-1 text-gray-600 bg-gray-50 px-2 py-1 rounded flex-1 min-w-0">
+                <div className="flex items-center gap-1 text-gray-600 bg-gray-50 px-2 py-1 rounded ">
                   <span className="truncate italic">{student.reason}</span>
                 </div>
               )}
@@ -836,11 +836,7 @@ function LeaveStatus() {
                 ))
               }
 
-              {filteredData.filter(student => student.classNum === selectedClass).length === 0 && (
-                <div className="text-center text-gray-500 py-4">
-                  No students found in Class {selectedClass}
-                </div>
-              )}
+              
             </div>
 
             <div className="p-4 border-t border-gray-200 bg-gray-50">

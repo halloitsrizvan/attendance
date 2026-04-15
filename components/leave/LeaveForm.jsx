@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from "next/navigation";
 import axios from 'axios';
 import { API_PORT } from '../../Constants';
@@ -248,6 +248,14 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   const [students, setStudents] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const searchInputRef = useRef(null);
+
+  useEffect(() => {
+    // Focus the search input on mount
+    setTimeout(() => {
+        searchInputRef.current?.focus();
+    }, 100);
+  }, []);
   const [leaveData, setLeaveData] = useState(initialLeaves || []);
   const [originalToDate, setOriginalToDate] = useState('');
   const [originalToTime, setOriginalToTime] = useState('');
@@ -702,7 +710,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
                 </div>
                 <div className="grid grid-cols-2 gap-4 mt-2">
                    <div>
-                      <div className="text-[9px] font-black text-slate-400 uppercase tracking-tight">Started</div>
+                      <div className="text-[9px] font-black text-slate-400 uppercase tracking-tight">{isScheduled?"Starting" : "Started"}</div>
                       <div className="text-xs font-bold text-slate-700">{getRelativeDate(activeRecord.fromDate)} • {formatTimeTo12h(activeRecord.fromTime)}</div>
                    </div>
                    {activeRecord.toDate && (
@@ -1592,6 +1600,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
                   </label>
                   <input
                     id="ad"
+                    ref={searchInputRef}
                     type="text"
                     value={ad}
                     onChange={(e) => {
