@@ -746,20 +746,29 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
           });
         }
 
+        // const callDataOfStd =()=>{
+        //   setAd(found.ADNO)
+        //   setName(found["SHORT NAME"] || found["FULL NAME"] || found.name || "Unknown")
+        //   setClassNum(found.CLASS)
+        //   console.log(found.ADNO,found["SHORT NAME"]);
+          
+        // }
+
         popupButtons.push(
           { 
             label: isScheduled ? "Modify Scheduled" : "Extend Leave", 
-            onClick: () => handleExtendMode(activeRecord),
+            onClick: () => {
+              handleExtendMode(activeRecord,found)},
             className: "bg-sky-500 hover:bg-sky-600 shadow-sky-500/20"
           },
           { 
             label: "Add Another Reason", 
-            onClick: () => handleAddReasonMode(activeRecord), 
+            onClick: () => handleAddReasonMode(activeRecord, found), 
             className: "bg-indigo-500 hover:bg-indigo-600 shadow-indigo-500/20"
           },
           { 
             label: "Schedule Future Leave", 
-            onClick: () => handleScheduleNextMode(activeRecord),
+            onClick: () => handleScheduleNextMode(activeRecord, found),
             className: "bg-violet-500 hover:bg-violet-600 shadow-violet-500/20"
           }
         );
@@ -857,16 +866,26 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   };
 
   // Handle Extension Mode
-  const handleExtendMode = (leave) => {
+  const handleExtendMode = (leave,stdData) => {
     setFormMode('extend');
+    setAd(stdData.ADNO)
+    setName(stdData["SHORT NAME"] || stdData["FULL NAME"] || stdData.name || "Unknown")
+    setClassNum(stdData.CLASS)
+    
     mapDataToForm(leave);
     setOriginalToDate(leave.toDate);
     setOriginalToTime(leave.toTime);
+    
   };
 
   // Handle Add Reason Mode
-  const handleAddReasonMode = (leave) => {
+  const handleAddReasonMode = (leave, stdData) => {
     setFormMode('add');
+    if (stdData) {
+      setAd(stdData.ADNO)
+      setName(stdData["SHORT NAME"] || stdData["FULL NAME"] || stdData.name || "Unknown")
+      setClassNum(stdData.CLASS)
+    }
     mapDataToForm(leave);
     // Overwrite reason for "add" mode to let them pick something else
     setReason('Custom');
@@ -874,8 +893,13 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   };
 
   // Handle Schedule Next Mode
-  const handleScheduleNextMode = (leave) => {
+  const handleScheduleNextMode = (leave, stdData) => {
     setFormMode('schedule');
+    if (stdData) {
+      setAd(stdData.ADNO)
+      setName(stdData["SHORT NAME"] || stdData["FULL NAME"] || stdData.name || "Unknown")
+      setClassNum(stdData.CLASS)
+    }
     // Set from date to the day after existing toDate
     if (leave.toDate && leave.toDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
       const nextDay = new Date(leave.toDate);
@@ -2118,9 +2142,10 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         type={alertState.type}
         actions={alertState.actions}
         onClose={() => {
-          setAlertState({ ...alertState, isOpen: false });
-          // If it was a student status alert, clear the selection
-          if (alertState.title?.includes("Leave")) {
+          setAlertState(prev => ({ ...prev, isOpen: false }));
+          // If it was a student status alert, clear selection only if not in a special mode
+          // and if no specific actions were provided (dismissal case)
+          if (alertState.title?.includes("Leave") && formMode === 'create' && !alertState.actions) {
             setAd('');
             setStudent(null);
             setName('');

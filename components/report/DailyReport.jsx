@@ -695,7 +695,12 @@ function DailyReport() {
                 <div className="grid grid-cols-2 gap-4">
                   <button
                     disabled={updating || selectedEntry.status === 'Present'}
-                    onClick={() => handleStatusUpdate('Present')}
+                    onClick={() =>{ 
+                      const confirmAction = window.confirm("Mark as Present?");
+                      if(confirmAction){
+                        handleStatusUpdate('Present')
+                      }
+                    }}
                     className={`p-4 rounded-2xl font-black text-xs uppercase tracking-widest border-2 transition-all flex flex-col items-center gap-2 ${
                       selectedEntry.status === 'Present' 
                       ? 'border-emerald-500 bg-emerald-50 text-emerald-600' 
@@ -709,7 +714,12 @@ function DailyReport() {
                   </button>
                   <button
                     disabled={updating || selectedEntry.status === 'Absent'}
-                    onClick={() => handleStatusUpdate('Absent')}
+                    onClick={() =>{
+                      const confirmAction = window.confirm("Mark as Present?");
+                      if(confirmAction){
+                      handleStatusUpdate('Absent')
+                    }
+                    }}
                     className={`p-4 rounded-2xl font-black text-xs uppercase tracking-widest border-2 transition-all flex flex-col items-center gap-2 ${
                       selectedEntry.status === 'Absent' 
                       ? 'border-rose-500 bg-rose-50 text-rose-600' 

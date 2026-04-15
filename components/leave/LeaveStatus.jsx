@@ -252,8 +252,8 @@ const StudentStatusCard = ({ student }) => {
 
               {/* Reason */}
               {student.reason && (
-                <div className="flex items-center gap-1 text-gray-600 bg-gray-50 px-2 py-1 rounded ">
-                  <span className="truncate italic">{student.reason}</span>
+                <div className="w-full flex items-center gap-1 text-gray-600 bg-gray-50 px-2 py-1.5 rounded mt-1 border border-gray-100/50">
+                  <span className="italic leading-relaxed">{student.reason}</span>
                 </div>
               )}
             </div>
