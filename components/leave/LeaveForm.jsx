@@ -799,20 +799,20 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
           "warning",
           [
             {
-              label: "Proceed Without Recovery",
-              onClick: () => {
-                setBypassRecovery(true);
-                setAlertState(prev => ({ ...prev, isOpen: false }));
-              },
-              className: "bg-rose-500 hover:bg-rose-600 shadow-rose-500/20 text-white"
-            },
-            {
               label: "Okay",
               onClick: () => {
                 setAd('');
                 setAlertState(prev => ({ ...prev, isOpen: false }));
               },
-              className: "bg-slate-400 hover:bg-slate-500 text-white"
+              className: "bg-red-400 hover:bg-red-500 text-white"
+            },
+            {
+              label: "Proceed Without Recovery",
+              onClick: () => {
+                setBypassRecovery(true);
+                setAlertState(prev => ({ ...prev, isOpen: false }));
+              },
+              variant: "link"
             }
           ]
         );

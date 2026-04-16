@@ -64,18 +64,35 @@ const CustomAlert = ({
 
           <div className={`${actions && actions.length > 2 ? 'grid grid-cols-2 gap-2.5' : 'flex flex-col gap-2'}`}>
             {actions && actions.length > 0 ? (
-              actions.map((action, index) => (
-                <button
-                  key={index}
-                  onClick={() => {
-                    action.onClick();
-                    if (action.autoClose !== false) onClose();
-                  }}
-                  className={`w-full py-4 ${action.className || theme.btn} text-white text-[9px] font-black uppercase tracking-widest rounded-2xl shadow-lg transition-all active:scale-95 group overflow-hidden`}
-                >
-                  <span className="relative z-10">{action.label}</span>
-                </button>
-              ))
+              actions.map((action, index) => {
+                if (action.variant === 'link') {
+                  return (
+                    <div key={index} className="flex justify-end px-2 pt-1">
+                      <button
+                        onClick={() => {
+                          action.onClick();
+                          if (action.autoClose !== false) onClose();
+                        }}
+                        className="text-[9px] font-black text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-widest bg-transparent border-none p-0 cursor-pointer"
+                      >
+                        {action.label}
+                      </button>
+                    </div>
+                  );
+                }
+                return (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      action.onClick();
+                      if (action.autoClose !== false) onClose();
+                    }}
+                    className={`w-full py-4 ${action.className || theme.btn} text-white text-[9px] font-black uppercase tracking-widest rounded-2xl shadow-lg transition-all active:scale-95 group overflow-hidden`}
+                  >
+                    <span className="relative z-10">{action.label}</span>
+                  </button>
+                );
+              })
             ) : (
               <button
                 onClick={onClose}
