@@ -678,8 +678,115 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       return true;
     }
   };
+  const showConflictAlert = (found, activeRecord, context = 'single') => {
+    const now = new Date();
+    const fromDateTime = new Date(`${activeRecord.fromDate}T${activeRecord.fromTime}`);
+    const isScheduled = now < fromDateTime;
+    const isRoom = activeRecord.reason === 'Room' || activeRecord.reason === 'Medical (Room)';
 
-  // Fetch student when AD changes
+    const leaveInfo = (
+      <div className="space-y-4 text-left p-3 bg-slate-50/50 rounded-2xl border border-slate-100">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Reason</span>
+            <span className="px-2 py-0.5 bg-sky-100 text-sky-700 rounded-full text-[10px] font-black uppercase">
+              {activeRecord.reason}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-4 mt-2">
+            <div>
+              <div className="text-[9px] font-black text-slate-400 uppercase tracking-tight">{isScheduled ? "Starting" : "Started"}</div>
+              <div className="text-xs font-bold text-slate-700">{getRelativeDate(activeRecord.fromDate)} • {formatTimeTo12h(activeRecord.fromTime)}</div>
+            </div>
+            {activeRecord.toDate && (
+              <div>
+                <div className="text-[9px] font-black text-slate-400 uppercase tracking-tight">Ending</div>
+                <div className="text-xs font-bold text-slate-700">{getRelativeDate(activeRecord.toDate)} • {formatTimeTo12h(activeRecord.toTime)}</div>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="pt-2 border-t border-slate-100 text-[11px] font-medium text-slate-500 italic">
+          What would you like to do with this record?
+        </div>
+      </div>
+    );
+
+    const closeCtx = () => {
+      if (context === 'bulk') setShowBulkModal(false);
+    };
+
+    const popupButtons = [
+      {
+        label: isScheduled ? "Start Leave Now" : (isRoom ? "Return to Class" : "Mark Returned"),
+        onClick: () => {
+          isScheduled ? handleStartLeave(activeRecord) : handleMarkReturned(activeRecord);
+          closeCtx();
+        },
+        className: "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20"
+      }
+    ];
+
+    if (isRoom) {
+      popupButtons.push({
+        label: "Move to Medical Home",
+        onClick: () => { handleRoomToMedical(activeRecord); closeCtx(); },
+        className: "bg-amber-500 hover:bg-amber-600 shadow-amber-500/20 text-white"
+      });
+    }
+
+    popupButtons.push(
+      {
+        label: isScheduled ? "Modify Scheduled" : "Extend Leave",
+        onClick: () => { handleExtendMode(activeRecord, found); closeCtx(); },
+        className: "bg-sky-500 hover:bg-sky-600 shadow-sky-500/20"
+      },
+      {
+        label: "Add Another Reason",
+        onClick: () => { handleAddReasonMode(activeRecord, found); closeCtx(); },
+        className: "bg-indigo-500 hover:bg-indigo-600 shadow-indigo-500/20"
+      },
+      {
+        label: "Schedule Future Leave",
+        onClick: () => { handleScheduleNextMode(activeRecord, found); closeCtx(); },
+        className: "bg-violet-500 hover:bg-violet-600 shadow-violet-500/20"
+      }
+    );
+
+    showAlert(
+      leaveInfo,
+      isScheduled ? `${found["SHORT NAME"]} has Scheduled Leave` : `${found["SHORT NAME"]} is Already on Leave`,
+      isScheduled ? "info" : "warning",
+      popupButtons
+    );
+  };
+
+  const showRecoveryAlert = (found, onBypass = null, onOkay = null) => {
+    showAlert(
+      `${found["SHORT NAME"] || found["FULL NAME"]} has an uncompleted recovery from their previous leave.`,
+      "Recovery Not Completed",
+      "warning",
+      [
+        {
+          label: "Okay",
+          onClick: () => {
+            if (onOkay) onOkay();
+            setAlertState(prev => ({ ...prev, isOpen: false }));
+          },
+          className: "bg-red-400 hover:bg-red-500 text-white"
+        },
+        {
+          label: "Proceed Without Recovery",
+          onClick: () => {
+            setBypassRecovery(true);
+            setAlertState(prev => ({ ...prev, isOpen: false }));
+            if (onBypass) onBypass();
+          },
+          variant: "link"
+        }
+      ]
+    );
+  };
   useEffect(() => {
     if (!ad) {
       setStudent(null);
@@ -701,121 +808,15 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       setStudent(found);
       setName(found["SHORT NAME"] || found["FULL NAME"] || found.name || "Unknown");
       setClassNum(found.CLASS);
-      
+
       const activeRecord = checkLeaveStatus(found.ADNO);
       if (activeRecord) {
-        const now = new Date();
-        const fromDateTime = new Date(`${activeRecord.fromDate}T${activeRecord.fromTime}`);
-        const isScheduled = now < fromDateTime;
-        const isRoom = activeRecord.reason === 'Room' || activeRecord.reason === 'Medical (Room)';
-
-        const leaveInfo = (
-          <div className="space-y-4 text-left p-3 bg-slate-50/50 rounded-2xl border border-slate-100">
-             <div className="flex flex-col gap-1">
-                <div className="flex items-center justify-between">
-                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Reason</span>
-                   <span className="px-2 py-0.5 bg-sky-100 text-sky-700 rounded-full text-[10px] font-black uppercase">
-                     {activeRecord.reason}
-                   </span>
-                </div>
-                <div className="grid grid-cols-2 gap-4 mt-2">
-                   <div>
-                      <div className="text-[9px] font-black text-slate-400 uppercase tracking-tight">{isScheduled?"Starting" : "Started"}</div>
-                      <div className="text-xs font-bold text-slate-700">{getRelativeDate(activeRecord.fromDate)} • {formatTimeTo12h(activeRecord.fromTime)}</div>
-                   </div>
-                   {activeRecord.toDate && (
-                     <div>
-                        <div className="text-[9px] font-black text-slate-400 uppercase tracking-tight">Ending</div>
-                        <div className="text-xs font-bold text-slate-700">{getRelativeDate(activeRecord.toDate)} • {formatTimeTo12h(activeRecord.toTime)}</div>
-                     </div>
-                   )}
-                </div>
-             </div>
-             <div className="pt-2 border-t border-slate-100 text-[11px] font-medium text-slate-500 italic">
-               What would you like to do with this record?
-             </div>
-          </div>
-        );
-
-        setActiveLeave(activeRecord);
-        
-        const popupButtons = [
-          { 
-            label: isScheduled ? "Start Leave Now" : (isRoom ? "Return to Class" : "Mark Returned"), 
-            onClick: () => isScheduled ? handleStartLeave(activeRecord) : handleMarkReturned(activeRecord),
-            className: "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20"
-          }
-        ];
-
-        // Add "Medical Home" transition for Room patients
-        if (isRoom) {
-          popupButtons.push({
-            label: "Move to Medical Home",
-            onClick: () => handleRoomToMedical(activeRecord),
-            className: "bg-amber-500 hover:bg-amber-600 shadow-amber-500/20"
-          });
-        }
-
-        // const callDataOfStd =()=>{
-        //   setAd(found.ADNO)
-        //   setName(found["SHORT NAME"] || found["FULL NAME"] || found.name || "Unknown")
-        //   setClassNum(found.CLASS)
-        //   console.log(found.ADNO,found["SHORT NAME"]);
-          
-        // }
-
-        popupButtons.push(
-          { 
-            label: isScheduled ? "Modify Scheduled" : "Extend Leave", 
-            onClick: () => {
-              handleExtendMode(activeRecord,found)},
-            className: "bg-sky-500 hover:bg-sky-600 shadow-sky-500/20"
-          },
-          { 
-            label: "Add Another Reason", 
-            onClick: () => handleAddReasonMode(activeRecord, found), 
-            className: "bg-indigo-500 hover:bg-indigo-600 shadow-indigo-500/20"
-          },
-          { 
-            label: "Schedule Future Leave", 
-            onClick: () => handleScheduleNextMode(activeRecord, found),
-            className: "bg-violet-500 hover:bg-violet-600 shadow-violet-500/20"
-          }
-        );
-
-        showAlert(
-          leaveInfo, 
-          isScheduled ? `${found["SHORT NAME"]} has Scheduled Leave` : `${found["SHORT NAME"]} is Already on Leave`, 
-          isScheduled ? "info" : "warning",
-          popupButtons
-        );
+        showConflictAlert(found, activeRecord, 'single');
         return;
       }
-      
+
       if (!bypassRecovery && !checkRecoveryStatus(found.ADNO)) {
-        showAlert(
-          `${found["SHORT NAME"] || found["FULL NAME"]} has an uncompleted recovery from their previous leave.`, 
-          "Recovery Not Completed", 
-          "warning",
-          [
-            {
-              label: "Okay",
-              onClick: () => {
-                setAd('');
-                setAlertState(prev => ({ ...prev, isOpen: false }));
-              },
-              className: "bg-red-400 hover:bg-red-500 text-white"
-            },
-            {
-              label: "Proceed Without Recovery",
-              onClick: () => {
-                setBypassRecovery(true);
-                setAlertState(prev => ({ ...prev, isOpen: false }));
-              },
-              variant: "link"
-            }
-          ]
-        );
+        showRecoveryAlert(found, null, () => setAd(''));
         return;
       }
     } else {
@@ -979,11 +980,20 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         updatedStudents[index].student = found;
         updatedStudents[index].name = found["SHORT NAME"] || found["FULL NAME"] || found.name || "Unknown";
         updatedStudents[index].classNum = found.CLASS;
-        if (checkLeaveStatus(found.ADNO)) {
-          showAlert(`Student on Leave: ${found["SHORT NAME"] || found.name} already has an active or scheduled leave record.`, "Student on Leave", "warning");
+        const activeRecord = checkLeaveStatus(found.ADNO);
+        if (activeRecord) {
+          showConflictAlert(found, activeRecord, 'cep');
           updatedStudents[index].ad = '';
-        } else if (!checkRecoveryStatus(found.ADNO)) {
-          showAlert(`${found["SHORT NAME"] || found.name} has an uncompleted recovery.`, "Recovery Not Completed", "error");
+        } else if (!bypassRecovery && !checkRecoveryStatus(found.ADNO)) {
+          showRecoveryAlert(found, () => {
+            // Bypass handler - restore the AD and update state
+            updatedStudents[index].ad = found.ADNO;
+            setShortLeaveStudents([...updatedStudents]);
+          }, () => {
+            // Okay/Cancel handler - keep it empty
+            updatedStudents[index].ad = '';
+            setShortLeaveStudents([...updatedStudents]);
+          });
           updatedStudents[index].ad = '';
         }
       } else {
@@ -1319,12 +1329,56 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   }, [classValue, students]);
 
   const handleSelectAll = () => {
-    const allStudents = Bulkstudents.map(student => ({
-      ADNO: student.ADNO,
-      name: student["SHORT NAME"] || student["FULL NAME"] || student.name || "Unknown",
-      classNum: student.CLASS
-    }));
-    setSelectedBulkStudents(allStudents);
+    const studentsToAdd = Bulkstudents.filter(student => !selectedBulkStudents.some(s => s.ADNO === student.ADNO));
+    const newSelection = [...selectedBulkStudents];
+    let skippedLeave = 0;
+    let skippedRecovery = 0;
+
+    studentsToAdd.forEach(student => {
+      const activeRecord = checkLeaveStatus(student.ADNO);
+      const isRecoveryBlocked = !bypassRecovery && !checkRecoveryStatus(student.ADNO);
+
+      if (!activeRecord && !isRecoveryBlocked) {
+        newSelection.push({
+          ADNO: student.ADNO,
+          name: student["SHORT NAME"],
+          classNum: student.CLASS
+        });
+      } else if (activeRecord) {
+        skippedLeave++;
+      } else {
+        skippedRecovery++;
+      }
+    });
+
+    setSelectedBulkStudents(newSelection);
+
+    if (skippedLeave > 0 || skippedRecovery > 0) {
+      let msg = "";
+      if (skippedLeave > 0) msg += `${skippedLeave} students on leave skipped. `;
+      if (skippedRecovery > 0) msg += `${skippedRecovery} students with incomplete recovery skipped.`;
+
+      const actions = [
+        {
+          label: "Okay",
+          onClick: () => setAlertState(prev => ({ ...prev, isOpen: false })),
+          className: "bg-slate-400 hover:bg-slate-500 text-white"
+        }
+      ];
+
+      if (skippedRecovery > 0) {
+        actions.push({
+          label: "Bypass Recovery & Select All",
+          onClick: () => {
+            setBypassRecovery(true);
+            showAlert("Recovery bypass enabled. You can now select all students.", "Success", "success");
+          },
+          variant: "link"
+        });
+      }
+
+      showAlert(msg, "Bulk Selection", "info", actions);
+    }
   };
   // Also, update the initial classValue to be dynamic based on teacher
 
@@ -1346,10 +1400,23 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     const isAlreadyAdded = selectedBulkStudents.some(s => s.ADNO === student.ADNO);
 
     if (!isAlreadyAdded) {
-      if (checkLeaveStatus(student.ADNO)) {
-        showAlert(`Student on Leave: ${student["SHORT NAME"]} already has an active or scheduled leave record.`, "Student on Leave", "warning");
+      const activeRecord = checkLeaveStatus(student.ADNO);
+      if (activeRecord) {
+        showConflictAlert(student, activeRecord, 'bulk');
         return;
       }
+
+      if (!bypassRecovery && !checkRecoveryStatus(student.ADNO)) {
+        showRecoveryAlert(student, () => {
+          setSelectedBulkStudents(prev => [...prev, {
+            ADNO: student.ADNO,
+            name: student["SHORT NAME"],
+            classNum: student.CLASS
+          }]);
+        });
+        return;
+      }
+
       // Add student to selected list
       setSelectedBulkStudents(prev => [...prev, {
         ADNO: student.ADNO,
