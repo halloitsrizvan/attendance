@@ -468,31 +468,33 @@ function Hajar() {
     const headText = `Class ${id} Attendance\n${attendanceDate} | ${attendanceTime}\n\n`;
 
     if (absentees.length > 0) {
-      // Separate regular absentees, short leave, medical leave, and on-leave students
-      const regularAbsentees = absentees.filter(s => {
+      // Categorize absentees into mutually exclusive groups
+      const shortLeaveStudents = [];
+      const medicalLeaveStudents = [];
+      const onLeaveStudents = [];
+      const regularAbsentees = [];
+
+      absentees.forEach(s => {
         const isOnShortLeave = isStudentOnShortLeave(s.ADNO);
-        const isOnMedicalLeave = isStudentOnMedicalLeave(s.ADNO);
-        return !s.onLeave && !isOnShortLeave && !isOnMedicalLeave;
+        const isOnMedicalLeave = isStudentOnActiveLeave(s.ADNO); // isStudentOnMedicalLeave is an alias for isStudentOnActiveLeave
+
+        if (isOnShortLeave) {
+          shortLeaveStudents.push(s);
+        } else if (isOnMedicalLeave) {
+          medicalLeaveStudents.push(s);
+        } else if (s.onLeave) {
+          onLeaveStudents.push(s);
+        } else {
+          regularAbsentees.push(s);
+        }
       });
-
-      const shortLeaveStudents = absentees.filter(s =>
-        isStudentOnShortLeave(s.ADNO) && !s.onLeave && !isStudentOnMedicalLeave(s.ADNO)
-      );
-
-      const medicalLeaveStudents = absentees.filter(s =>
-        isStudentOnActiveLeave(s.ADNO) && !s.onLeave && !isStudentOnShortLeave(s.ADNO)
-      );
-
-      const onLeaveStudents = absentees.filter(s =>
-        s.onLeave && !isStudentOnShortLeave(s.ADNO) && !isStudentOnMedicalLeave(s.ADNO)
-      );
 
       let text = "";
 
       // Add regular absentees
       if (regularAbsentees.length > 0) {
         text += "Absent:\n" + regularAbsentees
-          .map((s) => `${s["SHORT NAME"]} (AdNo: ${s.ADNO})`)
+          .map((s) => `${s["SHORT NAME"] || s["FULL NAME"] || s.name} (AdNo: ${s.ADNO})`)
           .join("\n");
       }
 
@@ -500,7 +502,7 @@ function Hajar() {
       if (shortLeaveStudents.length > 0) {
         if (text) text += "\n\n";
         text += "Class excused pass:\n" + shortLeaveStudents
-          .map((s) => `${s["SHORT NAME"]} (AdNo: ${s.ADNO})`)
+          .map((s) => `${s["SHORT NAME"] || s["FULL NAME"] || s.name} (AdNo: ${s.ADNO})`)
           .join("\n");
       }
 
@@ -508,7 +510,7 @@ function Hajar() {
       if (medicalLeaveStudents.length > 0) {
         if (text) text += "\n\n";
         text += "Medical Leave:\n" + medicalLeaveStudents
-          .map((s) => `${s["SHORT NAME"]} (AdNo: ${s.ADNO})`)
+          .map((s) => `${s["SHORT NAME"] || s["FULL NAME"] || s.name} (AdNo: ${s.ADNO})`)
           .join("\n");
       }
 
@@ -516,7 +518,7 @@ function Hajar() {
       if (onLeaveStudents.length > 0) {
         if (text) text += "\n\n";
         text += "On Leave:\n" + onLeaveStudents
-          .map((s) => `${s["SHORT NAME"]} (AdNo: ${s.ADNO})`)
+          .map((s) => `${s["SHORT NAME"] || s["FULL NAME"] || s.name} (AdNo: ${s.ADNO})`)
           .join("\n");
       }
 
