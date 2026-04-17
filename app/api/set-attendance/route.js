@@ -37,7 +37,8 @@ export async function GET(req) {
     const attendance = await Attendance.find(query)
       .populate('studentId')
       .populate('teacherId')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .limit(500);
     return NextResponse.json(attendance);
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter } from "next/navigation";
+import { FaArrowLeft } from "react-icons/fa";
 
 const getSafeLocalStorage = () => typeof window !== 'undefined' ? localStorage : { getItem: () => null, setItem: () => { }, removeItem: () => { } };
 
@@ -160,14 +161,14 @@ function Header() {
 
             <div className="flex items-center space-x-3 relative">
               <div className="text-right">
-                <p className="text-sm font-semibold text-white leading-tight">{username}</p>
+                {/* <p className="text-sm font-semibold text-white leading-tight">{username}</p> */}
                 <div className="flex flex-col items-end">
                   <button
                     onClick={() => navigate.push('/')}
-                    className="text-[9px] text-white/70 hover:text-white transition-colors font-black uppercase tracking-widest mt-0.5 flex items-center gap-1"
+                    className="text-[11px] text-white/70 hover:text-white transition-colors font-black uppercase tracking-widest mt-0.5 flex items-center gap-1.5 group"
                   >
-                    <div className="w-1 h-1 bg-white/40 rounded-full"></div>
-                    Home
+                    <FaArrowLeft className="w-2.5 h-2.5 transition-transform group-hover:-translate-x-0.5" />
+                   Back to Home
                   </button>
                 </div>
               </div>
@@ -194,7 +195,7 @@ function Header() {
                     {/* Header of Popup */}
                     <div className="p-5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
                       <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Current User</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Teacher Name</p>
                         <p className="text-lg font-black text-slate-800 tracking-tight">{username}</p>
                       </div>
                       {teacher?.classNum && (

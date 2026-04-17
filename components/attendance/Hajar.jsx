@@ -568,11 +568,91 @@ function Hajar() {
 
   const [quickAction, setQuickAction] = useState("All Absent");
 
-  const handleQuickAction = () => {
-    setQuickAction(prev => prev === "Previous" ? "All Present" : prev === "All Present" ? "All Absent" : "Previous");
-    const updated = {};
-    students.forEach((s) => (updated[s.ADNO] = quickAction === "Previous" ? s.Status : quickAction === "All Present" ? "Present" : "Absent"));
-    setAttendance(updated);
+  const handleQuickAction = async () => {
+    // We use a local variable to capture the action intended for THIS click
+    // because setQuickAction is asynchronous.
+    const actionToPerform = quickAction;
+
+    // Cycle the action for the NEXT time the button is displayed
+    setQuickAction(prev => {
+      if (prev === "Previous") return "All Present";
+      if (prev === "All Present") return "All Absent";
+      return "Previous";
+    });
+
+    const updated = { ...attendance };
+
+    if (actionToPerform === "All Present") {
+      students.forEach((s) => {
+        // Only mark present if not already on leave
+        const isOnShortLeave = isStudentOnShortLeave(s.ADNO);
+        const isOnActiveLeave = isStudentOnActiveLeave(s.ADNO);
+        const isReturned = returnedStudents.includes(s.ADNO);
+        const isOnLeave = (s.onLeave || isOnShortLeave || isOnActiveLeave) && !isReturned;
+        
+        if (!isOnLeave) {
+          updated[s.ADNO] = "Present";
+        }
+      });
+      setAttendance(updated);
+    } else if (actionToPerform === "All Absent") {
+      students.forEach((s) => (updated[s.ADNO] = "Absent"));
+      setAttendance(updated);
+    } else if (actionToPerform === "Previous") {
+      setLoad(true);
+      try {
+        // Fetch historical attendance for this class (without date limit) to find the TRUE previous session
+        const res = await axios.get(`${API_PORT}/set-attendance`, { 
+          params: { classNumber: id } 
+        });
+
+        if (res.data && res.data.length > 0) {
+          // Identify current session to avoid copying it
+          const currentP = period ? Number(period) : null;
+          const currentT = time;
+          const currentD = date || new Date().toISOString().split('T')[0];
+          const currentKey = `${currentD}-${currentT}-${currentP || ''}`;
+
+          // Group by session (Date + Time + Period)
+          const sessions = new Map();
+          res.data.forEach(r => {
+            const rDate = r.attendanceDate ? (typeof r.attendanceDate === 'string' ? r.attendanceDate.split('T')[0] : new Date(r.attendanceDate).toISOString().split('T')[0]) : '';
+            const key = `${rDate}-${r.attendanceTime}-${r.period || ''}`;
+            if (!sessions.has(key)) sessions.set(key, []);
+            sessions.get(key).push(r);
+          });
+
+          const keys = Array.from(sessions.keys());
+          // Find the most recent session key that is NOT the current page's session
+          const prevKey = keys.find(k => k !== currentKey);
+
+          if (prevKey) {
+            const records = sessions.get(prevKey);
+            records.forEach(r => {
+              const adno = r.studentId?.ADNO || r.studentId;
+              if (adno) {
+                updated[adno] = r.status;
+              }
+            });
+            setAttendance(updated);
+          } else {
+            // No other sessions found in history, fallback to student global status
+            students.forEach((s) => (updated[s.ADNO] = s.Status || "Absent"));
+            setAttendance(updated);
+          }
+        } else {
+          // No records found at all, fallback to student global status
+          students.forEach((s) => (updated[s.ADNO] = s.Status || "Absent"));
+          setAttendance(updated);
+        }
+      } catch (err) {
+        console.error("Previous attendance fetch failed:", err);
+        // Final fallback
+        students.forEach((s) => (updated[s.ADNO] = s.Status || "Absent"));
+        setAttendance(updated);
+      }
+      setLoad(false);
+    }
   };
 
   // Return Confirmation Modal State

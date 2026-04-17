@@ -604,7 +604,7 @@ function LeaveStatus() {
                     </div>
                   </div>
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Start / Return</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Action</label>
                     <div className="flex flex-wrap gap-1.5">
                       {['All', 'To Start', 'To Return'].map(s => (
                         <button
@@ -622,7 +622,7 @@ function LeaveStatus() {
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Action / Status</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Status</label>
                     <div className="flex flex-wrap gap-1.5">
                       {['All', 'Pending', 'On Leave', 'Late', 'Scheduled', 'Returned'].map(s => (
                         <button

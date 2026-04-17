@@ -715,7 +715,7 @@ function DailyReport() {
                   <button
                     disabled={updating || selectedEntry.status === 'Absent'}
                     onClick={() =>{
-                      const confirmAction = window.confirm("Mark as Present?");
+                      const confirmAction = window.confirm("Mark as Absent?");
                       if(confirmAction){
                       handleStatusUpdate('Absent')
                     }

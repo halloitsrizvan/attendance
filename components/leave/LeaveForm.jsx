@@ -397,39 +397,36 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
 
   // Fetch all students based on teacher role
   useEffect(() => {
-    if (initialStudents) {
-      let filteredStudents = initialStudents;
-      if (teacher && teacher?.role?.includes("super_admin")) {
-        // Super admin sees all students
-      } else if (teacher && teacher?.role?.includes("class_teacher")) {
-        filteredStudents = initialStudents.filter(std => std.CLASS === teacher.classNum);
-      } else if (teacher && teacher?.role?.includes("HOD")) {
-        filteredStudents = initialStudents.filter(std => [8, 9, 10].includes(std.CLASS));
-      } else if (teacher && teacher?.role?.includes("HOS")) {
-        filteredStudents = initialStudents.filter(std => [1, 2, 3, 4, 5, 6, 7].includes(std.CLASS));
+    const filterByRole = (rawStudents) => {
+      if (!teacher) return rawStudents;
+      if (teacher?.role?.includes("super_admin")) return rawStudents;
+      
+      const allowedClasses = [];
+      if (teacher?.role?.includes("HOD")) allowedClasses.push(8, 9, 10);
+      if (teacher?.role?.includes("HOS")) allowedClasses.push(1, 2, 3, 4, 5, 6, 7);
+      if (teacher?.role?.includes("class_teacher") && teacher?.classNum) {
+        if (!allowedClasses.includes(Number(teacher.classNum))) {
+          allowedClasses.push(Number(teacher.classNum));
+        }
       }
-      setStudents(filteredStudents);
+
+      if (allowedClasses.length === 0) return rawStudents;
+      return rawStudents.filter(std => allowedClasses.includes(Number(std.CLASS)));
+    };
+
+    if (initialStudents) {
+      setStudents(filterByRole(initialStudents));
       return;
     }
 
     setLoading(true);
     axios.get(`${API_PORT}/students`)
       .then((res) => {
-        let filteredStudents = res.data;
-        if (teacher && teacher?.role?.includes("super_admin")) {
-          // Super admin sees all students
-        } else if (teacher && teacher?.role?.includes("class_teacher")) {
-          filteredStudents = res.data.filter(std => std.CLASS === teacher.classNum);
-        } else if (teacher && teacher?.role?.includes("HOD")) {
-          filteredStudents = res.data.filter(std => [8, 9, 10].includes(std.CLASS));
-        } else if (teacher && teacher?.role?.includes("HOS")) {
-          filteredStudents = res.data.filter(std => [5, 6, 7].includes(std.CLASS));
-        }
-        setStudents(filteredStudents);
+        setStudents(filterByRole(res.data));
       })
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
-  }, [teacher?.role, teacher?.classNum, initialStudents]);
+  }, [teacher, initialStudents]);
 
   const formatTimeTo12h = (timeStr) => {
     if (!timeStr) return '';
@@ -1307,8 +1304,19 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [studentHistory, setStudentHistory] = useState([]);
   const [Bulkstudents, setBulkStudents] = useState([]);
-  const [classValue, setClassValue] = useState(teacher?.classNum || "3");
+  const [classValue, setClassValue] = useState("3");
   const [selectedBulkStudents, setSelectedBulkStudents] = useState([]);
+
+  // Sync classValue when teacher data is loaded or changes
+  useEffect(() => {
+    if (teacher?.classNum) {
+      setClassValue(String(teacher.classNum));
+    } else if (teacher?.role?.includes("HOD")) {
+      setClassValue("10");
+    } else if (teacher?.role?.includes("HOS")) {
+      setClassValue("7");
+    }
+  }, [teacher]);
   // Update Bulkstudents when classValue OR students changes
   useEffect(() => {
     if (students.length > 0) {
@@ -1382,16 +1390,23 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   };
   // Also, update the initial classValue to be dynamic based on teacher
 
-  let classValues = [];
-  if (teacher?.role?.includes("class_teacher")) {
-    classValues = [teacher?.classNum];
-  } else if (teacher?.role?.includes("HOD")) {
-    classValues = [8, 9, 10];
-  } else if (teacher?.role?.includes("HOS")) {
-    classValues = [5, 6, 7];
-  } else {
-    classValues = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-  }
+  const getAllowedClassValues = () => {
+    if (!teacher) return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    if (teacher?.role?.includes("super_admin")) return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    
+    let allowed = [];
+    if (teacher?.role?.includes("HOD")) allowed.push(8, 9, 10);
+    if (teacher?.role?.includes("HOS")) allowed.push(1, 2, 3, 4, 5, 6, 7);
+    if (teacher?.role?.includes("class_teacher") && teacher?.classNum) {
+      if (!allowed.includes(Number(teacher.classNum))) {
+        allowed.push(Number(teacher.classNum));
+      }
+    }
+    
+    return allowed.length > 0 ? [...new Set(allowed)].sort((a,b) => a - b) : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  };
+
+  const classValues = getAllowedClassValues();
 
   const handleRemoveBulkStudent = (adno) => {
     setSelectedBulkStudents(prev => prev.filter(student => student.ADNO !== adno));
