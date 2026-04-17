@@ -220,7 +220,17 @@ function Hajar() {
           }
         }
         
-        // Past end day or full day intermediate
+        // If it's past the end day, only count as active if it's truly current (not returned)
+        // and not ancient (e.g., within 30 days) to prevent old unreturned records from haunting lists
+        if (toDate && today > toDate) {
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+          if (toDate < thirtyDaysAgo) return false;
+          
+          // Still consider active if not returned, but maybe categorize differently later
+          return true;
+        }
+
         return true;
       }
 
@@ -408,11 +418,22 @@ function Hajar() {
     try {
       await axios.post(`${API_PORT}/set-attendance`, payload);
 
-      // calculate summary
+      // Calculate summary based on the actual statuses being submitted
       const strength = students.length;
-      const present = Object.values(attendance).filter(
-        (s) => s === "Present"
-      ).length;
+      let present = 0;
+      
+      students.forEach((student) => {
+        const isOnShortLeave = isStudentOnShortLeave(student.ADNO);
+        const isOnActiveLeave = isStudentOnActiveLeave(student.ADNO);
+        const isReturned = returnedStudents.includes(student.ADNO);
+        const isOnLeave = (student.onLeave || isOnShortLeave || isOnActiveLeave) && !isReturned;
+        const status = isOnLeave ? "Absent" : (attendance[student.ADNO] || "Absent");
+        
+        if (status === "Present") {
+          present++;
+        }
+      });
+      
       const absent = strength - present;
       const percent = ((present / strength) * 100).toFixed(1);
 
@@ -476,13 +497,20 @@ function Hajar() {
 
       absentees.forEach(s => {
         const isOnShortLeave = isStudentOnShortLeave(s.ADNO);
-        const isOnMedicalLeave = isStudentOnActiveLeave(s.ADNO); // isStudentOnMedicalLeave is an alias for isStudentOnActiveLeave
+        const activeLeave = getStudentActiveLeave(s.ADNO); 
+        
+        // Detailed reason check for Medical Leave
+        const isMedical = activeLeave && (
+          activeLeave.reason?.toLowerCase().includes('medical') || 
+          activeLeave.reason?.toLowerCase().includes('hospital') ||
+          activeLeave.reason?.toLowerCase().includes('room')
+        );
 
         if (isOnShortLeave) {
           shortLeaveStudents.push(s);
-        } else if (isOnMedicalLeave) {
+        } else if (activeLeave && isMedical) {
           medicalLeaveStudents.push(s);
-        } else if (s.onLeave) {
+        } else if (s.onLeave || activeLeave) {
           onLeaveStudents.push(s);
         } else {
           regularAbsentees.push(s);
