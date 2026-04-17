@@ -8,6 +8,7 @@ export async function GET(req) {
   await dbConnect();
   const { searchParams } = new URL(req.url);
   const ad = searchParams.get('ad');
+  const status = searchParams.get('status');
 
   try {
     let query = {};
@@ -16,10 +17,15 @@ export async function GET(req) {
       if (student) {
         query.studentId = student._id;
       } else {
-        // If student not found, returned an empty set
         return NextResponse.json([]);
       }
     }
+
+    if (status) {
+      const statusList = status.split(',');
+      query.status = { $in: statusList };
+    }
+
     const leaves = await Leave.find(query)
       .populate('studentId')
       .populate('teacherId')

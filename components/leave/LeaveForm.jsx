@@ -397,35 +397,49 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
 
   // Fetch all students based on teacher role
   useEffect(() => {
-    const filterByRole = (rawStudents) => {
-      if (!teacher) return rawStudents;
-      if (teacher?.role?.includes("super_admin")) return rawStudents;
-      
-      const allowedClasses = [];
-      if (teacher?.role?.includes("HOD")) allowedClasses.push(8, 9, 10);
-      if (teacher?.role?.includes("HOS")) allowedClasses.push(1, 2, 3, 4, 5, 6, 7);
-      if (teacher?.role?.includes("class_teacher") && teacher?.classNum) {
-        if (!allowedClasses.includes(Number(teacher.classNum))) {
-          allowedClasses.push(Number(teacher.classNum));
-        }
-      }
+    if (!teacher) return;
 
-      if (allowedClasses.length === 0) return rawStudents;
-      return rawStudents.filter(std => allowedClasses.includes(Number(std.CLASS)));
+    const fetchStudents = async () => {
+      setLoading(true);
+      try {
+        let url = `${API_PORT}/students`;
+        // Optimization: For class teachers with no higher roles, fetch only their class
+        if (teacher.role?.includes("class_teacher") && 
+            !teacher.role?.some(r => ["HOD", "HOS", "super_admin"].includes(r))) {
+          url += `?class=${teacher.classNum}`;
+        }
+        
+        const res = await axios.get(url);
+        
+        const filterByRole = (rawStudents) => {
+          if (teacher?.role?.includes("super_admin")) return rawStudents;
+          
+          const allowedClasses = [];
+          if (teacher?.role?.includes("HOD")) allowedClasses.push(8, 9, 10);
+          if (teacher?.role?.includes("HOS")) allowedClasses.push(1, 2, 3, 4, 5, 6, 7);
+          if (teacher?.role?.includes("class_teacher") && teacher?.classNum) {
+            if (!allowedClasses.includes(Number(teacher.classNum))) {
+              allowedClasses.push(Number(teacher.classNum));
+            }
+          }
+
+          if (allowedClasses.length === 0) return rawStudents;
+          return rawStudents.filter(std => allowedClasses.includes(Number(std.CLASS)));
+        };
+
+        setStudents(filterByRole(res.data));
+      } catch (err) {
+        console.error("Error fetching students:", err);
+      } finally {
+        setLoading(false);
+      }
     };
 
     if (initialStudents) {
-      setStudents(filterByRole(initialStudents));
-      return;
+      setStudents(initialStudents);
+    } else {
+      fetchStudents();
     }
-
-    setLoading(true);
-    axios.get(`${API_PORT}/students`)
-      .then((res) => {
-        setStudents(filterByRole(res.data));
-      })
-      .catch(err => console.error(err))
-      .finally(() => setLoading(false));
   }, [teacher, initialStudents]);
 
   const formatTimeTo12h = (timeStr) => {
@@ -551,16 +565,17 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     }
   };
 
-  // Fetch leave data
+  // Fetch active leaves for conflict checking
   useEffect(() => {
     if (initialLeaves) return;
 
-    axios.get(`${API_PORT}/leave`)
+    // Load only active/scheduled leaves initially for faster page load
+    axios.get(`${API_PORT}/leave?status=active,Scheduled,pending,late`)
       .then((res) => {
         setLeaveData(res.data);
       })
       .catch((err) => {
-        console.error("Error fetching leaves data:", err);
+        console.error("Error fetching active leaves data:", err);
       });
   }, [initialLeaves]);
 
@@ -1769,13 +1784,26 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
                         <div
                           key={s.ADNO}
                           className="px-4 py-3 hover:bg-sky-50 cursor-pointer flex items-center justify-between"
-                          onClick={() => {
-                            setAd(s.ADNO);
-                            setName(s["SHORT NAME"] || s["FULL NAME"]);
-                            setClassNum(s.CLASS);
-                            setStudent(s);
-                            setSuggestions([]);
-                          }}
+                            onClick={async () => {
+                              setAd(s.ADNO);
+                              setName(s["SHORT NAME"] || s["FULL NAME"]);
+                              setClassNum(s.CLASS);
+                              setStudent(s);
+                              setSuggestions([]);
+                              
+                              // Optimization: Fetch this specific student's latest leaves to check recovery
+                              try {
+                                const res = await axios.get(`${API_PORT}/leave?ad=${s.ADNO}`);
+                                // Merge with current active leaves (avoiding duplicates)
+                                setLeaveData(prev => {
+                                  const existingIds = new Set(prev.map(l => l._id));
+                                  const newItems = res.data.filter(l => !existingIds.has(l._id));
+                                  return [...prev, ...newItems];
+                                });
+                              } catch (e) {
+                                console.error("Error fetching student history on selection:", e);
+                              }
+                            }}
                         >
                           <div className="flex flex-col">
                             <span className="text-sm font-black text-slate-800">{s["SHORT NAME"] || s["FULL NAME"]}</span>
@@ -1792,17 +1820,20 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
 
                 <div className="col-span-1">
                   <label 
-                    onClick={() => {
+                    onClick={async () => {
                         if (ad && student) {
-                            const studentId = student?._id || student?.id;
-                            const history = leaveData.filter(leave => {
-                                const leaveStudentId = typeof leave.studentId === 'object' ? leave.studentId?._id : leave.studentId;
-                                const adMatch = String(leave.hasOwnProperty('ad') ? leave.ad : leave.studentId?.ADNO) === String(ad);
-                                const idMatch = studentId && String(leaveStudentId) === String(studentId);
-                                return idMatch || adMatch;
-                            });
-                            setStudentHistory(history);
-                            setShowHistoryModal(true);
+                            setLoading(true);
+                            try {
+                                // Performance: Always fetch complete and fresh history when viewing modal
+                                const res = await axios.get(`${API_PORT}/leave?ad=${ad}`);
+                                setStudentHistory(res.data);
+                                setShowHistoryModal(true);
+                            } catch (e) {
+                                console.error("Error fetching student history:", e);
+                                showAlert("Failed to load history.");
+                            } finally {
+                                setLoading(false);
+                            }
                         }
                     }}
                     className={`block text-[10px] font-black uppercase tracking-widest px-1 mb-2 cursor-pointer transition-colors ${ad ? 'text-yellow-500 hover:text-yellow-600' : 'text-slate-300'}`}
