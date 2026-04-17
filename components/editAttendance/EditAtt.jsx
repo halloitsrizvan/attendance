@@ -54,12 +54,17 @@ function EditAtt() {
       return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     };
 
-    const isStudentOnShortLeave = (studentAdno) => {
+    const getStudentActiveShortLeave = (studentAdno) => {
       const today = students[0]?.attendanceDate ? new Date(students[0].attendanceDate) : new Date();
-      const currentTime = convertTimeToMinutes(getCurrentTimeString());
+      // For Edit mode, we don't have a specific 'period' in context easily, 
+      // so we use a flexible window around the record's time.
+      const recordTime = students[0]?.attendanceTime || students[0]?.attentenceTime || getCurrentTimeString();
+      const ctxTime = convertTimeToMinutes(recordTime);
 
-      return shortLeaveData.some(leave => {
-        if (leave.ad !== studentAdno) return false;
+      return shortLeaveData.find(leave => {
+        const leaveAdno = leave.ad || leave.studentId?.ADNO;
+        if (Number(leaveAdno) !== Number(studentAdno)) return false;
+
         const leaveDate = new Date(leave.date);
         const isSameDate =
           leaveDate.getDate() === today.getDate() &&
@@ -67,31 +72,45 @@ function EditAtt() {
           leaveDate.getFullYear() === today.getFullYear();
 
         if (!isSameDate) return false;
-        const fromTime = convertTimeToMinutes(leave.fromTime);
-        const toTime = convertTimeToMinutes(leave.toTime);
-        return currentTime >= fromTime && currentTime <= toTime;
-      });
-    };
-
-    const isStudentOnMedicalLeave = (studentAdno) => {
-      const today = students[0]?.attendanceDate ? new Date(students[0].attendanceDate) : new Date();
-      const currentTime = convertTimeToMinutes(getCurrentTimeString());
-
-      return leaveData.some(leave => {
-        if (leave.ad !== studentAdno) return false;
-        const isMedicalLeave = leave.reason === 'Medical' || leave.reason === 'Medical (Home)' || leave.reason === 'Medical (Room)';
-        if (!isMedicalLeave) return false;
-        const fromDate = new Date(leave.fromDate);
-        const toDate = leave.toDate ? new Date(leave.toDate) : null;
-        const isInDateRange = today >= fromDate && (toDate === null || today <= toDate);
-        if (!isInDateRange) return false;
         if (leave.status === 'returned') return false;
+
         const fromTime = convertTimeToMinutes(leave.fromTime);
-        if (!leave.toTime) return currentTime >= fromTime;
         const toTime = convertTimeToMinutes(leave.toTime);
-        return currentTime >= fromTime && currentTime <= toTime;
+        
+        // Check if the attendance record time falls within the leave window
+        return ctxTime >= (fromTime - 10) && ctxTime <= (toTime + 10);
       });
     };
+
+    const isStudentOnShortLeave = (studentAdno) => !!getStudentActiveShortLeave(studentAdno);
+
+    const getStudentActiveLeave = (studentAdno) => {
+      const today = students[0]?.attendanceDate ? new Date(students[0].attendanceDate) : new Date();
+      today.setHours(0, 0, 0, 0);
+
+      return leaveData.find(leave => {
+        const leaveAdno = leave.ad || leave.studentId?.ADNO;
+        if (Number(leaveAdno) !== Number(studentAdno)) return false;
+        if (leave.status === 'returned') return false;
+
+        const fromDate = new Date(leave.fromDate);
+        fromDate.setHours(0, 0, 0, 0);
+        const toDate = leave.toDate ? new Date(leave.toDate) : null;
+        if (toDate) toDate.setHours(0, 0, 0, 0);
+
+        // Date range check
+        if (today < fromDate) return false;
+        if (toDate && today > toDate) {
+           // Allow fuzzy return for past leaves if not marked returned
+           const thirtyDaysAgo = new Date();
+           thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+           return toDate > thirtyDaysAgo;
+        }
+        return true;
+      });
+    };
+
+    const isStudentOnMedicalLeave = (studentAdno) => !!getStudentActiveLeave(studentAdno);
 
     const openReturnModal = (student) => {
       setSelectedReturnStudent(student);
@@ -209,16 +228,31 @@ function EditAtt() {
       try{
         setSummaryLoad(true);
         
-        // Save Return Data for Medical Leaves
+        // Save Return Data for Medical Leaves and CEPs
         if (returnedStudents.length > 0) {
           await Promise.all(returnedStudents.map(async (ad) => {
-            const findStd = leaveData.find(leave => leave.ad === ad && leave.status !== 'returned');
-            if (findStd) {
-              await axios.put(`${API_PORT}/leave/${findStd._id}`, { 
+            // 1. Clear Global Flag
+            try {
+              await axios.patch(`${API_PORT}/students/on-leave/${ad}`, { onLeave: false });
+            } catch (err) {
+              console.error(`Failed to clear flag for student ${ad}:`, err);
+            }
+
+            // 2. Clear medical leave record
+            const medLeave = getStudentActiveLeave(ad);
+            if (medLeave) {
+              await axios.patch(`${API_PORT}/leave/${medLeave._id}`, { 
                 status: 'returned', 
                 markReturnedTeacher: teacher?.name || 'Unknown' 
               });
-              await axios.put(`${API_PORT}/students/${ad}`, { onLeave: false });
+            }
+
+            // 3. Clear short leave record
+            const shortPass = getStudentActiveShortLeave(ad);
+            if (shortPass) {
+              await axios.patch(`${API_PORT}/class-excused-pass/${shortPass._id}`, { 
+                status: 'returned' 
+              });
             }
           }));
         }
@@ -561,6 +595,52 @@ function EditAtt() {
                   {selectedReturnStudent.studentId?.['SHORT NAME'] || selectedReturnStudent.name || selectedReturnStudent.nameOfStd}
                 </span> as returned?
               </p>
+            </div>
+
+            <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 mb-8 space-y-4 text-left">
+              {(() => {
+                const ad = selectedReturnStudent.studentId?.ADNO || selectedReturnStudent.ad;
+                const medical = getStudentActiveLeave(ad);
+                const cep = getStudentActiveShortLeave(ad);
+
+                if (medical) {
+                  return (
+                    <>
+                      <div className="flex justify-between items-center border-b border-slate-200/50 pb-3">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Type</span>
+                        <span className="text-[9px] font-black text-sky-500 bg-sky-50 px-2 py-0.5 rounded border border-sky-100 uppercase tracking-widest">Medical Leave</span>
+                      </div>
+                      <div className="flex justify-between items-center border-b border-slate-200/50 pb-3">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Reason</span>
+                        <span className="text-[10px] font-bold text-slate-700 uppercase">{medical.reason || "N/A"}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">From</span>
+                        <span className="text-[10px] font-bold text-slate-700 font-mono italic">{medical.fromDate || "N/A"}</span>
+                      </div>
+                    </>
+                  );
+                } else if (cep) {
+                  return (
+                    <>
+                      <div className="flex justify-between items-center border-b border-slate-200/50 pb-3">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Type</span>
+                        <span className="text-[9px] font-black text-amber-500 bg-amber-50 px-2 py-0.5 rounded border border-amber-100 uppercase tracking-widest">CEP (Short Pass)</span>
+                      </div>
+                      <div className="flex justify-between items-center border-b border-slate-200/50 pb-3">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Reason</span>
+                        <span className="text-[10px] font-bold text-slate-700 uppercase">{cep.reason || "N/A"}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Duration</span>
+                        <span className="text-[10px] font-bold text-emerald-600 font-mono">{cep.fromTime} — {cep.toTime}</span>
+                      </div>
+                    </>
+                  );
+                } else {
+                  return <div className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest py-2">Restoring global status</div>;
+                }
+              })()}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
