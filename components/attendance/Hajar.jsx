@@ -365,20 +365,26 @@ function Hajar() {
     try {
       if (returnedStudents.length > 0) {
         await Promise.all(returnedStudents.map(async (ad) => {
-          // 1. Check Medical Leave
+          // 1. Clear Student Global Flag (Crucial for persistence)
+          try {
+            await axios.patch(`${API_PORT}/students/on-leave/${ad}`, { onLeave: false });
+          } catch (studentErr) {
+             console.error(`Failed to clear global leave flag for student ${ad}:`, studentErr);
+          }
+
+          // 2. Clear Medical Leave Record
           const medLeave = getStudentActiveLeave(ad);
           if (medLeave) {
-            await axios.put(`${API_PORT}/leave/${medLeave._id}`, { 
+            await axios.patch(`${API_PORT}/leave/${medLeave._id}`, { 
               status: 'returned', 
               markReturnedTeacher: teacher?.name || 'Unknown' 
             });
-            await axios.put(`${API_PORT}/students/${ad}`, { onLeave: false });
           }
 
-          // 2. Check CEP
+          // 3. Clear CEP (Short Pass) Record
           const shortLeave = getStudentActiveShortLeave(ad);
           if (shortLeave) {
-            await axios.put(`${API_PORT}/class-excused-pass/${shortLeave._id}`, { 
+            await axios.patch(`${API_PORT}/class-excused-pass/${shortLeave._id}`, { 
               status: 'returned' 
             });
           }
