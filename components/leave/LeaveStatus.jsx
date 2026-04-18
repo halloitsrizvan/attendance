@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { Calendar, Clock, CheckCircle, AlertCircle, User, XCircle, RefreshCw, ChevronRight, ChevronDown, FileSignature, DropletIcon, Search, X, Filter } from 'lucide-react';
+import { Calendar, Clock, CheckCircle, AlertCircle, User, XCircle, RefreshCw, ChevronRight, ChevronDown, FileSignature, DropletIcon, Search, X, Filter, Clipboard } from 'lucide-react';
 import axios from 'axios';
 import { API_PORT } from '../../Constants';
 import LeaveStatusTable from './LeaveStatusTable';
@@ -277,6 +277,8 @@ function LeaveStatus() {
   const [filterAction, setFilterAction] = useState('All');
   const [filterStartReturn, setFilterStartReturn] = useState('All');
   const [filterReason, setFilterReason] = useState('All');
+  const [copyFromDate, setCopyFromDate] = useState('');
+  const [copyToDate, setCopyToDate] = useState('');
   const [shortLeaveStatus, setShortLeaveStatus] = useState([]);
   const filterRef = useRef(null);
 
@@ -515,6 +517,35 @@ function LeaveStatus() {
 
   const refreshLeaveData = () => {
     fetchLeaveData();
+  };
+
+  const copyWeekendList = () => {
+    if (!copyFromDate || !copyToDate) {
+      alert("Please select both From and To dates first.");
+      return;
+    }
+
+    // Filter My Dashboard data for this custom range
+    const selectedLeaves = filterDB.filter(l => 
+      l.fromDate >= copyFromDate && l.toDate <= copyToDate
+    );
+
+    if (selectedLeaves.length === 0) {
+      alert(`No records found for the specific combination of From: ${copyFromDate} and To: ${copyToDate}`);
+      return;
+    }
+
+    const text = selectedLeaves.map((l, i) => {
+      const name = l.studentId?.['SHORT NAME'] || l.studentId?.['FULL NAME'] || l.name;
+      const ad = l.studentId?.ADNO || l.ad;
+      const className = l.studentId?.CLASS || l.classNum;
+      
+      return `${i + 1}. ${name} (${ad}) - Class ${className}\n   Reason: ${l.reason}\n   From: ${l.fromDate} ${l.fromTime}\n   To: ${l.toDate} ${l.toTime}`;
+    }).join('\n\n');
+
+    navigator.clipboard.writeText(text).then(() => {
+      alert(`Copied ${selectedLeaves.length} leave records to clipboard!`);
+    });
   };
 
   const filteredData = useMemo(() => {
@@ -880,6 +911,36 @@ function LeaveStatus() {
                   isActive={activeTabMyDB === 'History'}
                   onClick={() => setActiveTabMyDB('History')}
                 />
+                
+                <div className="ml-auto flex items-center gap-2 pr-2">
+                  <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-100 rounded-lg px-2 py-1">
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-tight">From</span>
+                    <input 
+                      type="date"
+                      value={copyFromDate}
+                      onChange={(e) => setCopyFromDate(e.target.value)}
+                      className="bg-transparent text-[10px] font-bold text-slate-700 outline-none"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-100 rounded-lg px-2 py-1">
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-tight">To</span>
+                    <input 
+                      type="date"
+                      value={copyToDate}
+                      onChange={(e) => setCopyToDate(e.target.value)}
+                      className="bg-transparent text-[10px] font-bold text-slate-700 outline-none"
+                    />
+                  </div>
+                  
+                  <button
+                    onClick={copyWeekendList}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 text-white text-[10px] font-black rounded-lg hover:bg-slate-900 transition-all shadow-md active:scale-95"
+                    title="Copy selected range to clipboard"
+                  >
+                    <Clipboard size={12} />
+                    <span>Copy</span>
+                  </button>
+                </div>
               </div>
               {activeTabMyDB === "allActions" ?
                 <LeaveStatusTable

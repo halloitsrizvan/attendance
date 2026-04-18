@@ -118,13 +118,14 @@ const ShortLeaveTimePicker = ({ fromPeriod, setFromPeriod, toPeriod, setToPeriod
 
 const TemplatePicker = ({ selectedTemplate, setSelectedTemplate, onTemplateSelect, setShowEndDateForMedical }) => {
   const templates = [
-    { id: 'today-tmw-morn', label: 'Today Evening - Tomorrow Morning' },
-    { id: 'today-tmw-eve', label: 'Today Evening - Tomorrow Evening' },
-    { id: 'tmrw-dayafter-eve', label: 'Tomorrow Evening - Day After Evening' },
-    { id: 'thu-fri-eve', label: 'Thursday Evening - Friday Evening' },
-    { id: 'thu-sat-morn', label: 'Thursday Evening - Saturday Morning' },
+    { id: 'today-tmw-morn', label: 'Today 🌇 → Tom 🌅' },
+    { id: 'today-tmw-eve', label: 'Today 🌇 → Tom 🌇' },
+    { id: 'tmrw-next-morn', label: 'Tom 🌇 → Next 🌅' },
+    { id: 'tmrw-dayafter-eve', label: 'Tom 🌇 → Next 🌇' },
+    { id: 'thu-fri-eve', label: 'Thu 🌇→ Friday 🌇' },
+    { id: 'thu-sat-morn', label: 'Thu 🌇 → Sat 🌅' },
   ]; 
-
+ 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between px-1">
@@ -139,7 +140,7 @@ const TemplatePicker = ({ selectedTemplate, setSelectedTemplate, onTemplateSelec
           Clear
         </button>
       </div>
-      <div className="grid grid-cols-5 gap-1">
+      <div className="grid grid-cols-6 gap-1">
         {templates.map(t => (
           <SelectionButton
             key={t.id}
@@ -292,6 +293,12 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         setFromDate('Today');
         setFromTime('Evening');
         setToDate('Tomorrow');
+        setToTime('Morning');
+        break;
+      case 'tmrw-next-morn':
+        setFromDate('Tomorrow');
+        setFromTime('Evening');
+        setToDate('Day After');
         setToTime('Morning');
         break;
       case 'tmrw-dayafter-eve':

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { Search, User, Calendar, Clock, FileText, AlertCircle, CheckCircle, XCircle, ChevronRight, Filter, MinusCircle, ArrowLeft, Loader2 } from 'lucide-react';
+import { Search, User, Calendar, Clock, FileText, AlertCircle, CheckCircle, XCircle, ChevronRight, Filter, MinusCircle, ArrowLeft, Loader2, Activity } from 'lucide-react';
 import axios from 'axios';
 import { API_PORT } from '@/Constants';
 import Header from '@/components/Header/Header';
@@ -18,6 +18,33 @@ const formatDate = (dateStr) => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  } catch (e) {
+    return dateStr;
+  }
+};
+
+const getRelativeTime = (dateStr) => {
+  if (!dateStr || dateStr === 'Never') return 'Never';
+  try {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffTime = now - date;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return dateStr; // Future date
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) {
+      const weeks = Math.floor(diffDays / 7);
+      return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
+    }
+    if (diffDays < 365) {
+      const months = Math.floor(diffDays / 30);
+      return `${months} month${months > 1 ? 's' : ''} ago`;
+    }
+    const years = Math.floor(diffDays / 365);
+    return `${years} year${years > 1 ? 's' : ''} ago`;
   } catch (e) {
     return dateStr;
   }
@@ -90,6 +117,24 @@ export default function StudentSearchPage() {
     }
   };
 
+  const handleCompleteRecovery = async (leaveId) => {
+    if (!leaveId) return;
+    setIsDetailLoading(true);
+    try {
+      await axios.patch(`${API_PORT}/leave/${leaveId}`, { recovery: true });
+      // Refresh details
+      if (selectedStudent) {
+        await fetchStudentRecords(selectedStudent);
+        setActiveTab('overview');
+      }
+    } catch (error) {
+      console.error("Error completing recovery:", error);
+      alert("Failed to complete recovery. Please try again.");
+    } finally {
+      setIsDetailLoading(false);
+    }
+  };
+
   const filteredSuggestions = useMemo(() => {
     if (!searchQuery.trim()) return [];
     const query = searchQuery.toLowerCase();
@@ -113,13 +158,13 @@ export default function StudentSearchPage() {
       .filter(l => l.status === 'returned' && l.returnedAt)
       .sort((a, b) => new Date(b.returnedAt) - new Date(a.returnedAt))[0];
     
-    let recoveryStatus = { completed: true, remainingDays: 0 };
-    if (lastLeave && lastLeave.returnedAt) {
+    let recoveryStatus = { completed: true, remainingDays: 0, leaveId: lastLeave?._id };
+    if (lastLeave && lastLeave.returnedAt && lastLeave.recovery !== true) {
       const returnedDate = new Date(lastLeave.returnedAt);
       const today = new Date();
       const diffDays = Math.ceil((today - returnedDate) / (1000 * 60 * 60 * 24));
       if (diffDays <= 3) {
-        recoveryStatus = { completed: false, remainingDays: 4 - diffDays };
+        recoveryStatus = { completed: false, remainingDays: 4 - diffDays, leaveId: lastLeave._id };
       }
     }
  
@@ -261,16 +306,6 @@ export default function StudentSearchPage() {
                 </div>
               </div>
 
-              {/* Recovery Banner */}
-              {!studentData.recoveryStatus.completed && (
-                <div className="bg-amber-50 p-4 border-b border-amber-100 flex items-center justify-center gap-3">
-                   <AlertCircle className="text-amber-500" size={18} />
-                   <p className="text-amber-800 text-sm font-bold">
-                     Recovery In Progress: <span className="font-black">{studentData.recoveryStatus.remainingDays} days</span> remaining from last leave.
-                   </p>
-                </div>
-              )}
-
               {/* Content Tabs */}
               <div className="flex bg-white overflow-x-auto border-b border-slate-100 overscroll-contain">
                 <TabButton id="overview" label="Overview" icon={User} />
@@ -278,6 +313,9 @@ export default function StudentSearchPage() {
                 <TabButton id="leave" label={`Leave History (${studentData.leaves.length})`} icon={FileText} />
                 <TabButton id="cep" label={`CEP (${studentData.cep.length})`} icon={Clock} />
                 <TabButton id="minus" label={`Minus (${studentData.minus.length})`} icon={MinusCircle} />
+                {!studentData.recoveryStatus.completed && (
+                  <TabButton id="recovery" label="Recovery" icon={Activity} />
+                )}
               </div>
 
               {/* Tab Content */}
@@ -292,6 +330,15 @@ export default function StudentSearchPage() {
                 {activeTab === 'overview' && (
                   <div className="space-y-8 animate-in fade-in duration-300">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100">
+                        <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-6">Quick Insights</h3>
+                        <div className="space-y-4">
+                          <SummaryMetric label="Attendance Rate" value={`${Math.round((studentData.attendance.filter(a => a.status === 'Present').length / (studentData.attendance.length || 1)) * 100)}%`} icon={TrendingUp} />
+                          <SummaryMetric label="Total Absent" value={studentData.attendance.filter(a => a.status === 'Absent').length} icon={XCircle} color="text-rose-500" />
+                          <SummaryMetric label="Last Leave" value={getRelativeTime(studentData.leaves[0]?.fromDate) || 'Never'} icon={Calendar} />
+                          <SummaryMetric label="CEP Count" value={studentData.cep.length} icon={Clock} color="text-sky-500" />
+                        </div>
+                      </div>
                       <div className="space-y-6">
                         <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest border-l-4 border-sky-500 pl-4">Personal Details</h3>
                         <div className="grid grid-cols-1 gap-4">
@@ -300,15 +347,6 @@ export default function StudentSearchPage() {
                           <DetailRow label="Admission No" value={studentData.profile.ADNO} />
                           <DetailRow label="Class" value={studentData.profile.CLASS} />
                           <DetailRow label="Status" value={studentData.recoveryStatus.completed ? "Normal" : "In Recovery"} isStatus />
-                        </div>
-                      </div>
-                      <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100">
-                        <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-6">Quick Insights</h3>
-                        <div className="space-y-4">
-                          <SummaryMetric label="Attendance Rate" value={`${Math.round((studentData.attendance.filter(a => a.status === 'Present').length / (studentData.attendance.length || 1)) * 100)}%`} icon={TrendingUp} />
-                          <SummaryMetric label="Total Absent" value={studentData.attendance.filter(a => a.status === 'Absent').length} icon={XCircle} color="text-rose-500" />
-                          <SummaryMetric label="Last Leave" value={studentData.leaves[0]?.fromDate || 'Never'} icon={Calendar} />
-                          <SummaryMetric label="CEP Count" value={studentData.cep.length} icon={Clock} color="text-sky-500" />
                         </div>
                       </div>
                     </div>
@@ -331,7 +369,7 @@ export default function StudentSearchPage() {
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
-                              {studentData.attendance.slice().reverse().map((att, i) => (
+                              {studentData.attendance.map((att, i) => (
                                 <tr key={i} className="hover:bg-slate-50/50 transition-colors">
                                   <td className="px-6 py-4 text-sm font-bold text-slate-700">{formatDate(att.attendanceDate || att.createdAt)}</td>
                                   <td className="px-6 py-4 text-xs font-semibold text-slate-500">{att.attendanceTime} {att.period ? `(P${att.period})` : ''}</td>
@@ -349,7 +387,7 @@ export default function StudentSearchPage() {
 
                         {/* Mobile Card View */}
                         <div className="md:hidden space-y-3">
-                          {studentData.attendance.slice().reverse().map((att, i) => (
+                          {studentData.attendance.map((att, i) => (
                             <div key={i} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex justify-between items-center gap-4">
                               <div className="flex-grow">
                                 <p className="text-xs font-black text-slate-800 mb-1">{formatDate(att.attendanceDate || att.createdAt)}</p>
@@ -376,7 +414,7 @@ export default function StudentSearchPage() {
                   <div className="space-y-4 animate-in fade-in duration-300">
                     {studentData.leaves.length > 0 ? (
                       <div className="space-y-4">
-                        {studentData.leaves.slice().reverse().map((leave, i) => (
+                        {studentData.leaves.map((leave, i) => (
                           <div key={i} className="bg-slate-50 p-5 rounded-[2rem] border border-slate-100 transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-200/50">
                              <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4">
                                <div className="flex items-center gap-3">
@@ -414,7 +452,7 @@ export default function StudentSearchPage() {
                   <div className="space-y-4 animate-in fade-in duration-300">
                     {studentData.cep.length > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {studentData.cep.slice().reverse().map((pass, i) => (
+                        {studentData.cep.map((pass, i) => (
                           <div key={i} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-sky-500/10 transition-all group">
                              <div className="flex justify-between items-start mb-4">
                                <div className="flex items-center gap-3">
@@ -454,7 +492,7 @@ export default function StudentSearchPage() {
                   <div className="space-y-4 animate-in fade-in duration-300">
                     {studentData.minus.length > 0 ? (
                       <div className="space-y-3">
-                        {studentData.minus.slice().reverse().map((m, i) => (
+                        {studentData.minus.map((m, i) => (
                           <div key={i} className="bg-rose-50/50 p-4 rounded-3xl border border-rose-100 flex items-center justify-between">
                              <div className="flex items-center gap-4">
                                <div className="w-10 h-10 rounded-2xl bg-rose-500 text-white flex items-center justify-center font-black text-lg">
@@ -475,6 +513,39 @@ export default function StudentSearchPage() {
                     ) : (
                       <EmptyState message="No minus records found. Student is doing great!" />
                     )}
+                  </div>
+                )}
+
+                {activeTab === 'recovery' && (
+                  <div className="space-y-6 animate-in fade-in duration-300">
+                    <div className="bg-amber-50 rounded-[2.5rem] p-8 sm:p-12 border border-amber-100 flex flex-col items-center text-center">
+                      <div className="w-20 h-20 bg-white rounded-3xl shadow-xl shadow-amber-200/50 flex items-center justify-center text-amber-500 mb-8 animate-bounce duration-[2000ms]">
+                        <Activity size={32} />
+                      </div>
+                      <h3 className="text-2xl font-black text-amber-900 tracking-tighter uppercase italic mb-3">Recovery In Progress</h3>
+                      <p className="text-amber-800/60 font-medium max-w-sm mb-10 leading-relaxed">
+                        This student is currently in the medical recovery phase. 
+                        Records indicate <span className="font-black text-amber-900">{studentData.recoveryStatus.remainingDays} days</span> remaining 
+                        in the standard observation period.
+                      </p>
+                      
+                      <button
+                        onClick={() => handleCompleteRecovery(studentData.recoveryStatus.leaveId)}
+                        disabled={isDetailLoading}
+                        className="group bg-amber-500 hover:bg-amber-600 active:scale-95 text-white px-10 py-4 rounded-[1.5rem] font-black uppercase tracking-widest text-xs transition-all shadow-2xl shadow-amber-500/40 flex items-center gap-3 disabled:opacity-50"
+                      >
+                        {isDetailLoading ? (
+                          <Loader2 size={18} className="animate-spin" />
+                        ) : (
+                          <CheckCircle size={18} className="group-hover:scale-110 transition-transform" />
+                        )}
+                        <span>Complete Recovery Now</span>
+                      </button>
+
+                      <p className="mt-8 text-[10px] font-bold text-amber-400 uppercase tracking-[0.2em]">
+                        Manually finalizing will mark the status as normal immediately
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
