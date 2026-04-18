@@ -78,7 +78,13 @@ function EditAtt() {
         const toTime = convertTimeToMinutes(leave.toTime);
         
         // Check if the attendance record time falls within the leave window
-        return ctxTime >= (fromTime - 10) && ctxTime <= (toTime + 10);
+        const withinWindow = ctxTime >= (fromTime - 10) && ctxTime <= (toTime + 10);
+        
+        // If it's past the window but status is active or late, they are still on leave
+        if (!withinWindow && ctxTime > toTime) {
+          return (leave.status === 'active' || leave.status === 'late' || leave.status === 'pending');
+        }
+        return withinWindow;
       });
     };
 
@@ -101,10 +107,8 @@ function EditAtt() {
         // Date range check
         if (today < fromDate) return false;
         if (toDate && today > toDate) {
-           // Allow fuzzy return for past leaves if not marked returned
-           const thirtyDaysAgo = new Date();
-           thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-           return toDate > thirtyDaysAgo;
+            // Still consider active if not returned, but maybe categorize differently later
+            return (leave.status === 'active' || leave.status === 'late' || leave.status === 'pending');
         }
         return true;
       });

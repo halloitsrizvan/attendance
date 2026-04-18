@@ -160,11 +160,22 @@ function Hajar() {
 
       if (ctx.isRange) {
         // Overlap check: leave session overlaps with attendance period
-        return Math.max(leaveFrom, ctx.from) < Math.min(leaveTo, ctx.to) || 
-               (leaveFrom === ctx.from && leaveTo === ctx.to);
+        const overlaps = Math.max(leaveFrom, ctx.from) < Math.min(leaveTo, ctx.to) || 
+                         (leaveFrom === ctx.from && leaveTo === ctx.to);
+        
+        // Even if it doesn't overlap, if the attendance period is AFTER the leave 
+        // and the status is active/late/pending, show as "On Leave"
+        if (!overlaps && ctx.from >= leaveTo) {
+          return (leave.status === 'active' || leave.status === 'late' || leave.status === 'pending');
+        }
+        return overlaps;
       } else {
         // Simple point check: attendance time is within leave duration
-        return ctx.from >= leaveFrom && ctx.from <= leaveTo;
+        // or attendance time is past leave duration but they haven't returned
+        if (ctx.from > leaveTo) {
+          return (leave.status === 'active' || leave.status === 'late' || leave.status === 'pending');
+        }
+        return ctx.from >= leaveFrom;
       }
     });
   };
@@ -209,15 +220,20 @@ function Hajar() {
         }
       }
 
-      // If it's an intermediate day or past the end day (Late)
-      if (today > fromDate) {
-        // If it's the end day today, check if it hasn't ended yet
+      // If it's an intermediate day or the end day
+      if (today > fromDate || (isStartDay && !isEndDay)) {
+        // We are past the start day or it's a multi-day leave
+        // If it's the end day today, only hide if they actually returned (handled above)
+        // or if it's explicitly a short duration that passed (but even then, 'late' should show)
         if (isEndDay && leaveTo !== null) {
-          if (ctx.isRange) {
-            return ctx.from < leaveTo;
-          } else {
-            if (ctx.from > leaveTo) return false;
+          // If the current attendance period starts AFTER the leave was supposed to end,
+          // we still show them as "On Leave" if they haven't returned yet, 
+          // but we categorize it as a "Late" return possibility.
+          if (ctx.from > leaveTo) {
+            // Keep showing if status is active or late
+            return (leave.status === 'active' || leave.status === 'late' || leave.status === 'pending');
           }
+          return true;
         }
         
         // If it's past the end day, only count as active if it's truly current (not returned)
@@ -227,8 +243,7 @@ function Hajar() {
           thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
           if (toDate < thirtyDaysAgo) return false;
           
-          // Still consider active if not returned, but maybe categorize differently later
-          return true;
+          return (leave.status === 'active' || leave.status === 'late' || leave.status === 'pending');
         }
 
         return true;
