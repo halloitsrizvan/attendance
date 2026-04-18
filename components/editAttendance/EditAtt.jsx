@@ -72,7 +72,7 @@ function EditAtt() {
           leaveDate.getFullYear() === today.getFullYear();
 
         if (!isSameDate) return false;
-        if (leave.status === 'returned') return false;
+        if (leave.status === 'returned' || leave.status === 'Scheduled') return false;
 
         const fromTime = convertTimeToMinutes(leave.fromTime);
         const toTime = convertTimeToMinutes(leave.toTime);
@@ -91,7 +91,7 @@ function EditAtt() {
       return leaveData.find(leave => {
         const leaveAdno = leave.ad || leave.studentId?.ADNO;
         if (Number(leaveAdno) !== Number(studentAdno)) return false;
-        if (leave.status === 'returned') return false;
+        if (leave.status === 'returned' || leave.status === 'Scheduled') return false;
 
         const fromDate = new Date(leave.fromDate);
         fromDate.setHours(0, 0, 0, 0);

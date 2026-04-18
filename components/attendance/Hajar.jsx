@@ -183,8 +183,8 @@ function Hajar() {
       const leaveAdno = leave.ad || leave.studentId?.ADNO;
       if (Number(leaveAdno) !== Number(studentAdno)) return false;
 
-      // Status must not be returned
-      if (leave.status === 'returned') return false;
+      // Status must not be returned or merely scheduled
+      if (leave.status === 'returned' || leave.status === 'Scheduled') return false;
 
       // Date range check
       const fromDate = new Date(leave.fromDate);
