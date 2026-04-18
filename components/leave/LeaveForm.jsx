@@ -475,16 +475,41 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  const calculateLeaveDays = (from, to) => {
-    if (!from) return 0;
-    const startDate = new Date(from);
-    startDate.setHours(0,0,0,0);
-    const endDate = to ? new Date(to) : new Date();
-    endDate.setHours(0,0,0,0);
+  const calculateLeaveDuration = (from, fromTime, to, toTime) => {
+    if (!from) return { days: 0, hours: 0 };
+    // Try to use provided times, fallback to standard Morning/Evening if needed
+    const start = new Date(`${from}T${fromTime || '07:00'}`);
     
-    const diffTime = Math.abs(endDate - startDate);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    return diffDays;
+    let endDate;
+    if (to && to.includes('T')) {
+      // It's likely an ISO returnedAt string
+      endDate = new Date(to);
+    } else {
+      endDate = new Date(`${to || new Date().toISOString().split('T')[0]}T${toTime || '18:00'}`);
+    }
+
+    if (isNaN(start.getTime()) || isNaN(endDate.getTime())) return { days: 0, hours: 0 };
+    
+    const diffTime = Math.abs(endDate - start);
+    const days = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    
+    return { days, hours };
+  };
+
+  const calculateLateBy = (leave) => {
+    if (leave.status !== 'returned' || !leave.returnedAt || !leave.toDate || !leave.toTime) return null;
+    const returned = new Date(leave.returnedAt);
+    const scheduled = new Date(`${leave.toDate}T${leave.toTime}`);
+    
+    if (returned > scheduled) {
+      const diffMs = returned - scheduled;
+      const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      if (days === 0 && hours === 0) return null;
+      return { days, hours };
+    }
+    return null;
   };
 
   const getTimeLabel = (timeStr, isFrom = true) => {
@@ -1719,43 +1744,55 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
             <div className="p-6 max-h-[60vh] overflow-y-auto">
               {studentHistory.length > 0 ? (
                 <div className="space-y-4">
-                  {studentHistory.sort((a,b) => new Date(b.fromDate) - new Date(a.fromDate)).map((leave, idx) => (
-                    <div key={idx} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-[10px] font-black text-slate-400 capitalize px-2 py-1 bg-white border border-slate-100 rounded-lg">
-                            {leave.reason || 'General Leave'}
-                          </span>
-                          <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg border shadow-sm ${
-                            leave.status === 'returned' || leave.status === 'Arrived' ? 'text-emerald-600 bg-emerald-50 border-emerald-100' : 'text-amber-600 bg-amber-50 border-amber-100'
-                          }`}>
-                            {leave.status}
-                          </span>
-                          <span className="text-[10px] font-black text-sky-600 px-2 py-1 bg-sky-50 border border-sky-100 rounded-lg flex items-center gap-1">
-                            <Calendar size={10} />
-                            {calculateLeaveDays(leave.fromDate, leave.toDate || leave.returnedAt)} Days
-                          </span>
+                    {studentHistory.sort((a,b) => new Date(b.fromDate) - new Date(a.fromDate)).map((leave, idx) => {
+                      const duration = calculateLeaveDuration(leave.fromDate, leave.fromTime, leave.returnedAt || leave.toDate, leave.toTime);
+                      const lateBy = calculateLateBy(leave);
+                      const isLateReturned = lateBy !== null;
+
+                      return (
+                        <div key={idx} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-[10px] font-black text-slate-400 capitalize px-2 py-1 bg-white border border-slate-100 rounded-lg">
+                                {leave.reason || 'General Leave'}
+                              </span>
+                              <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg border shadow-sm ${
+                                isLateReturned ? 'text-rose-600 bg-rose-50 border-rose-100' : 
+                                (leave.status === 'returned' || leave.status === 'Arrived' ? 'text-emerald-600 bg-emerald-50 border-emerald-100' : 'text-amber-600 bg-amber-50 border-amber-100')
+                              }`}>
+                                {isLateReturned ? 'Late Returned' : leave.status}
+                              </span>
+                              <span className="text-[10px] font-black text-sky-600 px-2 py-1 bg-sky-50 border border-sky-100 rounded-lg flex items-center gap-1">
+                                <Clock size={10} />
+                                {duration.days > 0 ? `${duration.days}d ` : ''}{duration.hours}h
+                              </span>
+                              {isLateReturned && (
+                                <span className="text-[9px] font-bold text-rose-500 bg-rose-50/50 px-2 py-1 rounded-lg flex items-center gap-1 border border-rose-100">
+                                  Late by: {lateBy.days > 0 ? `${lateBy.days}d ` : ''}{lateBy.hours}h
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        <div className="text-right flex flex-col items-end">
+                           <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                             {getRelativeDate(leave.fromDate)}
+                             {leave.fromTime && <span className="text-slate-300 ml-1">• {getTimeLabel(leave.fromTime, true)}</span>}
+                           </span>
+                           {leave.status === 'returned' && leave.returnedAt ? (
+                             <span className="text-[8px] font-bold text-emerald-500/60 uppercase mt-0.5">
+                               Ended {getRelativeDate(leave.returnedAt.split('T')[0])} 
+                               <span className="ml-1 opacity-70">• {getTimeLabel(new Date(leave.returnedAt).toTimeString().substring(0,5), false)}</span>
+                             </span>
+                           ) : leave.toDate && (
+                             <span className="text-[8px] font-bold text-slate-300 uppercase mt-0.5">
+                               Until {getRelativeDate(leave.toDate)} 
+                               {leave.toTime && <span className="ml-1">• {getTimeLabel(leave.toTime, false)}</span>}
+                             </span>
+                           )}
                         </div>
                       </div>
-                      <div className="text-right flex flex-col items-end">
-                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                           {getRelativeDate(leave.fromDate)}
-                           {leave.fromTime && <span className="text-slate-300 ml-1">• {getTimeLabel(leave.fromTime, true)}</span>}
-                         </span>
-                         {leave.status === 'returned' && leave.returnedAt ? (
-                           <span className="text-[8px] font-bold text-emerald-500/60 uppercase mt-0.5">
-                             Ended {getRelativeDate(leave.returnedAt.split('T')[0])} 
-                             <span className="ml-1 opacity-70">• {getTimeLabel(new Date(leave.returnedAt).toTimeString().substring(0,5), false)}</span>
-                           </span>
-                         ) : leave.toDate && (
-                           <span className="text-[8px] font-bold text-slate-300 uppercase mt-0.5">
-                             Until {getRelativeDate(leave.toDate)} 
-                             {leave.toTime && <span className="ml-1">• {getTimeLabel(leave.toTime, false)}</span>}
-                           </span>
-                         )}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="py-12 text-center">
