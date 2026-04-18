@@ -50,7 +50,7 @@ function SelectionButton({ label, isSelected, onClick, type, disabled }) {
       type="button"
       onClick={disabled ? undefined : onClick}
       disabled={disabled}
-      className={`w-full py-4 px-2 text-[9px] font-medium uppercase tracking-widest rounded-2xl transition-all duration-300 border-2 flex flex-col items-center justify-center gap-1
+      className={`w-full py-4 px-2 ${type === "Template" ? 'text-[8px]' : 'text-[9px]'} font-medium uppercase tracking-widest rounded-xl transition-all duration-300 border-2 flex flex-col items-center justify-center gap-1
         ${isSelected 
           ? type === "Reason"
             ? 'bg-rose-500 text-white border-rose-500 shadow-lg shadow-rose-500/20 scale-[1.02]'

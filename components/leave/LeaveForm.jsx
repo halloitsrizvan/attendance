@@ -139,7 +139,7 @@ const TemplatePicker = ({ selectedTemplate, setSelectedTemplate, onTemplateSelec
           Clear
         </button>
       </div>
-      <div className="grid grid-cols-4 gap-1">
+      <div className="grid grid-cols-5 gap-1">
         {templates.map(t => (
           <SelectionButton
             key={t.id}
