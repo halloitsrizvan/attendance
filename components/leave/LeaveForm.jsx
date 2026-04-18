@@ -118,11 +118,12 @@ const ShortLeaveTimePicker = ({ fromPeriod, setFromPeriod, toPeriod, setToPeriod
 
 const TemplatePicker = ({ selectedTemplate, setSelectedTemplate, onTemplateSelect, setShowEndDateForMedical }) => {
   const templates = [
-    { id: 'today-tmw-eve', label: 'Today Eve - Tmrw Eve' },
-    { id: 'today-tmw-morn', label: 'Today Eve - Tmrw Morn' },
-    { id: 'tmrw-dayafter-eve', label: 'Tmrw Eve - DayAfter Eve' },
-    { id: 'thu-fri-eve', label: 'Thu Eve - Fri Eve' },
-  ];
+    { id: 'today-tmw-morn', label: 'Today Evening - Tomorrow Morning' },
+    { id: 'today-tmw-eve', label: 'Today Evening - Tomorrow Evening' },
+    { id: 'tmrw-dayafter-eve', label: 'Tomorrow Evening - Day After Evening' },
+    { id: 'thu-fri-eve', label: 'Thursday Evening - Friday Evening' },
+    { id: 'thu-sat-morn', label: 'Thursday Evening - Saturday Morning' },
+  ]; 
 
   return (
     <div className="space-y-4">
@@ -299,21 +300,23 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         setToDate('Day After');
         setToTime('Evening');
         break;
-      case 'thu-fri-eve': {
+      case 'thu-fri-eve':
+      case 'thu-sat-morn': {
         const now = new Date();
         const day = now.getDay();
 
-        // Calculate Thursday (4) and Friday (5)
+        // Calculate Thursday (4), Friday (5), and Saturday (6)
         let Thu = new Date(now);
         Thu.setDate(now.getDate() + (4 - day));
 
-        let Fri = new Date(now);
-        Fri.setDate(now.getDate() + (5 - day));
+        let TargetEnd = new Date(now);
+        const endDay = templateId === 'thu-fri-eve' ? 5 : 6;
+        TargetEnd.setDate(now.getDate() + (endDay - day));
 
-        // If today is Friday or later, move to next week's Thu/Fri
+        // If today is Friday or later, move to next week
         if (day >= 5) {
           Thu.setDate(Thu.getDate() + 7);
-          Fri.setDate(Fri.getDate() + 7);
+          TargetEnd.setDate(TargetEnd.getDate() + 7);
         }
 
         const todayStr = new Date().toISOString().split('T')[0];
@@ -325,8 +328,8 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         dayAfter.setDate(dayAfter.getDate() + 2);
         const dayAfterStr = dayAfter.toISOString().split('T')[0];
 
-        const thuStr = Thu.toISOString().split('T')[0];
-        const friStr = Fri.toISOString().split('T')[0];
+        const fromStr = Thu.toISOString().split('T')[0];
+        const toStr = TargetEnd.toISOString().split('T')[0];
 
         // Helper to set date state correctly matching DatePicker options
         const setDateHelper = (dateStr, setDateFn, setCustomFn) => {
@@ -345,11 +348,11 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
           }
         };
 
-        setDateHelper(thuStr, setFromDate, setFromCustomDate);
+        setDateHelper(fromStr, setFromDate, setFromCustomDate);
         setFromTime('Evening');
 
-        setDateHelper(friStr, setToDate, setToCustomDate);
-        setToTime('Evening');
+        setDateHelper(toStr, setToDate, setToCustomDate);
+        setToTime(templateId === 'thu-fri-eve' ? 'Evening' : 'Morning');
         break;
       }
       default:
@@ -877,7 +880,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       setClassNum(found.CLASS);
 
       const activeRecord = checkLeaveStatus(found.ADNO);
-      if (activeRecord) {
+      if (activeRecord && formMode === 'create' && !loading) {
         showConflictAlert(found, activeRecord, 'single');
         return;
       }
@@ -891,7 +894,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       setName('');
       setClassNum('');
     }
-  }, [ad, students, teacher, navigate, leaveData, bypassRecovery]);
+  }, [ad, students, teacher, navigate, leaveData, bypassRecovery, formMode, loading]);
 
   // Reset showEndDateForMedical ONLY when reason changes
   useEffect(() => {
