@@ -28,35 +28,65 @@ export default function StudentSearchPage() {
   const [students, setStudents] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [allAttendance, setAllAttendance] = useState([]);
-  const [allLeaves, setAllLeaves] = useState([]);
-  const [allCEP, setAllCEP] = useState([]);
-  const [allMinus, setAllMinus] = useState([]);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [studentDetails, setStudentDetails] = useState({
+    attendance: [],
+    leaves: [],
+    cep: [],
+    minus: []
+  });
   const [activeTab, setActiveTab] = useState('overview');
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API_PORT}/students`);
+      setStudents(Array.isArray(res.data) ? res.data : []);
+    } catch (error) {
+      console.error("Error fetching students:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
-    setLoading(true);
+  useEffect(() => {
+    if (selectedStudent) {
+      fetchStudentRecords(selectedStudent);
+    } else {
+      setStudentDetails({
+        attendance: [],
+        leaves: [],
+        cep: [],
+        minus: []
+      });
+    }
+  }, [selectedStudent]);
+
+  const fetchStudentRecords = async (std) => {
+    setIsDetailLoading(true);
     try {
-      const [studentsRes, attendanceRes, leavesRes, cepRes, minusRes] = await Promise.all([
-        axios.get(`${API_PORT}/students`),
-        axios.get(`${API_PORT}/set-attendance`),
-        axios.get(`${API_PORT}/leave`),
-        axios.get(`${API_PORT}/class-excused-pass`),
-        axios.get(`${API_PORT}/minus`)
+      // Use student-specific queries to bypass global limits and improve accuracy
+      const [attendanceRes, leavesRes, cepRes, minusRes] = await Promise.all([
+        axios.get(`${API_PORT}/set-attendance?ad=${std.ADNO}`),
+        axios.get(`${API_PORT}/leave?ad=${std.ADNO}`),
+        axios.get(`${API_PORT}/class-excused-pass?ad=${std.ADNO}`),
+        axios.get(`${API_PORT}/minus?ad=${std.ADNO}`)
       ]);
-      setStudents(studentsRes.data);
-      setAllAttendance(attendanceRes.data);
-      setAllLeaves(leavesRes.data);
-      setAllCEP(cepRes.data);
-      setAllMinus(minusRes.data);
+      
+      setStudentDetails({
+        attendance: attendanceRes.data || [],
+        leaves: leavesRes.data || [],
+        cep: cepRes.data || [],
+        minus: minusRes.data || []
+      });
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error("Error fetching student details:", error);
     } finally {
-      setLoading(false);
+      setIsDetailLoading(false);
     }
   };
 
@@ -72,29 +102,12 @@ export default function StudentSearchPage() {
 
   const studentData = useMemo(() => {
     if (!selectedStudent) return null;
-    
-    const ad = selectedStudent.ADNO;
-    const sId = selectedStudent._id;
 
-    const filterFn = (item) => {
-      if (!item) return false;
-      // Check direct 'ad' field
-      if (item.ad && String(item.ad) === String(ad)) return true;
-      // Check 'studentId'
-      if (item.studentId) {
-        if (typeof item.studentId === 'object') {
-          return String(item.studentId.ADNO) === String(ad) || String(item.studentId._id) === String(sId);
-        }
-        return String(item.studentId) === String(sId);
-      }
-      return false;
-    };
-
-    const attendance = (allAttendance || []).filter(filterFn);
-    const leaves = (allLeaves || []).filter(filterFn);
-    const cep = (allCEP || []).filter(filterFn);
-    const minus = (allMinus || []).filter(filterFn);
-
+    const attendance = studentDetails.attendance;
+    const leaves = studentDetails.leaves;
+    const cep = studentDetails.cep;
+    const minus = studentDetails.minus;
+ 
     // Calculate recovery status
     const lastLeave = leaves
       .filter(l => l.status === 'returned' && l.returnedAt)
@@ -109,7 +122,7 @@ export default function StudentSearchPage() {
         recoveryStatus = { completed: false, remainingDays: 4 - diffDays };
       }
     }
-
+ 
     return {
       profile: selectedStudent,
       attendance,
@@ -118,7 +131,7 @@ export default function StudentSearchPage() {
       minus,
       recoveryStatus
     };
-  }, [selectedStudent, allAttendance, allLeaves, allCEP, allMinus]);
+  }, [selectedStudent, studentDetails]);
 
   const TabButton = ({ id, label, icon: Icon }) => (
     <button
@@ -268,7 +281,14 @@ export default function StudentSearchPage() {
               </div>
 
               {/* Tab Content */}
-              <div className="p-8">
+              <div className="p-8 min-h-[400px] relative">
+                {isDetailLoading ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/60 backdrop-blur-[2px] z-20">
+                    <Loader2 className="w-8 h-8 text-sky-500 animate-spin mb-3" />
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Synchronizing Records...</p>
+                  </div>
+                ) : null}
+
                 {activeTab === 'overview' && (
                   <div className="space-y-8 animate-in fade-in duration-300">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

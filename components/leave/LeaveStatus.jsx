@@ -276,6 +276,7 @@ function LeaveStatus() {
   const [filterClass, setFilterClass] = useState('All');
   const [filterAction, setFilterAction] = useState('All');
   const [filterStartReturn, setFilterStartReturn] = useState('All');
+  const [filterReason, setFilterReason] = useState('All');
   const [shortLeaveStatus, setShortLeaveStatus] = useState([]);
   const filterRef = useRef(null);
 
@@ -316,6 +317,33 @@ function LeaveStatus() {
       tomorrow: getCountForDay(tomorrow),
       dayAfter: getCountForDay(dayAfter)
     };
+  }, [leaveData]);
+
+  const availableReasons = useMemo(() => {
+    const statuses = ['Scheduled', 'On Leave', 'Late', 'Pending'];
+    const excludedKeywords = ['Medical (Home)', 'Room', 'Marriage'];
+    
+    const reasonCounts = {};
+    
+    leaveData.forEach(item => {
+      const status = item.calculatedStatus || getLeaveStatus(item);
+      const reason = item.reason;
+      
+      if (statuses.includes(status) && reason) {
+        const isExcluded = excludedKeywords.some(keyword => 
+          reason.toLowerCase().includes(keyword)
+        );
+        
+        if (!isExcluded) {
+          reasonCounts[reason] = (reasonCounts[reason] || 0) + 1;
+        }
+      }
+    });
+    
+    return Object.entries(reasonCounts)
+      .filter(([_, count]) => count >= 2)
+      .map(([reason]) => reason)
+      .sort();
   }, [leaveData]);
 
   // Calculate leave status
@@ -377,7 +405,12 @@ function LeaveStatus() {
     const status = getLeaveStatus(student);
     const matchesAction = filterAction === 'All' || status === filterAction;
 
-    return matchesAction;
+    if (!matchesAction) return false;
+
+    // 5. Reason Filter
+    const matchesReason = filterReason === 'All' || student.reason === filterReason;
+
+    return matchesReason;
   };
 
   const medicalRoomStatus = useMemo(() => {
@@ -606,7 +639,7 @@ function LeaveStatus() {
             <button 
               onClick={() => setShowFilters(!showFilters)}
               className={`p-2.5 rounded-xl border-2 transition-all flex items-center justify-center ${
-                showFilters || filterClass !== 'All' || filterAction !== 'All' || filterStartReturn !== 'All'
+                showFilters || filterClass !== 'All' || filterAction !== 'All' || filterStartReturn !== 'All' || filterReason !== 'All'
                 ? 'bg-sky-500 border-sky-500 text-white shadow-lg shadow-sky-500/20' 
                 : 'bg-white border-slate-100 text-slate-400 hover:border-sky-200 hover:text-sky-500'
               }`}
@@ -620,9 +653,9 @@ function LeaveStatus() {
               <div className="absolute top-full right-0 mt-3 w-64 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-100 p-5 z-[100] animate-in slide-in-from-top-2 duration-200">
                 <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-50">
                   <span className="text-xs font-black text-slate-800 uppercase tracking-tighter">Quick Filters</span>
-                  {(filterClass !== 'All' || filterAction !== 'All' || filterStartReturn !== 'All') && (
+                  {(filterClass !== 'All' || filterAction !== 'All' || filterStartReturn !== 'All' || filterReason !== 'All') && (
                     <button 
-                      onClick={() => { setFilterClass('All'); setFilterAction('All'); setFilterStartReturn('All'); }}
+                      onClick={() => { setFilterClass('All'); setFilterAction('All'); setFilterStartReturn('All'); setFilterReason('All'); }}
                       className="text-[10px] font-bold text-sky-500 hover:underline"
                     >
                       Reset
@@ -667,8 +700,8 @@ function LeaveStatus() {
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Status</label>
-                    <div className="flex flex-wrap gap-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Status </label>
+                    <div className="flex flex-wrap gap-1.5 font-bold">
                       {['All', 'Pending', 'On Leave', 'Late', 'Scheduled', 'Returned'].map(s => (
                         <button
                           key={s}
@@ -683,6 +716,35 @@ function LeaveStatus() {
                       ))}
                     </div>
                   </div>
+
+                  {availableReasons.length > 0 && (
+                    <div className="pt-2 border-t border-slate-100">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Common Reasons</label>
+                      <div className="flex flex-wrap gap-1.5">
+                        <button
+                          onClick={() => setFilterReason('All')}
+                          className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border transition-all ${filterReason === 'All'
+                              ? 'bg-sky-500 border-sky-500 text-white'
+                              : 'bg-slate-50 border-slate-100 text-slate-500 hover:bg-slate-100'
+                            }`}
+                        >
+                          All Reasons
+                        </button>
+                        {availableReasons.map(r => (
+                          <button
+                            key={r}
+                            onClick={() => setFilterReason(r)}
+                            className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border transition-all ${filterReason === r
+                                ? 'bg-sky-500 border-sky-500 text-white'
+                                : 'bg-slate-50 border-slate-100 text-slate-500 hover:bg-slate-100'
+                              }`}
+                          >
+                            {r}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
