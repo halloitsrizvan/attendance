@@ -321,7 +321,7 @@ function LeaveStatus() {
 
   const availableReasons = useMemo(() => {
     const statuses = ['Scheduled', 'On Leave', 'Late', 'Pending'];
-    const excludedKeywords = ['Medical (Home)', 'Room', 'Marriage'];
+    const excludedKeywords = ['medical', 'room', 'marriage', 'hospital', 'function', 'home'];
     
     const reasonCounts = {};
     
@@ -330,8 +330,9 @@ function LeaveStatus() {
       const reason = item.reason;
       
       if (statuses.includes(status) && reason) {
+        const lowerReason = reason.toLowerCase();
         const isExcluded = excludedKeywords.some(keyword => 
-          reason.toLowerCase().includes(keyword)
+          lowerReason.includes(keyword)
         );
         
         if (!isExcluded) {
@@ -415,11 +416,11 @@ function LeaveStatus() {
 
   const medicalRoomStatus = useMemo(() => {
     return leaveData.filter(student => (student.reason === 'Medical (Room)' || student.reason === 'Room') && !student.returnedAt && matchesFilters(student));
-  }, [leaveData, searchValue, filterClass, filterAction, filterStartReturn]);
+  }, [leaveData, searchValue, filterClass, filterAction, filterStartReturn, filterReason]);
 
   const medicalRoomStatusDB = useMemo(() => {
     return leaveData.filter(student => (student.reason === 'Medical (Room)' || student.reason === 'Room') && !student.returnedAt && (student.teacherId?.name === teacher?.name || student.teacher === teacher?.name) && matchesFilters(student));
-  }, [leaveData, searchValue, teacher, filterClass, filterAction, filterStartReturn]);
+  }, [leaveData, searchValue, teacher, filterClass, filterAction, filterStartReturn, filterReason]);
 
   const getDisplayStatus = (status) => {
     const statusMap = {
@@ -510,7 +511,7 @@ function LeaveStatus() {
         // Pending and Late students always show in the actions list
         return true;
       });
-  }, [leaveData, searchValue, filterClass, filterAction, filterStartReturn]);
+  }, [leaveData, searchValue, filterClass, filterAction, filterStartReturn, filterReason]);
 
   const refreshLeaveData = () => {
     fetchLeaveData();
@@ -518,7 +519,7 @@ function LeaveStatus() {
 
   const filteredData = useMemo(() => {
     let data = leaveData;
-    if (activeTab === 'actions' && (searchValue || filterClass !== 'All' || filterAction !== 'All' || filterStartReturn !== 'All')) {
+    if (activeTab === 'actions' && (searchValue || filterClass !== 'All' || filterAction !== 'All' || filterStartReturn !== 'All' || filterReason !== 'All')) {
       data = data.filter(matchesFilters);
     }
     if (activeTab === 'onLeave') {
@@ -537,7 +538,7 @@ function LeaveStatus() {
       return data.filter(matchesFilters);
     }
     return data;
-  }, [leaveData, activeTab, searchValue, filterClass, filterAction, filterStartReturn]);
+  }, [leaveData, activeTab, searchValue, filterClass, filterAction, filterStartReturn, filterReason]);
 
   const filteredDataForOnleave = useMemo(() => {
     const today = new Date();
@@ -552,7 +553,7 @@ function LeaveStatus() {
 
   const filterDB = useMemo(() => {
     return leaveData.filter(student => (student.teacherId?.name === teacher?.name || student.teacher === teacher?.name) && matchesFilters(student));
-  }, [leaveData, teacher, searchValue, filterClass, filterAction, filterStartReturn]);
+  }, [leaveData, teacher, searchValue, filterClass, filterAction, filterStartReturn, filterReason]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
