@@ -475,6 +475,36 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
+  const calculateLeaveDays = (from, to) => {
+    if (!from) return 0;
+    const startDate = new Date(from);
+    startDate.setHours(0,0,0,0);
+    const endDate = to ? new Date(to) : new Date();
+    endDate.setHours(0,0,0,0);
+    
+    const diffTime = Math.abs(endDate - startDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    return diffDays;
+  };
+
+  const getTimeLabel = (timeStr, isFrom = true) => {
+    if (!timeStr) return '';
+    
+    // Exact standard matches first
+    const morning = isFrom ? "05:30" : "07:00";
+    const evening = isFrom ? "16:30" : "18:00";
+    if (timeStr === morning) return "Morning";
+    if (timeStr === evening) return "Evening";
+    
+    // Fallback to fuzzy categorization
+    const hour = parseInt(timeStr.split(':')[0]);
+    if (hour >= 4 && hour < 12) return 'Morning';
+    if (hour >= 12 && hour < 17) return 'Afternoon';
+    if (hour >= 17 || hour < 4) return 'Evening';
+    
+    return formatTimeTo12h(timeStr);
+  };
+
   const handleMarkReturned = async (leave) => {
     setLoading(true);
     try {
@@ -1692,30 +1722,37 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
                   {studentHistory.sort((a,b) => new Date(b.fromDate) - new Date(a.fromDate)).map((leave, idx) => (
                     <div key={idx} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center justify-between gap-4">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[10px] font-black text-slate-400 capitalize px-2 py-0.5 bg-white border border-slate-100 rounded-md">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[10px] font-black text-slate-400 capitalize px-2 py-1 bg-white border border-slate-100 rounded-lg">
                             {leave.reason || 'General Leave'}
                           </span>
-                          <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
-                            leave.status === 'returned' || leave.status === 'Arrived' ? 'text-green-600 bg-green-50' : 'text-amber-600 bg-amber-50'
+                          <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg border shadow-sm ${
+                            leave.status === 'returned' || leave.status === 'Arrived' ? 'text-emerald-600 bg-emerald-50 border-emerald-100' : 'text-amber-600 bg-amber-50 border-amber-100'
                           }`}>
                             {leave.status}
                           </span>
+                          <span className="text-[10px] font-black text-sky-600 px-2 py-1 bg-sky-50 border border-sky-100 rounded-lg flex items-center gap-1">
+                            <Calendar size={10} />
+                            {calculateLeaveDays(leave.fromDate, leave.toDate || leave.returnedAt)} Days
+                          </span>
                         </div>
-                        <p className="text-sm font-bold text-slate-700 truncate">
-                          {leave.fromDate === leave.toDate ? leave.fromDate : `${leave.fromDate} to ${leave.toDate || 'End'}`}
-                        </p>
-                        <p className="text-[10px] font-medium text-slate-500">
-                           {leave.fromTime} {leave.toTime ? `→ ${leave.toTime}` : ''}
-                        </p>
                       </div>
-                      <div className="text-right">
-                        {leave.markReturnedTeacher && (
-                          <div className="flex flex-col items-end">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase">Returned To</span>
-                            <span className="text-[10px] font-black text-sky-600">{leave.markReturnedTeacher}</span>
-                          </div>
-                        )}
+                      <div className="text-right flex flex-col items-end">
+                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                           {getRelativeDate(leave.fromDate)}
+                           {leave.fromTime && <span className="text-slate-300 ml-1">• {getTimeLabel(leave.fromTime, true)}</span>}
+                         </span>
+                         {leave.status === 'returned' && leave.returnedAt ? (
+                           <span className="text-[8px] font-bold text-emerald-500/60 uppercase mt-0.5">
+                             Ended {getRelativeDate(leave.returnedAt.split('T')[0])} 
+                             <span className="ml-1 opacity-70">• {getTimeLabel(new Date(leave.returnedAt).toTimeString().substring(0,5), false)}</span>
+                           </span>
+                         ) : leave.toDate && (
+                           <span className="text-[8px] font-bold text-slate-300 uppercase mt-0.5">
+                             Until {getRelativeDate(leave.toDate)} 
+                             {leave.toTime && <span className="ml-1">• {getTimeLabel(leave.toTime, false)}</span>}
+                           </span>
+                         )}
                       </div>
                     </div>
                   ))}

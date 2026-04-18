@@ -285,6 +285,39 @@ function LeaveStatus() {
     return storedTeacher ? JSON.parse(storedTeacher) : null;
   }, []);
 
+  const forecast = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const dayAfter = new Date(today);
+    dayAfter.setDate(dayAfter.getDate() + 2);
+
+    const getCountForDay = (targetDate) => {
+      return leaveData.filter(item => {
+        if (item.status === 'returned') return false;
+        
+        const fromDate = new Date(item.fromDate);
+        fromDate.setHours(0, 0, 0, 0);
+        const toDate = item.toDate ? new Date(item.toDate) : null;
+        if (toDate) toDate.setHours(0, 0, 0, 0);
+
+        // If it's medical/room without end date AND it's not returned, count it for all future days
+        if (!toDate) return targetDate >= fromDate;
+
+        return targetDate >= fromDate && targetDate <= toDate;
+      }).length;
+    };
+
+    return {
+      today: getCountForDay(today),
+      tomorrow: getCountForDay(tomorrow),
+      dayAfter: getCountForDay(dayAfter)
+    };
+  }, [leaveData]);
+
   // Calculate leave status
   const getLeaveStatus = (item) => {
     const now = new Date();
@@ -456,9 +489,16 @@ function LeaveStatus() {
       data = data.filter(matchesFilters);
     }
     if (activeTab === 'onLeave') {
-      return data.filter(student =>
-        ['On Leave', 'Late'].includes(student.displayStatus) && matchesFilters(student)
-      );
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      return data.filter(student => {
+        const isScheduledToday = ['Scheduled', 'Pending'].includes(student.displayStatus) && 
+                                 new Date(student.fromDate).setHours(0,0,0,0) === today.getTime();
+        
+        return (['On Leave', 'Late'].includes(student.displayStatus) || isScheduledToday) && 
+               matchesFilters(student);
+      });
     }
     if (activeTab === 'all') {
       return data.filter(matchesFilters);
@@ -467,9 +507,14 @@ function LeaveStatus() {
   }, [leaveData, activeTab, searchValue, filterClass, filterAction, filterStartReturn]);
 
   const filteredDataForOnleave = useMemo(() => {
-    return leaveData.filter(student =>
-      ['On Leave', 'Late'].includes(student.displayStatus)
-    );
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return leaveData.filter(student => {
+      const isScheduledToday = ['Scheduled', 'Pending'].includes(student.displayStatus) && 
+                               new Date(student.fromDate).setHours(0,0,0,0) === today.getTime();
+      return ['On Leave', 'Late'].includes(student.displayStatus) || isScheduledToday;
+    });
   }, [leaveData]);
 
   const filterDB = useMemo(() => {
@@ -677,6 +722,26 @@ function LeaveStatus() {
             onClick={() => setActiveTab('My Dashboard')}
           />
         </div>
+
+        {activeTab === 'all' && (
+          <div className="grid grid-cols-3 gap-3 mb-6 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+            <div className="text-center p-3 rounded-xl bg-slate-50 border border-slate-100">
+              <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Today</span>
+              <span className="text-xl font-black text-slate-800 tracking-tighter">{forecast.today}</span>
+              <span className="block text-[7px] font-bold text-slate-400 mt-0.5 uppercase">Absentees</span>
+            </div>
+            <div className="text-center p-3 rounded-xl bg-sky-50 border border-sky-100">
+              <span className="block text-[8px] font-black text-sky-500 uppercase tracking-widest mb-1">Tomorrow</span>
+              <span className="text-xl font-black text-sky-600 tracking-tighter">{forecast.tomorrow}</span>
+              <span className="block text-[7px] font-bold text-sky-400 mt-0.5 uppercase">Forecast</span>
+            </div>
+            <div className="text-center p-3 rounded-xl bg-indigo-50 border border-indigo-100">
+              <span className="block text-[8px] font-black text-indigo-500 uppercase tracking-widest mb-1">Day After</span>
+              <span className="text-xl font-black text-indigo-600 tracking-tighter">{forecast.dayAfter}</span>
+              <span className="block text-[7px] font-bold text-indigo-400 mt-0.5 uppercase">Forecast</span>
+            </div>
+          </div>
+        )}
 
         {["all", "onLeave"].includes(activeTab) ?
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
