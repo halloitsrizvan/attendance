@@ -976,6 +976,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
 
   // Handle Extension Mode
   const handleExtendMode = (leave,stdData) => {
+    setActiveLeave(leave);
     setFormMode('extend');
     setAd(stdData.ADNO)
     setName(stdData["SHORT NAME"] || stdData["FULL NAME"] || stdData.name || "Unknown")
@@ -989,6 +990,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
 
   // Handle Add Reason Mode
   const handleAddReasonMode = (leave, stdData) => {
+    setActiveLeave(leave);
     setFormMode('add');
     if (stdData) {
       setAd(stdData.ADNO)
@@ -1336,6 +1338,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       toTime: finalToTime,
       reason: finalReason,
       status: startImmediately ? "active" : "Scheduled",
+      ...(startImmediately && { leaveStartTeacher: teacher?.name || 'Unknown' }),
       recovery: false,
       approved: true,
       reasonHistory: [{ reason: finalReason, teacherId: teacher?.id || teacher?._id, timestamp: new Date() }]
@@ -1344,7 +1347,14 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     console.log('Submitting leave:', payload);
 
     axios.post(`${API_PORT}/leave`, payload)
-      .then(() => {
+      .then(async () => {
+        if (startImmediately) {
+          try {
+            await axios.patch(`${API_PORT}/students/on-leave/${ad}`, { onLeave: true });
+          } catch (err) {
+            console.error("Error updating student status:", err);
+          }
+        }
         showAlert(`Leave approved for ${name}.`, "Approval Successful", "success");
         resetForm();
       })
@@ -1615,7 +1625,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     const currentTeacherId = teacher?.id || teacher?._id;
 
     // Create an array of promises for all selected students
-    const submitPromises = selectedBulkStudents.map(studentData => {
+    const submitPromises = selectedBulkStudents.flatMap(studentData => {
       const studentObj = students.find(s => String(s.ADNO) === String(studentData.ADNO));
 
       const payload = {
@@ -1628,10 +1638,17 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         toTime: finalToTime,
         reason: finalReason,
         status: startImmediately ? "active" : "Scheduled",
+        ...(startImmediately && { leaveStartTeacher: teacher?.name || 'Unknown' }),
         recovery: false
       };
 
-      return axios.post(`${API_PORT}/leave`, payload);
+      const promises = [axios.post(`${API_PORT}/leave`, payload)];
+      
+      if (startImmediately) {
+        promises.push(axios.patch(`${API_PORT}/students/on-leave/${studentData.ADNO}`, { onLeave: true }));
+      }
+      
+      return promises;
     });
 
     try {

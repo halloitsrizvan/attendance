@@ -19,6 +19,21 @@ const getSafeLocalStorage = () => {
   };
 };
 
+const formatTimeTo12h = (timeStr) => {
+  if (!timeStr) return '';
+  try {
+    const [hours, minutes] = timeStr.split(':');
+    let h = parseInt(hours);
+    const m = minutes || '00';
+    const ampm = h >= 12 ? 'pm' : 'am';
+    h = h % 12;
+    h = h ? h : 12;
+    return `${h}:${m} ${ampm}`;
+  } catch (e) {
+    return timeStr;
+  }
+};
+
 const TabButton = ({ label, isActive, onClick }) => (
   <button
     onClick={onClick}
@@ -417,11 +432,20 @@ function LeaveStatus() {
   };
 
   const medicalRoomStatus = useMemo(() => {
-    return leaveData.filter(student => (student.reason === 'Medical (Room)' || student.reason === 'Room') && !student.returnedAt && matchesFilters(student));
+    return leaveData.filter(student => {
+      const isRoom = student.reason === 'Medical (Room)' || student.reason === 'Room';
+      const status = getLeaveStatus(student);
+      return isRoom && (status === 'On Leave' || status === 'Late') && matchesFilters(student);
+    });
   }, [leaveData, searchValue, filterClass, filterAction, filterStartReturn, filterReason]);
 
   const medicalRoomStatusDB = useMemo(() => {
-    return leaveData.filter(student => (student.reason === 'Medical (Room)' || student.reason === 'Room') && !student.returnedAt && (student.teacherId?.name === teacher?.name || student.teacher === teacher?.name) && matchesFilters(student));
+    return leaveData.filter(student => {
+      const isRoom = student.reason === 'Medical (Room)' || student.reason === 'Room';
+      const status = getLeaveStatus(student);
+      const isMyStudent = student.teacherId?.name === teacher?.name || student.teacher === teacher?.name;
+      return isRoom && (status === 'On Leave' || status === 'Late') && isMyStudent && matchesFilters(student);
+    });
   }, [leaveData, searchValue, teacher, filterClass, filterAction, filterStartReturn, filterReason]);
 
   const getDisplayStatus = (status) => {
@@ -519,33 +543,59 @@ function LeaveStatus() {
     fetchLeaveData();
   };
 
-  const copyWeekendList = () => {
-    if (!copyFromDate || !copyToDate) {
-      alert("Please select both From and To dates first.");
+  const copyToClipboard = (leaves, rangeInfo) => {
+    if (leaves.length === 0) {
+      alert(`No records found for ${rangeInfo}`);
       return;
     }
 
-    // Filter My Dashboard data for this custom range
-    const selectedLeaves = filterDB.filter(l => 
-      l.fromDate >= copyFromDate && l.toDate <= copyToDate
-    );
-
-    if (selectedLeaves.length === 0) {
-      alert(`No records found for the specific combination of From: ${copyFromDate} and To: ${copyToDate}`);
-      return;
-    }
-
-    const text = selectedLeaves.map((l, i) => {
+    const text = leaves.map((l, i) => {
       const name = l.studentId?.['SHORT NAME'] || l.studentId?.['FULL NAME'] || l.name;
       const ad = l.studentId?.ADNO || l.ad;
       const className = l.studentId?.CLASS || l.classNum;
       
-      return `${i + 1}. ${name} (${ad}) - Class ${className}\n   Reason: ${l.reason}\n   From: ${l.fromDate} ${l.fromTime}\n   To: ${l.toDate} ${l.toTime}`;
+      const fromTimeStr = formatTimeTo12h(l.fromTime);
+      const toTimeStr = formatTimeTo12h(l.toTime);
+      
+      return `${i + 1}. ${name} (${ad}) - Class ${className}\n   Reason: ${l.reason}\n   From: ${l.fromDate} ${fromTimeStr}\n   To: ${l.toDate} ${toTimeStr}`;
     }).join('\n\n');
 
     navigator.clipboard.writeText(text).then(() => {
-      alert(`Copied ${selectedLeaves.length} leave records to clipboard!`);
+      alert(`Copied ${leaves.length} leave records for ${rangeInfo} to clipboard!`);
     });
+  };
+
+  const handleCustomCopy = () => {
+    if (!copyFromDate || !copyToDate) {
+      alert("Please select both From and To dates first.");
+      return;
+    }
+    const selectedLeaves = filterDB.filter(l => 
+      l.fromDate >= copyFromDate && l.toDate <= copyToDate
+    );
+    copyToClipboard(selectedLeaves, `Custom Range (${copyFromDate} to ${copyToDate})`);
+  };
+
+  const handleWeekendCopy = () => {
+    const now = new Date();
+    const day = now.getDay();
+    // Latest Thursday (4)
+    const diffToThu = (day - 4 + 7) % 7;
+    const thu = new Date(now);
+    thu.setDate(now.getDate() - diffToThu);
+    // Friday (5) after that Thursday
+    const fri = new Date(thu);
+    fri.setDate(thu.getDate() + 1);
+
+    const thuStr = thu.toISOString().split('T')[0];
+    const friStr = fri.toISOString().split('T')[0];
+
+    // Filter leaves for this specific weekend (Thu Eve to Fri Eve)
+    const selectedLeaves = filterDB.filter(l => 
+       l.fromDate === thuStr && l.toDate === friStr
+    );
+    
+    copyToClipboard(selectedLeaves, `Weekend (${thuStr} to ${friStr})`);
   };
 
   const filteredData = useMemo(() => {
@@ -912,33 +962,39 @@ function LeaveStatus() {
                   onClick={() => setActiveTabMyDB('History')}
                 />
                 
-                <div className="ml-auto flex items-center gap-2 pr-2">
-                  <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-100 rounded-lg px-2 py-1">
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-tight">From</span>
+                <div className="ml-auto flex items-center gap-1 pr-2">
+                  <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 rounded-lg px-1.5 py-1">
                     <input 
                       type="date"
                       value={copyFromDate}
                       onChange={(e) => setCopyFromDate(e.target.value)}
-                      className="bg-transparent text-[10px] font-bold text-slate-700 outline-none"
+                      className="bg-transparent text-[10px] font-bold text-slate-700 outline-none w-[95px]"
                     />
                   </div>
-                  <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-100 rounded-lg px-2 py-1">
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-tight">To</span>
+                  <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 rounded-lg px-1.5 py-1">
                     <input 
                       type="date"
                       value={copyToDate}
                       onChange={(e) => setCopyToDate(e.target.value)}
-                      className="bg-transparent text-[10px] font-bold text-slate-700 outline-none"
+                      className="bg-transparent text-[10px] font-bold text-slate-700 outline-none w-[95px]"
                     />
                   </div>
                   
                   <button
-                    onClick={copyWeekendList}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 text-white text-[10px] font-black rounded-lg hover:bg-slate-900 transition-all shadow-md active:scale-95"
+                    onClick={handleCustomCopy}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-800 text-white text-[10px] font-black rounded-lg hover:bg-slate-900 transition-all shadow-md active:scale-95"
                     title="Copy selected range to clipboard"
                   >
                     <Clipboard size={12} />
                     <span>Copy</span>
+                  </button>
+                  <button
+                    onClick={handleWeekendCopy}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-800 text-amber-400 text-[10px] font-black rounded-lg hover:bg-slate-900 transition-all shadow-md active:scale-95 border border-amber-400/20"
+                    title="Copy latest weekend list (Thu-Fri)"
+                  >
+                    <Clipboard size={12} />
+                    <span>Weekend</span>
                   </button>
                 </div>
               </div>

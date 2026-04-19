@@ -58,6 +58,14 @@ const leaveSchema = new Schema({
         type: Boolean,
         default: true
     },
+    documented: {
+        type: Boolean,
+        default: false
+    },
+    documentUrl: {
+        type: String,
+        default: null
+    },
     reasonHistory: [
         {
             reason: String,

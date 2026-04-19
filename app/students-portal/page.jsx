@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Menu, X, CheckCircle, Clock, Calendar, TrendingUp, LogOut, Info, AlertTriangle, FileText, User, ChevronRight, LayoutGrid } from 'lucide-react';
+import { Menu, X, CheckCircle, Clock, Calendar, TrendingUp, LogOut, Info, AlertTriangle, FileText, User, ChevronRight, LayoutGrid, PlusCircle, MessageSquare, Upload, Loader2, Send } from 'lucide-react';
 import axios from 'axios';
 import { API_PORT } from '@/Constants';
 import StudentAuthGuard from '@/components/auth/StudentAuthGuard';
@@ -18,6 +18,20 @@ const formatDate = (dateString, monthOnly = false) => {
     const d = new Date(dateString);
     if (monthOnly) return d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
     return d.toLocaleDateString('en-GB');
+};
+
+const getRecoveryStatus = (leave) => {
+    if ((leave.status !== 'returned' && !leave.returnedAt) || leave.recovery === true) return null;
+    
+    const returnedDate = new Date(leave.returnedAt || leave.toDate);
+    const today = new Date();
+    const diffTime = today - returnedDate;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays >= 0 && diffDays <= 3) {
+        return 4 - diffDays;
+    }
+    return null;
 };
 
 /**
@@ -110,6 +124,228 @@ const MetricCard = ({ title, value, subText, color, icon: Icon, onClick }) => (
     </div>
 );
 
+
+/**
+ * Apply Leave Modal
+ */
+const ApplyLeaveModal = ({ isOpen, onClose, studentId, teacherId, onComplete }) => {
+    const [loading, setLoading] = useState(false);
+    const [formData, setFormData] = useState({
+        fromDate: new Date().toISOString().split('T')[0],
+        fromTime: '08:00',
+        toDate: new Date().toISOString().split('T')[0],
+        toTime: '17:00',
+        reason: ''
+    });
+
+    if (!isOpen) return null;
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            await axios.post(`${API_PORT}/leave`, {
+                studentId,
+                ...formData,
+                status: 'pending',
+                teacherId: teacherId || '65c123456789012345678901' // Placeholder or actual teacher
+            });
+            onComplete();
+            onClose();
+        } catch (err) {
+            console.error(err);
+            alert("Failed to submit leave request.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose}></div>
+            <div className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+                <div className="p-6 bg-amber-500 text-white flex items-center justify-between">
+                    <div>
+                        <h2 className="text-xl font-black uppercase italic">Apply Leave</h2>
+                        <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest">Submit request for approval</p>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-xl transition-all"><X size={20} /></button>
+                </div>
+                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">From Date</label>
+                            <input type="date" value={formData.fromDate} onChange={e => setFormData({ ...formData, fromDate: e.target.value })} className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3 text-sm font-bold text-slate-700 focus:border-amber-400 outline-none transition-all" required />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">From Time</label>
+                            <input type="time" value={formData.fromTime} onChange={e => setFormData({ ...formData, fromTime: e.target.value })} className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3 text-sm font-bold text-slate-700 focus:border-amber-400 outline-none transition-all" required />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">To Date</label>
+                            <input type="date" value={formData.toDate} onChange={e => setFormData({ ...formData, toDate: e.target.value })} className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3 text-sm font-bold text-slate-700 focus:border-amber-400 outline-none transition-all" required />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">To Time</label>
+                            <input type="time" value={formData.toTime} onChange={e => setFormData({ ...formData, toTime: e.target.value })} className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3 text-sm font-bold text-slate-700 focus:border-amber-400 outline-none transition-all" required />
+                        </div>
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Reason</label>
+                        <textarea value={formData.reason} onChange={e => setFormData({ ...formData, reason: e.target.value })} placeholder="Why are you taking leave?" className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-amber-400 outline-none transition-all h-24 resize-none" required />
+                    </div>
+                    <button type="submit" disabled={loading} className="w-full py-4 bg-amber-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 hover:bg-amber-600 active:scale-95 transition-all">
+                        {loading ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
+                        Submit Leave Request
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+/**
+ * Complaint Modal
+ */
+const ComplaintModal = ({ isOpen, onClose, attendance, studentId }) => {
+    const [loading, setLoading] = useState(false);
+    const [actualStatus, setActualStatus] = useState('Present');
+    const [message, setMessage] = useState('');
+
+    if (!isOpen || !attendance) return null;
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            await axios.post(`${API_PORT}/complaints`, {
+                studentId,
+                attendanceId: attendance._id,
+                actualStatus,
+                message
+            });
+            alert("Complaint submitted successfully.");
+            onClose();
+        } catch (err) {
+            console.error(err);
+            alert("Failed to submit complaint.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose}></div>
+            <div className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+                <div className="p-6 bg-rose-500 text-white flex items-center justify-between">
+                    <div>
+                        <h2 className="text-xl font-black uppercase italic">Raise Complaint</h2>
+                        <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest">Dispute attendance record</p>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-xl transition-all"><X size={20} /></button>
+                </div>
+                <div className="p-6 space-y-4">
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
+                        <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase">{formatDate(attendance.createdAt)}</p>
+                            <p className="text-sm font-black text-slate-800">{attendance.attendanceTime || 'General'}</p>
+                        </div>
+                        <span className="text-rose-500 font-black text-xs uppercase px-2 py-1 bg-white rounded-lg border border-rose-100 italic">MARKED ABSENT</span>
+                    </div>
+
+                    <div className="space-y-1 p-1">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">I was actually...</label>
+                        <div className="flex gap-2 mt-2">
+                            {['Present', 'Leave'].map(s => (
+                                <button key={s} onClick={() => setActualStatus(s)} className={`flex-1 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${actualStatus === s ? 'bg-rose-500 text-white shadow-lg shadow-rose-200' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>{s}</button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Remarks</label>
+                        <textarea value={message} onChange={e => setMessage(e.target.value)} placeholder="Explain why the data might be wrong..." className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-rose-400 outline-none transition-all h-24 resize-none" required />
+                    </div>
+
+                    <button onClick={handleSubmit} disabled={loading} className="w-full py-4 bg-rose-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 hover:bg-rose-600 active:scale-95 transition-all shadow-xl shadow-rose-200">
+                        {loading ? <Loader2 className="animate-spin" size={16} /> : <AlertTriangle size={16} />}
+                        Submit Dispute
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+/**
+ * Document Modal
+ */
+const DocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
+    const [loading, setLoading] = useState(false);
+    const [fileUrl, setFileUrl] = useState('');
+
+    if (!isOpen || !leave) return null;
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            await axios.patch(`${API_PORT}/leave/${leave._id}`, {
+                documented: true,
+                documentUrl: fileUrl || 'https://example.com/medical-report.pdf' // Mock upload
+            });
+            alert("Documentation submitted.");
+            onUpdate();
+            onClose();
+        } catch (err) {
+            console.error(err);
+            alert("Failed to submit documentation.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose}></div>
+            <div className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+                <div className="p-6 bg-blue-600 text-white flex items-center justify-between">
+                    <div>
+                        <h2 className="text-xl font-black uppercase italic">Document Leave</h2>
+                        <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest">Attach medical documents</p>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-xl transition-all"><X size={20} /></button>
+                </div>
+                <div className="p-6 space-y-6">
+                    <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl">
+                        <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Leave Reason</p>
+                        <p className="text-sm font-black text-blue-800 italic">"{leave.reason}"</p>
+                        <p className="text-[10px] font-bold text-blue-400 mt-2 uppercase">{leave.fromDate} → {leave.toDate || 'End of Day'}</p>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="w-full h-40 border-2 border-dashed border-slate-200 rounded-[2rem] flex flex-col items-center justify-center p-6 text-center hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer group">
+                            <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 mb-3 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                <Upload size={24} />
+                            </div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">Click or drag to <br /> upload medical docs</p>
+                        </div>
+                        <input type="text" value={fileUrl} onChange={e => setFileUrl(e.target.value)} placeholder="Or paste document link..." className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3 text-xs font-bold text-slate-700 focus:border-blue-400 outline-none" />
+                    </div>
+
+                    <button onClick={handleSubmit} disabled={loading} className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 hover:bg-blue-700 active:scale-95 transition-all shadow-xl shadow-blue-200">
+                        {loading ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle size={16} />}
+                        Save Documentation
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const StudentsPortal = () => {
     const navigate = useRouter();
     const [student, setStudent] = useState(null);
@@ -121,6 +357,13 @@ const StudentsPortal = () => {
     const [attendanceData, setAttendanceData] = useState([]);
     const [leaveData, setLeaveData] = useState([]);
     const [minusData, setMinusData] = useState([]);
+
+    // Modal states
+    const [selectedAttendance, setSelectedAttendance] = useState(null);
+    const [selectedLeave, setSelectedLeave] = useState(null);
+    const [isApplyLeaveOpen, setIsApplyLeaveOpen] = useState(false);
+    const [isComplaintOpen, setIsComplaintOpen] = useState(false);
+    const [isDocumentOpen, setIsDocumentOpen] = useState(false);
 
     useEffect(() => {
         fetchProfile();
@@ -210,6 +453,24 @@ const StudentsPortal = () => {
         <StudentAuthGuard>
             <div className="min-h-screen bg-[#f8fafc] font-sans text-slate-900 flex flex-col">
                 <AttendanceModal isOpen={showBreakdown} onClose={() => setShowBreakdown(false)} data={attendanceData} />
+                <ApplyLeaveModal 
+                    isOpen={isApplyLeaveOpen} 
+                    onClose={() => setIsApplyLeaveOpen(false)} 
+                    studentId={student._id}
+                    onComplete={() => fetchStudentAnalytics(student.ADNO)}
+                />
+                <ComplaintModal 
+                    isOpen={isComplaintOpen} 
+                    onClose={() => setIsComplaintOpen(false)} 
+                    attendance={selectedAttendance}
+                    studentId={student._id}
+                />
+                <DocumentModal 
+                    isOpen={isDocumentOpen} 
+                    onClose={() => setIsDocumentOpen(false)} 
+                    leave={selectedLeave}
+                    onUpdate={() => fetchStudentAnalytics(student.ADNO)}
+                />
 
                 {/* Header */}
                 <header className="fixed top-0 left-0 w-full bg-white/80 backdrop-blur-md border-b border-slate-100 z-40">
@@ -254,6 +515,14 @@ const StudentsPortal = () => {
                                 <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Status</span>
                                 <span className="text-sm font-black text-emerald-600">Active</span>
                             </div>
+                        </div>
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={() => setIsApplyLeaveOpen(true)}
+                                className="bg-amber-500 text-white p-3 pr-6 rounded-[1.5rem] flex items-center gap-2 shadow-lg shadow-amber-200 hover:bg-amber-600 active:scale-95 transition-all text-xs font-black uppercase tracking-widest whitespace-nowrap"
+                            >
+                                <PlusCircle size={18} /> Apply Leave
+                            </button>
                         </div>
                     </div>
 
@@ -307,8 +576,13 @@ const StudentsPortal = () => {
                                                         <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${item.status === 'Present' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
                                                             {item.status}
                                                         </div>
-                                                        {item.teacher && (
-                                                            <span className="text-[8px] font-bold text-slate-400 uppercase group-hover:text-slate-600 transition-colors">By: {item.teacher}</span>
+                                                        {item.status !== 'Present' && (
+                                                            <button 
+                                                                onClick={() => { setSelectedAttendance(item); setIsComplaintOpen(true); }}
+                                                                className="text-[8px] font-black text-rose-400 uppercase tracking-widest bg-rose-50 px-2 py-1 rounded-lg border border-rose-100 hover:bg-rose-500 hover:text-white transition-all flex items-center gap-1"
+                                                            >
+                                                                <MessageSquare size={10} /> Raise a complaint
+                                                            </button>
                                                         )}
                                                     </div>
                                                 </div>
@@ -328,7 +602,76 @@ const StudentsPortal = () => {
 
                         {/* Right Column: Other Records */}
                         <div className="space-y-8">
+                           
+
                             <section className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
+                                <div className="p-8 border-b border-slate-50 flex items-center justify-between">
+                                    <h2 className="text-xl font-black text-slate-800 tracking-tight uppercase italic flex items-center gap-3">
+                                        <Calendar size={20} className="text-amber-500" /> Leave History
+                                    </h2>
+                                </div>
+                                <div className="p-4 sm:p-6 h-[500px] overflow-y-auto">
+                                    {leaveData.length > 0 ? (
+                                        <div className="space-y-4">
+                                            {leaveData.map((item, idx) => (
+                                                <div key={idx} className="p-6 bg-slate-50 rounded-[2.5rem] border border-slate-100 hover:bg-white hover:shadow-lg hover:border-amber-100 transition-all group">
+                                                    <div className="flex justify-between items-center mb-4">
+                                                        <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${item.status === 'returned' || item.returnedAt ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'}`}>
+                                                            {item.status === 'returned' || item.returnedAt ? 'Completed' : 'Current Leave'}
+                                                        </span>
+                                                        <span className="text-[10px] font-black text-slate-400 uppercase">{formatDate(item.createdAt)}</span>
+                                                    </div>
+                                                    <h4 className="text-base font-black text-slate-800 uppercase italic mb-4 leading-tight">“{item.reason}”</h4>
+                                                    <div className="grid grid-cols-2 gap-4 text-[10px] font-black text-slate-500 uppercase tracking-widest pt-4 border-t border-slate-200/50">
+                                                        <div className="flex flex-col gap-1">
+                                                            <span className="text-slate-300 group-hover:text-amber-500">From</span>
+                                                            <span className="text-slate-800">{formatTime(item.fromDate)}</span>
+                                                        </div>
+                                                        <div className="flex flex-col gap-1">
+                                                            <span className="text-slate-300 group-hover:text-amber-500">Return</span>
+                                                            <span className="text-slate-800">{item.returnedAt ? formatTime(item.returnedAt) : (item.toDate ? formatTime(item.toDate) : 'PENDING')}</span>
+                                                        </div>
+                                                    </div>
+
+                                                    {!item.documented && ['Room', 'Medical (Home)', 'Hospital'].some(r => item.reason?.includes(r)) && (
+                                                        <button 
+                                                            onClick={() => { setSelectedLeave(item); setIsDocumentOpen(true); }}
+                                                            className="mt-6 w-full py-3 bg-blue-50 border border-blue-100 rounded-2xl text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                                                        >
+                                                            <Upload size={14} /> Upload Medical Documents
+                                                        </button>
+                                                    )}
+                                                    {item.documented && (
+                                                        <div className="mt-6 p-3 bg-emerald-50 rounded-2xl flex items-center justify-center gap-2 border border-emerald-100">
+                                                            <CheckCircle size={14} className="text-emerald-500" />
+                                                            <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Documents Verified</span>
+                                                        </div>
+                                                    )}
+
+                                                    {getRecoveryStatus(item) !== null && (
+                                                        <div className="mt-3 p-3 bg-amber-50 rounded-2xl flex items-center justify-between border border-amber-100 animate-pulse">
+                                                            <div className="flex items-center gap-2">
+                                                                <Clock size={14} className="text-amber-500" />
+                                                                <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">In Recovery</span>
+                                                            </div>
+                                                            <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest px-2 py-0.5 bg-white rounded-lg">{getRecoveryStatus(item)} Days Left</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="h-full flex flex-col items-center justify-center opacity-30 text-center p-8">
+                                            <div className="w-20 h-20 bg-slate-100 rounded-3xl flex items-center justify-center mb-6">
+                                                <Info size={40} className="text-slate-400" />
+                                            </div>
+                                            <p className="text-xs font-black uppercase tracking-widest">No leave history found</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </section>
+
+                             <section className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
                                 <div className="p-8 border-b border-slate-50 flex items-center justify-between">
                                     <h2 className="text-xl font-black text-slate-800 tracking-tight uppercase italic flex items-center gap-3">
                                         <AlertTriangle size={20} className="text-rose-500" /> Minus report
@@ -366,48 +709,6 @@ const StudentsPortal = () => {
                                                 <CheckCircle size={40} className="text-emerald-500" />
                                             </div>
                                             <p className="text-xs font-black uppercase tracking-widest">Perfect record! No point deductions found.</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </section>
-
-                            <section className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
-                                <div className="p-8 border-b border-slate-50 flex items-center justify-between">
-                                    <h2 className="text-xl font-black text-slate-800 tracking-tight uppercase italic flex items-center gap-3">
-                                        <Calendar size={20} className="text-amber-500" /> Leave History
-                                    </h2>
-                                </div>
-                                <div className="p-4 sm:p-6 h-[500px] overflow-y-auto">
-                                    {leaveData.length > 0 ? (
-                                        <div className="space-y-4">
-                                            {leaveData.map((item, idx) => (
-                                                <div key={idx} className="p-6 bg-slate-50 rounded-[2.5rem] border border-slate-100 hover:bg-white hover:shadow-lg hover:border-amber-100 transition-all group">
-                                                    <div className="flex justify-between items-center mb-4">
-                                                        <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${item.status === 'returned' || item.returnedAt ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'}`}>
-                                                            {item.status === 'returned' || item.returnedAt ? 'Completed' : 'Current Leave'}
-                                                        </span>
-                                                        <span className="text-[10px] font-black text-slate-400 uppercase">{formatDate(item.createdAt)}</span>
-                                                    </div>
-                                                    <h4 className="text-base font-black text-slate-800 uppercase italic mb-4 leading-tight">“{item.reason}”</h4>
-                                                    <div className="grid grid-cols-2 gap-4 text-[10px] font-black text-slate-500 uppercase tracking-widest pt-4 border-t border-slate-200/50">
-                                                        <div className="flex flex-col gap-1">
-                                                            <span className="text-slate-300 group-hover:text-amber-500">From</span>
-                                                            <span className="text-slate-800">{formatTime(item.fromDate)}</span>
-                                                        </div>
-                                                        <div className="flex flex-col gap-1">
-                                                            <span className="text-slate-300 group-hover:text-amber-500">Return</span>
-                                                            <span className="text-slate-800">{item.returnedAt ? formatTime(item.returnedAt) : (item.toDate ? formatTime(item.toDate) : 'PENDING')}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="h-full flex flex-col items-center justify-center opacity-30 text-center p-8">
-                                            <div className="w-20 h-20 bg-slate-100 rounded-3xl flex items-center justify-center mb-6">
-                                                <Info size={40} className="text-slate-400" />
-                                            </div>
-                                            <p className="text-xs font-black uppercase tracking-widest">No leave history found</p>
                                         </div>
                                     )}
                                 </div>
