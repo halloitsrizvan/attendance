@@ -128,7 +128,7 @@ const MetricCard = ({ title, value, subText, color, icon: Icon, onClick }) => (
 /**
  * Apply Leave Modal
  */
-const ApplyLeaveModal = ({ isOpen, onClose, studentId, teacherId, onComplete }) => {
+const ApplyLeaveModal = ({ isOpen, onClose, student, onComplete }) => {
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         fromDate: new Date().toISOString().split('T')[0],
@@ -144,17 +144,39 @@ const ApplyLeaveModal = ({ isOpen, onClose, studentId, teacherId, onComplete }) 
         e.preventDefault();
         setLoading(true);
         try {
+            // Fetch teachers to find the responsible one
+            const teachersRes = await axios.get(`${API_PORT}/teachers`);
+            const teachers = teachersRes.data;
+            
+            let responsibleTeacherId = null;
+            const classNum = Number(student.CLASS);
+
+            if (classNum >= 8 && classNum <= 10) {
+                responsibleTeacherId = teachers.find(t => t.role?.includes("HOD"))?._id;
+            } else if (classNum >= 5 && classNum <= 7) {
+                responsibleTeacherId = teachers.find(t => t.role?.includes("HOS"))?._id;
+            } else if (classNum >= 1 && classNum <= 4) {
+                responsibleTeacherId = teachers.find(t => Number(t.classNum) === classNum)?._id;
+            }
+
+            if (!responsibleTeacherId) {
+                alert("No responsible teacher found for your class. Please contact administration.");
+                return;
+            }
+
             await axios.post(`${API_PORT}/leave`, {
-                studentId,
+                studentId: student.id || student._id,
                 ...formData,
                 status: 'pending',
-                teacherId: teacherId || '65c123456789012345678901' // Placeholder or actual teacher
+                approved: false,
+                teacherId: responsibleTeacherId
             });
             onComplete();
             onClose();
         } catch (err) {
             console.error(err);
-            alert("Failed to submit leave request.");
+            const errorMsg = err.response?.data?.error || err.message || "Failed to submit leave request.";
+            alert(`Error: ${errorMsg}`);
         } finally {
             setLoading(false);
         }
@@ -456,7 +478,7 @@ const StudentsPortal = () => {
                 <ApplyLeaveModal 
                     isOpen={isApplyLeaveOpen} 
                     onClose={() => setIsApplyLeaveOpen(false)} 
-                    studentId={student._id}
+                    student={student}
                     onComplete={() => fetchStudentAnalytics(student.ADNO)}
                 />
                 <ComplaintModal 
@@ -616,9 +638,14 @@ const StudentsPortal = () => {
                                             {leaveData.map((item, idx) => (
                                                 <div key={idx} className="p-6 bg-slate-50 rounded-[2.5rem] border border-slate-100 hover:bg-white hover:shadow-lg hover:border-amber-100 transition-all group">
                                                     <div className="flex justify-between items-center mb-4">
-                                                        <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${item.status === 'returned' || item.returnedAt ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'}`}>
-                                                            {item.status === 'returned' || item.returnedAt ? 'Completed' : 'Current Leave'}
-                                                        </span>
+                                                        <div className="flex gap-2">
+                                                            <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${item.status === 'returned' || item.returnedAt ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'}`}>
+                                                                {item.status === 'returned' || item.returnedAt ? 'Completed' : 'Current Leave'}
+                                                            </span>
+                                                            <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${item.approved !== false ? 'bg-blue-500 text-white' : 'bg-rose-500 text-white'}`}>
+                                                                {item.approved !== false ? 'Approved' : 'Pending Approval'}
+                                                            </span>
+                                                        </div>
                                                         <span className="text-[10px] font-black text-slate-400 uppercase">{formatDate(item.createdAt)}</span>
                                                     </div>
                                                     <h4 className="text-base font-black text-slate-800 uppercase italic mb-4 leading-tight">“{item.reason}”</h4>

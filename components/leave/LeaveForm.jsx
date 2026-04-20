@@ -649,10 +649,12 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       const studentObj = students.find(s => String(s.ADNO) === String(studentAd));
       if (!studentObj) return false;
 
-      // Filter leaves for this student by matching studentId
+      // Filter leaves for this student by matching studentId and approved status
       const studentLeaves = leaveData.filter(leave => {
         const leaveStudentId = typeof leave.studentId === 'object' ? leave.studentId?._id : leave.studentId;
-        return String(leaveStudentId) === String(studentObj._id);
+        const isMatch = String(leaveStudentId) === String(studentObj._id);
+        const isApproved = leave.approved !== false;
+        return isMatch && isApproved;
       });
 
       if (studentLeaves.length === 0) return false;

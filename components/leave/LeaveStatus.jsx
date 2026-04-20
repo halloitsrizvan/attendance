@@ -90,9 +90,15 @@ const StatusBadge = ({ status }) => {
         text: 'text-red-700',
         icon: XCircle,
         label: 'Not Arrived'
+      },
+      'Not Approved': {
+        bg: 'bg-rose-100',
+        text: 'text-rose-700',
+        icon: X,
+        label: 'Not Approved'
       }
     };
-    return configs[status] || configs['Not Arrived'];
+    return configs[status] || configs['Not Approved'];
   };
 
   const config = getStatusConfig(status);
@@ -176,7 +182,8 @@ const StudentStatusCard = ({ student }) => {
       : student.displayStatus === 'Late'
         ? 'bg-orange-500' : student.displayStatus === 'Scheduled' ? " bg-yellow-500"
           : student.displayStatus === 'Pending' ? "bg-blue-500"
-            : 'bg-red-500';
+            : student.displayStatus === 'Not Approved' ? "bg-rose-500"
+              : 'bg-red-500';
 
   const returnedTime = formatReturnedTime(student.returnedAt);
   const [showFull, setShowFull] = useState(false);
@@ -366,6 +373,7 @@ function LeaveStatus() {
 
   // Calculate leave status
   const getLeaveStatus = (item) => {
+    if (item.approved === false) return 'Not Approved';
     const now = new Date();
     const fromDateTime = new Date(`${item.fromDate}T${item.fromTime}`);
     const toDateTime = item.toDate && item.toTime ? new Date(`${item.toDate}T${item.toTime}`) : null;
@@ -457,7 +465,7 @@ function LeaveStatus() {
       'Pending': 'Pending',
       'Scheduled': 'Scheduled'
     };
-    return statusMap[status] || 'Not Arrived';
+    return statusMap[status] || 'Not Approved';
   };
 
   useEffect(() => {
