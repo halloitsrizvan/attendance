@@ -106,6 +106,7 @@ function Header() {
                     <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/class-wise') }}>Attendance Status</a>
                     <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/edit-attendance-classes') }}>Edit Attendance</a>
                     <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/student-search') }}>Search Student</a>
+                    <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/complaints') }}>Complaints</a>
                   </div>
                 </div>
               </div>
@@ -273,6 +274,7 @@ function Header() {
                   <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/class-wise'); setIsMenuOpen(false) }}>Attendance Status</a>
                   <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/edit-attendance-classes'); setIsMenuOpen(false) }}>Edit Attendance</a>
                   <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/student-search'); setIsMenuOpen(false) }}>Search Student</a>
+                  <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/complaints'); setIsMenuOpen(false) }}>Complaints</a>
                 </div>
               )}
             </div>

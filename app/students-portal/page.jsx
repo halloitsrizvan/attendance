@@ -231,24 +231,45 @@ const ApplyLeaveModal = ({ isOpen, onClose, student, onComplete }) => {
 /**
  * Complaint Modal
  */
-const ComplaintModal = ({ isOpen, onClose, attendance, studentId }) => {
+const ComplaintModal = ({ isOpen, onClose, attendance, studentId, records = [], onComplete }) => {
     const [loading, setLoading] = useState(false);
     const [actualStatus, setActualStatus] = useState('Present');
     const [message, setMessage] = useState('');
+    const [selectedId, setSelectedId] = useState('');
 
-    if (!isOpen || !attendance) return null;
+    useEffect(() => {
+        if (isOpen) {
+            if (attendance) {
+                setSelectedId(attendance._id);
+            } else {
+                setSelectedId('');
+            }
+            setMessage('');
+            setActualStatus('Present');
+        }
+    }, [isOpen, attendance]);
+
+    if (!isOpen) return null;
+
+    const currentAttendance = attendance || records.find(r => r._id === selectedId);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         try {
+            if (!currentAttendance) {
+                alert("Please select a record to dispute.");
+                return;
+            }
             await axios.post(`${API_PORT}/complaints`, {
                 studentId,
-                attendanceId: attendance._id,
+                attendanceId: currentAttendance._id,
+                teacherId: currentAttendance.teacherId?._id || currentAttendance.teacherId,
                 actualStatus,
                 message
             });
             alert("Complaint submitted successfully.");
+            if (onComplete) onComplete();
             onClose();
         } catch (err) {
             console.error(err);
@@ -270,13 +291,31 @@ const ComplaintModal = ({ isOpen, onClose, attendance, studentId }) => {
                     <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-xl transition-all"><X size={20} /></button>
                 </div>
                 <div className="p-6 space-y-4">
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
-                        <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase">{formatDate(attendance.createdAt)}</p>
-                            <p className="text-sm font-black text-slate-800">{attendance.attendanceTime || 'General'}</p>
+                    {!attendance ? (
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Select Record to Dispute</label>
+                            <select 
+                                value={selectedId}
+                                onChange={(e) => setSelectedId(e.target.value)}
+                                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-rose-400 outline-none transition-all appearance-none cursor-pointer"
+                            >
+                                <option value="">Choose an absent session...</option>
+                                {records.filter(r => r.status !== 'Present').map(r => (
+                                    <option key={r._id} value={r._id}>
+                                        {formatDate(r.createdAt, false)} - {r.attendanceTime || 'General'}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
-                        <span className="text-rose-500 font-black text-xs uppercase px-2 py-1 bg-white rounded-lg border border-rose-100 italic">MARKED ABSENT</span>
-                    </div>
+                    ) : (
+                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
+                            <div>
+                                <p className="text-[10px] font-black text-slate-400 uppercase">{formatDate(currentAttendance.createdAt)}</p>
+                                <p className="text-sm font-black text-slate-800">{currentAttendance.attendanceTime || 'General'}</p>
+                            </div>
+                            <span className="text-rose-500 font-black text-xs uppercase px-2 py-1 bg-white rounded-lg border border-rose-100 italic">MARKED ABSENT</span>
+                        </div>
+                    )}
 
                     <div className="space-y-1 p-1">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">I was actually...</label>
@@ -379,9 +418,11 @@ const StudentsPortal = () => {
     const [attendanceData, setAttendanceData] = useState([]);
     const [leaveData, setLeaveData] = useState([]);
     const [minusData, setMinusData] = useState([]);
+    const [complaintsData, setComplaintsData] = useState([]);
 
     // Modal states
     const [selectedAttendance, setSelectedAttendance] = useState(null);
+    const [selectedLogId, setSelectedLogId] = useState(null);
     const [selectedLeave, setSelectedLeave] = useState(null);
     const [isApplyLeaveOpen, setIsApplyLeaveOpen] = useState(false);
     const [isComplaintOpen, setIsComplaintOpen] = useState(false);
@@ -404,7 +445,7 @@ const StudentsPortal = () => {
             });
             const profileData = res.data;
             setStudent(profileData);
-            await fetchStudentAnalytics(profileData.ADNO);
+            await fetchStudentAnalytics(profileData.ADNO, profileData);
         } catch (err) {
             console.error("Error fetching profile:", err);
             if (err.response?.status === 401) {
@@ -416,9 +457,10 @@ const StudentsPortal = () => {
         }
     };
 
-    const fetchStudentAnalytics = async (ad) => {
+    const fetchStudentAnalytics = async (ad, studentObj) => {
         if (!ad) return;
         try {
+            // First fetch the core analytics
             const [attRes, leaveRes, minusRes] = await Promise.all([
                 axios.get(`${API_PORT}/set-attendance?ad=${ad}`),
                 axios.get(`${API_PORT}/leave?ad=${ad}`),
@@ -427,6 +469,17 @@ const StudentsPortal = () => {
             setAttendanceData(attRes.data);
             setLeaveData(leaveRes.data);
             setMinusData(minusRes.data);
+
+            // Then fetch complaints separately to prevent breaking the flow
+            const sid = studentObj?._id || studentObj?.id || student?._id || student?.id;
+            if (sid) {
+                try {
+                    const complaintsRes = await axios.get(`${API_PORT}/complaints?studentId=${sid}`);
+                    setComplaintsData(complaintsRes.data);
+                } catch (cErr) {
+                    console.error("Error fetching complaints:", cErr);
+                }
+            }
         } catch (err) {
             console.error("Error fetching analytics:", err);
         }
@@ -485,7 +538,8 @@ const StudentsPortal = () => {
                     isOpen={isComplaintOpen} 
                     onClose={() => setIsComplaintOpen(false)} 
                     attendance={selectedAttendance}
-                    studentId={student._id}
+                    studentId={student._id || student.id}
+                    onComplete={() => fetchStudentAnalytics(student.ADNO, student)}
                 />
                 <DocumentModal 
                     isOpen={isDocumentOpen} 
@@ -566,46 +620,76 @@ const StudentsPortal = () => {
                                     <h2 className="text-xl font-black text-slate-800 tracking-tight uppercase italic flex items-center gap-3">
                                         <Clock size={20} className="text-blue-500" /> Attendance Log
                                     </h2>
-                                    <div className="flex items-center gap-3 bg-slate-50 p-1.5 px-3 rounded-2xl border border-slate-100">
-                                        <Calendar size={14} className="text-slate-400" />
-                                        <input 
-                                            type="month" 
-                                            value={selectedMonth}
-                                            onChange={(e) => setSelectedMonth(e.target.value)}
-                                            className="bg-transparent text-[10px] font-black uppercase text-slate-600 focus:outline-none cursor-pointer"
-                                        />
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-3 bg-slate-50 p-1.5 px-3 rounded-2xl border border-slate-100">
+                                            <Calendar size={14} className="text-slate-400" />
+                                            <input 
+                                                type="month" 
+                                                value={selectedMonth}
+                                                onChange={(e) => setSelectedMonth(e.target.value)}
+                                                className="bg-transparent text-[10px] font-black uppercase text-slate-600 focus:outline-none cursor-pointer"
+                                            />
+                                        </div>
+                                        <button 
+                                            onClick={() => { 
+                                                const target = filteredAttendance.find(r => r._id === selectedLogId);
+                                                setSelectedAttendance(target); 
+                                                setIsComplaintOpen(true); 
+                                            }}
+                                            className={`px-4 py-2 rounded-2xl text-[9px] font-black uppercase tracking-widest border transition-all flex items-center gap-2 
+                                                ${selectedLogId ? 'bg-rose-500 text-white border-rose-600 shadow-lg shadow-rose-200' : 'bg-rose-50 text-rose-300 border-rose-100 cursor-not-allowed opacity-50'}`}
+                                            title={selectedLogId ? "Dispute selected record" : "Select a record below first"}
+                                        >
+                                            <AlertTriangle size={12} /> Complaint
+                                        </button>
                                     </div>
                                 </div>
                                 <div className="p-4 sm:p-6 h-[500px] overflow-y-auto">
+                                    {selectedLogId && (
+                                        <div className="mb-4 px-4 py-2 bg-sky-50 rounded-xl border border-sky-100 flex items-center justify-between animate-in slide-in-from-top-1 duration-200">
+                                            <p className="text-[9px] font-black text-sky-600 uppercase tracking-widest">Selected for dispute</p>
+                                            <button onClick={() => setSelectedLogId(null)} className="text-sky-400 hover:text-sky-600"><X size={12} /></button>
+                                        </div>
+                                    )}
                                     {filteredAttendance.length > 0 ? (
                                         <div className="space-y-3">
                                             {filteredAttendance.map((item, idx) => (
-                                                <div key={idx} className="flex items-center justify-between p-5 bg-slate-50/50 rounded-[2rem] hover:bg-white hover:shadow-md transition-all border border-transparent hover:border-slate-100 group">
+                                                <div 
+                                                    key={idx} 
+                                                    onClick={() => item.status !== 'Present' && setSelectedLogId(item._id)}
+                                                    className={`flex items-center justify-between p-5 rounded-[2rem] transition-all border-2 group cursor-pointer
+                                                        ${selectedLogId === item._id 
+                                                            ? 'bg-rose-50 border-rose-300 shadow-lg shadow-rose-100 scale-[1.02]' 
+                                                            : 'bg-slate-50/50 border-transparent hover:bg-slate-50 hover:border-slate-200'
+                                                        } ${item.status === 'Present' ? 'cursor-default opacity-80' : ''}`}
+                                                >
                                                     <div className="flex items-center gap-5">
                                                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm shadow-sm transition-all group-hover:scale-110 ${item.status === 'Present' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
                                                             {item.status[0]}
                                                         </div>
                                                         <div>
                                                             <div className="flex items-center gap-2 mb-1">
-                                                                <h4 className="text-sm font-black text-slate-800 uppercase italic leading-none">{item.attendanceTime || 'General Session'}</h4>
+                                                                <h4 className="text-sm font-black text-slate-800 uppercase italic leading-none">
+                                                                    {item.attendanceTime || 'General Session'}
+                                                                    {item.period && <span className="ml-2 bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded text-[8px] font-black not-italic">P{item.period}</span>}
+                                                                </h4>
                                                                 <span className="text-[10px] font-bold text-slate-300 mx-1">•</span>
                                                                 <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">{formatTime(item.createdAt)}</span>
                                                             </div>
-                                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{formatDate(item.createdAt)}</p>
+                                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                                {formatDate(item.createdAt)}
+                                                                {item.status !== 'Present' && (
+                                                                    <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded shadow-sm ${item.onLeave ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
+                                                                        {item.onLeave ? 'On Leave' : 'Not on Leave'}
+                                                                    </span>
+                                                                )}
+                                                            </p>
                                                         </div>
                                                     </div>
                                                     <div className="flex flex-col items-end gap-2">
                                                         <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${item.status === 'Present' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
                                                             {item.status}
                                                         </div>
-                                                        {item.status !== 'Present' && (
-                                                            <button 
-                                                                onClick={() => { setSelectedAttendance(item); setIsComplaintOpen(true); }}
-                                                                className="text-[8px] font-black text-rose-400 uppercase tracking-widest bg-rose-50 px-2 py-1 rounded-lg border border-rose-100 hover:bg-rose-500 hover:text-white transition-all flex items-center gap-1"
-                                                            >
-                                                                <MessageSquare size={10} /> Raise a complaint
-                                                            </button>
-                                                        )}
                                                     </div>
                                                 </div>
                                             ))}
@@ -620,6 +704,54 @@ const StudentsPortal = () => {
                                     )}
                                 </div>
                             </section>
+
+                            {/* Complaints Data Section */}
+                            {complaintsData.length > 0 && (
+                                <section className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
+                                    <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-rose-50/50">
+                                        <h2 className="text-xl font-black text-rose-600 tracking-tight uppercase italic flex items-center gap-3">
+                                            <MessageSquare size={20} /> My Complaints
+                                        </h2>
+                                        <span className="px-4 py-1.5 bg-rose-100 text-rose-600 rounded-full text-[10px] font-black uppercase tracking-widest">{complaintsData.length} TOTAL</span>
+                                    </div>
+                                    <div className="p-4 sm:p-6 h-[300px] overflow-y-auto bg-slate-50/30">
+                                        <div className="space-y-4">
+                                            {complaintsData.map((item, idx) => (
+                                                <div key={idx} className="p-5 bg-white rounded-3xl border border-slate-100 shadow-sm transition-all hover:shadow-md">
+                                                    <div className="flex justify-between items-start mb-3">
+                                                        <div>
+                                                            <div className="flex items-center gap-2 mb-1">
+                                                                <p className="text-[10px] font-black text-slate-400 uppercase">{formatDate(item.createdAt)}</p>
+                                                                <span className="text-slate-300 text-[10px]">•</span>
+                                                                <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${item.status === 'Pending' ? 'bg-amber-100 text-amber-600' : item.status === 'Resolved' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                                                                    {item.status}
+                                                                </span>
+                                                            </div>
+                                                            <h4 className="text-xs font-black text-slate-800 uppercase italic leading-tight">
+                                                                Dispute: {item.attendanceId?.attendanceTime || 'General Session'}
+                                                                {item.attendanceId?.period && <span className="ml-1 bg-rose-100 text-rose-600 px-1 py-0.2 rounded text-[7px] font-black not-italic">P{item.attendanceId.period}</span>}
+                                                            </h4>
+                                                        </div>
+                                                        {item.teacherId && (
+                                                            <div className="flex flex-col items-end">
+                                                                <span className="text-[8px] font-black text-slate-400 uppercase">Assigned To</span>
+                                                                <span className="text-[10px] font-black text-blue-600 uppercase">{item.teacherId.name}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-[10px] font-bold text-slate-600 italic bg-slate-50 p-3 rounded-2xl line-clamp-2">“{item.message}”</p>
+                                                    {item.adminRemark && (
+                                                        <div className="mt-3 p-3 bg-blue-50/50 rounded-2xl border border-blue-100/50">
+                                                            <p className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1">Response</p>
+                                                            <p className="text-[10px] font-bold text-blue-600 italic">“{item.adminRemark}”</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </section>
+                            )}
                         </div>
 
                         {/* Right Column: Other Records */}
@@ -743,6 +875,33 @@ const StudentsPortal = () => {
                         </div>
                     </div>
                 </main>
+                <ComplaintModal 
+                    isOpen={isComplaintOpen} 
+                    onClose={() => setIsComplaintOpen(false)} 
+                    attendance={selectedAttendance}
+                    studentId={student.id || student._id}
+                    records={filteredAttendance}
+                />
+                
+                <ApplyLeaveModal 
+                    isOpen={isApplyLeaveOpen} 
+                    onClose={() => setIsApplyLeaveOpen(false)} 
+                    student={student}
+                    onComplete={() => fetchStudentAnalytics(student.ADNO)}
+                />
+
+                <DocumentModal 
+                    isOpen={isDocumentOpen} 
+                    onClose={() => setIsDocumentOpen(false)} 
+                    leave={selectedLeave}
+                    onUpdate={() => fetchStudentAnalytics(student.ADNO)}
+                />
+
+                <AttendanceModal
+                    isOpen={showBreakdown}
+                    onClose={() => setShowBreakdown(false)}
+                    data={attendanceData}
+                />
             </div>
         </StudentAuthGuard>
     );

@@ -11,6 +11,10 @@ const complaintSchema = new mongoose.Schema({
         ref: 'Attendance',
         required: true
     },
+    teacherId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Teacher'
+    },
     actualStatus: {
         type: String,
         enum: ['Present', 'Leave', 'Other'],
