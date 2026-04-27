@@ -1,7 +1,7 @@
 "use client";
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Menu, X, CheckCircle, Clock, Calendar, TrendingUp, LogOut, Info, AlertTriangle, FileText, User, ChevronRight, LayoutGrid, PlusCircle, MessageSquare, Upload, Loader2, Send } from 'lucide-react';
+import { Menu, X, CheckCircle, Clock, Calendar, CalendarClock, TrendingUp, LogOut, Info, AlertTriangle, FileText, User, ChevronRight, LayoutGrid, PlusCircle, MessageSquare, Upload, Loader2, Send } from 'lucide-react';
 import axios from 'axios';
 import { API_PORT } from '@/Constants';
 import StudentAuthGuard from '@/components/auth/StudentAuthGuard';
@@ -124,27 +124,199 @@ const MetricCard = ({ title, value, subText, color, icon: Icon, onClick }) => (
     </div>
 );
 
+const SelectionButton = ({ label, isSelected, onClick, color = "blue" }) => (
+    <button
+        type="button"
+        onClick={onClick}
+        className={`px-2 py-3 rounded-xl text-[10px] font-semibold uppercase tracking-widest transition-all border-2 
+        ${isSelected 
+            ? `bg-${color}-500 text-white border-${color}-500 shadow-lg shadow-${color}-200 scale-95` 
+            : 'bg-white text-slate-400 border-slate-50 hover:border-slate-200'}`}
+    >
+        {label}
+    </button>
+);
+
+const DatePicker = ({ label, selectedOption, setSelectedOption, customDate, setCustomDate, color = "blue" }) => {
+    const options = ['Today', 'Tomorrow', 'Day After', 'Calendar'];
+    return (
+        <div className="space-y-3">
+            <div className="flex items-center gap-2 px-1">
+                <Calendar size={12} className="text-slate-400" />
+                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label} Date</h3>
+            </div>
+            <div className="grid grid-cols-4 gap-1">
+                {options.map(opt => (
+                    <SelectionButton 
+                        key={opt} 
+                        label={opt} 
+                        isSelected={selectedOption === opt} 
+                        onClick={() => setSelectedOption(opt)} 
+                        color={color}
+                    />
+                ))}
+            </div>
+            {selectedOption === 'Calendar' && (
+                <div className="mt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <input 
+                        type="date" 
+                        value={customDate} 
+                        onChange={e => setCustomDate(e.target.value)}
+                        className={`w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-${color}-400 focus:bg-white outline-none transition-all`}
+                        required
+                    />
+                </div>
+            )}
+        </div>
+    );
+};
+
+const TimePicker = ({ label, selectedOption, setSelectedOption, customTime, setCustomTime, color = "blue", showNow = false }) => {
+    const options = ['Morning', 'Evening', ...(showNow ? ['Now'] : []), 'Clock'];
+    return (
+        <div className="space-y-3">
+            <div className="flex items-center gap-2 px-1">
+                <Clock size={12} className="text-slate-400" />
+                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label} Time</h3>
+            </div>
+            <div className="grid grid-cols-4 gap-1">
+                {options.map(opt => (
+                    <SelectionButton 
+                        key={opt} 
+                        label={opt} 
+                        isSelected={selectedOption === opt} 
+                        onClick={() => setSelectedOption(opt)} 
+                        color={color}
+                    />
+                ))}
+            </div>
+            {selectedOption === 'Clock' && (
+                <div className="mt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <input 
+                        type="time" 
+                        value={customTime} 
+                        onChange={e => setCustomTime(e.target.value)}
+                        className={`w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-${color}-400 focus:bg-white outline-none transition-all`}
+                        required
+                    />
+                </div>
+            )}
+        </div>
+    );
+};
 
 /**
  * Apply Leave Modal
  */
 const ApplyLeaveModal = ({ isOpen, onClose, student, onComplete }) => {
     const [loading, setLoading] = useState(false);
-    const [formData, setFormData] = useState({
-        fromDate: new Date().toISOString().split('T')[0],
-        fromTime: '08:00',
-        toDate: new Date().toISOString().split('T')[0],
-        toTime: '17:00',
-        reason: ''
-    });
+    
+    // UI States
+    const [selectedTemplate, setSelectedTemplate] = useState(null);
+    const [selectedReason, setSelectedReason] = useState('Marriage');
+    const [customReason, setCustomReason] = useState('');
+    
+    // Date & Time States
+    const [fromDateOption, setFromDateOption] = useState('Today');
+    const [fromTimeOption, setFromTimeOption] = useState('Evening');
+    const [fromCustomDate, setFromCustomDate] = useState('');
+    const [fromCustomTime, setFromCustomTime] = useState('');
+
+    const [toDateOption, setToDateOption] = useState('Tomorrow');
+    const [toTimeOption, setToTimeOption] = useState('Morning');
+    const [toCustomDate, setToCustomDate] = useState('');
+    const [toCustomTime, setToCustomTime] = useState('');
+
+    const templates = [
+        { id: 'today-tmw-morn', label: 'Today 🌇 → Tom 🌅' },
+        { id: 'today-tmw-eve', label: 'Today 🌇 → Tom 🌇' },
+        { id: 'tmrw-next-morn', label: 'Tom 🌇 → Next 🌅' },
+        { id: 'tmrw-dayafter-eve', label: 'Tom 🌇 → Next 🌇' },
+        { id: 'thu-fri-eve', label: 'Thurs 🌇 → Friday 🌇' },
+    ];
+
+    const reasons = ['Marriage', 'Function', 'Program', 'Custom'];
+
+    const handleTemplateSelect = (templateId) => {
+        setSelectedTemplate(templateId);
+        const now = new Date();
+        const day = now.getDay();
+
+        switch (templateId) {
+            case 'today-tmw-morn':
+                setFromDateOption('Today'); setFromTimeOption('Evening');
+                setToDateOption('Tomorrow'); setToTimeOption('Morning');
+                break;
+            case 'today-tmw-eve':
+                setFromDateOption('Today'); setFromTimeOption('Evening');
+                setToDateOption('Tomorrow'); setToTimeOption('Evening');
+                break;
+            case 'tmrw-next-morn':
+                setFromDateOption('Tomorrow'); setFromTimeOption('Evening');
+                setToDateOption('Day After'); setToTimeOption('Morning');
+                break;
+            case 'tmrw-dayafter-eve':
+                setFromDateOption('Tomorrow'); setFromTimeOption('Evening');
+                setToDateOption('Day After'); setToTimeOption('Evening');
+                break;
+            case 'thu-fri-eve': {
+                let Thu = new Date(now);
+                Thu.setDate(now.getDate() + (4 - day));
+                let Fri = new Date(now);
+                Fri.setDate(now.getDate() + (5 - day));
+                if (day >= 5) {
+                    Thu.setDate(Thu.getDate() + 7);
+                    Fri.setDate(Fri.getDate() + 7);
+                }
+                setFromDateOption('Calendar'); setFromCustomDate(Thu.toISOString().split('T')[0]);
+                setFromTimeOption('Evening');
+                setToDateOption('Calendar'); setToCustomDate(Fri.toISOString().split('T')[0]);
+                setToTimeOption('Evening');
+                break;
+            }
+        }
+    };
 
     if (!isOpen) return null;
 
+    const resolveDate = (option, customDate) => {
+        const today = new Date().toISOString().split('T')[0];
+        const tmrw = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+        const dayAfter = new Date(Date.now() + 172800000).toISOString().split('T')[0];
+        
+        if (option === 'Today') return today;
+        if (option === 'Tomorrow') return tmrw;
+        if (option === 'Day After') return dayAfter;
+        return customDate;
+    };
+
+    const resolveTime = (option, customTime, isFrom = true) => {
+        if (option === 'Morning') return isFrom ? '16:30' : '07:00';
+        if (option === 'Evening') return isFrom ? '16:30' : '18:00';
+        if (option === 'Now') return new Date().toLocaleTimeString('en-GB', { hour12: false }).substring(0, 5);
+        return customTime;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const finalReason = selectedReason === 'Custom' ? customReason : selectedReason;
+        if (!finalReason) {
+            alert("Please provide a reason.");
+            return;
+        }
+
+        const finalFromDate = resolveDate(fromDateOption, fromCustomDate);
+        const finalFromTime = resolveTime(fromTimeOption, fromCustomTime, true);
+        const finalToDate = resolveDate(toDateOption, toCustomDate);
+        const finalToTime = resolveTime(toTimeOption, toCustomTime, false);
+
+        if (!finalFromDate || !finalToDate) {
+            alert("Please select both from and to dates.");
+            return;
+        }
+
         setLoading(true);
         try {
-            // Fetch teachers to find the responsible one
             const teachersRes = await axios.get(`${API_PORT}/teachers`);
             const teachers = teachersRes.data;
             
@@ -166,7 +338,11 @@ const ApplyLeaveModal = ({ isOpen, onClose, student, onComplete }) => {
 
             await axios.post(`${API_PORT}/leave`, {
                 studentId: student.id || student._id,
-                ...formData,
+                fromDate: finalFromDate,
+                fromTime: finalFromTime,
+                toDate: finalToDate,
+                toTime: finalToTime,
+                reason: finalReason,
                 status: 'pending',
                 approved: false,
                 teacherId: responsibleTeacherId
@@ -175,53 +351,146 @@ const ApplyLeaveModal = ({ isOpen, onClose, student, onComplete }) => {
             onClose();
         } catch (err) {
             console.error(err);
-            const errorMsg = err.response?.data?.error || err.message || "Failed to submit leave request.";
-            alert(`Error: ${errorMsg}`);
+            alert("Failed to submit leave request.");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose}></div>
-            <div className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
-                <div className="p-6 bg-amber-500 text-white flex items-center justify-between">
-                    <div>
-                        <h2 className="text-xl font-black uppercase italic">Apply Leave</h2>
-                        <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest">Submit request for approval</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center sm:p-4 lg:items-start lg:pt-12">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={onClose}></div>
+            <div className="relative bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 border border-slate-100">
+                <div className="p-8 bg-amber-500 text-white flex items-center justify-between relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+                    <div className="relative z-10">
+                        <h2 className="text-3xl font-black uppercase italic tracking-tight flex items-center gap-3">
+                            <Calendar size={28} /> Apply Leave
+                        </h2>
+                        <p className="text-[10px] font-bold opacity-90 uppercase tracking-widest mt-1 ml-10">Request permission for leave</p>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-xl transition-all"><X size={20} /></button>
+                    <button onClick={onClose} className="p-3 hover:bg-white/20 rounded-2xl transition-all relative z-10"><X size={24} /></button>
                 </div>
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">From Date</label>
-                            <input type="date" value={formData.fromDate} onChange={e => setFormData({ ...formData, fromDate: e.target.value })} className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3 text-sm font-bold text-slate-700 focus:border-amber-400 outline-none transition-all" required />
+
+                <form onSubmit={handleSubmit} className="p-6 space-y-8 max-h-[80vh] overflow-y-auto custom-scrollbar">
+                    {/* Reason Selection */} 
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2 px-1">
+                            <div className="w-1.5 h-4 bg-amber-500 rounded-full"></div>
+                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select Reason</h3>
                         </div>
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">From Time</label>
-                            <input type="time" value={formData.fromTime} onChange={e => setFormData({ ...formData, fromTime: e.target.value })} className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3 text-sm font-bold text-slate-700 focus:border-amber-400 outline-none transition-all" required />
+                        <div className="grid grid-cols-4 gap-1">
+                            {reasons.map(r => (
+                                <SelectionButton  
+                                    key={r} 
+                                    label={r} 
+                                    isSelected={selectedReason === r} 
+                                    onClick={() => setSelectedReason(r)}
+                                    color="amber"
+                                />
+                            ))}
+                        </div>
+                        {selectedReason === 'Custom' && (
+                            <input 
+                                type="text" 
+                                placeholder="Type your reason here..." 
+                                value={customReason}
+                                onChange={e => setCustomReason(e.target.value)}
+                                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-amber-400 focus:bg-white outline-none transition-all animate-in slide-in-from-top-2"
+                                required
+                            />
+                        )}
+                    </div>
+
+                    {/* Quick Templates */}
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2 px-1">
+                            <div className="w-1.5 h-4 bg-blue-500 rounded-full"></div>
+                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Quick Templates</h3>
+                        </div>
+                        <div className="grid grid-cols-5 gap-1">
+                            {templates.map(t => (
+                                <SelectionButton 
+                                    key={t.id} 
+                                    label={t.label} 
+                                    isSelected={selectedTemplate === t.id} 
+                                    onClick={() => handleTemplateSelect(t.id)}
+                                    color="blue"
+                                />
+                            ))}
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">To Date</label>
-                            <input type="date" value={formData.toDate} onChange={e => setFormData({ ...formData, toDate: e.target.value })} className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3 text-sm font-bold text-slate-700 focus:border-amber-400 outline-none transition-all" required />
+
+                    {/* From Date & Time */}
+                    <div className="p-6 bg-sky-50/50 rounded-[2.5rem] border border-sky-100/50 space-y-6">
+                        <div className="flex items-center gap-3 px-1 text-sky-600">
+                            <div className="p-2 bg-white rounded-xl shadow-sm">
+                                <Calendar size={18} />
+                            </div>
+                            <h3 className="text-sm font-black uppercase italic tracking-wider">From Date & Time</h3>
                         </div>
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">To Time</label>
-                            <input type="time" value={formData.toTime} onChange={e => setFormData({ ...formData, toTime: e.target.value })} className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3 text-sm font-bold text-slate-700 focus:border-amber-400 outline-none transition-all" required />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <DatePicker 
+                                label="From"
+                                selectedOption={fromDateOption}
+                                setSelectedOption={(opt) => { setFromDateOption(opt); setSelectedTemplate(null); }}
+                                customDate={fromCustomDate}
+                                setCustomDate={setFromCustomDate}
+                                color="sky"
+                            />
+                            <TimePicker 
+                                label="From"
+                                selectedOption={fromTimeOption}
+                                setSelectedOption={(opt) => { setFromTimeOption(opt); setSelectedTemplate(null); }}
+                                customTime={fromCustomTime}
+                                setCustomTime={setFromCustomTime}
+                                color="sky"
+                                showNow={true}
+                            />
                         </div>
                     </div>
-                    <div className="space-y-1">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Reason</label>
-                        <textarea value={formData.reason} onChange={e => setFormData({ ...formData, reason: e.target.value })} placeholder="Why are you taking leave?" className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-amber-400 outline-none transition-all h-24 resize-none" required />
+
+                    {/* To Date & Time */}
+                    <div className="p-6 bg-amber-50/50 rounded-[2.5rem] border border-amber-100/50 space-y-6">
+                        <div className="flex items-center gap-3 px-1 text-amber-600">
+                            <div className="p-2 bg-white rounded-xl shadow-sm">
+                                <CalendarClock size={18} />
+                            </div>
+                            <h3 className="text-sm font-black uppercase italic tracking-wider">To Date & Time</h3>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <DatePicker 
+                                label="To"
+                                selectedOption={toDateOption}
+                                setSelectedOption={(opt) => { setToDateOption(opt); setSelectedTemplate(null); }}
+                                customDate={toCustomDate}
+                                setCustomDate={setToCustomDate}
+                                color="amber"
+                            />
+                            <TimePicker 
+                                label="To"
+                                selectedOption={toTimeOption}
+                                setSelectedOption={(opt) => { setToTimeOption(opt); setSelectedTemplate(null); }}
+                                customTime={toCustomTime}
+                                setCustomTime={setToCustomTime}
+                                color="amber"
+                            />
+                        </div>
                     </div>
-                    <button type="submit" disabled={loading} className="w-full py-4 bg-amber-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 hover:bg-amber-600 active:scale-95 transition-all">
-                        {loading ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
-                        Submit Leave Request
-                    </button>
+
+                    <div className="pt-4 border-t border-slate-50 flex flex-col gap-3">
+                        <button 
+                            type="submit" 
+                            disabled={loading}
+                            className="w-full py-5 bg-slate-900 text-white rounded-[2rem] text-sm font-black uppercase tracking-[0.2em] hover:bg-amber-500 active:scale-95 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3 disabled:opacity-50 disabled:pointer-events-none"
+                        >
+                            {loading ? <Loader2 className="animate-spin" size={20} /> : <Send size={20} />}
+                            {loading ? 'Submitting...' : 'Send Request'}
+                        </button>
+                        <p className="text-[9px] font-bold text-slate-400 text-center uppercase tracking-widest italic">
+                            Your leave request will be sent to your class teacher or HOD for approval
+                        </p>
+                    </div>
                 </form>
             </div>
         </div>
@@ -347,18 +616,47 @@ const ComplaintModal = ({ isOpen, onClose, attendance, studentId, records = [], 
 const DocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
     const [loading, setLoading] = useState(false);
     const [fileUrl, setFileUrl] = useState('');
+    const [uploading, setUploading] = useState(false);
+    const fileInputRef = useRef(null);
 
     if (!isOpen || !leave) return null;
 
+    const handleUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setUploading(true);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', 'leave_docs'); 
+
+        try {
+            const res = await axios.post(
+                'https://api.cloudinary.com/v1_1/dfetresky/image/upload',
+                formData
+            );
+            setFileUrl(res.data.secure_url);
+        } catch (err) {
+            console.error("Upload error:", err);
+            alert("Failed to upload file. Please ensure you have a valid internet connection.");
+        } finally {
+            setUploading(false);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!fileUrl) {
+            alert("Please upload a document first.");
+            return;
+        }
         setLoading(true);
         try {
             await axios.patch(`${API_PORT}/leave/${leave._id}`, {
-                documented: true,
-                documentUrl: fileUrl || 'https://example.com/medical-report.pdf' // Mock upload
+                documented: false, // Remains false until admin approves
+                documentUrl: fileUrl
             });
-            alert("Documentation submitted.");
+            alert("Documentation uploaded. Waiting for admin approval.");
             onUpdate();
             onClose();
         } catch (err) {
@@ -388,16 +686,78 @@ const DocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
                     </div>
 
                     <div className="space-y-4">
-                        <div className="w-full h-40 border-2 border-dashed border-slate-200 rounded-[2rem] flex flex-col items-center justify-center p-6 text-center hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer group">
-                            <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 mb-3 group-hover:bg-blue-600 group-hover:text-white transition-all">
-                                <Upload size={24} />
+                        <input 
+                            type="file" 
+                            ref={fileInputRef} 
+                            onChange={handleUpload} 
+                            className="hidden" 
+                            accept="image/*,.pdf"
+                        />
+                        
+                        {!fileUrl || uploading ? (
+                            <div 
+                                onClick={() => !uploading && fileInputRef.current?.click()}
+                                className={`w-full h-48 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center p-6 text-center transition-all cursor-pointer group
+                                    ${uploading ? 'border-blue-200 bg-blue-50/30' : 'border-slate-200 hover:border-blue-400 hover:bg-blue-50'}`}
+                            >
+                                {uploading ? (
+                                    <>
+                                        <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-3" />
+                                        <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Uploading document...</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 mb-3 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                            <Upload size={24} />
+                                        </div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">
+                                            Click to select <br /> medical documents
+                                        </p>
+                                    </>
+                                )}
                             </div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">Click or drag to <br /> upload medical docs</p>
-                        </div>
-                        <input type="text" value={fileUrl} onChange={e => setFileUrl(e.target.value)} placeholder="Or paste document link..." className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3 text-xs font-bold text-slate-700 focus:border-blue-400 outline-none" />
+                        ) : (
+                            <div className="relative group rounded-[2rem] overflow-hidden border-2 border-emerald-400 shadow-xl bg-slate-50 animate-in zoom-in duration-300">
+                                {fileUrl.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i) ? (
+                                    <img src={fileUrl} alt="Preview" className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500" />
+                                ) : (
+                                    <div className="w-full h-48 flex flex-col items-center justify-center gap-3">
+                                        <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600">
+                                            <FileText size={32} />
+                                        </div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">PDF Document Attachment</p>
+                                    </div>
+                                )}
+                                <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-[2px]">
+                                    <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="p-4 bg-white rounded-2xl text-blue-600 hover:scale-110 transition-all shadow-2xl flex items-center gap-2 font-black text-[10px] uppercase tracking-widest">
+                                        <LayoutGrid size={18} /> View
+                                    </a>
+                                    <button onClick={() => setFileUrl('')} className="p-4 bg-white rounded-2xl text-rose-600 hover:scale-110 transition-all shadow-2xl flex items-center gap-2 font-black text-[10px] uppercase tracking-widest">
+                                        <X size={18} /> Remove
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {fileUrl && !uploading && (
+                            <div className="flex items-center gap-3 p-4 bg-emerald-50 rounded-2xl border border-emerald-100 overflow-hidden animate-in slide-in-from-top-2">
+                                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-emerald-600 shadow-sm shrink-0">
+                                    <CheckCircle size={20} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest leading-none mb-1">Ready to Save</p>
+                                    <p className="text-[10px] font-bold text-slate-600 truncate">{fileUrl.split('/').pop()}</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    <button onClick={handleSubmit} disabled={loading} className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 hover:bg-blue-700 active:scale-95 transition-all shadow-xl shadow-blue-200">
+                    <button 
+                        onClick={handleSubmit} 
+                        disabled={loading || uploading || !fileUrl} 
+                        className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all shadow-xl
+                            ${!fileUrl ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-blue-200'}`}
+                    >
                         {loading ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle size={16} />}
                         Save Documentation
                     </button>
@@ -788,11 +1148,14 @@ const StudentsPortal = () => {
                                                         </div>
                                                         <div className="flex flex-col gap-1">
                                                             <span className="text-slate-300 group-hover:text-amber-500">Return</span>
-                                                            <span className="text-slate-800">{item.returnedAt ? formatTime(item.returnedAt) : (item.toDate ? formatTime(item.toDate) : 'PENDING')}</span>
+                                                            <span className="text-slate-800">
+                                                                {item.returnedAt ? `${formatDate(item.returnedAt)} ${formatTime(item.returnedAt)}` : 
+                                                                 (item.toDate ? `${formatDate(item.toDate)} ${item.toTime || ''}` : 'PENDING')}
+                                                            </span>
                                                         </div>
                                                     </div>
 
-                                                    {!item.documented && ['Room', 'Medical (Home)', 'Hospital'].some(r => item.reason?.includes(r)) && (
+                                                    {!item.documented && !item.documentUrl && ['Room', 'Medical (Home)', 'Hospital'].some(r => item.reason?.includes(r)) && (
                                                         <button 
                                                             onClick={() => { setSelectedLeave(item); setIsDocumentOpen(true); }}
                                                             className="mt-6 w-full py-3 bg-blue-50 border border-blue-100 rounded-2xl text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
@@ -800,7 +1163,23 @@ const StudentsPortal = () => {
                                                             <Upload size={14} /> Upload Medical Documents
                                                         </button>
                                                     )}
-                                                    {item.documented && (
+                                                    {!item.documented && item.documentUrl && (
+                                                         <div className="mt-6 flex flex-col sm:flex-row gap-2">
+                                                             <div className="flex-1 p-3 bg-amber-50 rounded-2xl flex items-center justify-center gap-2 border border-amber-100">
+                                                                 <Clock size={14} className="text-amber-500" />
+                                                                 <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Waiting for Approval</span>
+                                                             </div>
+                                                             <a 
+                                                                 href={item.documentUrl} 
+                                                                 target="_blank" 
+                                                                 rel="noopener noreferrer"
+                                                                 className="p-3 bg-white border border-slate-200 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black text-slate-600 uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm"
+                                                             >
+                                                                 <FileText size={14} /> View Doc
+                                                             </a>
+                                                         </div>
+                                                     )}
+                                                     {item.documented && (
                                                         <div className="mt-6 p-3 bg-emerald-50 rounded-2xl flex items-center justify-center gap-2 border border-emerald-100">
                                                             <CheckCircle size={14} className="text-emerald-500" />
                                                             <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Documents Verified</span>
