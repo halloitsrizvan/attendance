@@ -100,6 +100,12 @@ function Hajar() {
     if (time === 'Night') {
       return { from: convertTimeToMinutes('19:00'), to: convertTimeToMinutes('20:30'), isRange: true };
     }
+    if (time === 'Morning') {
+      return { from: convertTimeToMinutes('07:30'), to: convertTimeToMinutes('08:10'), isRange: true };
+    }
+    if (time === 'Noon') {
+      return { from: convertTimeToMinutes('14:00'), to: convertTimeToMinutes('14:40'), isRange: true };
+    }
     // Default to current time for Morning or others if not specific
     const now = convertTimeToMinutes(getCurrentTimeString());
     return { from: now, to: now, isRange: false };

@@ -126,11 +126,15 @@ function AllClass({edit,id}) {
         if(totalMinutes>=zuhrStart && totalMinutes <=zuhrEnd){
           setTime('Jamath')
           setMore('Zuhr')
+        }else if (totalMinutes >= period1Start && totalMinutes < period1End) {
+          setTime('Morning');
+          setPeriod('');
+        } else if (totalMinutes >= period8Start && totalMinutes < period8End) {
+          setTime('Noon');
+          setPeriod('');
         }else{
           setTime('Period');
-            if (totalMinutes >= period1Start && totalMinutes < period1End) {
-            setPeriod(1);
-          } else if (totalMinutes >= period2Start && totalMinutes < period2End) {
+          if (totalMinutes >= period2Start && totalMinutes < period2End) {
             setPeriod(2);
           } else if (totalMinutes >= period3Start && totalMinutes < period3End) {
             setPeriod(3);
@@ -142,8 +146,6 @@ function AllClass({edit,id}) {
             setPeriod(6);
           } else if (totalMinutes >= period7Start && totalMinutes < period7End) {
             setPeriod(7);
-          } else if (totalMinutes >= period8Start && totalMinutes < period8End) {
-            setPeriod(8);
           } else if (totalMinutes >= period9Start && totalMinutes < period9End) {
             setPeriod(9);
           } else if (totalMinutes >= period10Start && totalMinutes < period10End) {
@@ -198,15 +200,20 @@ function AllClass({edit,id}) {
         <select
           value={time}
           onChange={(e) => {
-            setTime(e.target.value)
-            if(e.target.value!=="Period"){
-              setPeriod('')
+            const newTime = e.target.value;
+            setTime(newTime);
+            if (newTime !== "Period") {
+              setPeriod('');
             }
-
+            if (newTime !== "Jamath" && newTime !== "More") {
+              setMore('');
+            }
           }}
           className="flex-1 border border-sky-100 bg-sky-50/30 rounded-xl px-3 py-3 text-xs sm:text-sm font-bold text-slate-700 focus:ring-2 focus:ring-sky-400 focus:outline-none transition-all"
         >
           <option value="Period">Period</option>
+          <option value="Morning">Morning</option>
+          <option value="Afternoon">Afternoon</option>
           <option value="Night">Night</option>
           <option value="Jamath">Jamath</option>
           <option value="Minus">Minus</option>
@@ -218,22 +225,22 @@ function AllClass({edit,id}) {
         {time === "Period" && (
           <div className="flex flex-col gap-2 w-full">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Select Period</label>
-            <div className="grid grid-cols-6 sm:grid-cols-11 gap-2 pb-2">
-              {Array.from({ length: 10 }, (_, i) => (
+            <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 pb-2">
+              {[2, 3, 4, 5, 6, 7, 9, 10].map((i) => (
                 <button
                   key={i}
                   type="button"
                   onClick={() => {
-                    setPeriod(i + 1);
+                    setPeriod(i);
                     setErr('');
                   }}
                   className={`h-11 rounded-xl flex items-center justify-center text-sm font-black transition-all duration-200 ${
-                    String(period) === String(i + 1)
+                    String(period) === String(i)
                       ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/20 scale-105'
                       : 'bg-white border-2 border-slate-50 text-slate-400 hover:border-sky-100 hover:bg-sky-50/50'
                   }`}
                 >
-                  {i + 1}
+                  {i}
                 </button>
               ))}
             </div>
@@ -352,8 +359,10 @@ function AllClass({edit,id}) {
                   if (time === "Period" && !period) {
                     setErr("Select a period");
                   } else {
+                    const finalPeriod = time === "Period" ? period : "";
+                    const finalMore = (time === "Jamath" || time === "More") ? more : "";
                     navigate.push(
-                      `/attendance/${cls.class}?date=${date}&time=${time}&period=${period}&more=${more}`
+                      `/attendance/${cls.class}?date=${date}&time=${time}&period=${finalPeriod}&more=${finalMore}`
                     );
                   }
                 }}
