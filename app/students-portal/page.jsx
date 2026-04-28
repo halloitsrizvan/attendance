@@ -1050,6 +1050,14 @@ const StudentsPortal = () => {
                                                         <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${item.status === 'Present' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
                                                             {item.status}
                                                         </div>
+                                                        {item.teacherId && (
+                                                            <div className="flex items-center gap-1.5 mt-1 bg-white/60 px-2.5 py-1 rounded-full border border-slate-200 shadow-sm">
+                                                                <User size={10} className="text-slate-500" />
+                                                                <span className="text-[9px] font-black text-slate-600 uppercase tracking-tight truncate max-w-[100px]">
+                                                                    {item.teacherId.name || 'Teacher'}
+                                                                </span>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             ))}
@@ -1186,13 +1194,23 @@ const StudentsPortal = () => {
                                                         </div>
                                                     )}
 
-                                                    {getRecoveryStatus(item) !== null && (
-                                                        <div className="mt-3 p-3 bg-amber-50 rounded-2xl flex items-center justify-between border border-amber-100 animate-pulse">
+                                                    {(item.status === 'returned' || item.returnedAt) && (
+                                                        <div className={`mt-3 p-3 rounded-2xl flex items-center justify-between border transition-all ${item.recovery ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-100'}`}>
                                                             <div className="flex items-center gap-2">
-                                                                <Clock size={14} className="text-amber-500" />
-                                                                <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">In Recovery</span>
+                                                                {item.recovery ? (
+                                                                    <CheckCircle size={14} className="text-emerald-500" />
+                                                                ) : (
+                                                                    <Clock size={14} className="text-amber-500 animate-pulse" />
+                                                                )}
+                                                                <span className={`text-[10px] font-black uppercase tracking-widest ${item.recovery ? 'text-emerald-700' : 'text-amber-700'}`}>
+                                                                    Recovery {item.recovery ? 'Completed' : 'Pending'}
+                                                                </span>
                                                             </div>
-                                                            <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest px-2 py-0.5 bg-white rounded-lg">{getRecoveryStatus(item)} Days Left</span>
+                                                            {!item.recovery && getRecoveryStatus(item) !== null && (
+                                                                <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest px-2 py-0.5 bg-white rounded-lg shadow-sm">
+                                                                    {getRecoveryStatus(item)} Days Left
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     )}
                                                 </div>
