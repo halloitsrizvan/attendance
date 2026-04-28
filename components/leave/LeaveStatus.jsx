@@ -385,24 +385,19 @@ function LeaveStatus() {
       return 'Returned';
     }
 
-    if (now < fromDateTime) return 'Scheduled';
-
-    // If it's a medical / room leave without end date
-    if (!toDateTime && (item.status === 'active' || item.status === 'returned')) {
-      if (item.status === 'returned') return 'Returned';
+    if (item.status === 'active') {
+      if (toDateTime && now > toDateTime) return 'Late';
       return 'On Leave';
     }
 
-    if (now >= fromDateTime && item.status === 'Scheduled') {
+    if (now < fromDateTime) return 'Scheduled';
+
+    if (now >= fromDateTime) {
+      if (toDateTime && now > toDateTime) return 'Late';
       return 'Pending';
     }
 
-    if (toDateTime) {
-      if (now >= fromDateTime && now <= toDateTime && item.status === 'active') return 'On Leave';
-      if (now > toDateTime && item.status !== 'returned') return 'Late';
-    }
-
-    return item.status || 'Scheduled';
+    return 'Scheduled';
   };
 
   const matchesFilters = (student) => {

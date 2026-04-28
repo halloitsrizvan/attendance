@@ -328,28 +328,31 @@ function FormTest() {
   };
 
   const getLeaveStatus = (item) => {
+    if (item.approved === false) return 'Not Approved';
     const now = new Date();
     const fromDateTime = new Date(`${item.fromDate}T${item.fromTime}`);
-    const toDateTime = new Date(`${item.toDate}T${item.toTime}`);
+    const toDateTime = item.toDate && item.toTime ? new Date(`${item.toDate}T${item.toTime}`) : null;
 
     if (item.status === 'returned') {
-      if (item.returnedAt && new Date(item.returnedAt) > toDateTime) {
+      if (toDateTime && item.returnedAt && new Date(item.returnedAt) > toDateTime) {
         return 'Late Returned';
       }
       return 'Returned';
     }
 
+    if (item.status === 'active') {
+      if (toDateTime && now > toDateTime) return 'Late';
+      return 'On Leave';
+    }
+
     if (now < fromDateTime) return 'Scheduled';
 
-    if (now >= fromDateTime && item.status === 'Scheduled') {
+    if (now >= fromDateTime) {
+      if (toDateTime && now > toDateTime) return 'Late';
       return 'Pending';
     }
 
-    if (now >= fromDateTime && now <= toDateTime && item.status === 'active') return 'On Leave';
-
-    if (now > toDateTime && item.status !== 'returned') return 'Late';
-
-    return item.status;
+    return 'Scheduled';
   };
 
   const handleReturn = async (leaveId) => {
