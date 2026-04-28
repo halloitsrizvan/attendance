@@ -779,6 +779,7 @@ const StudentsPortal = () => {
     const [leaveData, setLeaveData] = useState([]);
     const [minusData, setMinusData] = useState([]);
     const [complaintsData, setComplaintsData] = useState([]);
+    const [cepData, setCepData] = useState([]);
 
     // Modal states
     const [selectedAttendance, setSelectedAttendance] = useState(null);
@@ -821,14 +822,16 @@ const StudentsPortal = () => {
         if (!ad) return;
         try {
             // First fetch the core analytics
-            const [attRes, leaveRes, minusRes] = await Promise.all([
+            const [attRes, leaveRes, minusRes, cepRes] = await Promise.all([
                 axios.get(`${API_PORT}/set-attendance?ad=${ad}`),
                 axios.get(`${API_PORT}/leave?ad=${ad}`),
-                axios.get(`${API_PORT}/minus?ad=${ad}`)
+                axios.get(`${API_PORT}/minus?ad=${ad}`),
+                axios.get(`${API_PORT}/class-excused-pass?ad=${ad}`)
             ]);
             setAttendanceData(attRes.data);
             setLeaveData(leaveRes.data);
             setMinusData(minusRes.data);
+            setCepData(cepRes.data);
 
             // Then fetch complaints separately to prevent breaking the flow
             const sid = studentObj?._id || studentObj?.id || student?._id || student?.id;
@@ -865,9 +868,10 @@ const StudentsPortal = () => {
             total,
             rate,
             leaves: leaveData.length,
+            ceps: cepData.length,
             minusPoints: totalMinus.toFixed(1)
         };
-    }, [attendanceData, leaveData, minusData]);
+    }, [attendanceData, leaveData, minusData, cepData]);
 
     const handleLogout = () => {
         localStorage.removeItem('studentToken');
@@ -966,8 +970,8 @@ const StudentsPortal = () => {
                     <section className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-10">
                         <MetricCard title="Attendance" value={`${stats.rate}%`} subText={`${stats.present}/${stats.total} SESSIONS`} color="blue" icon={TrendingUp} onClick={() => setShowBreakdown(true)} />
                         <MetricCard title="Leave Records" value={stats.leaves} subText="TOTAL ENTERED" color="amber" icon={FileText} onClick={() => { }} />
+                        <MetricCard title="CEP Passes" value={stats.ceps} subText="EXCUSED PASSES" color="sky" icon={Clock} onClick={() => { }} />
                         <MetricCard title="Minus Points" value={stats.minusPoints} subText="ACCUMULATED" color="red" icon={AlertTriangle} onClick={() => { }} />
-                        <MetricCard title="Sessions" value={stats.total} subText="RECORDED SESSIONS" color="green" icon={CheckCircle} onClick={() => { }} />
                     </section>
 
                     {/* Detailed Lists Grid */}
@@ -1120,6 +1124,58 @@ const StudentsPortal = () => {
                                     </div>
                                 </section>
                             )}
+                            
+                            {/* CEP Passes Section */}
+                            <section className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
+                                <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-sky-50/50">
+                                    <h2 className="text-xl font-black text-sky-600 tracking-tight uppercase italic flex items-center gap-3">
+                                        <Clock size={20} /> CEP History
+                                    </h2>
+                                    <span className="px-4 py-1.5 bg-sky-100 text-sky-600 rounded-full text-[10px] font-black uppercase tracking-widest">{cepData.length} TOTAL</span>
+                                </div>
+                                <div className="p-4 sm:p-6 h-[400px] overflow-y-auto">
+                                    {cepData.length > 0 ? (
+                                        <div className="space-y-4">
+                                            {cepData.map((item, idx) => (
+                                                <div key={idx} className="p-6 bg-slate-50 rounded-[2.5rem] border border-slate-100 hover:bg-white hover:shadow-lg hover:border-sky-100 transition-all group">
+                                                    <div className="flex justify-between items-start mb-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 rounded-2xl bg-sky-100 text-sky-600 flex items-center justify-center transition-colors group-hover:bg-sky-600 group-hover:text-white">
+                                                                <Clock size={16} />
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm font-black text-slate-800 tracking-tight italic uppercase">{item.date}</p>
+                                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{formatDate(item.createdAt)}</p>
+                                                            </div>
+                                                        </div>
+                                                        <span className="text-[9px] font-black bg-white text-sky-500 px-3 py-1 rounded-full border border-sky-100 uppercase tracking-widest shadow-sm italic">CEP PASS</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between border-t border-slate-200/50 pt-4 mt-2">
+                                                        <div className="flex flex-col">
+                                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Duration</p>
+                                                            <p className="text-xs font-black text-slate-700">{item.fromTime} - {item.toTime}</p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Issued By</p>
+                                                            <p className="text-xs font-black text-sky-600 uppercase italic leading-none">{item.teacherId?.name || item.teacher || 'Admin'}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="mt-4 bg-white/60 p-4 rounded-2xl border border-white">
+                                                        <p className="text-[10px] font-bold text-slate-600 italic">“ {item.reason} ”</p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="h-full flex flex-col items-center justify-center opacity-30 text-center p-8">
+                                            <div className="w-20 h-20 bg-slate-100 rounded-3xl flex items-center justify-center mb-6">
+                                                <Clock size={40} className="text-slate-400" />
+                                            </div>
+                                            <p className="text-xs font-black uppercase tracking-widest">No CEP passes issued</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </section>
                         </div>
 
                         {/* Right Column: Other Records */}
