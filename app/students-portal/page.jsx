@@ -1057,8 +1057,8 @@ const StudentsPortal = () => {
                                                         {item.teacherId && (
                                                             <div className="flex items-center gap-1.5 mt-1 bg-white/60 px-2.5 py-1 rounded-full border border-slate-200 shadow-sm">
                                                                 <User size={10} className="text-slate-500" />
-                                                                <span className="text-[9px] font-black text-slate-600 uppercase tracking-tight truncate max-w-[100px]">
-                                                                    {item.teacherId.name || 'Teacher'}
+                                                                <span className="text-[9px] font-black text-slate-600 uppercase tracking-tight truncate max-w-[140px]">
+                                                                    Usthad {item.teacherId.name || 'Teacher'}
                                                                 </span>
                                                             </div>
                                                         )}
