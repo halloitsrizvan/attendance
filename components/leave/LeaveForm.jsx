@@ -1732,13 +1732,13 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         >
           <FaHome size={16} /> Leave Dashboard
         </button>
-        {(Array.isArray(teacher?.role) ? teacher.role.some(r => ["HOD", "HOS", "super_admin"].includes(r)) : ["HOD", "HOS", "super_admin"].includes(teacher?.role)) && (
+        {(Array.isArray(teacher?.role) ? teacher.role.some(r => ["Principal","super_admin"].includes(r)) : ["Principal","super_admin"].includes(teacher?.role)) && (
           <button
             className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold shadow-sm transition-all ${leaveType === "leave"
-              ? "bg-sky-500 text-white hover:bg-sky-600 shadow-sky-500/20"
+              ? "bg-sky-500 text-white hover:bg-sky-600 shadow-sky-500/20" 
               : "bg-amber-500 text-white hover:bg-amber-600 shadow-amber-500/20"
               }`}
-            onClick={() => setLeaveType(leaveType === "leave" ? 'short-leave' : 'leave')}
+            onClick={() => setLeaveType(leaveType === "leave" ? 'short-leave' : 'leave')} 
           >
             {leaveType === "leave" ? "Class Excused Pass" : "← Regular Leave"}
           </button>
