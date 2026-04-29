@@ -758,9 +758,9 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     }
   };
   const showConflictAlert = (found, activeRecord, context = 'single') => {
-    const now = new Date();
-    const fromDateTime = new Date(`${activeRecord.fromDate}T${activeRecord.fromTime}`);
-    const isScheduled = now < fromDateTime;
+    const dbStatus = (activeRecord.status || '').toLowerCase();
+    const isStarted = ['active', 'late', 'on leave'].includes(dbStatus);
+    const isScheduled = !isStarted;
     const isRoom = activeRecord.reason === 'Room' || activeRecord.reason === 'Medical (Room)';
 
     const leaveInfo = (
