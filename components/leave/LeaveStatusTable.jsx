@@ -411,7 +411,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
 
   const getDisplayTime = () => {
     // When leave not started yet
-    if (status === 'Scheduled') {
+    if (status === 'Scheduled' || status === 'Pending') {
       return calculateTimeToStart(classInfo.fromDate, classInfo.fromTime);
     }
 

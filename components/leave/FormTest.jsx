@@ -105,7 +105,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
   };
 
   const getDisplayTime = () => {
-    if (status === 'Scheduled') {
+    if (status === 'Scheduled' || status === 'Pending') {
       return calculateTimeToStart(classInfo.fromDate, classInfo.fromTime);
     }
 
@@ -340,19 +340,15 @@ function FormTest() {
       return 'Returned';
     }
 
-    if (item.status === 'active') {
-      if (toDateTime && now > toDateTime) return 'Late';
+    const dbStatus = (item.status || '').toLowerCase();
+    if (dbStatus === 'active' || dbStatus === 'late' || dbStatus === 'on leave') {
+      if (dbStatus === 'late' || (toDateTime && now > toDateTime)) return 'Late';
       return 'On Leave';
     }
 
     if (now < fromDateTime) return 'Scheduled';
 
-    if (now >= fromDateTime) {
-      if (toDateTime && now > toDateTime) return 'Late';
-      return 'Pending';
-    }
-
-    return 'Scheduled';
+    return 'Pending';
   };
 
   const handleReturn = async (leaveId) => {

@@ -111,7 +111,7 @@ const getSafeLocalStorage = () => typeof window !== 'undefined' ? localStorage :
 
     const getDisplayTime = () => {
       // When leave not started yet
-      if (status === 'Scheduled') {
+      if (status === 'Scheduled' || status === 'Pending') {
         return calculateTimeToStart(classInfo.fromDate, classInfo.fromTime);
       }
 

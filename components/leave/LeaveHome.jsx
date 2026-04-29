@@ -76,19 +76,15 @@ const LeaveStatus = () => {
       return 'Returned';
     }
 
-    if (item.status === 'active') {
-      if (toDateTime && now > toDateTime) return 'Late';
+    const dbStatus = (item.status || '').toLowerCase();
+    if (dbStatus === 'active' || dbStatus === 'late' || dbStatus === 'on leave') {
+      if (dbStatus === 'late' || (toDateTime && now > toDateTime)) return 'Late';
       return 'On Leave';
     }
 
     if (now < fromDateTime) return 'Scheduled';
 
-    if (now >= fromDateTime) {
-      if (toDateTime && now > toDateTime) return 'Late';
-      return 'Pending';
-    }
-
-    return 'Scheduled';
+    return 'Pending';
    };
 
     // For updating leave status to returned
@@ -147,7 +143,7 @@ const LeaveStatus = () => {
                 <h2 className="text-xl font-semibold text-gray-800">Leave Status</h2>
                 <div className="flex items-center space-x-3">
                     <span className="bg-pink-100 text-pink-700 text-sm font-bold px-3 py-1 rounded-full">
-                        {leaveData.filter(item => getLeaveStatus(item) === 'On Leave').length} On Leave
+                        {leaveData.filter(item => ['On Leave', 'Late'].includes(getLeaveStatus(item))).length} On Leave
                     </span>
                     <button className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors" onClick={handleStatusClick}>
                         <ArrowUpRight size={20} />

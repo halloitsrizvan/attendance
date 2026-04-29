@@ -235,7 +235,7 @@ const ComplaintsPage = () => {
                       Was: {complaint.attendanceId?.status}
                     </div>
                     <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-2 md:px-3 py-1.5 rounded-lg border border-emerald-100">
-                    Student claimed: {complaint.actualStatus}
+                    Student claimed as: {complaint.actualStatus}
                     </div>
                   </div>
                    <div className="p-4 md:p-5 bg-slate-50 rounded-2xl border border-slate-100 mt-4">

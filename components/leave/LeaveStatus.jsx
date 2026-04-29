@@ -393,19 +393,15 @@ function LeaveStatus() {
       return 'Returned';
     }
 
-    if (item.status === 'active') {
-      if (toDateTime && now > toDateTime) return 'Late';
+    const dbStatus = (item.status || '').toLowerCase();
+    if (dbStatus === 'active' || dbStatus === 'late' || dbStatus === 'on leave') {
+      if (dbStatus === 'late' || (toDateTime && now > toDateTime)) return 'Late';
       return 'On Leave';
     }
 
     if (now < fromDateTime) return 'Scheduled';
 
-    if (now >= fromDateTime) {
-      if (toDateTime && now > toDateTime) return 'Late';
-      return 'Pending';
-    }
-
-    return 'Scheduled';
+    return 'Pending';
   };
 
   const matchesFilters = (student) => {
@@ -617,14 +613,8 @@ function LeaveStatus() {
       data = data.filter(matchesFilters);
     }
     if (activeTab === 'onLeave') {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
       return data.filter(student => {
-        const isScheduledToday = ['Scheduled', 'Pending'].includes(student.displayStatus) && 
-                                 new Date(student.fromDate).setHours(0,0,0,0) === today.getTime();
-        
-        return (['On Leave', 'Late'].includes(student.displayStatus) || isScheduledToday) && 
+        return (['On Leave', 'Late'].includes(student.displayStatus)) && 
                matchesFilters(student);
       });
     }
@@ -635,13 +625,8 @@ function LeaveStatus() {
   }, [leaveData, activeTab, searchValue, filterClass, filterAction, filterStartReturn, filterReason]);
 
   const filteredDataForOnleave = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
     return leaveData.filter(student => {
-      const isScheduledToday = ['Scheduled', 'Pending'].includes(student.displayStatus) && 
-                               new Date(student.fromDate).setHours(0,0,0,0) === today.getTime();
-      return ['On Leave', 'Late'].includes(student.displayStatus) || isScheduledToday;
+      return ['On Leave', 'Late'].includes(student.displayStatus);
     });
   }, [leaveData]);
 

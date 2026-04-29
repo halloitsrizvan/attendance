@@ -8,6 +8,12 @@ const offDaySchema = new mongoose.Schema({
     toDate: {
         type: String, // Format: YYYY-MM-DD (optional)
     },
+    fromTime: {
+        type: String, // Format: HH:mm (optional)
+    },
+    toTime: {
+        type: String, // Format: HH:mm (optional)
+    },
     type: {
         type: String,
         enum: ['global', 'class_specific'],

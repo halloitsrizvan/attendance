@@ -158,7 +158,7 @@ function Hajar() {
       if (!isSameDate) return false;
 
       // Check status
-      if (leave.status === 'returned') return false;
+      if (leave.status?.toLowerCase() === 'returned') return false;
 
       // Check time range
       const leaveFrom = convertTimeToMinutes(leave.fromTime);
@@ -172,14 +172,14 @@ function Hajar() {
         // Even if it doesn't overlap, if the attendance period is AFTER the leave 
         // and the status is active/late/pending, show as "On Leave"
         if (!overlaps && ctx.from >= leaveTo) {
-          return (leave.status === 'active' || leave.status === 'late' || leave.status === 'pending');
+          return ['active', 'late', 'pending', 'on leave'].includes(leave.status?.toLowerCase());
         }
         return overlaps;
       } else {
         // Simple point check: attendance time is within leave duration
         // or attendance time is past leave duration but they haven't returned
         if (ctx.from > leaveTo) {
-          return (leave.status === 'active' || leave.status === 'late' || leave.status === 'pending');
+          return ['active', 'late', 'pending', 'on leave'].includes(leave.status?.toLowerCase());
         }
         return ctx.from >= leaveFrom;
       }
@@ -201,7 +201,7 @@ function Hajar() {
       if (Number(leaveAdno) !== Number(studentAdno)) return false;
 
       // Status must not be returned or merely scheduled
-      if (leave.status === 'returned' || leave.status === 'Scheduled') return false;
+      if (['returned', 'scheduled'].includes(leave.status?.toLowerCase())) return false;
 
       // Date range check
       const fromDate = new Date(leave.fromDate);
@@ -237,7 +237,7 @@ function Hajar() {
           // but we categorize it as a "Late" return possibility.
           if (ctx.from > leaveTo) {
             // Keep showing if status is active or late
-            return (leave.status === 'active' || leave.status === 'late' || leave.status === 'pending');
+            return ['active', 'late', 'pending', 'on leave'].includes(leave.status?.toLowerCase());
           }
           return true;
         }
@@ -249,7 +249,7 @@ function Hajar() {
           thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
           if (toDate < thirtyDaysAgo) return false;
           
-          return (leave.status === 'active' || leave.status === 'late' || leave.status === 'pending');
+          return ['active', 'late', 'pending', 'on leave'].includes(leave.status?.toLowerCase());
         }
 
         return true;

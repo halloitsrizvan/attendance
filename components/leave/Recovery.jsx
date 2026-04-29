@@ -91,7 +91,17 @@ const Recovery = () => {
                 const inRange = d.toDate 
                     ? (dateStr >= d.fromDate && dateStr <= d.toDate)
                     : (dateStr === d.fromDate);
-                return inRange && (d.type === 'global' || d.classes.includes(String(studentClass)));
+                
+                if (!inRange) return false;
+                const isRelevant = d.type === 'global' || d.classes.includes(String(studentClass));
+                if (!isRelevant) return false;
+
+                const schoolStart = new Date(`${dateStr}T07:30:00`);
+                const schoolEnd = new Date(`${dateStr}T16:00:00`);
+                const offStart = new Date(`${d.fromDate}T${d.fromTime || '00:00'}:00`);
+                const offEnd = new Date(`${d.toDate || d.fromDate}T${d.toTime || '23:59'}:00`);
+
+                return offStart <= schoolStart && offEnd >= schoolEnd;
             });
 
             if (current.getDay() !== 5 && !isOffDay) { // Skip Fridays and Off Days
@@ -123,7 +133,17 @@ const Recovery = () => {
                 const inRange = d.toDate 
                     ? (dateStr >= d.fromDate && dateStr <= d.toDate)
                     : (dateStr === d.fromDate);
-                return inRange && (d.type === 'global' || d.classes.includes(String(studentClass)));
+                
+                if (!inRange) return false;
+                const isRelevant = d.type === 'global' || d.classes.includes(String(studentClass));
+                if (!isRelevant) return false;
+
+                const schoolStart = new Date(`${dateStr}T07:30:00`);
+                const schoolEnd = new Date(`${dateStr}T16:00:00`);
+                const offStart = new Date(`${d.fromDate}T${d.fromTime || '00:00'}:00`);
+                const offEnd = new Date(`${d.toDate || d.fromDate}T${d.toTime || '23:59'}:00`);
+
+                return offStart <= schoolStart && offEnd >= schoolEnd;
             });
             
             if (current.getDay() !== 5 && !isOffDay) {
