@@ -34,11 +34,17 @@ export async function GET(req) {
     if (time) query.attendanceTime = time;
     if (period) query.period = Number(period);
 
-    const attendance = await Attendance.find(query)
+    const all = searchParams.get('all') === 'true';
+    let mongoQuery = Attendance.find(query)
       .populate('studentId')
       .populate('teacherId')
-      .sort({ createdAt: -1 })
-      .limit(500);
+      .sort({ createdAt: -1 });
+
+    if (!all) {
+      mongoQuery = mongoQuery.limit(500);
+    }
+
+    const attendance = await mongoQuery;
     return NextResponse.json(attendance);
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -20,18 +20,90 @@ const formatDate = (dateString, monthOnly = false) => {
     return d.toLocaleDateString('en-GB');
 };
 
-const getRecoveryStatus = (leave) => {
+const getRecoveryInfo = (leave, offDays) => {
     if ((leave.status !== 'returned' && !leave.returnedAt) || leave.recovery === true) return null;
     
-    const returnedDate = new Date(leave.returnedAt || leave.toDate);
-    const today = new Date();
-    const diffTime = today - returnedDate;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const studentClass = leave.studentId?.CLASS || leave.classNum;
     
-    if (diffDays >= 0 && diffDays <= 3) {
-        return 4 - diffDays;
+    // Helper to get active leave days (excluding Fridays and Off Days)
+    const getActiveLeaveDays = () => {
+        const start = new Date(`${leave.fromDate}T${leave.fromTime}`);
+        const end = new Date(leave.returnedAt);
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
+
+        let count = 0;
+        let current = new Date(start);
+        current.setHours(0, 0, 0, 0);
+        const endDay = new Date(end);
+        endDay.setHours(0, 0, 0, 0);
+
+        while (current <= endDay) {
+            const dateStr = current.toISOString().split('T')[0];
+            const isOffDay = offDays.some(d => {
+                const inRange = d.toDate 
+                    ? (dateStr >= d.fromDate && dateStr <= d.toDate)
+                    : (dateStr === d.fromDate);
+                return inRange && (d.type === 'global' || (d.classes && d.classes.includes(String(studentClass))));
+            });
+
+            if (current.getDay() !== 5 && !isOffDay) { // Skip Fridays and Off Days
+                const dayStart = new Date(current);
+                dayStart.setHours(7, 30, 0, 0); // 7:30 AM
+                const dayEnd = new Date(current);
+                dayEnd.setHours(16, 0, 0, 0);  // 4:00 PM
+                const overlapStart = start > dayStart ? start : dayStart;
+                const overlapEnd = end < dayEnd ? end : dayEnd;
+                if (overlapStart < overlapEnd) count++;
+            }
+            current.setDate(current.getDate() + 1);
+        }
+        return count;
+    };
+
+    const leaveDays = getActiveLeaveDays();
+    if (leaveDays === 0) return null;
+
+    const graceDays = leaveDays * 2;
+    
+    // Helper to calculate deadline by adding working days
+    const calculateDeadline = (startDate, workingDays) => {
+        let current = new Date(startDate);
+        let addedDays = 0;
+        while (addedDays < workingDays) {
+            current.setDate(current.getDate() + 1);
+            const dateStr = current.toISOString().split('T')[0];
+            const isOffDay = offDays.some(d => {
+                const inRange = d.toDate 
+                    ? (dateStr >= d.fromDate && dateStr <= d.toDate)
+                    : (dateStr === d.fromDate);
+                return inRange && (d.type === 'global' || (d.classes && d.classes.includes(String(studentClass))));
+            });
+            if (current.getDay() !== 5 && !isOffDay) addedDays++;
+        }
+        return current;
+    };
+
+    const deadline = calculateDeadline(new Date(leave.returnedAt), graceDays);
+    const today = new Date();
+    
+    if (today > deadline) return { status: 'Overdue', deadline };
+    
+    // Calculate remaining WORKING days for the badge
+    let remaining = 0;
+    let temp = new Date(today);
+    while (temp < deadline) {
+        temp.setDate(temp.getDate() + 1);
+        const dateStr = temp.toISOString().split('T')[0];
+        const isOffDay = offDays.some(d => {
+            const inRange = d.toDate 
+                ? (dateStr >= d.fromDate && dateStr <= d.toDate)
+                : (dateStr === d.fromDate);
+            return inRange && (d.type === 'global' || (d.classes && d.classes.includes(String(studentClass))));
+        });
+        if (temp.getDay() !== 5 && !isOffDay) remaining++;
     }
-    return null;
+
+    return { status: 'Ongoing', remaining: remaining + 1, deadline };
 };
 
 /**
@@ -780,6 +852,7 @@ const StudentsPortal = () => {
     const [minusData, setMinusData] = useState([]);
     const [complaintsData, setComplaintsData] = useState([]);
     const [cepData, setCepData] = useState([]);
+    const [offDays, setOffDays] = useState([]);
 
     // Modal states
     const [selectedAttendance, setSelectedAttendance] = useState(null);
@@ -822,16 +895,18 @@ const StudentsPortal = () => {
         if (!ad) return;
         try {
             // First fetch the core analytics
-            const [attRes, leaveRes, minusRes, cepRes] = await Promise.all([
+            const [attRes, leaveRes, minusRes, cepRes, offDaysRes] = await Promise.all([
                 axios.get(`${API_PORT}/set-attendance?ad=${ad}`),
                 axios.get(`${API_PORT}/leave?ad=${ad}`),
                 axios.get(`${API_PORT}/minus?ad=${ad}`),
-                axios.get(`${API_PORT}/class-excused-pass?ad=${ad}`)
+                axios.get(`${API_PORT}/class-excused-pass?ad=${ad}`),
+                axios.get(`${API_PORT}/off-days`)
             ]);
             setAttendanceData(attRes.data);
             setLeaveData(leaveRes.data);
             setMinusData(minusRes.data);
             setCepData(cepRes.data);
+            setOffDays(offDaysRes.data);
 
             // Then fetch complaints separately to prevent breaking the flow
             const sid = studentObj?._id || studentObj?.id || student?._id || student?.id;
@@ -1262,11 +1337,22 @@ const StudentsPortal = () => {
                                                                     Recovery {item.recovery ? 'Completed' : 'Pending'}
                                                                 </span>
                                                             </div>
-                                                            {!item.recovery && getRecoveryStatus(item) !== null && (
-                                                                <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest px-2 py-0.5 bg-white rounded-lg shadow-sm">
-                                                                    {getRecoveryStatus(item)} Days Left
-                                                                </span>
-                                                            )}
+                                                            {!item.recovery && (() => {
+                                                                const recovery = getRecoveryInfo(item, offDays);
+                                                                if (!recovery) return null;
+                                                                if (recovery.status === 'Overdue') {
+                                                                    return (
+                                                                        <span className="text-[10px] font-black text-rose-600 uppercase tracking-widest px-2 py-0.5 bg-rose-50 rounded-lg shadow-sm border border-rose-100 animate-pulse">
+                                                                            Overdue
+                                                                        </span>
+                                                                    );
+                                                                }
+                                                                return (
+                                                                    <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest px-2 py-0.5 bg-white rounded-lg shadow-sm">
+                                                                        {recovery.remaining} Days Left
+                                                                    </span>
+                                                                );
+                                                             })()}
                                                         </div>
                                                     )}
                                                 </div>

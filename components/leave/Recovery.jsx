@@ -13,6 +13,7 @@ const Recovery = () => {
     const [updatingId, setUpdatingId] = useState(null);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [confirmId, setConfirmId] = useState(null);
+    const [offDays, setOffDays] = useState([]);
 
     useEffect(() => {
         const storedTeacher = localStorage.getItem("teacher");
@@ -25,8 +26,12 @@ const Recovery = () => {
     const fetchLeaves = async () => {
         setLoading(true);
         try {
-            const res = await axios.get(`${API_PORT}/leave`);
-            setLeaves(res.data);
+            const [leavesRes, offDaysRes] = await Promise.all([
+                axios.get(`${API_PORT}/leave`),
+                axios.get(`${API_PORT}/off-days`)
+            ]);
+            setLeaves(leavesRes.data);
+            setOffDays(offDaysRes.data);
         } catch (err) {
             console.error(err);
         } finally {
@@ -67,7 +72,7 @@ const Recovery = () => {
         });
     }, [teacherLeaves, searchValue]);
 
-    const getActiveLeaveDays = (fromDateStr, fromTimeStr, returnedAt) => {
+    const getActiveLeaveDays = (fromDateStr, fromTimeStr, returnedAt, studentClass) => {
         const start = new Date(`${fromDateStr}T${fromTimeStr}`);
         const end = new Date(returnedAt);
         
@@ -81,11 +86,19 @@ const Recovery = () => {
         endDay.setHours(0, 0, 0, 0);
 
         while (current <= endDay) {
-            if (current.getDay() !== 5) { // Skip Fridays
+            const dateStr = current.toISOString().split('T')[0];
+            const isOffDay = offDays.some(d => {
+                const inRange = d.toDate 
+                    ? (dateStr >= d.fromDate && dateStr <= d.toDate)
+                    : (dateStr === d.fromDate);
+                return inRange && (d.type === 'global' || d.classes.includes(String(studentClass)));
+            });
+
+            if (current.getDay() !== 5 && !isOffDay) { // Skip Fridays and Off Days
                 const dayStart = new Date(current);
-                dayStart.setHours(7, 0, 0, 0);
+                dayStart.setHours(7, 30, 0, 0); // School starts at 7:30 AM
                 const dayEnd = new Date(current);
-                dayEnd.setHours(16, 0, 0, 0);
+                dayEnd.setHours(16, 0, 0, 0);  // School ends at 4:00 PM
                 
                 const overlapStart = start > dayStart ? start : dayStart;
                 const overlapEnd = end < dayEnd ? end : dayEnd;
@@ -99,18 +112,37 @@ const Recovery = () => {
         return count;
     };
 
+    const calculateDeadline = (startDate, workingDays, studentClass) => {
+        let current = new Date(startDate);
+        let addedDays = 0;
+        
+        while (addedDays < workingDays) {
+            current.setDate(current.getDate() + 1);
+            const dateStr = current.toISOString().split('T')[0];
+            const isOffDay = offDays.some(d => {
+                const inRange = d.toDate 
+                    ? (dateStr >= d.fromDate && dateStr <= d.toDate)
+                    : (dateStr === d.fromDate);
+                return inRange && (d.type === 'global' || d.classes.includes(String(studentClass)));
+            });
+            
+            if (current.getDay() !== 5 && !isOffDay) {
+                addedDays++;
+            }
+        }
+        return current;
+    };
+
     const calculateRecoveryStatus = (leave) => {
         if (leave.recovery) return { status: 'Recovered', color: 'text-green-600 bg-green-50', icon: ShieldCheck };
         
-        const leaveDays = getActiveLeaveDays(leave.fromDate, leave.fromTime, leave.returnedAt);
+        const studentClass = leave.studentId?.CLASS || leave.classNum;
+        const leaveDays = getActiveLeaveDays(leave.fromDate, leave.fromTime, leave.returnedAt, studentClass);
         
-        // If no class days were missed, no recovery is needed (or it's effectively 0 days)
-        // User said "if student leave from thu eve to fri eve then it not consider in recovery"
         if (leaveDays === 0) return { status: 'Recovered', color: 'text-green-600 bg-green-50', icon: ShieldCheck };
 
         const graceDays = leaveDays * 2;
-        const returned = new Date(leave.returnedAt);
-        const deadline = new Date(returned.getTime() + (graceDays * 24 * 60 * 60 * 1000));
+        const deadline = calculateDeadline(new Date(leave.returnedAt), graceDays, studentClass);
         
         const now = new Date();
         if (now > deadline) {

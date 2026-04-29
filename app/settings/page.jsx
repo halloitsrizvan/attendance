@@ -18,6 +18,17 @@ export default function SettingsPage() {
     const [teacher, setTeacher] = useState(null);
 
     const [downloading, setDownloading] = useState(false);
+    
+    // Off Days State
+    const [offDays, setOffDays] = useState([]);
+    const [offDayLoading, setOffDayLoading] = useState(false);
+    const [newOffDay, setNewOffDay] = useState({
+        fromDate: '',
+        toDate: '',
+        type: 'global',
+        classes: [],
+        description: ''
+    });
 
     const fetchAcademicYears = async () => {
         try {
@@ -27,6 +38,15 @@ export default function SettingsPage() {
             console.error("Failed to fetch academic years:", error);
         } finally {
             setFetching(false);
+        }
+    };
+
+    const fetchOffDays = async () => {
+        try {
+            const res = await axios.get(`${API_PORT}/off-days`);
+            setOffDays(res.data);
+        } catch (error) {
+            console.error("Failed to fetch off days:", error);
         }
     };
 
@@ -47,7 +67,37 @@ export default function SettingsPage() {
         }
 
         fetchAcademicYears();
+        fetchOffDays();
     }, []);
+
+    const handleCreateOffDay = async (e) => {
+        e.preventDefault();
+        if (!newOffDay.fromDate) return;
+        setOffDayLoading(true);
+        try {
+            await axios.post(`${API_PORT}/off-days`, newOffDay);
+            setNewOffDay({ fromDate: '', toDate: '', type: 'global', classes: [], description: '' });
+            fetchOffDays();
+            setStatus({ type: 'success', message: 'Off day added successfully' });
+            setTimeout(() => setStatus(null), 3000);
+        } catch (error) {
+            setStatus({ type: 'error', message: error.response?.data?.error || 'Failed to add off day' });
+        } finally {
+            setOffDayLoading(false);
+        }
+    };
+
+    const handleDeleteOffDay = async (id) => {
+        if (!confirm("Are you sure you want to delete this off day?")) return;
+        try {
+            await axios.delete(`${API_PORT}/off-days?id=${id}`);
+            fetchOffDays();
+            setStatus({ type: 'success', message: 'Off day removed' });
+            setTimeout(() => setStatus(null), 3000);
+        } catch (error) {
+            setStatus({ type: 'error', message: 'Failed to delete' });
+        }
+    };
 
     const handleCreate = async (e) => {
         e.preventDefault();
@@ -82,12 +132,12 @@ export default function SettingsPage() {
 
         try {
             const endpoints = [
-                { key: 'Attendance', url: `${API_PORT}/set-attendance` },
-                { key: 'Minus Points', url: `${API_PORT}/minus` },
-                { key: 'Medical Leaves', url: `${API_PORT}/leave` },
-                { key: 'Pass History', url: `${API_PORT}/class-excused-pass` },
-                { key: 'Students', url: `${API_PORT}/students` },
-                { key: 'Teachers', url: `${API_PORT}/teachers` }
+                { key: 'Attendance', url: `${API_PORT}/set-attendance?all=true` },
+                { key: 'Minus Points', url: `${API_PORT}/minus?all=true` },
+                { key: 'leaves', url: `${API_PORT}/leave?all=true` },
+                { key: 'Pass History', url: `${API_PORT}/class-excused-pass?all=true` },
+                { key: 'Students', url: `${API_PORT}/students?all=true` },
+                { key: 'Teachers', url: `${API_PORT}/teachers?all=true` }
             ];
 
             const results = await Promise.all(endpoints.map(e => axios.get(e.url)));
@@ -97,11 +147,89 @@ export default function SettingsPage() {
                 let data = results[idx].data;
 
                 // Filter by academic year for transactional data
-                if (['Attendance', 'Minus Points', 'Medical Leaves', 'Pass History'].includes(e.key)) {
+                if (['Attendance', 'Minus Points', 'leaves', 'Pass History'].includes(e.key)) {
                     data = data.filter(item => 
                         item.academicYearId === activeYear._id || 
                         item.academicYear === activeYear.name
                     );
+                }
+
+                // SPECIAL HANDLING FOR ATTENDANCE (REPORT FORMAT)
+                if (e.key === 'Attendance') {
+                    const students = results[4].data;
+                    const allAttendance = data;
+
+                    // Get all unique dates and sort them
+                    const uniqueDates = [...new Set(allAttendance.map(a => {
+                        const d = a.attendanceDate ? new Date(a.attendanceDate) : null;
+                        return d ? d.toISOString().split('T')[0] : null;
+                    }).filter(Boolean))].sort();
+
+                    // Get all unique time slots
+                    const uniqueSlots = [...new Set(allAttendance.map(a => a.attendanceTime).filter(Boolean))];
+                    const uniquePeriods = [...new Set(allAttendance.filter(a => a.period).map(a => a.period))].sort((a, b) => a - b);
+
+                    const attendanceSheetData = students.map((student, idx) => {
+                        const row = {
+                            SL: idx + 1,
+                            ADNO: student.ADNO,
+                            Name: student.name || student['FULL NAME'],
+                            Class: student.CLASS,
+                            'Present Count': 0,
+                            'Absent Count': 0
+                        };
+
+                        const studentAtt = allAttendance.filter(a => 
+                            (a.studentId?._id || a.studentId) === student._id || 
+                            (a.studentId?.ADNO === student.ADNO)
+                        );
+
+                        uniqueDates.forEach(date => {
+                            uniqueSlots.forEach(slot => {
+                                if (slot === 'Period') {
+                                    uniquePeriods.forEach(p => {
+                                        const record = studentAtt.find(a => {
+                                            const adate = a.attendanceDate ? new Date(a.attendanceDate).toISOString().split('T')[0] : '';
+                                            return adate === date && a.attendanceTime === 'Period' && a.period === p;
+                                        });
+                                        const status = record ? (record.status === 'Present' ? 'P' : 'A') : '-';
+                                        row[`${date}_P${p}`] = status;
+                                        if (status === 'P') row['Present Count']++;
+                                        if (status === 'A') row['Absent Count']++;
+                                    });
+                                } else {
+                                    const record = studentAtt.find(a => {
+                                        const adate = a.attendanceDate ? new Date(a.attendanceDate).toISOString().split('T')[0] : '';
+                                        return adate === date && a.attendanceTime === slot;
+                                    });
+                                    const status = record ? (record.status === 'Present' ? 'P' : 'A') : '-';
+                                    row[`${date}_${slot}`] = status;
+                                    if (status === 'P') row['Present Count']++;
+                                    if (status === 'A') row['Absent Count']++;
+                                }
+                            });
+                        });
+
+                        return row;
+                    });
+
+                    const ws = XLSX.utils.json_to_sheet(attendanceSheetData);
+                    XLSX.utils.book_append_sheet(wb, ws, 'Attendance');
+
+                    // ADDITION: Also add a Raw Attendance sheet for full data visibility
+                    const rawAttendance = allAttendance.map(item => ({
+                        Date: item.attendanceDate ? new Date(item.attendanceDate).toLocaleDateString() : 'N/A',
+                        Time: item.attendanceTime || 'N/A',
+                        Period: item.period || '-',
+                        Student: item.studentId?.['SHORT NAME'] || item.studentId?.name || 'N/A',
+                        ADNO: item.studentId?.ADNO || 'N/A',
+                        Status: item.status,
+                        Teacher: item.teacherId?.name || 'N/A',
+                        Custom: item.custom || '-'
+                    }));
+                    const wsRaw = XLSX.utils.json_to_sheet(rawAttendance);
+                    XLSX.utils.book_append_sheet(wb, wsRaw, 'Raw_Attendance');
+                    return;
                 }
 
                 // Format data for sheet
@@ -120,10 +248,11 @@ export default function SettingsPage() {
                         Points: item.minusNum,
                         Teacher: item.teacherId?.name || item.teacher || 'N/A'
                     };
-                    if (e.key === 'Medical Leaves') return {
-                        Student: item.studentId?.['SHORT NAME'] || 'N/A',
+                    if (e.key === 'leaves') return {
+                        Student: item.studentId?.['SHORT NAME'] || item.studentId?.name || 'N/A',
                         From: `${item.fromDate} ${item.fromTime}`,
                         To: `${item.toDate || ''} ${item.toTime || ''}`,
+                        ReturnedAt: item.returnedAt ? new Date(item.returnedAt).toLocaleString() : 'Not Yet Returned',
                         Reason: item.reason,
                         Status: item.status
                     };
@@ -143,8 +272,8 @@ export default function SettingsPage() {
                     if (e.key === 'Teachers') return {
                         Name: item.name,
                         Email: item.email,
-                        Role: item.role,
-                        Class: item.assignedClass || 'N/A'
+                        Roles: Array.isArray(item.role) ? item.role.join(', ') : (item.role || 'teacher'),
+                        ClassNum: item.classNum || 'N/A'
                     };
                     return item;
                 });
@@ -239,28 +368,6 @@ export default function SettingsPage() {
                         </form>
                     </div>
 
-                    {/* Database Tools */}
-                    <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Institutional Storage</h3>
-                            <div className="p-2 bg-indigo-50 text-indigo-500 rounded-lg">
-                                <Database size={16} />
-                            </div>
-                        </div>
-                        <div className="space-y-4">
-                            <p className="text-[11px] font-bold text-slate-400 uppercase leading-relaxed px-1">
-                                Backup your entire institutional database for the current academic year in a multi-sheet Excel format.
-                            </p>
-                            <button
-                                onClick={handleDownloadAll}
-                                disabled={downloading || years.length === 0}
-                                className="w-full py-5 bg-indigo-500 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-3xl shadow-xl shadow-indigo-500/20 hover:bg-indigo-600 transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50"
-                            >
-                                {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download size={18} />}
-                                {downloading ? "Extracting Data..." : "Download Full Institutional Backup"}
-                            </button>
-                        </div>
-                    </div>
 
                     {/* Academic Year List */}
                     <div className="space-y-4">
@@ -307,6 +414,143 @@ export default function SettingsPage() {
                                 <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">No sessions found</p>
                             </div>
                         )}
+                    </div>
+
+                        
+                    {/* Database Tools */}
+                    <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Institutional Storage</h3>
+                            <div className="p-2 bg-indigo-50 text-indigo-500 rounded-lg">
+                                <Database size={16} />
+                            </div>
+                        </div>
+                        <div className="space-y-4">
+                            <p className="text-[11px] font-bold text-slate-400 uppercase leading-relaxed px-1">
+                                Backup your entire institutional database for the current academic year in a multi-sheet Excel format.
+                            </p>
+                            <button
+                                onClick={handleDownloadAll}
+                                disabled={downloading || years.length === 0}
+                                className="w-full py-5 bg-indigo-500 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-3xl shadow-xl shadow-indigo-500/20 hover:bg-indigo-600 transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50"
+                            >
+                                {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download size={18} />}
+                                {downloading ? "Extracting Data..." : "Download Full Institutional Backup"}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Off Days Management */}
+                    <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-8">
+                        <div>
+                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Off Days & Special Holidays</h3>
+                            <p className="text-[11px] font-bold text-slate-400 uppercase leading-relaxed px-1">
+                                Set days that should be excluded from recovery periods (global or class-specific).
+                            </p>
+                        </div>
+
+                        <form onSubmit={handleCreateOffDay} className="space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">From Date</label>
+                                    <input
+                                        type="date"
+                                        value={newOffDay.fromDate}
+                                        onChange={(e) => setNewOffDay({...newOffDay, fromDate: e.target.value})}
+                                        className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">To Date (Optional)</label>
+                                    <input
+                                        type="date"
+                                        value={newOffDay.toDate}
+                                        onChange={(e) => setNewOffDay({...newOffDay, toDate: e.target.value})}
+                                        className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Type</label>
+                                    <select
+                                        value={newOffDay.type}
+                                        onChange={(e) => setNewOffDay({...newOffDay, type: e.target.value})}
+                                        className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all appearance-none"
+                                    >
+                                        <option value="global">Global (All Classes)</option>
+                                        <option value="class_specific">Special Class Only</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {newOffDay.type === 'class_specific' && (
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Classes (Comma separated)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. 1, 2, 8"
+                                        value={newOffDay.classes.join(', ')}
+                                        onChange={(e) => setNewOffDay({...newOffDay, classes: e.target.value.split(',').map(s => s.trim()).filter(s => s)})}
+                                        className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all"
+                                    />
+                                </div>
+                            )}
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Description</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. Eid Holiday, Special Program"
+                                    value={newOffDay.description}
+                                    onChange={(e) => setNewOffDay({...newOffDay, description: e.target.value})}
+                                    className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all"
+                                />
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={offDayLoading}
+                                className="w-full py-4 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-slate-900/10 hover:bg-slate-800 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
+                                {offDayLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus size={16} />}
+                                Add Off Day
+                            </button>
+                        </form>
+
+                        <div className="space-y-3">
+                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Existing Off Days</h4>
+                            <div className="grid grid-cols-1 gap-3">
+                                {offDays.map(day => (
+                                    <div key={day._id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-slate-400 shadow-sm">
+                                                <Calendar size={18} />
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm font-black text-slate-700">
+                                                        {day.fromDate} {day.toDate ? `to ${day.toDate}` : ''}
+                                                    </span>
+                                                    <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${day.type === 'global' ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600'}`}>
+                                                        {day.type === 'global' ? 'Global' : `Classes: ${day.classes.join(', ')}`}
+                                                    </span>
+                                                </div>
+                                                {day.description && <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{day.description}</p>}
+                                            </div>
+                                        </div>
+                                        <button 
+                                            onClick={() => handleDeleteOffDay(day._id)}
+                                            className="p-2 text-rose-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                ))}
+                                {offDays.length === 0 && (
+                                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest text-center py-4 italic">No off days set</p>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
