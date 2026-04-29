@@ -1,18 +1,12 @@
 import mongoose from 'mongoose';
 
 const offDaySchema = new mongoose.Schema({
-    fromDate: {
-        type: String, // Format: YYYY-MM-DD
+    fromDateTime: {
+        type: Date,
         required: true
     },
-    toDate: {
-        type: String, // Format: YYYY-MM-DD (optional)
-    },
-    fromTime: {
-        type: String, // Format: HH:mm (optional)
-    },
-    toTime: {
-        type: String, // Format: HH:mm (optional)
+    toDateTime: {
+        type: Date
     },
     type: {
         type: String,

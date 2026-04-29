@@ -23,10 +23,8 @@ export default function SettingsPage() {
     const [offDays, setOffDays] = useState([]);
     const [offDayLoading, setOffDayLoading] = useState(false);
     const [newOffDay, setNewOffDay] = useState({
-        fromDate: '',
-        toDate: '',
-        fromTime: '',
-        toTime: '',
+        fromDateTime: '',
+        toDateTime: '',
         type: 'global',
         classes: [],
         description: ''
@@ -79,11 +77,11 @@ export default function SettingsPage() {
 
     const handleCreateOffDay = async (e) => {
         e.preventDefault();
-        if (!newOffDay.fromDate) return;
+        if (!newOffDay.fromDateTime) return;
         setOffDayLoading(true);
         try {
             await axios.post(`${API_PORT}/off-days`, newOffDay);
-            setNewOffDay({ fromDate: '', toDate: '', fromTime: '', toTime: '', type: 'global', classes: [], description: '' });
+            setNewOffDay({ fromDateTime: '', toDateTime: '', type: 'global', classes: [], description: '' });
             fetchOffDays();
             setStatus({ type: 'success', message: 'Off day added successfully' });
             setTimeout(() => setStatus(null), 3000);
@@ -458,47 +456,24 @@ export default function SettingsPage() {
 
                         <form onSubmit={handleCreateOffDay} className="space-y-4">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">From Date</label>
-                                        <input
-                                            type="date"
-                                            value={newOffDay.fromDate}
-                                            onChange={(e) => setNewOffDay({...newOffDay, fromDate: e.target.value})}
-                                            className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">From Time</label>
-                                        <input
-                                            type="time"
-                                            value={newOffDay.fromTime}
-                                            onChange={(e) => setNewOffDay({...newOffDay, fromTime: e.target.value})}
-                                            className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all"
-                                        />
-                                    </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">From Date & Time</label>
+                                    <input
+                                        type="datetime-local"
+                                        value={newOffDay.fromDateTime}
+                                        onChange={(e) => setNewOffDay({...newOffDay, fromDateTime: e.target.value})}
+                                        className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all"
+                                        required
+                                    />
                                 </div>
-                                
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">To Date </label>
-                                        <input
-                                            type="date"
-                                            value={newOffDay.toDate}
-                                            onChange={(e) => setNewOffDay({...newOffDay, toDate: e.target.value})}
-                                            className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">To Time </label>
-                                        <input
-                                            type="time"
-                                            value={newOffDay.toTime}
-                                            onChange={(e) => setNewOffDay({...newOffDay, toTime: e.target.value})}
-                                            className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all"
-                                        />
-                                    </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">To Date & Time</label>
+                                    <input
+                                        type="datetime-local"
+                                        value={newOffDay.toDateTime}
+                                        onChange={(e) => setNewOffDay({...newOffDay, toDateTime: e.target.value})}
+                                        className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all"
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Type</label>
@@ -559,12 +534,8 @@ export default function SettingsPage() {
                                             <div>
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-sm font-black text-slate-700">
-                                                        {day.fromDate} {day.toDate ? `to ${day.toDate}` : ''}
-                                                        {(day.fromTime || day.toTime) && (
-                                                            <span className="ml-2 text-[10px] text-sky-500 font-bold">
-                                                                ({day.fromTime || '--:--'} - {day.toTime || '--:--'})
-                                                            </span>
-                                                        )}
+                                                        {new Date(day.fromDateTime).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                                                        {day.toDateTime && ` to ${new Date(day.toDateTime).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}`}
                                                     </span>
                                                     <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${day.type === 'global' ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600'}`}>
                                                         {day.type === 'global' ? 'Global' : `Classes: ${day.classes.join(', ')}`}
