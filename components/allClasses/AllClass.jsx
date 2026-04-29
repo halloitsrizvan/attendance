@@ -225,24 +225,30 @@ function AllClass({edit,id}) {
         {time === "Period" && (
           <div className="flex flex-col gap-2 w-full">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Select Period</label>
-            <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 pb-2">
-              {[2, 3, 4, 5, 6, 7, 9, 10].map((i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => {
-                    setPeriod(i);
-                    setErr('');
-                  }}
-                  className={`h-11 rounded-xl flex items-center justify-center text-sm font-black transition-all duration-200 ${
-                    String(period) === String(i)
-                      ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/20 scale-105'
-                      : 'bg-white border-2 border-slate-50 text-slate-400 hover:border-sky-100 hover:bg-sky-50/50'
-                  }`}
-                >
-                  {i}
-                </button>
-              ))}
+            <div className="grid grid-cols-5 sm:grid-cols-8 gap-2 pb-2">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => {
+                const isDisabled = [1, 7,8].includes(i);
+                return ( 
+                  <button
+                    key={i}
+                    type="button"
+                    disabled={isDisabled}
+                    onClick={() => {
+                      setPeriod(i);
+                      setErr('');
+                    }}
+                    className={`h-11 rounded-xl flex items-center justify-center text-sm font-black transition-all duration-200 ${
+                      isDisabled 
+                        ? 'bg-slate-50 text-slate-200 border-2 border-slate-50 cursor-not-allowed' 
+                        : String(period) === String(i)
+                          ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/20 scale-105'
+                          : 'bg-white border-2 border-slate-50 text-slate-400 hover:border-sky-100 hover:bg-sky-50/50'
+                    }`}
+                  >
+                    {i}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
