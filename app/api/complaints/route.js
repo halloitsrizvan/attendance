@@ -2,6 +2,7 @@ import dbConnect from "@/lib/mongodb";
 import Complaint from "@/models/complaintModel";
 import Attendance from "@/models/attendanceModel";
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 
 export async function GET(req) {
     await dbConnect();
@@ -12,8 +13,22 @@ export async function GET(req) {
 
     try {
         let query = {};
-        if (studentId) query.studentId = studentId;
-        if (teacherId) query.teacherId = teacherId;
+        
+        if (studentId) {
+            if (mongoose.Types.ObjectId.isValid(studentId)) {
+                query.studentId = studentId;
+            } else {
+                return NextResponse.json({ error: "Invalid studentId format" }, { status: 400 });
+            }
+        }
+        
+        if (teacherId) {
+            if (mongoose.Types.ObjectId.isValid(teacherId)) {
+                query.teacherId = teacherId;
+            } else {
+                return NextResponse.json({ error: "Invalid teacherId format" }, { status: 400 });
+            }
+        }
         
         const complaints = await Complaint.find(query)
             .populate('studentId')
@@ -23,6 +38,7 @@ export async function GET(req) {
             
         return NextResponse.json(complaints);
     } catch (error) {
+        console.error("Complaints GET Error:", error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

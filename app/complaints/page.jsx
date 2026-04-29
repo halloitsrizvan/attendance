@@ -168,9 +168,9 @@ const ComplaintsPage = () => {
         </div>
 
         {/* Complaints Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Left Column: List */}
-          <div className="lg:col-span-8 space-y-4">
+        <div className="grid grid-cols-1 gap-8">
+          {/* List */}
+          <div className="space-y-4 max-w-4xl mx-auto w-full">
             {loading ? (
               <div className="bg-white rounded-[2rem] p-12 text-center border border-slate-100">
                 <div className="w-12 h-12 border-4 border-rose-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
@@ -180,10 +180,10 @@ const ComplaintsPage = () => {
               filteredComplaints.map(complaint => (
                 <div 
                   key={complaint._id}
-                  className={`bg-white rounded-[1.5rem] md:rounded-[2rem] shadow-sm border p-4 md:p-6 transition-all cursor-pointer group ${
+                  className={`bg-white rounded-[1.5rem] md:rounded-[2rem] shadow-sm border p-4 md:p-6 transition-all cursor-pointer group hover:border-rose-200 hover:shadow-md ${
                     selectedComplaint?._id === complaint._id 
-                    ? 'border-rose-400 ring-2 md:ring-4 ring-rose-50 shadow-xl scale-[1.01]' 
-                    : 'border-slate-50 hover:border-slate-200'
+                    ? 'border-rose-400 ring-2 md:ring-4 ring-rose-50 shadow-xl' 
+                    : 'border-slate-50'
                   }`}
                   onClick={() => setSelectedComplaint(complaint)}
                 >
@@ -215,9 +215,7 @@ const ComplaintsPage = () => {
                     </div>
                   </div>
 
-                  <div className="p-4 md:p-5 bg-slate-50 rounded-2xl border border-slate-100 mb-4">
-                    <p className="text-xs md:text-sm font-bold text-slate-700 italic">“{complaint.message}”</p>
-                  </div>
+                 
 
                   <div className="flex flex-wrap items-center gap-2 md:gap-4 text-[9px] md:text-[10px] font-black uppercase tracking-widest">
                     <div className="flex items-center gap-1.5 bg-slate-50 px-2 md:px-3 py-1.5 rounded-lg border border-slate-100 text-slate-400">
@@ -237,8 +235,11 @@ const ComplaintsPage = () => {
                       Was: {complaint.attendanceId?.status}
                     </div>
                     <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-2 md:px-3 py-1.5 rounded-lg border border-emerald-100">
-                      Actual: {complaint.actualStatus}
+                    Student claimed: {complaint.actualStatus}
                     </div>
+                  </div>
+                   <div className="p-4 md:p-5 bg-slate-50 rounded-2xl border border-slate-100 mt-4">
+                    <p className="text-xs md:text-sm font-bold text-slate-700 italic">“{complaint.message}”</p>
                   </div>
 
                   {complaint.adminRemark && (
@@ -249,13 +250,6 @@ const ComplaintsPage = () => {
                       </p>
                     </div>
                   )}
-
-                  {/* Mobile Action Hint */}
-                  <div className="lg:hidden mt-4 pt-4 border-t border-slate-50 flex justify-end">
-                    <button className="text-[10px] font-black text-rose-500 uppercase tracking-widest flex items-center gap-1">
-                      {selectedComplaint?._id === complaint._id ? "Scroll to resolve" : "Tap to resolve"} <ChevronRight size={14} />
-                    </button>
-                  </div>
                 </div>
               ))
             ) : (
@@ -268,99 +262,85 @@ const ComplaintsPage = () => {
               </div>
             )}
           </div>
+        </div>
 
-          {/* Right Column: Resolution Panel (Desktop Sticky / Mobile Normal) */}
-          <div className="lg:col-span-4" id="resolution-panel">
-            <div className="lg:sticky lg:top-28 space-y-6">
-              {selectedComplaint ? (
-                <div className="bg-white rounded-[2rem] md:rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden animate-in fade-in slide-in-from-bottom-4 lg:slide-in-from-right-4 duration-300">
-                  <div className="p-6 md:p-8 bg-rose-500 text-white flex justify-between items-center">
-                    <div>
-                      <h2 className="text-lg md:text-xl font-black uppercase italic leading-none">Decision</h2>
-                      <p className="text-[9px] md:text-[10px] font-bold opacity-80 uppercase tracking-widest mt-2">Update student status</p>
-                    </div>
-                    <button onClick={() => setSelectedComplaint(null)} className="lg:hidden p-2 hover:bg-white/20 rounded-full">
-                      <AlertCircle size={20} />
-                    </button>
-                  </div>
-                  
-                  <div className="p-6 md:p-8 space-y-6">
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Student</span>
-                      <p className="text-sm font-black text-slate-800 uppercase tracking-tight">{selectedComplaint.studentId?.["FULL NAME"]}</p>
-                      <p className="text-[10px] font-bold text-rose-500 uppercase mt-1">Claims: {selectedComplaint.actualStatus}</p>
-                    </div>
+      {/* Resolution Popup Modal */}
+      {selectedComplaint && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" 
+            onClick={() => !submitting && setSelectedComplaint(null)}
+          />
+          <div className="relative bg-white w-full max-w-md rounded-[2rem] md:rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden transform transition-all animate-in fade-in zoom-in duration-300">
+            <div className="p-6 md:p-8 bg-rose-500 text-white flex justify-between items-center">
+              <div>
+                <h2 className="text-lg md:text-xl font-black uppercase italic leading-none">Decision</h2>
+                <p className="text-[9px] md:text-[10px] font-bold opacity-80 uppercase tracking-widest mt-2">Update student status</p>
+              </div>
+              <button 
+                onClick={() => setSelectedComplaint(null)} 
+                className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                disabled={submitting}
+              >
+                <AlertCircle size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 md:p-8 space-y-6">
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Student</span>
+                <p className="text-sm font-black text-slate-800 uppercase tracking-tight">{selectedComplaint.studentId?.["FULL NAME"]}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Claims:</span>
+                  <span className="text-[10px] font-black text-rose-500 uppercase">{selectedComplaint.actualStatus}</span>
+                </div>
+              </div>
 
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">My Response</label>
-                      <textarea
-                        placeholder="Explain your decision..."
-                        value={remark}
-                        onChange={(e) => setRemark(e.target.value)}
-                        disabled={selectedComplaint.status !== 'Pending'}
-                        className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-rose-400 outline-none transition-all h-32 resize-none disabled:opacity-50"
-                      />
-                    </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">My Response</label>
+                <textarea
+                  placeholder="Explain your decision..."
+                  value={remark}
+                  onChange={(e) => setRemark(e.target.value)}
+                  disabled={selectedComplaint.status !== 'Pending' || submitting}
+                  className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-rose-400 outline-none transition-all h-32 resize-none disabled:opacity-50"
+                />
+              </div>
 
-                    {selectedComplaint.status === 'Pending' ? (
-                      <div className="grid grid-cols-2 gap-4">
-                        <button
-                          onClick={() => handleResolve(selectedComplaint._id, 'Rejected')}
-                          disabled={submitting}
-                          className="py-4 bg-slate-100 text-slate-600 rounded-2xl text-[10px] md:text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-rose-50 transition-all"
-                        >
-                          <XCircle size={16} /> Reject
-                        </button>
-                        <button
-                          onClick={() => handleResolve(selectedComplaint._id, 'Resolved')}
-                          disabled={submitting}
-                          className="py-4 bg-rose-500 text-white rounded-2xl text-[10px] md:text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-rose-600 shadow-lg shadow-rose-200 transition-all"
-                        >
-                          {submitting ? "..." : <CheckCircle size={16} />} Approve
-                        </button>
-                      </div>
+              {selectedComplaint.status === 'Pending' ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    onClick={() => handleResolve(selectedComplaint._id, 'Rejected')}
+                    disabled={submitting}
+                    className="py-4 bg-slate-100 text-slate-600 rounded-2xl text-[10px] md:text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-rose-50 transition-all disabled:opacity-50"
+                  >
+                    <XCircle size={16} /> Reject
+                  </button>
+                  <button
+                    onClick={() => handleResolve(selectedComplaint._id, 'Resolved')}
+                    disabled={submitting}
+                    className="py-4 bg-rose-500 text-white rounded-2xl text-[10px] md:text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-rose-600 shadow-lg shadow-rose-200 transition-all disabled:opacity-50"
+                  >
+                    {submitting ? (
+                      <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
                     ) : (
-                      <div className={`p-4 rounded-2xl text-center border-2 border-dashed ${
-                        selectedComplaint.status === 'Resolved' ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-rose-50 border-rose-200 text-rose-600'
-                      }`}>
-                        <p className="text-[10px] font-black uppercase tracking-widest">Marked As</p>
-                        <p className="text-lg font-black uppercase italic">{selectedComplaint.status}</p>
-                      </div>
-                    )}
-                  </div>
+                      <CheckCircle size={16} />
+                    )} 
+                    Approve
+                  </button>
                 </div>
               ) : (
-                <div className="hidden lg:flex bg-slate-50 rounded-[2.5rem] border-2 border-dashed border-slate-200 p-8 text-center py-20 opacity-60 flex-col items-center">
-                  <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-4 text-slate-300 shadow-sm">
-                    <ChevronRight size={24} />
-                  </div>
-                  <h4 className="text-sm font-black text-slate-500 uppercase tracking-widest">Select Record</h4>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">To take action</p>
+                <div className={`p-4 rounded-2xl text-center border-2 border-dashed ${
+                  selectedComplaint.status === 'Resolved' ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-rose-50 border-rose-200 text-rose-600'
+                }`}>
+                  <p className="text-[10px] font-black uppercase tracking-widest">Marked As</p>
+                  <p className="text-lg font-black uppercase italic">{selectedComplaint.status}</p>
                 </div>
               )}
-
-              {/* Guidelines - Hidden on mobile if no selection to save space */}
-              {/* <div className={`${!selectedComplaint ? 'hidden lg:block' : 'block'} bg-sky-50 rounded-[2rem] border border-sky-100 p-6 md:p-8 shadow-sm`}>
-                <h4 className="text-xs md:text-sm font-black text-sky-800 uppercase italic mb-4 flex items-center gap-2">
-                  <Send size={16} /> Guidelines
-                </h4>
-                <ul className="space-y-3">
-                  {[
-                    "Cross-verify with other teachers",
-                    "Check entry/exit logs",
-                    "Verify student's leave status",
-                    "Responses notify students instantly"
-                  ].map((tip, i) => (
-                    <li key={i} className="flex gap-2 text-[9px] md:text-[10px] font-bold text-sky-600/80 leading-relaxed uppercase">
-                      <div className="w-1 h-1 bg-sky-400 rounded-full mt-1.5 flex-shrink-0"></div>
-                      {tip}
-                    </li>
-                  ))}
-                </ul>
-              </div> */}
             </div>
           </div>
         </div>
+      )}
       </main>
     </div>
   );
