@@ -21,8 +21,7 @@ const complaintSchema = new mongoose.Schema({
         required: true
     },
     message: {
-        type: String,
-        required: true
+        type: String
     },
     status: {
         type: String,

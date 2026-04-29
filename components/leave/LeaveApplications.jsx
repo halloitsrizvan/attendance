@@ -162,12 +162,12 @@ function LeaveApplications() {
   };
 
   const handleReject = async (id) => {
-    if (!confirm("Are you sure you want to reject and delete this request?")) return;
+    if (!confirm("Are you sure you want to reject this leave request?")) return;
     setActionLoading(id);
     try {
-      await axios.delete(`${API_PORT}/leave/${id}`);
+      await axios.patch(`${API_PORT}/leave/${id}`, { status: 'rejected', approved: false });
       setLeaves(prev => prev.filter(l => l._id !== id));
-      alert("Leave request rejected and deleted.");
+      alert("Leave request rejected.");
     } catch (err) {
       console.error(err);
       alert("Failed to reject leave.");
@@ -288,10 +288,10 @@ function LeaveApplications() {
                       onClick={() => handleReject(leave._id)}
                       disabled={actionLoading === leave._id}
                       className="px-4 py-3 bg-rose-50 text-rose-500 rounded-2xl border border-rose-100 hover:bg-rose-500 hover:text-white transition-all active:scale-95 flex items-center gap-2 font-black uppercase tracking-widest text-[10px]"
-                      title="Reject and Delete"
+                      title="Reject Request"
                     >
-                     <span>Delete</span>
-                     <Trash2 size={14} />
+                     <span>Reject</span>
+                     <X size={14} />
                     </button>
                   </div>
                 </div>

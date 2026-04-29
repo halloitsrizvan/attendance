@@ -63,7 +63,8 @@ const LeaveStatus = () => {
     };
 
    const getLeaveStatus = (item) => {
-    if (item.approved === false) return 'Not Approved';
+    if (item.status === 'rejected') return 'Rejected';
+    if (item.approved === false) return 'Approval Pending';
     const now = new Date();
     const fromDateTime = new Date(`${item.fromDate}T${item.fromTime}`);
     const toDateTime = item.toDate && item.toTime ? new Date(`${item.toDate}T${item.toTime}`) : null;

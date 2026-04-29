@@ -11,7 +11,9 @@ const StatusPill = ({ status }) => {
       'On Leave': { bg: 'bg-blue-100', text: 'text-blue-700', icon: PlayCircle },
       'Late': { bg: 'bg-red-100', text: 'text-red-700', icon: Clock },
       'Returned': { bg: 'bg-green-100', text: 'text-green-700', icon: CheckCircle },
-      'Late Returned': { bg: 'bg-orange-100', text: 'text-orange-700', icon: RotateCcw }
+      'Late Returned': { bg: 'bg-orange-100', text: 'text-orange-700', icon: RotateCcw },
+      'Rejected': { bg: 'bg-rose-100', text: 'text-rose-700', icon: X },
+      'Approval Pending': { bg: 'bg-amber-100', text: 'text-amber-700', icon: Clock }
     };
     return configs[status] || configs['Scheduled'];
   };

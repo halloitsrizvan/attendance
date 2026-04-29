@@ -91,14 +91,20 @@ const StatusBadge = ({ status }) => {
         icon: XCircle,
         label: 'Not Arrived'
       },
-      'Not Approved': {
+      'Approval Pending': {
+        bg: 'bg-amber-100',
+        text: 'text-amber-700',
+        icon: Clock,
+        label: 'Approval Pending'
+      },
+      'Rejected': {
         bg: 'bg-rose-100',
         text: 'text-rose-700',
-        icon: X,
-        label: 'Not Approved'
+        icon: XCircle,
+        label: 'Rejected'
       }
     };
-    return configs[status] || configs['Not Approved'];
+    return configs[status] || configs['Approval Pending'];
   };
 
   const config = getStatusConfig(status);
@@ -182,8 +188,9 @@ const StudentStatusCard = ({ student }) => {
       : student.displayStatus === 'Late'
         ? 'bg-orange-500' : student.displayStatus === 'Scheduled' ? " bg-yellow-500"
           : student.displayStatus === 'Pending' ? "bg-blue-500"
-            : student.displayStatus === 'Not Approved' ? "bg-rose-500"
-              : 'bg-red-500';
+            : student.displayStatus === 'Approval Pending' ? "bg-amber-500"
+              : student.displayStatus === 'Rejected' ? "bg-rose-500"
+                : 'bg-red-500';
 
   const returnedTime = formatReturnedTime(student.returnedAt);
   const [showFull, setShowFull] = useState(false);
@@ -373,7 +380,8 @@ function LeaveStatus() {
 
   // Calculate leave status
   const getLeaveStatus = (item) => {
-    if (item.approved === false) return 'Not Approved';
+    if (item.status === 'rejected') return 'Rejected';
+    if (item.approved === false) return 'Approval Pending';
     const now = new Date();
     const fromDateTime = new Date(`${item.fromDate}T${item.fromTime}`);
     const toDateTime = item.toDate && item.toTime ? new Date(`${item.toDate}T${item.toTime}`) : null;
@@ -458,9 +466,11 @@ function LeaveStatus() {
       'On Leave': 'On Leave',
       'Late': 'Late',
       'Pending': 'Pending',
-      'Scheduled': 'Scheduled'
+      'Scheduled': 'Scheduled',
+      'Approval Pending': 'Approval Pending',
+      'Rejected': 'Rejected'
     };
-    return statusMap[status] || 'Not Approved';
+    return statusMap[status] || 'Approval Pending';
   };
 
   useEffect(() => {

@@ -595,9 +595,9 @@ const ComplaintModal = ({ isOpen, onClose, attendance, studentId, records = [], 
                         </div>
                     </div>
 
-                    <div className="space-y-1">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Remarks</label>
-                        <textarea value={message} onChange={e => setMessage(e.target.value)} placeholder="Explain why the data might be wrong..." className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-rose-400 outline-none transition-all h-24 resize-none" required />
+                     <div className="space-y-1">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Remarks (Optional)</label>
+                        <textarea value={message} onChange={e => setMessage(e.target.value)} placeholder="Explain why the data might be wrong..." className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-rose-400 outline-none transition-all h-24 resize-none" />
                     </div>
 
                     <button onClick={handleSubmit} disabled={loading} className="w-full py-4 bg-rose-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 hover:bg-rose-600 active:scale-95 transition-all shadow-xl shadow-rose-200">
@@ -1198,8 +1198,8 @@ const StudentsPortal = () => {
                                                             <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${item.status === 'returned' || item.returnedAt ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'}`}>
                                                                 {item.status === 'returned' || item.returnedAt ? 'Completed' : 'Current Leave'}
                                                             </span>
-                                                            <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${item.approved !== false ? 'bg-blue-500 text-white' : 'bg-rose-500 text-white'}`}>
-                                                                {item.approved !== false ? 'Approved' : 'Pending Approval'}
+                                                            <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${item.status === 'rejected' ? 'bg-rose-500 text-white' : (item.approved !== false ? 'bg-blue-500 text-white' : 'bg-amber-500 text-white')}`}>
+                                                                {item.status === 'rejected' ? 'Rejected' : (item.approved !== false ? 'Approved' : 'Approval Pending')}
                                                             </span>
                                                         </div>
                                                         <span className="text-[10px] font-black text-slate-400 uppercase">{formatDate(item.createdAt)}</span>
