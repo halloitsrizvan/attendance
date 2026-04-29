@@ -56,8 +56,13 @@ export default function SettingsPage() {
             try {
                 const parsed = JSON.parse(storedTeacher);
                 setTeacher(parsed);
-                if (parsed.role !== "super_admin") {
+                const isSuperAdmin = Array.isArray(parsed.role) 
+                    ? parsed.role.includes("super_admin") 
+                    : parsed.role === "super_admin";
+                    
+                if (!isSuperAdmin) {
                     window.location.href = "/";
+                    return;
                 }
             } catch (e) {
                 window.location.href = "/login";
