@@ -629,6 +629,26 @@ function LeaveStatus() {
       return ['On Leave', 'Late'].includes(student.displayStatus);
     });
   }, [leaveData]);
+  
+  const activeCEPCount = useMemo(() => {
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    return shortLeaveStatus.filter(leave => {
+      if (leave.status === 'returned') return false;
+      
+      const leaveDate = new Date(leave.date).toISOString().split('T')[0];
+      if (leaveDate !== today) return false;
+
+      const [fH, fM] = (leave.fromTime || '00:00').split(':').map(Number);
+      const [tH, tM] = (leave.toTime || '23:59').split(':').map(Number);
+      const fromMin = fH * 60 + fM;
+      const toMin = tH * 60 + tM;
+
+      return currentMinutes >= fromMin && currentMinutes <= toMin;
+    }).length;
+  }, [shortLeaveStatus]);
 
   const filterDB = useMemo(() => {
     return leaveData.filter(student => (student.teacherId?.name === teacher?.name || student.teacher === teacher?.name) && matchesFilters(student));
@@ -844,7 +864,7 @@ function LeaveStatus() {
             onClick={() => setActiveTab('onLeave')}
           />
           <TabButton
-            label={`CEP (${shortLeaveStatus.length})`}
+            label={`CEP (${activeCEPCount})`}
             isActive={activeTab === 'shortLeave'}
             onClick={() => setActiveTab('shortLeave')}
           />
