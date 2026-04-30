@@ -75,12 +75,11 @@ export async function PATCH(req) {
                     status: 'Present',
                     onLeave: false 
                 });
-            } else if (complaint.actualStatus === 'Leave') {
-                // If resolving as leave, we mark onLeave as true and keep status as 'Absent' (implicit)
-                // usually 'Leave' means they were absent but excused.
+            } else if (complaint.actualStatus === 'Leave' || complaint.actualStatus === 'CEP') {
+                // If resolving as leave or CEP, we mark onLeave as true and keep status as 'Absent'
                 await Attendance.findByIdAndUpdate(complaint.attendanceId, { 
                     onLeave: true,
-                    status: 'Absent' // Ensure it remains/becomes absent if it was marked wrongly
+                    status: 'Absent' 
                 });
             }
         }

@@ -20,6 +20,31 @@ const formatDate = (dateString, monthOnly = false) => {
     return d.toLocaleDateString('en-GB');
 };
 
+const getDetailedStatus = (item) => {
+    if (item.status === 'rejected') return 'Rejected';
+    if (item.approved === false) return 'Approval Pending';
+    const now = new Date();
+    const fromDateTime = new Date(`${item.fromDate}T${item.fromTime}`);
+    const toDateTime = item.toDate && item.toTime ? new Date(`${item.toDate}T${item.toTime}`) : null;
+
+    if (item.status === 'returned') {
+        if (toDateTime && item.returnedAt && new Date(item.returnedAt) > toDateTime) {
+            return 'Late Returned';
+        }
+        return 'Returned';
+    }
+
+    const dbStatus = (item.status || '').toLowerCase();
+    if (dbStatus === 'active' || dbStatus === 'late' || dbStatus === 'on leave') {
+        if (dbStatus === 'late' || (toDateTime && now > toDateTime)) return 'Late';
+        return 'On Leave';
+    }
+
+    if (now < fromDateTime) return 'Scheduled';
+
+    return 'Pending';
+};
+
 const getRecoveryInfo = (leave, offDays) => {
     if ((leave.status !== 'returned' && !leave.returnedAt) || leave.recovery === true) return null;
     
@@ -661,7 +686,7 @@ const ComplaintModal = ({ isOpen, onClose, attendance, studentId, records = [], 
                     <div className="space-y-1 p-1">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">I was actually...</label>
                         <div className="flex gap-2 mt-2">
-                            {['Present', 'Leave'].map(s => (
+                            {['Present', 'Leave', 'CEP'].map(s => (
                                 <button key={s} onClick={() => setActualStatus(s)} className={`flex-1 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${actualStatus === s ? 'bg-rose-500 text-white shadow-lg shadow-rose-200' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>{s}</button>
                             ))}
                         </div>
@@ -861,6 +886,7 @@ const StudentsPortal = () => {
     const [isApplyLeaveOpen, setIsApplyLeaveOpen] = useState(false);
     const [isComplaintOpen, setIsComplaintOpen] = useState(false);
     const [isDocumentOpen, setIsDocumentOpen] = useState(false);
+    const [showRecoveryWarning, setShowRecoveryWarning] = useState(false);
 
     useEffect(() => {
         fetchProfile();
@@ -1033,7 +1059,14 @@ const StudentsPortal = () => {
                         </div>
                         <div className="flex gap-3">
                             <button 
-                                onClick={() => setIsApplyLeaveOpen(true)}
+                                onClick={() => {
+                                    const hasPendingRecovery = leaveData.some(l => (l.status === 'returned' || l.returnedAt) && !l.recovery);
+                                    if (hasPendingRecovery) {
+                                        setShowRecoveryWarning(true);
+                                    } else {
+                                        setIsApplyLeaveOpen(true);
+                                    }
+                                }}
                                 className="bg-amber-500 text-white p-3 pr-6 rounded-[1.5rem] flex items-center gap-2 shadow-lg shadow-amber-200 hover:bg-amber-600 active:scale-95 transition-all text-xs font-black uppercase tracking-widest whitespace-nowrap"
                             >
                                 <PlusCircle size={18} /> Apply Leave
@@ -1269,13 +1302,25 @@ const StudentsPortal = () => {
                                             {leaveData.map((item, idx) => (
                                                 <div key={idx} className="p-6 bg-slate-50 rounded-[2.5rem] border border-slate-100 hover:bg-white hover:shadow-lg hover:border-amber-100 transition-all group">
                                                     <div className="flex justify-between items-center mb-4">
-                                                        <div className="flex gap-2">
-                                                            <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${item.status === 'returned' || item.returnedAt ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'}`}>
-                                                                {item.status === 'returned' || item.returnedAt ? 'Completed' : 'Current Leave'}
-                                                            </span>
-                                                            <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${item.status === 'rejected' ? 'bg-rose-500 text-white' : (item.approved !== false ? 'bg-blue-500 text-white' : 'bg-amber-500 text-white')}`}>
-                                                                {item.status === 'rejected' ? 'Rejected' : (item.approved !== false ? 'Approved' : 'Approval Pending')}
-                                                            </span>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {(() => {
+                                                                const status = getDetailedStatus(item);
+                                                                const statusConfig = {
+                                                                    'Returned': 'bg-emerald-500 text-white',
+                                                                    'Late Returned': 'bg-orange-500 text-white',
+                                                                    'On Leave': 'bg-red-500 text-white',
+                                                                    'Late': 'bg-rose-600 text-white',
+                                                                    'Pending': 'bg-blue-500 text-white',
+                                                                    'Scheduled': 'bg-sky-400 text-white',
+                                                                    'Approval Pending': 'bg-amber-500 text-white',
+                                                                    'Rejected': 'bg-slate-500 text-white'
+                                                                };
+                                                                return (
+                                                                    <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${statusConfig[status] || 'bg-slate-400 text-white'}`}>
+                                                                        {status}
+                                                                    </span>
+                                                                );
+                                                            })()}
                                                         </div>
                                                         <span className="text-[10px] font-black text-slate-400 uppercase">{formatDate(item.createdAt)}</span>
                                                     </div>
@@ -1441,6 +1486,48 @@ const StudentsPortal = () => {
                     onClose={() => setShowBreakdown(false)}
                     data={attendanceData}
                 />
+
+                {/* Recovery Warning Modal */}
+                {showRecoveryWarning && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setShowRecoveryWarning(false)}></div>
+                        <div className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 border-4 border-rose-100">
+                            <div className="p-8 bg-rose-500 text-white text-center relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+                                <AlertTriangle size={48} className="mx-auto mb-4 animate-bounce" />
+                                <h2 className="text-2xl font-black uppercase italic tracking-tight">Recovery Pending</h2>
+                                <p className="text-[10px] font-bold opacity-90 uppercase tracking-widest mt-1">Academic Requirement Notice</p>
+                            </div>
+                            <div className="p-8 text-center space-y-6">
+                                <div className="p-5 bg-rose-50 rounded-[2rem] border border-rose-100">
+                                    <p className="text-sm font-bold text-slate-700 leading-relaxed">
+                                        You have an <span className="text-rose-600 font-black">uncompleted recovery</span> from your previous leave. 
+                                    </p>
+                                    {/* <p className="text-[11px] text-slate-500 mt-2 font-medium">
+                                        Please complete your pending recovery lessons or contact your HOD before applying for a new leave.
+                                    </p> */}
+                                </div>
+                                <div className="flex flex-col gap-3">
+                                    <button 
+                                        onClick={() => setShowRecoveryWarning(false)}
+                                        className="w-full py-4 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl"
+                                    >
+                                        I Understand
+                                    </button>
+                                    {/* <button 
+                                        onClick={() => {
+                                            setShowRecoveryWarning(false);
+                                            setIsApplyLeaveOpen(true);
+                                        }}
+                                        className="text-[10px] font-black text-rose-500 uppercase tracking-widest hover:underline"
+                                    >
+                                        Proceed Anyway (Urgent Only)
+                                    </button> */}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </StudentAuthGuard>
     );
