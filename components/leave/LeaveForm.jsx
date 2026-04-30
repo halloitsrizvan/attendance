@@ -855,7 +855,8 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
           className: "bg-red-400 hover:bg-red-500 text-white"
         },
         {
-          label: "Proceed Without Recovery",
+          label: "PWR",  
+          autoClose: false, 
           onClick: () => {
             setBypassRecovery(true);
             setAlertState(prev => ({ ...prev, isOpen: false }));
@@ -2390,9 +2391,8 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         actions={alertState.actions}
         onClose={() => {
           setAlertState(prev => ({ ...prev, isOpen: false }));
-          // If it was a student status alert, clear selection only if not in a special mode
-          // and if no specific actions were provided (dismissal case)
-          if (alertState.title?.includes("Leave") && formMode === 'create' && !alertState.actions) {
+          // If it was a student status or recovery alert, clear selection if in create mode
+          if ((alertState.title?.includes("Leave") || alertState.title?.includes("Recovery")) && formMode === 'create') {
             setAd('');
             setStudent(null);
             setName('');
