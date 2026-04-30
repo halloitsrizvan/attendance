@@ -795,16 +795,22 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       if (context === 'bulk') setShowBulkModal(false);
     };
 
-    const popupButtons = [
-      {
+    const scheduledStart = new Date(`${activeRecord.fromDate}T${activeRecord.fromTime}`);
+    const now = new Date();
+    const canStart = now >= scheduledStart;
+
+    const popupButtons = [];
+    
+    if (!isScheduled || canStart) {
+      popupButtons.push({
         label: isScheduled ? "Start Leave Now" : (isRoom ? "Return to Class" : "Mark Returned"),
         onClick: () => {
           isScheduled ? handleStartLeave(activeRecord) : handleMarkReturned(activeRecord);
           closeCtx();
         },
         className: "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20"
-      }
-    ];
+      });
+    }
 
     if (isRoom) {
       popupButtons.push({
