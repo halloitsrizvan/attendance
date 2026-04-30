@@ -7,6 +7,7 @@ import { API_PORT } from '../../Constants';
 import LeaveStatusTable from './LeaveStatusTable';
 import ShortLeave from './ShortLeave';
 import LeaveDashboardSkeleton from './LeaveDashboardSkeleton';
+import CustomAlert from '../common/CustomAlert';
 
 const getSafeLocalStorage = () => {
   if (typeof window !== 'undefined') {
@@ -118,7 +119,121 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-const StudentStatusCard = ({ student }) => {
+const EditLeaveModal = ({ leave, isOpen, onClose, onUpdate }) => {
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    reason: leave?.reason || '',
+    fromDate: leave?.fromDate || '',
+    fromTime: leave?.fromTime || '',
+    toDate: leave?.toDate || '',
+    toTime: leave?.toTime || ''
+  });
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await axios.patch(`${API_PORT}/leave/${leave._id}`, formData);
+      onUpdate();
+      onClose();
+    } catch (error) {
+      console.error("Update Error:", error);
+      alert("Failed to update leave record");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+      <div className="bg-white w-full max-w-md rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="bg-slate-800 p-6 flex items-center justify-between text-white">
+          <div className="flex items-center gap-3">
+            <Clipboard className="w-5 h-5 text-sky-400" />
+            <div>
+              <h3 className="text-lg font-black tracking-tight uppercase italic">Edit Record</h3>
+              <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">
+                {leave.studentId?.['SHORT NAME'] || leave.name}
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+            <X size={20} />
+          </button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="space-y-1">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Reason</label>
+            <input 
+              type="text" 
+              value={formData.reason} 
+              onChange={e => setFormData({...formData, reason: e.target.value})}
+              className="w-full bg-slate-50 border-2 border-slate-50 rounded-xl p-3 text-sm font-bold text-slate-700 focus:border-sky-400 outline-none transition-all"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">From Date</label>
+              <input 
+                type="date" 
+                value={formData.fromDate} 
+                onChange={e => setFormData({...formData, fromDate: e.target.value})}
+                className="w-full bg-slate-50 border-2 border-slate-50 rounded-xl p-3 text-sm font-bold text-slate-700 focus:border-sky-400 outline-none transition-all"
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">From Time</label>
+              <input 
+                type="time" 
+                value={formData.fromTime} 
+                onChange={e => setFormData({...formData, fromTime: e.target.value})}
+                className="w-full bg-slate-50 border-2 border-slate-50 rounded-xl p-3 text-sm font-bold text-slate-700 focus:border-sky-400 outline-none transition-all"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">To Date</label>
+              <input 
+                type="date" 
+                value={formData.toDate} 
+                onChange={e => setFormData({...formData, toDate: e.target.value})}
+                className="w-full bg-slate-50 border-2 border-slate-50 rounded-xl p-3 text-sm font-bold text-slate-700 focus:border-sky-400 outline-none transition-all"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">To Time</label>
+              <input 
+                type="time" 
+                value={formData.toTime} 
+                onChange={e => setFormData({...formData, toTime: e.target.value})}
+                className="w-full bg-slate-50 border-2 border-slate-50 rounded-xl p-3 text-sm font-bold text-slate-700 focus:border-sky-400 outline-none transition-all"
+              />
+            </div>
+          </div>
+
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full py-4 bg-slate-800 text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 hover:bg-slate-900 active:scale-95 transition-all shadow-xl mt-2"
+          >
+            {loading ? <RefreshCw className="animate-spin" size={16} /> : <CheckCircle size={16} />}
+            Save Changes
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+const StudentStatusCard = ({ student, onDelete, onEdit }) => {
   const getRelativeDate = (dateInput) => {
     if (!dateInput) return '';
     try {
@@ -286,6 +401,29 @@ const StudentStatusCard = ({ student }) => {
                 </div>
               )}
             </div>
+            
+            {(onEdit || onDelete) && (
+              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+                {onEdit && (
+                  <button 
+                    onClick={() => onEdit(student)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-slate-50 text-slate-600 rounded-lg hover:bg-sky-50 hover:text-sky-600 transition-all text-[10px] font-black uppercase tracking-widest"
+                  >
+                    <Clipboard size={12} />
+                    Edit
+                  </button>
+                )}
+                {onDelete && (
+                  <button 
+                    onClick={() => onDelete(student._id)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-slate-50 text-slate-400 rounded-lg hover:bg-rose-50 hover:text-rose-600 transition-all text-[10px] font-black uppercase tracking-widest"
+                  >
+                    <XCircle size={12} />
+                    Delete
+                  </button>
+                )}
+              </div>
+            )}
           </>}
       </div>
     </div>
@@ -309,6 +447,8 @@ function LeaveStatus() {
   const [copyFromDate, setCopyFromDate] = useState('');
   const [copyToDate, setCopyToDate] = useState('');
   const [shortLeaveStatus, setShortLeaveStatus] = useState([]);
+  const [editingLeave, setEditingLeave] = useState(null);
+  const [alertState, setAlertState] = useState({ isOpen: false, title: '', message: '', type: 'info', actions: null });
   const filterRef = useRef(null);
 
   const teacher = useMemo(() => {
@@ -495,6 +635,40 @@ function LeaveStatus() {
         setError('Failed to load leave data. Please try again.');
         setLoading(false);
       });
+  };
+
+  const handleDelete = async (id) => {
+    setAlertState({
+      isOpen: true,
+      title: "Confirm Deletion",
+      message: "Are you sure you want to permanently delete this leave record? This action cannot be undone.",
+      type: "error",
+      actions: [
+        {
+          label: "Cancel",
+          onClick: () => setAlertState(prev => ({ ...prev, isOpen: false })),
+          className: "bg-slate-100 text-slate-600 hover:bg-slate-200"
+        },
+        {
+          label: "Delete Record",
+          onClick: async () => {
+            try {
+              await axios.delete(`${API_PORT}/leave/${id}`);
+              refreshLeaveData();
+              setAlertState(prev => ({ ...prev, isOpen: false }));
+            } catch (error) {
+              console.error("Delete Error:", error);
+              alert("Failed to delete leave record");
+            }
+          },
+          className: "bg-rose-500 text-white hover:bg-rose-600 shadow-rose-500/20"
+        }
+      ]
+    });
+  };
+
+  const handleEdit = (student) => {
+    setEditingLeave(student);
   };
 
 
@@ -1028,7 +1202,12 @@ function LeaveStatus() {
                   {activeTabMyDB === "History" && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {filterDB.map((student) => (
-                        <StudentStatusCard key={student._id} student={student} />
+                        <StudentStatusCard 
+                          key={student._id} 
+                          student={student} 
+                          onDelete={handleDelete}
+                          onEdit={handleEdit}
+                        />
                       ))}
                     </div>
                   )}
@@ -1110,6 +1289,24 @@ function LeaveStatus() {
           </div>
         </div>
       )}
+
+      {editingLeave && (
+        <EditLeaveModal 
+          leave={editingLeave} 
+          isOpen={!!editingLeave} 
+          onClose={() => setEditingLeave(null)} 
+          onUpdate={refreshLeaveData}
+        />
+      )}
+
+      <CustomAlert 
+        isOpen={alertState.isOpen}
+        title={alertState.title}
+        message={alertState.message}
+        type={alertState.type}
+        actions={alertState.actions}
+        onClose={() => setAlertState(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 }
