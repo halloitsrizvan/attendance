@@ -62,7 +62,7 @@ const CustomAlert = ({
             </div>
           </div>
 
-          <div className={`${actions && actions.length >= 2 ? 'grid grid-cols-2 gap-2.5' : 'flex flex-col gap-2'}`}>
+          <div className={`${actions && actions.length >= 2 && !actions.some(a => a.stack) ? 'grid grid-cols-2 gap-2.5' : 'flex flex-col gap-2'}`}>
             {actions && actions.length > 0 ? (
               actions.map((action, index) => {
                 if (action.variant === 'link') {

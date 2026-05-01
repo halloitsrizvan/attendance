@@ -718,39 +718,34 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       const studentObj = students.find(s => String(s.ADNO) === String(studentAd));
       if (!studentObj) return true;
 
-      const studentLeaves = leaveData.filter(leave => {
+      // Filter all returned leaves for this student that haven't been recovered yet
+      const pendingRecoveries = leaveData.filter(leave => {
         const leaveStudentId = typeof leave.studentId === 'object' ? leave.studentId?._id : leave.studentId;
         const isStudentMatch = String(leaveStudentId) === String(studentObj._id);
         const isReturned = leave.status === 'returned' || (leave.status && leave.status.toLowerCase() === 'returned');
-        return isStudentMatch && isReturned;
+        return isStudentMatch && isReturned && !leave.recovery;
       });
 
-      if (studentLeaves.length === 0) return true;
+      if (pendingRecoveries.length === 0) return true;
 
-      // Sort by returnedAt desc to get the most recent return
-      studentLeaves.sort((a, b) => {
-        const dateA = a.returnedAt ? new Date(a.returnedAt) : new Date(0);
-        const dateB = b.returnedAt ? new Date(b.returnedAt) : new Date(0);
-        return dateB - dateA;
-      });
-
-      const lastReturn = studentLeaves[0];
-      if (lastReturn.recovery) return true;
-
-      // Calculate active leave days
-      const leaveDays = getActiveLeaveDays(lastReturn.fromDate, lastReturn.fromTime, lastReturn.returnedAt);
-      
-      // If no class days were missed, recovery is effectively complete
-      if (leaveDays === 0) return true;
-
-      const graceDays = leaveDays * 2;
-      const returned = new Date(lastReturn.returnedAt);
-      const deadline = new Date(returned.getTime() + (graceDays * 24 * 60 * 60 * 1000));
       const now = new Date();
+      
+      // Check each pending recovery to see if any have passed their deadline
+      for (const leave of pendingRecoveries) {
+        const leaveDays = getActiveLeaveDays(leave.fromDate, leave.fromTime, leave.returnedAt);
+        
+        // If no class days were missed, this record doesn't require recovery
+        if (leaveDays === 0) continue;
 
-      if (now > deadline) {
-        return false; // Recovery not completed and deadline passed
+        const graceDays = leaveDays * 2;
+        const returned = new Date(leave.returnedAt);
+        const deadline = new Date(returned.getTime() + (graceDays * 24 * 60 * 60 * 1000));
+
+        if (now > deadline) {
+          return false; // Found at least one overdue recovery across all history
+        }
       }
+
       return true;
     } catch (error) {
       console.error("Error checking recovery status:", error);
@@ -854,14 +849,16 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       [
         {
           label: "Okay",
+          stack: true,
           onClick: () => {
             if (onOkay) onOkay();
             setAlertState(prev => ({ ...prev, isOpen: false }));
           },
-          className: "bg-red-400 hover:bg-red-500 text-white"
+          className: "bg-red-500 hover:bg-red-600 text-white font-black py-4 shadow-red-500/20"
         },
         {
           label: "PWR",  
+          stack: true,
           autoClose: false, 
           onClick: () => {
             setBypassRecovery(true);
@@ -1948,7 +1945,8 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
                     }}
                     className={`block text-[10px] font-black uppercase tracking-widest px-1 mb-2 cursor-pointer transition-colors ${ad ? 'text-yellow-500 hover:text-yellow-600' : 'text-slate-300'}`}
                   >
-                    History {ad && "• View"}
+                    History 
+                    {/* {ad && "• View"} */}
                   </label>
                   <button
                     type="button"

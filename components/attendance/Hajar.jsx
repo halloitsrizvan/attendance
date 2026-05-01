@@ -513,7 +513,7 @@ function Hajar() {
   const handleCopyAbsentees = () => {
     const attendanceDate = date ? new Date(date).toLocaleDateString("en-US", { dateStyle: "long" }) : new Date().toLocaleDateString("en-US", { dateStyle: "long" });
     const attendanceTime = `${time}${period ? ` (P${period})` : ""}${more ? ` - ${more}` : ""}`;
-    const headText = `Class ${id} Attendance\n${attendanceDate} | ${attendanceTime}\n\n`;
+    const headText = `Class ${id} Absentiees\n${attendanceDate} | ${attendanceTime}\n\n`;
 
     if (absentees.length > 0) {
       // Categorize absentees into mutually exclusive groups
@@ -585,7 +585,7 @@ function Hajar() {
           console.error("Failed to copy: ", err);
         });
     } else {
-      navigator.clipboard.writeText(headText + "No absentees 🎉");
+      navigator.clipboard.writeText(headText + "All students are present 🎉");
       setCopy(true);
     }
     setTimeout(() => {

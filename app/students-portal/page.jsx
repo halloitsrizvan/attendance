@@ -13,6 +13,21 @@ const formatTime = (dateString) => {
     return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
+const formatTimeTo12h = (timeStr) => {
+    if (!timeStr) return '—';
+    try {
+        const [hours, minutes] = timeStr.split(':');
+        let h = parseInt(hours);
+        const m = minutes || '00';
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12;
+        h = h ? h : 12;
+        return `${h}:${m} ${ampm}`;
+    } catch (e) {
+        return timeStr;
+    }
+};
+
 const formatDate = (dateString, monthOnly = false) => {
     if (!dateString) return '—';
     const d = new Date(dateString);
@@ -197,6 +212,71 @@ const AttendanceModal = ({ isOpen, onClose, data }) => {
                 </div>
                 <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-center">
                    <button onClick={onClose} className="px-8 py-3 bg-slate-800 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-700 active:scale-95 transition-all">Close Analytics</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+/**
+ * Short History Modal for Metric Cards
+ */
+const HistoryModal = ({ isOpen, onClose, title, data, type, color }) => {
+    if (!isOpen) return null;
+
+    const colorClasses = {
+        blue: 'bg-blue-600',
+        amber: 'bg-amber-500',
+        sky: 'bg-sky-500',
+        rose: 'bg-rose-500'
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose}></div>
+            <div className="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+                <div className={`p-8 border-b border-slate-50 flex items-center justify-between text-white ${colorClasses[color] || 'bg-slate-800'}`}>
+                    <div>
+                        <h2 className="text-2xl font-black tracking-tight uppercase italic">{title}</h2>
+                        <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest mt-1">Recent Activity</p>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-xl transition-all"><X size={24} /></button>
+                </div>
+                <div className="p-6 max-h-[60vh] overflow-y-auto space-y-3 custom-scrollbar">
+                    {data.length > 0 ? (
+                        data.slice(0, 10).map((item, idx) => (
+                            <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                        {type === 'leave' 
+                                            ? `${formatDate(item.fromDate)} ${formatTimeTo12h(item.fromTime)} → ${item.toDate ? formatDate(item.toDate) : 'End'}`
+                                            : formatDate(item.createdAt || item.date)
+                                        }
+                                    </span>
+                                    <span className="text-sm font-black text-slate-800 truncate max-w-[200px]">
+                                        {type === 'leave' ? item.reason : type === 'cep' ? item.reason : type === 'minus' ? item.reason : 'Session Log'}
+                                    </span>
+                                </div>
+                                <div className="text-right">
+                                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                        type === 'minus' ? 'bg-rose-100 text-rose-600' : 
+                                        type === 'leave' ? 'bg-amber-100 text-amber-600' :
+                                        'bg-sky-100 text-sky-600'
+                                    }`}>
+                                        {type === 'minus' ? `-${item.minusNum}` : type === 'leave' ? getDetailedStatus(item) : 'Issued'}
+                                    </span>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="py-10 text-center opacity-40">
+                            <Info className="mx-auto mb-2" size={32} />
+                            <p className="text-xs font-black uppercase tracking-widest">No recent data</p>
+                        </div>
+                    )}
+                </div>
+                <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-center">
+                    <button onClick={onClose} className="px-8 py-3 bg-slate-800 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-700 active:scale-95 transition-all">Close History</button>
                 </div>
             </div>
         </div>
@@ -887,6 +967,7 @@ const StudentsPortal = () => {
     const [isComplaintOpen, setIsComplaintOpen] = useState(false);
     const [isDocumentOpen, setIsDocumentOpen] = useState(false);
     const [showRecoveryWarning, setShowRecoveryWarning] = useState(false);
+    const [historyModal, setHistoryModal] = useState({ isOpen: false, title: '', data: [], type: '', color: '' });
 
     useEffect(() => {
         fetchProfile();
@@ -1026,10 +1107,12 @@ const StudentsPortal = () => {
                             </div>
 
                             <div className="flex items-center gap-4">
-                                <div className="hidden sm:flex flex-col items-end mr-2">
-                                    <span className="text-sm font-black text-slate-800 tracking-tight uppercase">{student["FULL NAME"] || student.name}</span>
+                                <div className="flex flex-col items-end mr-2">
+                                    <span className="text-sm font-black text-slate-800 tracking-tight uppercase truncate max-w-[120px] sm:max-w-none">
+                                        {student["SHORT NAME"] || student.name}
+                                    </span>
                                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">AD: {student.ADNO || student.ad}</span>
-                                </div>
+                                </div> 
                                 <button onClick={handleLogout} className="w-11 h-11 bg-rose-50 border-2 border-white shadow-sm rounded-2xl flex items-center justify-center text-rose-500 hover:bg-rose-500 hover:text-white transition-all"><LogOut size={20} /></button>
                             </div>
                         </div>
@@ -1054,7 +1137,22 @@ const StudentsPortal = () => {
                             <div className="w-px h-8 bg-slate-100"></div>
                             <div>
                                 <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Status</span>
-                                <span className="text-sm font-black text-emerald-600">Active</span>
+                                {(() => {
+                                    const activeLeave = leaveData.find(l => {
+                                        const status = getDetailedStatus(l);
+                                        return status === 'On Leave' || status === 'Late';
+                                    });
+                                    if (activeLeave) return <span className="text-sm font-black text-rose-600">On Leave</span>;
+
+                                    const pendingRecovery = leaveData.filter(l => (l.status === 'returned' || l.returnedAt) && !l.recovery);
+                                    if (pendingRecovery.length > 0) {
+                                        const overdue = pendingRecovery.some(l => getRecoveryInfo(l, offDays)?.status === 'Overdue');
+                                        if (overdue) return <span className="text-sm font-black text-rose-600 animate-pulse">Recovery Overdue</span>;
+                                        return <span className="text-sm font-black text-amber-600">Recovery Pending</span>;
+                                    }
+
+                                    return <span className="text-sm font-black text-emerald-600">Active</span>;
+                                })()}
                             </div>
                         </div>
                         <div className="flex gap-3">
@@ -1077,9 +1175,9 @@ const StudentsPortal = () => {
                     {/* Stats Grid */}
                     <section className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-10">
                         <MetricCard title="Attendance" value={`${stats.rate}%`} subText={`${stats.present}/${stats.total} SESSIONS`} color="blue" icon={TrendingUp} onClick={() => setShowBreakdown(true)} />
-                        <MetricCard title="Leave Records" value={stats.leaves} subText="TOTAL ENTERED" color="amber" icon={FileText} onClick={() => { }} />
-                        <MetricCard title="CEP Passes" value={stats.ceps} subText="EXCUSED PASSES" color="sky" icon={Clock} onClick={() => { }} />
-                        <MetricCard title="Minus Points" value={stats.minusPoints} subText="ACCUMULATED" color="red" icon={AlertTriangle} onClick={() => { }} />
+                        <MetricCard title="Leave Records" value={stats.leaves} subText="TOTAL ENTERED" color="amber" icon={FileText} onClick={() => setHistoryModal({ isOpen: true, title: 'Leave History', data: leaveData, type: 'leave', color: 'amber' })} />
+                        <MetricCard title="CEP Passes" value={stats.ceps} subText="EXCUSED PASSES" color="sky" icon={Clock} onClick={() => setHistoryModal({ isOpen: true, title: 'CEP History', data: cepData, type: 'cep', color: 'sky' })} />
+                        <MetricCard title="Minus Points" value={stats.minusPoints} subText="ACCUMULATED" color="red" icon={AlertTriangle} onClick={() => setHistoryModal({ isOpen: true, title: 'Minus History', data: minusData, type: 'minus', color: 'rose' })} />
                     </section>
 
                     {/* Detailed Lists Grid */}
@@ -1328,13 +1426,13 @@ const StudentsPortal = () => {
                                                     <div className="grid grid-cols-2 gap-4 text-[10px] font-black text-slate-500 uppercase tracking-widest pt-4 border-t border-slate-200/50">
                                                         <div className="flex flex-col gap-1">
                                                             <span className="text-slate-300 group-hover:text-amber-500">From</span>
-                                                            <span className="text-slate-800">{formatTime(item.fromDate)}</span>
+                                                            <span className="text-slate-800">{formatDate(item.fromDate)} {formatTimeTo12h(item.fromTime)}</span>
                                                         </div>
                                                         <div className="flex flex-col gap-1">
                                                             <span className="text-slate-300 group-hover:text-amber-500">Return</span>
                                                             <span className="text-slate-800">
                                                                 {item.returnedAt ? `${formatDate(item.returnedAt)} ${formatTime(item.returnedAt)}` : 
-                                                                 (item.toDate ? `${formatDate(item.toDate)} ${item.toTime || ''}` : 'PENDING')}
+                                                                 (item.toDate ? `${formatDate(item.toDate)} ${formatTimeTo12h(item.toTime)}` : 'PENDING')}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -1485,6 +1583,15 @@ const StudentsPortal = () => {
                     isOpen={showBreakdown}
                     onClose={() => setShowBreakdown(false)}
                     data={attendanceData}
+                />
+
+                <HistoryModal 
+                    isOpen={historyModal.isOpen}
+                    onClose={() => setHistoryModal({ ...historyModal, isOpen: false })}
+                    title={historyModal.title}
+                    data={historyModal.data}
+                    type={historyModal.type}
+                    color={historyModal.color}
                 />
 
                 {/* Recovery Warning Modal */}
