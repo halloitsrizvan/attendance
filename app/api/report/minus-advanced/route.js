@@ -2,6 +2,8 @@ import dbConnect from "@/lib/mongodb";
 import Attendance from "@/models/attendanceModel";
 import Student from "@/models/studentsModel";
 import Minus from "@/models/minusModel";
+import Leave from "@/models/leaveModel";
+import ClassExcusedPass from "@/models/shortLeaveModel";
 import { NextResponse } from "next/server";
 
 export async function GET(req) {
@@ -32,7 +34,7 @@ export async function GET(req) {
     const attendanceRecords = await Attendance.find({
       studentId: { $in: studentIds },
       attendanceDate: { $gte: startDate, $lte: endDate }
-    }).populate('leaveId').sort({ attendanceDate: 1 });
+    }).populate({ path: 'leaveId', strictPopulate: false }).sort({ attendanceDate: 1 });
 
     // Fetch Manual Minus
     const minusRecords = await Minus.find({
