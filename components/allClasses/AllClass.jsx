@@ -75,7 +75,7 @@ function AllClass({edit,id}) {
 
     useEffect(() => {
       const now = new Date();
-      const hours = now.getHours();
+      const hours = now.getHours(); 
       const minutes = now.getMinutes();
 
       // Convert to total minutes for easy comparison

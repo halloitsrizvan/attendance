@@ -138,22 +138,33 @@ function Hajar() {
     }
   };
 
+  // Helper to get consistent date for lookup
+  const getNormalizedToday = () => {
+    const dateStr = date || new Date().toISOString().split("T")[0];
+    const d = new Date(dateStr);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  };
+
   // Get active short leave object
-  const getStudentActiveShortLeave = (studentAdno) => {
-    const today = date ? new Date(date) : new Date();
+  const getStudentActiveShortLeave = (studentAdno, studentInternalId) => {
+    const today = getNormalizedToday();
     const ctx = getContextTimeRange();
 
     return shortLeaveData.find(leave => {
-      // Check ADNO match
+      // Check ADNO or ID match
       const leaveAdno = leave.ad || leave.studentId?.ADNO;
-      if (Number(leaveAdno) !== Number(studentAdno)) return false;
+      const leaveStudentId = leave.studentId?._id || leave.studentId;
+      
+      const isMatch = (leaveAdno && Number(leaveAdno) === Number(studentAdno)) || 
+                      (leaveStudentId && String(leaveStudentId) === String(studentInternalId));
+                      
+      if (!isMatch) return false;
 
       // Check date match
       const leaveDate = new Date(leave.date);
-      const isSameDate =
-        leaveDate.getDate() === today.getDate() &&
-        leaveDate.getMonth() === today.getMonth() &&
-        leaveDate.getFullYear() === today.getFullYear();
+      leaveDate.setHours(0, 0, 0, 0);
+      const isSameDate = leaveDate.getTime() === today.getTime();
 
       if (!isSameDate) return false;
 
@@ -187,18 +198,22 @@ function Hajar() {
   };
 
   // Check if student is currently on short leave
-  const isStudentOnShortLeave = (studentAdno) => !!getStudentActiveShortLeave(studentAdno);
+  const isStudentOnShortLeave = (studentAdno, studentInternalId) => !!getStudentActiveShortLeave(studentAdno, studentInternalId);
 
   // Get active medical leave object
-  const getStudentActiveLeave = (studentAdno) => {
-    const today = date ? new Date(date) : new Date();
-    today.setHours(0, 0, 0, 0);
+  const getStudentActiveLeave = (studentAdno, studentInternalId) => {
+    const today = getNormalizedToday();
     const ctx = getContextTimeRange();
 
     return leaveData.find(leave => {
-      // Check ADNO match
+      // Check ADNO or ID match
       const leaveAdno = leave.ad || leave.studentId?.ADNO;
-      if (Number(leaveAdno) !== Number(studentAdno)) return false;
+      const leaveStudentId = leave.studentId?._id || leave.studentId;
+      
+      const isMatch = (leaveAdno && Number(leaveAdno) === Number(studentAdno)) || 
+                      (leaveStudentId && String(leaveStudentId) === String(studentInternalId));
+
+      if (!isMatch) return false;
 
       // Status must not be returned or merely scheduled
       if (['returned', 'scheduled'].includes(leave.status?.toLowerCase())) return false;
@@ -217,11 +232,15 @@ function Hajar() {
 
       // If it's the start day, check if leave session overlaps with attendance context
       if (isStartDay) {
+        // For multi-day leaves, leaveTo only applies on the LAST day.
+        // On the first day, the student is on leave from leaveFrom until the end of the day.
+        const effectiveLeaveTo = isEndDay ? leaveTo : null;
+
         if (ctx.isRange) {
-           return Math.max(leaveFrom, ctx.from) < (leaveTo !== null ? Math.min(leaveTo, ctx.to) : ctx.to + 1);
+           return Math.max(leaveFrom, ctx.from) < (effectiveLeaveTo !== null ? Math.min(effectiveLeaveTo, ctx.to) : ctx.to + 1);
         } else {
            if (ctx.from < leaveFrom) return false;
-           if (isEndDay && leaveTo !== null && ctx.from > leaveTo) return false;
+           if (effectiveLeaveTo !== null && ctx.from > effectiveLeaveTo) return false;
            return true;
         }
       }
@@ -260,7 +279,7 @@ function Hajar() {
   };
 
   // Check if student is on active leave (any reason)
-  const isStudentOnActiveLeave = (studentAdno) => !!getStudentActiveLeave(studentAdno);
+  const isStudentOnActiveLeave = (studentAdno, studentInternalId) => !!getStudentActiveLeave(studentAdno, studentInternalId);
 
   // Alias for backward compatibility/typo fix
   const isStudentOnMedicalLeave = isStudentOnActiveLeave;
@@ -296,8 +315,8 @@ function Hajar() {
 
         // Set initial attendance based on short leave and medical leave status
         filtered.forEach((student) => {
-          const isOnShortLeave = isStudentOnShortLeave(student.ADNO);
-          const isOnActiveLeave = isStudentOnActiveLeave(student.ADNO);
+          const isOnShortLeave = isStudentOnShortLeave(student.ADNO, student._id);
+          const isOnActiveLeave = isStudentOnActiveLeave(student.ADNO, student._id);
           const isOnLeave = student.onLeave || isOnShortLeave || isOnActiveLeave;
 
           console.log(`Student ${student.ADNO}:`, {
@@ -345,10 +364,10 @@ function Hajar() {
     checkAttendanceTaken();
   }, [id, period, date, time]);
 
-  const handleCheckboxChange = (ad, isChecked) => {
+  const handleCheckboxChange = (ad, studentId, isChecked) => {
     const student = students.find(s => s.ADNO === ad);
-    const isOnShortLeave = isStudentOnShortLeave(ad);
-    const isOnActiveLeave = isStudentOnActiveLeave(ad);
+    const isOnShortLeave = isStudentOnShortLeave(ad, studentId);
+    const isOnActiveLeave = isStudentOnActiveLeave(ad, studentId);
     const isOnLeave = student.onLeave || isOnShortLeave || isOnActiveLeave;
 
     // If student is on leave, don't allow changing status
@@ -364,10 +383,10 @@ function Hajar() {
   };
 
   const preSumbit = (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     const absentiesList = students.filter((s) => {
-      const isOnShortLeave = isStudentOnShortLeave(s.ADNO);
-      const isOnActiveLeave = isStudentOnActiveLeave(s.ADNO);
+      const isOnShortLeave = isStudentOnShortLeave(s.ADNO, s._id);
+      const isOnActiveLeave = isStudentOnActiveLeave(s.ADNO, s._id);
       const isReturned = returnedStudents.includes(s.ADNO);
       const isOnLeave = (s.onLeave || isOnShortLeave || isOnActiveLeave) && !isReturned;
       // Students are absent if they're marked absent OR on leave (and not returned)
@@ -422,8 +441,8 @@ function Hajar() {
     }
 
     const payload = students.map((student) => {
-      const activeShortLeave = getStudentActiveShortLeave(student.ADNO);
-      const activeLeave = getStudentActiveLeave(student.ADNO);
+      const activeShortLeave = getStudentActiveShortLeave(student.ADNO, student._id);
+      const activeLeave = getStudentActiveLeave(student.ADNO, student._id);
       const isReturned = returnedStudents.includes(student.ADNO);
       const isOnLeave = (student.onLeave || !!activeShortLeave || !!activeLeave) && !isReturned;
       const status = isOnLeave ? "Absent" : (attendance[student.ADNO] || "Absent");
@@ -452,8 +471,8 @@ function Hajar() {
       let present = 0;
       
       students.forEach((student) => {
-        const isOnShortLeave = isStudentOnShortLeave(student.ADNO);
-        const isOnActiveLeave = isStudentOnActiveLeave(student.ADNO);
+        const isOnShortLeave = isStudentOnShortLeave(student.ADNO, student._id);
+        const isOnActiveLeave = isStudentOnActiveLeave(student.ADNO, student._id);
         const isReturned = returnedStudents.includes(student.ADNO);
         const isOnLeave = (student.onLeave || isOnShortLeave || isOnActiveLeave) && !isReturned;
         const status = isOnLeave ? "Absent" : (attendance[student.ADNO] || "Absent");
@@ -477,8 +496,8 @@ function Hajar() {
       });
 
       const payload2 = students.map((student) => {
-        const isOnShortLeave = isStudentOnShortLeave(student.ADNO);
-        const isOnActiveLeave = isStudentOnActiveLeave(student.ADNO);
+        const isOnShortLeave = isStudentOnShortLeave(student.ADNO, student._id);
+        const isOnActiveLeave = isStudentOnActiveLeave(student.ADNO, student._id);
         const isReturned = returnedStudents.includes(student.ADNO);
         const isOnLeave = (student.onLeave || isOnShortLeave || isOnActiveLeave) && !isReturned;
         const status = isOnLeave ? "Absent" : (attendance[student.ADNO] || "Absent");
@@ -525,8 +544,8 @@ function Hajar() {
       const regularAbsentees = [];
 
       absentees.forEach(s => {
-        const isOnShortLeave = isStudentOnShortLeave(s.ADNO);
-        const activeLeave = getStudentActiveLeave(s.ADNO); 
+        const isOnShortLeave = isStudentOnShortLeave(s.ADNO, s._id);
+        const activeLeave = getStudentActiveLeave(s.ADNO, s._id); 
         
         // Detailed reason check for Medical Leave
         const isMedical = activeLeave && (
@@ -614,8 +633,8 @@ function Hajar() {
     if (actionToPerform === "All Present") {
       students.forEach((s) => {
         // Only mark present if not already on leave
-        const isOnShortLeave = isStudentOnShortLeave(s.ADNO);
-        const isOnActiveLeave = isStudentOnActiveLeave(s.ADNO);
+        const isOnShortLeave = isStudentOnShortLeave(s.ADNO, s._id);
+        const isOnActiveLeave = isStudentOnActiveLeave(s.ADNO, s._id);
         const isReturned = returnedStudents.includes(s.ADNO);
         const isOnLeave = (s.onLeave || isOnShortLeave || isOnActiveLeave) && !isReturned;
         
@@ -707,6 +726,12 @@ function Hajar() {
     setSelectedReturnStudent(null);
   };
 
+  const handleRowClick = (student, currentStatus, displayOnLeave) => {
+    if (!displayOnLeave) {
+      handleCheckboxChange(student.ADNO, student._id, currentStatus !== "Present");
+    }
+  };
+
   return (
     <div className="p-4 sm:p-8 mt-12 max-w-7xl mx-auto">
       <div className="mb-8 space-y-4">
@@ -775,8 +800,8 @@ function Hajar() {
                   {students.length > 0 ? (
                     students.map((student, index) => {
                       const currentStatus = attendance[student.ADNO] !== undefined ? attendance[student.ADNO] : student.Status;
-                      const isOnShortLeave = isStudentOnShortLeave(student.ADNO);
-                      const isOnActiveLeave = isStudentOnActiveLeave(student.ADNO);
+                      const isOnShortLeave = isStudentOnShortLeave(student.ADNO, student._id);
+                      const isOnActiveLeave = isStudentOnActiveLeave(student.ADNO, student._id);
                       const isReturned = returnedStudents.includes(student.ADNO);
                       const isOnLeave = (student.onLeave || isOnShortLeave || isOnActiveLeave);
                       const displayOnLeave = isOnLeave && !isReturned;
@@ -791,11 +816,7 @@ function Hajar() {
                       return (
                         <tr
                           key={index}
-                          onClick={() => {
-                            if (!displayOnLeave) {
-                              handleCheckboxChange(student.ADNO, currentStatus !== "Present");
-                            }
-                          }}
+                          onClick={() => handleRowClick(student, currentStatus, displayOnLeave)}
                           className={`group transition-colors ${displayOnLeave ? "bg-amber-50/30 cursor-not-allowed" : "hover:bg-sky-50/50 cursor-pointer"}`}
                         >
                           <td className="hidden sm:table-cell px-6 py-4 text-sm font-medium text-slate-400">{student.SL}</td>
@@ -887,8 +908,8 @@ function Hajar() {
           <form onSubmit={(e) => { e.preventDefault(); preSumbit(); }}>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
               {students.map((student, index) => {
-                const isOnShortLeave = isStudentOnShortLeave(student.ADNO);
-                const isOnActiveLeave = isStudentOnActiveLeave(student.ADNO);
+                const isOnShortLeave = isStudentOnShortLeave(student.ADNO, student._id);
+                const isOnActiveLeave = isStudentOnActiveLeave(student.ADNO, student._id);
                 const isReturned = returnedStudents.includes(student.ADNO);
                 const isOnLeave = (student.onLeave || isOnShortLeave || isOnActiveLeave);
                 const displayOnLeave = isOnLeave && !isReturned;
@@ -899,7 +920,7 @@ function Hajar() {
                     key={index}
                     onClick={() => {
                       if (!displayOnLeave) {
-                        handleCheckboxChange(student.ADNO, !isPresent);
+                        handleCheckboxChange(student.ADNO, student._id, !isPresent);
                       }
                     }}
                     className={`relative p-5 rounded-3xl border-2 transition-all duration-300 transform active:scale-95 cursor-pointer ${
@@ -1086,15 +1107,19 @@ function Hajar() {
             <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 mb-8 space-y-4">
               {(() => {
                 const ad = selectedReturnStudent.ADNO;
-                const medical = getStudentActiveLeave(ad);
-                const cep = getStudentActiveShortLeave(ad);
+                const sid = selectedReturnStudent._id;
+                const medical = getStudentActiveLeave(ad, sid);
+                const cep = getStudentActiveShortLeave(ad, sid);
 
                 if (medical) {
+                  const isMedical = medical.reason?.toLowerCase().includes('medical');
                   return (
                     <>
                       <div className="flex justify-between items-center border-b border-slate-200/50 pb-3">
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Type</span>
-                        <span className="text-[9px] font-black text-sky-500 bg-sky-50 px-2 py-0.5 rounded border border-sky-100 uppercase tracking-widest">Medical Leave</span>
+                        <span className={`text-[9px] font-black px-2 py-0.5 rounded border uppercase tracking-widest ${isMedical ? 'text-rose-500 bg-rose-50 border-rose-100' : 'text-sky-500 bg-sky-50 border-sky-100'}`}>
+                          {isMedical ? 'Medical Leave' : 'Standard Leave'}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center border-b border-slate-200/50 pb-3">
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Reason</span>
