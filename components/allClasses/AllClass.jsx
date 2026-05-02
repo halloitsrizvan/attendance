@@ -130,7 +130,7 @@ function AllClass({edit,id}) {
           setTime('Morning');
           setPeriod('');
         } else if (totalMinutes >= period8Start && totalMinutes < period8End) {
-          setTime('Noon');
+          setTime('Afternoon');
           setPeriod('');
         }else{
           setTime('Period');

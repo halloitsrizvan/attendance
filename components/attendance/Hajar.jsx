@@ -422,10 +422,10 @@ function Hajar() {
     }
 
     const payload = students.map((student) => {
-      const isOnShortLeave = isStudentOnShortLeave(student.ADNO);
-      const isOnActiveLeave = isStudentOnActiveLeave(student.ADNO);
+      const activeShortLeave = getStudentActiveShortLeave(student.ADNO);
+      const activeLeave = getStudentActiveLeave(student.ADNO);
       const isReturned = returnedStudents.includes(student.ADNO);
-      const isOnLeave = (student.onLeave || isOnShortLeave || isOnActiveLeave) && !isReturned;
+      const isOnLeave = (student.onLeave || !!activeShortLeave || !!activeLeave) && !isReturned;
       const status = isOnLeave ? "Absent" : (attendance[student.ADNO] || "Absent");
 
       return {
@@ -437,6 +437,8 @@ function Hajar() {
         attendanceTime: time,
         attendanceDate: new Date(),
         onLeave: isOnLeave,
+        leaveId: (isOnLeave && activeLeave) ? activeLeave._id : null,
+        shortLeaveId: (isOnLeave && activeShortLeave) ? activeShortLeave._id : null,
         ...(period && { period: Number(period) }),
         ...(more && { custom: more })
       };

@@ -6,6 +6,7 @@ import VerifyingAccess from './VerifyingAccess';
 
 const ADMIN_PAGES = [
     '/report',
+    '/attendance-report',
     '/students-management',
     '/teachers-management',
     '/minus-report'

@@ -3,13 +3,13 @@
 import React from 'react'
 import Header from '@/components/Header/Header'
 import dynamic from 'next/dynamic'
-const AdvancedReport = dynamic(() => import('@/components/report/AdvancedReport'), { ssr: false })
+const DailyReport = dynamic(() => import('@/components/report/DailyReport'), { ssr: false })
 
 export default function ReportPage() {
   return (
     <div>
         <Header/>
-        <AdvancedReport/>
+        <DailyReport/>
     </div>
   )
 }

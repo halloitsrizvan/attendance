@@ -36,6 +36,14 @@ const attendanceSchema = new Schema({
     onLeave: {
         type: Boolean,
     },
+    leaveId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Leave'
+    },
+    shortLeaveId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'ClassExcusedPass'
+    },
     academicYearId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'AcademicYear'
