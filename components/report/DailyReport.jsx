@@ -180,10 +180,16 @@ function DailyReport() {
         slots.forEach(timeSlot => {
           if (timeSlot === 'Period' && hasPeriod) {
             periodNumbers.forEach(periodNum => {
-              base[`${date}_Period_${periodNum}`] = dayData?.Period?.[periodNum] || '-';
+              const val = dayData?.Period?.[periodNum] || '-';
+              if (val === 'P') base[`${date}_Period_${periodNum}`] = '✓';
+              else if (val === 'A') base[`${date}_Period_${periodNum}`] = 'X';
+              else base[`${date}_Period_${periodNum}`] = val;
             });
           } else if (timeSlot !== 'Period') {
-            base[`${date}_${timeSlot}`] = dayData?.[timeSlot] || '-';
+            const val = dayData?.[timeSlot] || '-';
+            if (val === 'P') base[`${date}_${timeSlot}`] = '✓';
+            else if (val === 'A') base[`${date}_${timeSlot}`] = 'X';
+            else base[`${date}_${timeSlot}`] = val;
           }
         });
       });
@@ -313,10 +319,16 @@ function DailyReport() {
         slots.forEach(timeSlot => {
           if (timeSlot === 'Period' && hasPeriod) {
             periodNumbers.forEach(periodNum => {
-              row.push(dayData?.Period?.[periodNum] || '-');
+              const val = dayData?.Period?.[periodNum] || '-';
+              if (val === 'P') row.push('✓');
+              else if (val === 'A') row.push('X');
+              else row.push(val);
             });
           } else if (timeSlot !== 'Period') {
-            row.push(dayData?.[timeSlot] || '-');
+            const val = dayData?.[timeSlot] || '-';
+            if (val === 'P') row.push('✓');
+            else if (val === 'A') row.push('X');
+            else row.push(val);
           }
         });
       });
@@ -473,10 +485,10 @@ function DailyReport() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                    <th className="p-4 border-b-2 border-r-2 border-white rounded-tl-xl text-center">SL</th>
-                    <th className="p-4 border-b-2 border-r-2 border-white">AD</th>
-                    <th className="p-4 border-b-2 border-r-2 border-white min-w-[150px]">Name</th>
-                    <th className="p-4 border-b-2 border-r-2 border-white text-center">Class</th>
+                    <th className="p-2 border-b-2 border-r-2 border-white rounded-tl-xl text-center w-8">SL</th>
+                    <th className="p-2 border-b-2 border-r-2 border-white w-12">AD</th>
+                    <th className="p-2 border-b-2 border-r-2 border-white min-w-[120px]">Name</th>
+                    <th className="p-2 border-b-2 border-r-2 border-white text-center w-12">Class</th>
                     
                     {usedDates.map(date => {
                       const slots = timeSlotsByDate[date] || [];
@@ -488,14 +500,14 @@ function DailyReport() {
                       const displayDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
                       return (
-                        <th key={date} className="p-4 border-b-2 border-r-2 border-white text-center text-sky-600 bg-sky-50" colSpan={totalCols}>
+                        <th key={date} className="p-2 border-b-2 border-r-2 border-white text-center text-sky-600 bg-sky-50 whitespace-nowrap" colSpan={totalCols}>
                           {displayDate}
                         </th>
                       );
                     })}
                     
-                    <th className="p-4 border-b-2 border-r-2 border-white text-center text-emerald-600 bg-emerald-50">Tot P</th>
-                    <th className="p-4 border-b-2 border-white rounded-tr-xl text-center text-rose-600 bg-rose-50">Tot A</th>
+                    <th className="p-2 border-b-2 border-r-2 border-white text-center text-emerald-600 bg-emerald-50 w-12">Tot P</th>
+                    <th className="p-2 border-b-2 border-white rounded-tr-xl text-center text-rose-600 bg-rose-50 w-12">Tot A</th>
                   </tr>
                   
                   {usedDates.length > 0 && (
@@ -513,7 +525,7 @@ function DailyReport() {
                                 return (
                                   <React.Fragment key={timeSlot}>
                                     {periodNumbers.map(periodNum => (
-                                      <th key={`${timeSlot}-${periodNum}`} className="p-2 border-r-2 border-white text-center">
+                                      <th key={`${timeSlot}-${periodNum}`} className="px-1 py-2 border-r-2 border-white text-center min-w-[24px]">
                                         P{periodNum}
                                       </th>
                                     ))}
@@ -521,7 +533,7 @@ function DailyReport() {
                                 );
                               } else {
                                 return (
-                                  <th key={timeSlot} className="p-2 border-r-2 border-white text-center">
+                                  <th key={timeSlot} className="px-1 py-2 border-r-2 border-white text-center min-w-[24px]">
                                     {timeSlot.substring(0, 3)}
                                   </th>
                                 );
@@ -537,10 +549,10 @@ function DailyReport() {
                 <tbody className="text-sm font-medium">
                   {data.map((r, i) => (
                     <tr key={`${r.ad}-${r.class}`} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
-                      <td className="p-3 border-r-2 border-white text-center text-slate-400 font-bold text-xs">{i + 1}</td>
-                      <td className="p-3 border-r-2 border-white text-slate-600 font-bold">{r.ad}</td>
-                      <td className="p-3 border-r-2 border-white text-slate-800 font-bold">{r.nameOfStd}</td>
-                      <td className="p-3 border-r-2 border-white text-center text-slate-600 font-bold bg-slate-50/50 rounded-lg">{r.class}</td>
+                      <td className="p-2 border-r-2 border-white text-center text-slate-400 font-bold text-[10px]">{i + 1}</td>
+                      <td className="p-2 border-r-2 border-white text-slate-600 font-bold text-xs">{r.ad}</td>
+                      <td className="p-2 border-r-2 border-white text-slate-800 font-bold text-xs truncate max-w-[150px]">{r.nameOfStd}</td>
+                      <td className="p-2 border-r-2 border-white text-center text-slate-600 font-bold bg-slate-50/50 rounded-lg text-xs">{r.class}</td>
                       
                       {usedDates.map(date => {
                         const day = r.dailyAttendance?.find(d => d.date === date);
@@ -573,9 +585,9 @@ function DailyReport() {
                                         <td 
                                           key={`${timeSlot}-${periodNum}`} 
                                           onClick={() => handleEntryClick(r, day, timeSlot, periodNum)}
-                                          className={`p-2 border-r-2 border-white border-y-2 text-center text-xs ${bg} cursor-pointer hover:opacity-80 transition-opacity`}
+                                          className={`px-1 py-2 border-r-2 border-white border-y-2 text-center text-[10px] ${bg} cursor-pointer hover:opacity-80 transition-opacity min-w-[24px]`}
                                         >
-                                          {periodValue}
+                                          {periodValue === 'P' ? '✓' : (periodValue === 'A' ? 'X' : periodValue)}
                                         </td>
                                       );
                                     })}
@@ -586,9 +598,9 @@ function DailyReport() {
                                   <td 
                                     key={timeSlot} 
                                     onClick={() => handleEntryClick(r, day, timeSlot)}
-                                    className={`p-2 border-r-2 border-white border-y-2 text-center text-xs ${getCellBgClass(day, timeSlot)} cursor-pointer hover:opacity-80 transition-opacity`}
+                                    className={`px-1 py-2 border-r-2 border-white border-y-2 text-center text-[10px] ${getCellBgClass(day, timeSlot)} cursor-pointer hover:opacity-80 transition-opacity min-w-[24px]`}
                                   >
-                                    {day?.[timeSlot] || '-'}
+                                    {day?.[timeSlot] === 'P' ? '✓' : (day?.[timeSlot] === 'A' ? 'X' : (day?.[timeSlot] || '-'))}
                                   </td>
                                 );
                               }
@@ -598,8 +610,8 @@ function DailyReport() {
                         );
                       })}
                       
-                      <td className="p-3 border-r-2 border-white text-center font-black text-emerald-600 bg-emerald-50/50 rounded-lg">{r.present}</td>
-                      <td className="p-3 text-center font-black text-rose-600 bg-rose-50/50 rounded-lg">{r.absent}</td>
+                      <td className="p-2 border-r-2 border-white text-center font-black text-emerald-600 bg-emerald-50/50 rounded-lg text-xs">{r.present}</td>
+                      <td className="p-2 text-center font-black text-rose-600 bg-rose-50/50 rounded-lg text-xs">{r.absent}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -694,7 +706,7 @@ function DailyReport() {
                     }`}
                   >
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${selectedEntry.status === 'Present' ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
-                      P
+                      ✓
                     </div>
                     Present
                   </button>
@@ -713,7 +725,7 @@ function DailyReport() {
                     }`}
                   >
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${selectedEntry.status === 'Absent' ? 'bg-rose-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
-                      A
+                      X
                     </div>
                     Absent
                   </button>
