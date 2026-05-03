@@ -500,8 +500,12 @@ function DailyReport() {
                       const displayDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
                       return (
-                        <th key={date} className="p-2 border-b-2 border-r-2 border-white text-center text-sky-600 bg-sky-50 whitespace-nowrap" colSpan={totalCols}>
-                          {displayDate}
+                        <th key={date} className="p-0 border-b-2 border-r-2 border-white text-center text-sky-600 bg-sky-50" colSpan={totalCols}>
+                          <div className="flex items-center justify-center h-32 py-2">
+                            <span className="[writing-mode:vertical-rl] rotate-180 whitespace-nowrap text-[10px] font-black uppercase tracking-widest">
+                              {displayDate}
+                            </span>
+                          </div>
                         </th>
                       );
                     })}
@@ -685,7 +689,7 @@ function DailyReport() {
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100/50">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Time Slot</label>
                   <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
-                    {new Date(selectedEntry.day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} • {selectedEntry.slot} {selectedEntry.periodNum ? `• P${selectedEntry.periodNum}` : ''}
+                    {new Date(selectedEntry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} • {selectedEntry.slot} {selectedEntry.periodNum ? `• P${selectedEntry.periodNum}` : ''}
                   </p>
                 </div>
               </div>
