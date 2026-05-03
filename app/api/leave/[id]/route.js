@@ -46,6 +46,9 @@ export async function PATCH(req, { params }) {
             const offDays = await OffDay.find({});
             const returnedAt = body.returnedAt || new Date().toISOString();
             
+            // Ensure returnedAt is saved
+            if (!body.returnedAt) body.returnedAt = returnedAt;
+
             const leaveDays = getActiveLeaveDays(
                 existingLeave.fromDate, 
                 existingLeave.fromTime, 

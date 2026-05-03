@@ -417,6 +417,7 @@ function Hajar() {
           if (medLeave) {
             await axios.patch(`${API_PORT}/leave/${medLeave._id}`, { 
               status: 'returned', 
+              returnedAt: new Date().toISOString(),
               markReturnedTeacher: teacher?.name || 'Unknown' 
             });
           }
@@ -425,7 +426,8 @@ function Hajar() {
           const shortLeave = getStudentActiveShortLeave(ad);
           if (shortLeave) {
             await axios.patch(`${API_PORT}/class-excused-pass/${shortLeave._id}`, { 
-              status: 'returned' 
+              status: 'returned',
+              returnedAt: new Date().toISOString()
             });
           }
         }));
