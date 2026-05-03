@@ -186,13 +186,6 @@ function DailyReport() {
             base[`${date}_${timeSlot}`] = dayData?.[timeSlot] || '-';
           }
         });
-        const dayTotal = (timeSlotsByDate[date] || []).reduce((sum, ts) => {
-          if (ts === 'Period') {
-            return sum + Object.values(dayData?.Period || {}).filter(p => p === 'P').length;
-          }
-          return sum + (dayData?.[ts] === 'P' ? 1 : 0);
-        }, 0);
-        base[`${date}_Total`] = dayTotal;
       });
       wsData.push(base);
     });
@@ -281,7 +274,7 @@ function DailyReport() {
     usedDates.forEach(d => {
       const slots = timeSlotsByDate[d] || [];
       const hasPeriod = slots.includes('Period');
-      expectedCols += slots.length + (hasPeriod ? getPeriodNumbersForDate(d).length - 1 : 0) + 1; // +1 for Tot
+      expectedCols += slots.length + (hasPeriod ? getPeriodNumbersForDate(d).length - 1 : 0); 
     });
 
     const format = expectedCols > 18 ? [210, Math.max(297, expectedCols * 18)] : 'a4';
@@ -306,7 +299,6 @@ function DailyReport() {
           headers.push(`${shortDate}\n${timeSlot.substring(0, 3)}`);
         }
       });
-      headers.push(`${shortDate}\nTot`);
     });
     headers.push('P', 'A');
 
@@ -314,7 +306,6 @@ function DailyReport() {
       const row = [i + 1, r.ad, r.nameOfStd, r.class];
       usedDates.forEach(date => {
         const dayData = r.dailyAttendance?.find(d => d.date === date);
-        let dayTotal = 0;
         const slots = timeSlotsByDate[date] || [];
         const periodNumbers = getPeriodNumbersForDate(date);
         const hasPeriod = slots.includes('Period');
@@ -324,13 +315,10 @@ function DailyReport() {
             periodNumbers.forEach(periodNum => {
               row.push(dayData?.Period?.[periodNum] || '-');
             });
-            dayTotal += Object.values(dayData?.Period || {}).filter(p => p === 'P').length;
           } else if (timeSlot !== 'Period') {
             row.push(dayData?.[timeSlot] || '-');
-            dayTotal += (dayData?.[timeSlot] === 'P' ? 1 : 0);
           }
         });
-        row.push(dayTotal);
       });
       row.push(r.present, r.absent);
       return row;
@@ -494,7 +482,7 @@ function DailyReport() {
                       const slots = timeSlotsByDate[date] || [];
                       const periodNumbers = getPeriodNumbersForDate(date);
                       const hasPeriod = slots.includes('Period');
-                      const totalCols = slots.length + (hasPeriod ? periodNumbers.length - 1 : 0) + 1;
+                      const totalCols = slots.length + (hasPeriod ? periodNumbers.length - 1 : 0);
                       
                       const dateObj = new Date(date);
                       const displayDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -539,7 +527,6 @@ function DailyReport() {
                                 );
                               }
                             })}
-                            <th className="p-2 border-r-2 border-white text-center bg-sky-50 text-sky-600">Sum</th>
                           </React.Fragment>
                         );
                       })}
@@ -607,7 +594,6 @@ function DailyReport() {
                               }
                               return null;
                             })}
-                            <td className="p-2 border-r-2 border-white border-y-2 text-center font-bold text-sky-600 bg-sky-50/50">{total}</td>
                           </React.Fragment>
                         );
                       })}
