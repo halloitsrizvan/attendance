@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Menu, X, CheckCircle, Clock, Calendar, CalendarClock, TrendingUp, LogOut, Info, AlertTriangle, FileText, User, ChevronRight, LayoutGrid, PlusCircle, MessageSquare, Upload, Loader2, Send } from 'lucide-react';
+import { Menu, X, CheckCircle, Clock, Calendar, CalendarClock, TrendingUp, LogOut, Info, AlertTriangle, FileText, User, ChevronRight, LayoutGrid, PlusCircle, MessageSquare, Upload, Loader2, Send, Trophy } from 'lucide-react';
 import axios from 'axios';
 import { API_PORT } from '@/Constants';
 import StudentAuthGuard from '@/components/auth/StudentAuthGuard';
@@ -1003,21 +1003,22 @@ const StudentsPortal = () => {
     const fetchStudentAnalytics = async (ad, studentObj) => {
         if (!ad) return;
         try {
-            // First fetch the core analytics
-            const [attRes, leaveRes, minusRes, cepRes, offDaysRes, zehnuthRes] = await Promise.all([
+            // Use Promise.allSettled to be more resilient
+            const results = await Promise.allSettled([
                 axios.get(`${API_PORT}/set-attendance?ad=${ad}`),
                 axios.get(`${API_PORT}/leave?ad=${ad}`),
                 axios.get(`${API_PORT}/minus?ad=${ad}`),
                 axios.get(`${API_PORT}/class-excused-pass?ad=${ad}`),
                 axios.get(`${API_PORT}/off-days`),
-                axios.get(`${API_PORT}/zehnuth/points?studentId=${studentObj?._id || student?._id}`)
+                axios.get(`${API_PORT}/zehnuth/points?studentId=${studentObj?._id || studentObj?.id || student?._id || student?.id}`)
             ]);
-            setAttendanceData(attRes.data);
-            setLeaveData(leaveRes.data);
-            setMinusData(minusRes.data);
-            setCepData(cepRes.data);
-            setOffDays(offDaysRes.data);
-            setZehnuthPoints(zehnuthRes.data);
+
+            if (results[0].status === 'fulfilled') setAttendanceData(results[0].value.data || []);
+            if (results[1].status === 'fulfilled') setLeaveData(results[1].value.data || []);
+            if (results[2].status === 'fulfilled') setMinusData(results[2].value.data || []);
+            if (results[3].status === 'fulfilled') setCepData(results[3].value.data || []);
+            if (results[4].status === 'fulfilled') setOffDays(results[4].value.data || []);
+            if (results[5].status === 'fulfilled') setZehnuthPoints(results[5].value.data || []);
 
             // Then fetch complaints separately to prevent breaking the flow
             const sid = studentObj?._id || studentObj?.id || student?._id || student?.id;
@@ -1053,10 +1054,10 @@ const StudentsPortal = () => {
             absent: total - present,
             total,
             rate,
-            leaves: leaveData.length,
-            ceps: cepData.length,
+            leaves: (leaveData || []).length,
+            ceps: (cepData || []).length,
             minusPoints: totalMinus.toFixed(1),
-            zehnuth: zehnuthPoints.reduce((acc, p) => acc + p.points, 0)
+            zehnuth: (zehnuthPoints || []).reduce((acc, p) => acc + (p?.points || 0), 0)
         };
     }, [attendanceData, leaveData, minusData, cepData, zehnuthPoints]);
 
