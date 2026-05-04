@@ -1142,7 +1142,7 @@ const StudentsPortal = () => {
                                     });
                                     if (activeLeave) return <span className="text-sm font-black text-rose-600">On Leave</span>;
 
-                                    const pendingRecovery = leaveData.filter(l => (l.status === 'returned' || l.returnedAt) && !l.recovery);
+                                    const pendingRecovery = leaveData.filter(l => getRecoveryInfo(l, offDays) !== null);
                                     if (pendingRecovery.length > 0) {
                                         const overdue = pendingRecovery.some(l => getRecoveryInfo(l, offDays)?.status === 'Overdue');
                                         if (overdue) return <span className="text-sm font-black text-rose-600 animate-pulse">Recovery Overdue</span>;
@@ -1156,8 +1156,12 @@ const StudentsPortal = () => {
                         <div className="flex gap-3">
                             <button 
                                 onClick={() => {
-                                    const hasPendingRecovery = leaveData.some(l => (l.status === 'returned' || l.returnedAt) && !l.recovery);
-                                    if (hasPendingRecovery) {
+                                    const hasOverdueRecovery = leaveData.some(l => {
+                                        if (l.recovery || l.recoveryNeeded === false) return false;
+                                        if (!l.returnedAt && l.status !== 'returned') return false;
+                                        return getRecoveryInfo(l, offDays)?.status === 'Overdue';
+                                    });
+                                    if (hasOverdueRecovery) {
                                         setShowRecoveryWarning(true);
                                     } else {
                                         setIsApplyLeaveOpen(true);
