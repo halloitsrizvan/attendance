@@ -59,6 +59,9 @@ export async function PATCH(req, { params }) {
 
             if (leaveDays === 0) {
                 body.recovery = true; // Auto-clear recovery if it's on an off-day
+                body.recoveryNeeded = false;
+            } else {
+                body.recoveryNeeded = true;
             }
         }
     }

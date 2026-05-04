@@ -62,6 +62,10 @@ const leaveSchema = new Schema({
         type: Boolean,
         default: false
     },
+    recoveryNeeded: {
+        type: Boolean,
+        default: true
+    },
     documentUrl: {
         type: String,
         default: null

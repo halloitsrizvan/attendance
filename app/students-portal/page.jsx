@@ -60,47 +60,45 @@ const getDetailedStatus = (item) => {
     return 'Pending';
 };
 
-const getRecoveryInfo = (leave, offDays) => {
-    if ((leave.status !== 'returned' && !leave.returnedAt) || leave.recovery === true) return null;
-    
+const calculateLeaveDays = (leave, offDays) => {
     const studentClass = leave.studentId?.CLASS || leave.classNum;
-    
-    // Helper to get active leave days (excluding Fridays and Off Days)
-    const getActiveLeaveDays = () => {
-        const start = new Date(`${leave.fromDate}T${leave.fromTime}`);
-        const end = new Date(leave.returnedAt);
-        if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
+    const start = new Date(`${leave.fromDate}T${leave.fromTime}`);
+    const end = new Date(leave.returnedAt);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
 
-        let count = 0;
-        let current = new Date(start);
-        current.setHours(0, 0, 0, 0);
-        const endDay = new Date(end);
-        endDay.setHours(0, 0, 0, 0);
+    let count = 0;
+    let current = new Date(start);
+    current.setHours(0, 0, 0, 0);
+    const endDay = new Date(end);
+    endDay.setHours(0, 0, 0, 0);
 
-        while (current <= endDay) {
-            const dateStr = current.toISOString().split('T')[0];
-            const isOffDay = offDays.some(d => {
-                const inRange = d.toDate 
-                    ? (dateStr >= d.fromDate && dateStr <= d.toDate)
-                    : (dateStr === d.fromDate);
-                return inRange && (d.type === 'global' || (d.classes && d.classes.includes(String(studentClass))));
-            });
+    while (current <= endDay) {
+        const dateStr = current.toISOString().split('T')[0];
+        const isOffDay = offDays.some(d => {
+            const inRange = d.toDate 
+                ? (dateStr >= d.fromDate && dateStr <= d.toDate)
+                : (dateStr === d.fromDate);
+            return inRange && (d.type === 'global' || (d.classes && d.classes.includes(String(studentClass))));
+        });
 
-            if (current.getDay() !== 5 && !isOffDay) { // Skip Fridays and Off Days
-                const dayStart = new Date(current);
-                dayStart.setHours(7, 30, 0, 0); // 7:30 AM
-                const dayEnd = new Date(current);
-                dayEnd.setHours(16, 0, 0, 0);  // 4:00 PM
-                const overlapStart = start > dayStart ? start : dayStart;
-                const overlapEnd = end < dayEnd ? end : dayEnd;
-                if (overlapStart < overlapEnd) count++;
-            }
-            current.setDate(current.getDate() + 1);
+        if (current.getDay() !== 5 && !isOffDay) { // Skip Fridays and Off Days
+            const dayStart = new Date(current);
+            dayStart.setHours(7, 30, 0, 0); // 7:30 AM
+            const dayEnd = new Date(current);
+            dayEnd.setHours(16, 0, 0, 0);  // 4:00 PM
+            const overlapStart = start > dayStart ? start : dayStart;
+            const overlapEnd = end < dayEnd ? end : dayEnd;
+            if (overlapStart < overlapEnd) count++;
         }
-        return count;
-    };
+        current.setDate(current.getDate() + 1);
+    }
+    return count;
+};
 
-    const leaveDays = getActiveLeaveDays();
+const getRecoveryInfo = (leave, offDays) => {
+    if ((leave.status !== 'returned' && !leave.returnedAt) || leave.recovery === true || leave.recoveryNeeded === false) return null;
+    
+    const leaveDays = calculateLeaveDays(leave, offDays);
     if (leaveDays === 0) return null;
 
     const graceDays = leaveDays * 2;
@@ -1465,39 +1463,44 @@ const StudentsPortal = () => {
                                                         <div className="mt-6 p-3 bg-emerald-50 rounded-2xl flex items-center justify-center gap-2 border border-emerald-100">
                                                             <CheckCircle size={14} className="text-emerald-500" />
                                                             <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Documents Verified</span>
-                                                        </div>
-                                                    )}
-
-                                                    {(item.status === 'returned' || item.returnedAt) && (
-                                                        <div className={`mt-3 p-3 rounded-2xl flex items-center justify-between border transition-all ${item.recovery ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-100'}`}>
-                                                            <div className="flex items-center gap-2">
-                                                                {item.recovery ? (
-                                                                    <CheckCircle size={14} className="text-emerald-500" />
-                                                                ) : (
-                                                                    <Clock size={14} className="text-amber-500 animate-pulse" />
-                                                                )}
-                                                                <span className={`text-[10px] font-black uppercase tracking-widest ${item.recovery ? 'text-emerald-700' : 'text-amber-700'}`}>
-                                                                    Recovery {item.recovery ? 'Completed' : 'Pending'}
-                                                                </span>
-                                                            </div>
-                                                            {!item.recovery && (() => {
-                                                                const recovery = getRecoveryInfo(item, offDays);
-                                                                if (!recovery) return null;
-                                                                if (recovery.status === 'Overdue') {
+                                                         </div>
+                                                     )}
+                                                     {(item.status === "returned" || item.returnedAt) && (() => {
+                                                        const isNotNeeded = item.recoveryNeeded === false || (item.recoveryNeeded === undefined && calculateLeaveDays(item, offDays) === 0);
+                                                        const isCompleted = item.recovery && !isNotNeeded;
+                                                        const isPending = !item.recovery && !isNotNeeded;
+                                                        
+                                                        return (
+                                                            <div className={`mt-3 p-3 rounded-2xl flex items-center justify-between border transition-all ${isCompleted || isNotNeeded ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-100'}`}>
+                                                                <div className="flex items-center gap-2">
+                                                                    {isCompleted || isNotNeeded ? (
+                                                                        <CheckCircle size={14} className="text-emerald-500" />
+                                                                    ) : (
+                                                                        <Clock size={14} className="text-amber-500 animate-pulse" />
+                                                                    )}
+                                                                    <span className={`text-[10px] font-black uppercase tracking-widest ${isCompleted || isNotNeeded ? 'text-emerald-700' : 'text-amber-700'}`}>
+                                                                        {isNotNeeded ? 'Recovery Not Needed' : (isCompleted ? 'Recovery Completed' : 'Recovery Pending')}
+                                                                    </span>
+                                                                </div>
+                                                                {isPending && (() => {
+                                                                    const recovery = getRecoveryInfo(item, offDays);
+                                                                    if (!recovery) return null;
+                                                                    if (recovery.status === 'Overdue') {
+                                                                        return (
+                                                                            <span className="text-[10px] font-black text-rose-600 uppercase tracking-widest px-2 py-0.5 bg-rose-50 rounded-lg shadow-sm border border-rose-100 animate-pulse">
+                                                                                Overdue
+                                                                            </span>
+                                                                        );
+                                                                    }
                                                                     return (
-                                                                        <span className="text-[10px] font-black text-rose-600 uppercase tracking-widest px-2 py-0.5 bg-rose-50 rounded-lg shadow-sm border border-rose-100 animate-pulse">
-                                                                            Overdue
+                                                                        <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest px-2 py-0.5 bg-white rounded-lg shadow-sm">
+                                                                            {recovery.remaining} Days Left
                                                                         </span>
                                                                     );
-                                                                }
-                                                                return (
-                                                                    <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest px-2 py-0.5 bg-white rounded-lg shadow-sm">
-                                                                        {recovery.remaining} Days Left
-                                                                    </span>
-                                                                );
-                                                             })()}
-                                                        </div>
-                                                    )}
+                                                                })()}
+                                                            </div>
+                                                        );
+                                                     })()}
                                                 </div>
                                             ))}
                                         </div>

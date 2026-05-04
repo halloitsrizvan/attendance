@@ -233,11 +233,9 @@ function ShortLeave({ statusData: initialStatusData, type, onDataUpdate }) {
   const getRelativeDate = (dateInput) => {
     if (!dateInput) return '';
     try {
-      const datePart = typeof dateInput === 'string' && dateInput.includes('T') 
-        ? dateInput.split('T')[0] 
-        : dateInput;
+      const date = new Date(dateInput);
+      if (isNaN(date.getTime())) return dateInput;
       
-      const date = new Date(datePart);
       const today = new Date();
       
       const d1 = new Date(date.getFullYear(), date.getMonth(), date.getDate());

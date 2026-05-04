@@ -237,12 +237,9 @@ const StudentStatusCard = ({ student, onDelete, onEdit }) => {
   const getRelativeDate = (dateInput) => {
     if (!dateInput) return '';
     try {
-      // Handle either a full ISO string or just a date Part
-      const datePart = typeof dateInput === 'string' && dateInput.includes('T')
-        ? dateInput.split('T')[0]
-        : dateInput;
-
-      const date = new Date(datePart);
+      const date = new Date(dateInput);
+      if (isNaN(date.getTime())) return dateInput;
+      
       const today = new Date();
 
       // Reset hours for accurate day difference

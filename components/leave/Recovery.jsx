@@ -128,6 +128,8 @@ const Recovery = () => {
         if (leave.recovery) return { status: 'Recovered', color: 'text-green-600 bg-green-50', icon: ShieldCheck };
         
         const studentClass = leave.studentId?.CLASS || leave.classNum;
+        if (leave.recoveryNeeded === false) return { status: 'No Recovery Needed', color: 'text-sky-600 bg-sky-50', icon: CheckCircle };
+        
         const leaveDays = getActiveLeaveDays(leave.fromDate, leave.fromTime, leave.returnedAt, studentClass);
         
         if (leaveDays === 0) return { status: 'No Recovery Needed', color: 'text-sky-600 bg-sky-50', icon: CheckCircle };
@@ -192,7 +194,9 @@ const Recovery = () => {
             // Filter by class and return status
             if (String(studentClass) !== String(teacher.classNum) || !isReturned) return false;
 
-            // Calculate leaveDays to determine if they should even be listed
+            // Filter by recoveryNeeded if available, otherwise calculate leaveDays
+            if (l.recoveryNeeded === false) return false;
+            
             const leaveDays = getActiveLeaveDays(l.fromDate, l.fromTime, l.returnedAt, studentClass);
             if (leaveDays === 0) return false; // Hide 0-day leaves entirely (No Recovery Needed)
 

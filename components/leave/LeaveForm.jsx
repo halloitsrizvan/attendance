@@ -467,22 +467,29 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     }
   };
 
-  const getRelativeDate = (dateStr) => {
-    if (!dateStr) return '';
-    const today = new Date().toISOString().split('T')[0];
-    const tmw = new Date(); tmw.setDate(tmw.getDate() + 1);
-    const tomorrow = tmw.toISOString().split('T')[0];
-    const da = new Date(); da.setDate(da.getDate() + 2);
-    const dayAfter = da.toISOString().split('T')[0];
-    const yest = new Date(); yest.setDate(yest.getDate() - 1);
-    const yesterday = yest.toISOString().split('T')[0];
-
-    if (dateStr === today) return "Today";
-    if (dateStr === tomorrow) return "Tomorrow";
-    if (dateStr === dayAfter) return "Day After";
-    if (dateStr === yesterday) return "Yesterday";
-    
-    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const getRelativeDate = (dateInput) => {
+    if (!dateInput) return '';
+    try {
+      const date = new Date(dateInput);
+      if (isNaN(date.getTime())) return dateInput;
+      
+      const today = new Date();
+      
+      const d1 = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const d2 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      
+      const diffTime = d1 - d2;
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 0) return "Today";
+      if (diffDays === -1) return "Yesterday";
+      if (diffDays === 1) return "Tomorrow";
+      if (diffDays === 2) return "Day After";
+      
+      return d1.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } catch (e) {
+      return typeof dateInput === 'string' ? dateInput : '';
+    }
   };
 
   const calculateLeaveDuration = (from, fromTime, to, toTime) => {
@@ -732,6 +739,8 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       
       // Check each pending recovery to see if any have passed their deadline
       for (const leave of pendingRecoveries) {
+        if (leave.recoveryNeeded === false) continue;
+
         const leaveDays = getActiveLeaveDays(leave.fromDate, leave.fromTime, leave.returnedAt);
         
         // If no class days were missed, this record doesn't require recovery
