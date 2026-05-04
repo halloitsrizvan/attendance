@@ -3,7 +3,7 @@
 import React from 'react'
 import Header from '@/components/Header/Header'
 import AllClass from '@/components/allClasses/AllClass'
-import { Plus, LayoutDashboard, ClipboardList, BarChart3 } from 'lucide-react'
+import { Plus, LayoutDashboard, ClipboardList, BarChart3, Trophy } from 'lucide-react'
 import Link from 'next/link'
 
 function Home() {
@@ -39,14 +39,14 @@ function Home() {
               </div>
            </Link>
 
-           {/* Attendance Status Button */}
+           {/* ZEHNUTH Button */}
            <Link 
-              href="/class-wise" 
-              className="w-12 h-12 bg-white text-indigo-500 rounded-2xl shadow-xl border border-slate-100 flex items-center justify-center hover:bg-indigo-50 transition-all hover:scale-110 active:scale-95 group relative"
+              href="/zehnuth/submit-point" 
+              className="w-12 h-12 bg-white text-amber-500 rounded-2xl shadow-xl border border-slate-100 flex items-center justify-center hover:bg-amber-50 transition-all hover:scale-110 active:scale-95 group relative"
            >
-              <BarChart3 size={20} />
+              <Trophy size={20} />
               <div className="absolute right-full mr-4 px-3 py-1.5 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap translate-x-2 group-hover:translate-x-0 shadow-xl">
-                Attendance Status
+                ZEHNUTH
               </div>
            </Link>
         </div>

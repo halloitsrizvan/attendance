@@ -43,111 +43,128 @@ export default function Leaderboard() {
     };
 
     if (loading) return (
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-            <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+        <div className="min-h-screen bg-white">
+            <Header />
+            <main className="max-w-xl mx-auto px-4 pt-20 pb-12">
+                <div className="animate-pulse">
+                    <div className="mb-8 px-2 flex justify-between items-end">
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-slate-100 rounded-xl"></div>
+                                <div className="h-8 bg-slate-100 rounded-lg w-32"></div>
+                            </div>
+                            <div className="h-4 bg-slate-50 rounded-md w-40"></div>
+                        </div>
+                        <div className="h-10 bg-slate-50 rounded-xl w-32"></div>
+                    </div>
+                    
+                    <div className="flex items-end justify-center gap-2 mb-10 px-2 h-48">
+                        <div className="flex-1 bg-slate-50 h-16 rounded-t-xl"></div>
+                        <div className="flex-1 bg-slate-100 h-24 rounded-t-xl scale-110"></div>
+                        <div className="flex-1 bg-slate-50 h-12 rounded-t-xl"></div>
+                    </div>
+
+                    <div className="space-y-3">
+                        {[1, 2, 3, 4, 5].map(i => (
+                            <div key={i} className="h-20 bg-slate-50/50 rounded-2xl w-full border border-slate-100"></div>
+                        ))}
+                    </div>
+                </div>
+            </main>
         </div>
     );
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC]">
+        <div className="min-h-screen bg-white">
             <Header />
-            <main className="max-w-6xl mx-auto px-4 pt-24 pb-12">
-                <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
-                    <div>
-                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-100 text-amber-700 rounded-full mb-4">
-                            <Crown size={14} className="animate-pulse" />
-                            <span className="text-[10px] font-black uppercase tracking-widest">Hall of Fame</span>
+            <main className="max-w-xl mx-auto px-4 pt-20 pb-12">
+                {/* Header */}
+                <div className="mb-8 px-2">
+                    <div className="flex items-center justify-between items-end">
+                        <div>
+                            <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                                <span className="p-2 bg-amber-500 text-white rounded-xl"><Trophy size={20} /></span>
+                                Rankings
+                            </h1>
+                            <p className="text-slate-500 text-sm font-medium mt-1">Top performers this season</p>
                         </div>
-                        <h1 className="text-4xl font-black text-slate-800 tracking-tight uppercase italic">ZEHNUTH Leaderboard</h1>
-                        <p className="text-slate-500 font-bold uppercase text-[11px] tracking-[0.2em] mt-2">Rankings updated in real-time</p>
-                    </div>
-
-                    <div className="relative">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                        <input
-                            type="text"
-                            placeholder="Search students..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="bg-white border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold text-slate-700 outline-none focus:border-blue-400 transition-all w-full md:w-80 shadow-sm"
-                        />
+                        <div className="relative">
+                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                             <input
+                                 type="text"
+                                 placeholder="Search..."
+                                 value={search}
+                                 onChange={(e) => setSearch(e.target.value)}
+                                 className="bg-slate-50 border-none rounded-xl py-2 pl-10 pr-4 text-xs font-bold text-slate-700 outline-none focus:bg-slate-100 transition-all w-32"
+                             />
+                        </div>
                     </div>
                 </div>
 
-                {/* Top 3 Podium */}
+                {/* Compact Top 3 */}
                 {!search && filteredData.length >= 3 && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16 items-end">
+                    <div className="flex items-end justify-center gap-2 mb-10 px-2 h-48">
                         {/* 2nd Place */}
-                        <div className="order-2 md:order-1 bg-white p-8 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/50 text-center relative pt-16">
-                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-slate-100 rounded-full border-8 border-white shadow-lg flex items-center justify-center text-slate-400">
-                                <Medal size={40} />
+                        <div className="flex-1 flex flex-col items-center">
+                            <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 mb-2 relative">
+                                <Medal size={24} />
+                                <span className="absolute -top-2 -right-2 bg-slate-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white">2</span>
                             </div>
-                            <h3 className="text-xl font-black text-slate-800 truncate px-4">{filteredData[1].student["SHORT NAME"] || filteredData[1].student["FULL NAME"]}</h3>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">AD: {filteredData[1].student.ADNO}</p>
-                            <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-2xl text-slate-600 font-black">
-                                <Trophy size={16} /> {filteredData[1].totalPoints} PTS
-                            </div>
+                            <p className="text-[10px] font-black text-slate-800 text-center line-clamp-1 w-full">{filteredData[1].student["SHORT NAME"] || filteredData[1].student["FULL NAME"]}</p>
+                            <p className="text-[9px] font-bold text-amber-500">{filteredData[1].totalPoints} PTS</p>
+                            <div className="w-full bg-slate-100 h-16 rounded-t-xl mt-2"></div>
                         </div>
 
                         {/* 1st Place */}
-                        <div className="order-1 md:order-2 bg-slate-900 p-10 rounded-[3.5rem] shadow-2xl shadow-blue-200 text-center relative pt-20 scale-105">
-                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 bg-amber-400 rounded-full border-8 border-slate-900 shadow-lg flex items-center justify-center text-white">
-                                <Crown size={50} />
+                        <div className="flex-1 flex flex-col items-center">
+                            <div className="w-18 h-18 bg-amber-100 rounded-3xl flex items-center justify-center text-amber-500 mb-2 relative scale-110">
+                                <Crown size={32} />
+                                <span className="absolute -top-2 -right-2 bg-amber-500 text-white text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-white">1</span>
                             </div>
-                            <h3 className="text-2xl font-black text-white truncate px-4">{filteredData[0].student["SHORT NAME"] || filteredData[0].student["FULL NAME"]}</h3>
-                            <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest mb-6">AD: {filteredData[0].student.ADNO}</p>
-                            <div className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 rounded-2xl text-amber-400 font-black text-xl">
-                                <Trophy size={20} /> {filteredData[0].totalPoints} PTS
-                            </div>
+                            <p className="text-[11px] font-black text-slate-900 text-center line-clamp-1 w-full">{filteredData[0].student["SHORT NAME"] || filteredData[0].student["FULL NAME"]}</p>
+                            <p className="text-[10px] font-black text-amber-600">{filteredData[0].totalPoints} PTS</p>
+                            <div className="w-full bg-amber-400 h-24 rounded-t-xl mt-2 shadow-lg shadow-amber-100"></div>
                         </div>
 
                         {/* 3rd Place */}
-                        <div className="order-3 bg-white p-8 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/50 text-center relative pt-16">
-                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-orange-50 rounded-full border-8 border-white shadow-lg flex items-center justify-center text-orange-400">
-                                <Medal size={40} />
+                        <div className="flex-1 flex flex-col items-center">
+                            <div className="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-400 mb-2 relative">
+                                <Medal size={24} />
+                                <span className="absolute -top-2 -right-2 bg-orange-400 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white">3</span>
                             </div>
-                            <h3 className="text-xl font-black text-slate-800 truncate px-4">{filteredData[2].student["SHORT NAME"] || filteredData[2].student["FULL NAME"]}</h3>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">AD: {filteredData[2].student.ADNO}</p>
-                            <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-50 rounded-2xl text-orange-600 font-black">
-                                <Trophy size={16} /> {filteredData[2].totalPoints} PTS
-                            </div>
+                            <p className="text-[10px] font-black text-slate-800 text-center line-clamp-1 w-full">{filteredData[2].student["SHORT NAME"] || filteredData[2].student["FULL NAME"]}</p>
+                            <p className="text-[9px] font-bold text-amber-500">{filteredData[2].totalPoints} PTS</p>
+                            <div className="w-full bg-orange-100 h-12 rounded-t-xl mt-2"></div>
                         </div>
                     </div>
                 )}
 
-                {/* Rank List */}
-                <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
-                    <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
-                        <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Student Rankings</span>
-                        <TrendingUp size={16} className="text-slate-300" />
-                    </div>
-                    <div className="divide-y divide-slate-50">
-                        {filteredData.map((item, index) => {
-                            const league = getLeague(item.totalPoints);
-                            return (
-                                <div key={item._id} className="p-6 flex items-center gap-6 hover:bg-slate-50 transition-colors group">
-                                    <div className="w-10 h-10 flex items-center justify-center font-black text-slate-300 text-xl italic group-hover:text-blue-500 transition-colors">
-                                        #{index + 1}
-                                    </div>
-                                    <div className="flex-grow">
-                                        <h4 className="font-black text-slate-800 uppercase tracking-tight">{item.student["SHORT NAME"] || item.student["FULL NAME"]}</h4>
-                                        <div className="flex items-center gap-4 mt-1">
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">AD: {item.student.ADNO}</span>
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Class: {item.student.CLASS}</span>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className={`text-[10px] font-black uppercase tracking-tighter px-3 py-1 rounded-full inline-block mb-1 ${league.bg} ${league.color}`}>
-                                            {league.name} LEAGUE
-                                        </div>
-                                        <div className="text-lg font-black text-slate-800 flex items-center justify-end gap-2">
-                                            <Trophy size={16} className="text-amber-400" /> {item.totalPoints}
-                                        </div>
+                {/* Ranking List */}
+                <div className="space-y-3">
+                    {filteredData.map((item, index) => {
+                        const league = getLeague(item.totalPoints);
+                        return (
+                            <div key={item._id} className="bg-slate-50/50 p-4 rounded-2xl flex items-center gap-4 hover:bg-slate-100 transition-all border border-transparent hover:border-slate-200">
+                                <div className="w-8 font-black text-slate-300 text-sm italic">
+                                    {index + 1}
+                                </div>
+                                <div className="flex-grow">
+                                    <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight">{item.student["SHORT NAME"] || item.student["FULL NAME"]}</h4>
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">AD: {item.student.ADNO}</span>
+                                        <span className={`text-[8px] font-black uppercase tracking-tighter px-2 py-0.5 rounded-md ${league.bg} ${league.color}`}>
+                                            {league.name}
+                                        </span>
                                     </div>
                                 </div>
-                            );
-                        })}
-                    </div>
+                                <div className="text-right">
+                                    <div className="text-sm font-black text-slate-800 flex items-center justify-end gap-1.5">
+                                        <Trophy size={14} className="text-amber-400" /> {item.totalPoints}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             </main>
         </div>
