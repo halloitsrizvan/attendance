@@ -226,7 +226,8 @@ const HistoryModal = ({ isOpen, onClose, title, data, type, color }) => {
         blue: 'bg-blue-600',
         amber: 'bg-amber-500',
         sky: 'bg-sky-500',
-        rose: 'bg-rose-500'
+        rose: 'bg-rose-500',
+        indigo: 'bg-indigo-600'
     };
 
     return (
@@ -252,16 +253,17 @@ const HistoryModal = ({ isOpen, onClose, title, data, type, color }) => {
                                         }
                                     </span>
                                     <span className="text-sm font-black text-slate-800 truncate max-w-[200px]">
-                                        {type === 'leave' ? item.reason : type === 'cep' ? item.reason : type === 'minus' ? item.reason : 'Session Log'}
+                                        {type === 'leave' ? item.reason : type === 'cep' ? item.reason : type === 'minus' ? item.reason : type === 'zehnuth' ? item.activity : 'Session Log'}
                                     </span>
                                 </div>
                                 <div className="text-right">
                                     <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
                                         type === 'minus' ? 'bg-rose-100 text-rose-600' : 
                                         type === 'leave' ? 'bg-amber-100 text-amber-600' :
+                                        type === 'zehnuth' ? 'bg-indigo-100 text-indigo-600' :
                                         'bg-sky-100 text-sky-600'
                                     }`}>
-                                        {type === 'minus' ? `-${item.minusNum}` : type === 'leave' ? getDetailedStatus(item) : 'Issued'}
+                                        {type === 'minus' ? `-${item.minusNum}` : type === 'leave' ? getDetailedStatus(item) : type === 'zehnuth' ? `+${item.points}` : 'Issued'}
                                     </span>
                                 </div>
                             </div>
@@ -286,11 +288,12 @@ const MetricCard = ({ title, value, subText, color, icon: Icon, onClick }) => (
         className={`flex flex-col items-center justify-center p-6 rounded-[2rem] shadow-sm transition-all duration-300 hover:shadow-xl cursor-pointer border border-transparent
       ${color === 'green' ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-600 hover:text-white' :
                 color === 'red' ? 'bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-600 hover:text-white' :
-                    color === 'amber' ? 'bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-600 hover:text-white' :
-                        'bg-sky-50 text-sky-600 border-sky-100 hover:bg-sky-600 hover:text-white'}`}
+                color === 'amber' ? 'bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-600 hover:text-white' :
+                color === 'indigo' ? 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-600 hover:text-white' :
+                'bg-sky-50 text-sky-600 border-sky-100 hover:bg-sky-600 hover:text-white'}`}
         onClick={onClick}
     >
-        <div className={`p-3 rounded-2xl mb-4 ${color === 'green' ? 'bg-emerald-100/50' : color === 'red' ? 'bg-rose-100/50' : color === 'amber' ? 'bg-amber-100/50' : 'bg-sky-100/50'} group-hover:bg-white/20`}>
+        <div className={`p-3 rounded-2xl mb-4 ${color === 'green' ? 'bg-emerald-100/50' : color === 'red' ? 'bg-rose-100/50' : color === 'amber' ? 'bg-amber-100/50' : color === 'indigo' ? 'bg-indigo-100/50' : 'bg-sky-100/50'} group-hover:bg-white/20`}>
             <Icon className="w-6 h-6" />
         </div>
         <div className="text-3xl font-black tracking-tight">{value}</div>
@@ -961,6 +964,7 @@ const StudentsPortal = () => {
     const [selectedAttendance, setSelectedAttendance] = useState(null);
     const [selectedLogId, setSelectedLogId] = useState(null);
     const [selectedLeave, setSelectedLeave] = useState(null);
+    const [zehnuthPoints, setZehnuthPoints] = useState([]);
     const [isApplyLeaveOpen, setIsApplyLeaveOpen] = useState(false);
     const [isComplaintOpen, setIsComplaintOpen] = useState(false);
     const [isDocumentOpen, setIsDocumentOpen] = useState(false);
@@ -1000,18 +1004,20 @@ const StudentsPortal = () => {
         if (!ad) return;
         try {
             // First fetch the core analytics
-            const [attRes, leaveRes, minusRes, cepRes, offDaysRes] = await Promise.all([
+            const [attRes, leaveRes, minusRes, cepRes, offDaysRes, zehnuthRes] = await Promise.all([
                 axios.get(`${API_PORT}/set-attendance?ad=${ad}`),
                 axios.get(`${API_PORT}/leave?ad=${ad}`),
                 axios.get(`${API_PORT}/minus?ad=${ad}`),
                 axios.get(`${API_PORT}/class-excused-pass?ad=${ad}`),
-                axios.get(`${API_PORT}/off-days`)
+                axios.get(`${API_PORT}/off-days`),
+                axios.get(`${API_PORT}/zehnuth/points?studentId=${studentObj?._id || student?._id}`)
             ]);
             setAttendanceData(attRes.data);
             setLeaveData(leaveRes.data);
             setMinusData(minusRes.data);
             setCepData(cepRes.data);
             setOffDays(offDaysRes.data);
+            setZehnuthPoints(zehnuthRes.data);
 
             // Then fetch complaints separately to prevent breaking the flow
             const sid = studentObj?._id || studentObj?.id || student?._id || student?.id;
@@ -1049,9 +1055,10 @@ const StudentsPortal = () => {
             rate,
             leaves: leaveData.length,
             ceps: cepData.length,
-            minusPoints: totalMinus.toFixed(1)
+            minusPoints: totalMinus.toFixed(1),
+            zehnuth: zehnuthPoints.reduce((acc, p) => acc + p.points, 0)
         };
-    }, [attendanceData, leaveData, minusData, cepData]);
+    }, [attendanceData, leaveData, minusData, cepData, zehnuthPoints]);
 
     const handleLogout = () => {
         localStorage.removeItem('studentToken');
@@ -1179,7 +1186,20 @@ const StudentsPortal = () => {
                         <MetricCard title="Attendance" value={`${stats.rate}%`} subText={`${stats.present}/${stats.total} SESSIONS`} color="blue" icon={TrendingUp} onClick={() => setShowBreakdown(true)} />
                         <MetricCard title="Leave Records" value={stats.leaves} subText="TOTAL ENTERED" color="amber" icon={FileText} onClick={() => setHistoryModal({ isOpen: true, title: 'Leave History', data: leaveData, type: 'leave', color: 'amber' })} />
                         <MetricCard title="CEP Passes" value={stats.ceps} subText="EXCUSED PASSES" color="sky" icon={Clock} onClick={() => setHistoryModal({ isOpen: true, title: 'CEP History', data: cepData, type: 'cep', color: 'sky' })} />
-                        <MetricCard title="Minus Points" value={stats.minusPoints} subText="ACCUMULATED" color="red" icon={AlertTriangle} onClick={() => setHistoryModal({ isOpen: true, title: 'Minus History', data: minusData, type: 'minus', color: 'rose' })} />
+                        <MetricCard 
+                            title="ZEHNUTH" 
+                            value={stats.zehnuth} 
+                            subText={
+                                stats.zehnuth >= 750 ? "LEGENDARY BADGE" :
+                                stats.zehnuth >= 500 ? "MASTER BADGE" :
+                                stats.zehnuth >= 250 ? "STAR BADGE" :
+                                stats.zehnuth >= 100 ? "CHAMPION BADGE" :
+                                "TOTAL POINTS"
+                            } 
+                            color="indigo" 
+                            icon={Trophy} 
+                            onClick={() => setHistoryModal({ isOpen: true, title: 'Achievement History', data: zehnuthPoints, type: 'zehnuth', color: 'indigo' })} 
+                        />
                     </section>
 
                     {/* Detailed Lists Grid */}
