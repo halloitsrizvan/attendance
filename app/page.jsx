@@ -7,6 +7,20 @@ import { Plus, LayoutDashboard, ClipboardList, BarChart3, Trophy } from 'lucide-
 import Link from 'next/link'
 
 function Home() {
+  const [zehnuthPath, setZehnuthPath] = React.useState('/zehnuth/leaderboard');
+
+  React.useEffect(() => {
+    const storedTeacher = localStorage.getItem('teacher');
+    if (storedTeacher) {
+      const teacherData = JSON.parse(storedTeacher);
+      // Check both cases as data consistency varies
+      const email = teacherData.email || teacherData.EMAIL;
+      if (email === 'krehmankoolivayal13889@gmail.com') {
+        setZehnuthPath('/zehnuth/submit-point');
+      }
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-slate-50">
         <Header/>
@@ -41,7 +55,7 @@ function Home() {
 
            {/* ZEHNUTH Button */}
            <Link 
-              href="/zehnuth/submit-point" 
+              href={zehnuthPath} 
               className="w-12 h-12 bg-white text-amber-500 rounded-2xl shadow-xl border border-slate-100 flex items-center justify-center hover:bg-amber-50 transition-all hover:scale-110 active:scale-95 group relative"
            >
               <Trophy size={20} />
