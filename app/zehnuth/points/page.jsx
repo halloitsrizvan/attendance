@@ -34,8 +34,16 @@ export default function MentorPoints() {
 
     const fetchPoints = async (mentorId) => {
         try {
+            // Get mentee IDs first
+            const relRes = await axios.get(`/api/zehnuth/mentor-mentee?mentorId=${mentorId}`);
+            const menteeIds = relRes.data.map(rel => rel.menteeId._id);
+
             const res = await axios.get(`/api/zehnuth/points?mentorId=${mentorId}`);
-            setPoints(res.data);
+            
+            // Filter points to only show those awarded to mentees
+            const menteePoints = res.data.filter(p => menteeIds.includes(p.studentId._id));
+            
+            setPoints(menteePoints);
         } catch (err) {
             console.error("Error fetching points:", err);
         } finally {
@@ -181,10 +189,25 @@ export default function MentorPoints() {
                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">AD: {p.studentId.ADNO}</p>
                                     </div>
                                 </div>
-                                <div className="text-right">
+                                <div className="text-right flex flex-col items-end gap-1.5">
                                     <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-tighter border ${CATEGORY_COLORS[p.category] || 'bg-slate-50 text-slate-600'}`}>
                                         {p.category}
                                     </span>
+                                    {p.status === 'pending' && (
+                                        <span className="bg-amber-50 text-amber-500 border border-amber-100 px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest animate-pulse">
+                                            Pending Approval
+                                        </span>
+                                    )}
+                                    {p.status === 'rejected' && (
+                                        <span className="bg-rose-50 text-rose-500 border border-rose-100 px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest">
+                                            Rejected
+                                        </span>
+                                    )}
+                                    {p.status === 'approved' && (
+                                        <span className="bg-emerald-50 text-emerald-500 border border-emerald-100 px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest">
+                                            Approved
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                             

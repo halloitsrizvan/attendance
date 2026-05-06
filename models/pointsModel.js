@@ -26,7 +26,11 @@ const pointsSchema = new mongoose.Schema({
     status: {
         type: String,
         enum: ['pending', 'approved', 'rejected'],
-        default: 'approved' // Mentors submitting usually means it's approved
+        default: 'pending'
+    },
+    approved: {
+        type: Boolean,
+        default: false
     },
     academicYearId: {
         type: mongoose.Schema.Types.ObjectId,

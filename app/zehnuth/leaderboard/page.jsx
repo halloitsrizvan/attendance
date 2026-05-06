@@ -3,7 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header/Header';
 import axios from 'axios';
-import { Trophy, Medal, Crown, TrendingUp, Loader2, Search } from 'lucide-react';
+import { Trophy, Medal, Crown, TrendingUp, Loader2, Search, Download } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
+const ADMIN_EMAIL = 'krehmankoolivayal13889@gmail.com';
 
 const LEAGUES = [
     { name: 'Diamond', min: 750, color: 'text-sky-400', bg: 'bg-sky-50' },
@@ -17,9 +21,14 @@ export default function Leaderboard() {
     const [leaderboard, setLeaderboard] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const [teacher, setTeacher] = useState(null);
 
     useEffect(() => {
         fetchLeaderboard();
+        const storedTeacher = localStorage.getItem('teacher');
+        if (storedTeacher) {
+            setTeacher(JSON.parse(storedTeacher));
+        }
     }, []);
 
     const fetchLeaderboard = async () => {
@@ -31,6 +40,40 @@ export default function Leaderboard() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const downloadPDF = () => {
+        const doc = new jsPDF();
+        
+        // Header
+        doc.setFontSize(22);
+        doc.setTextColor(30, 41, 59); // slate-800
+        doc.text("ZEHNUTH Leaderboard", 14, 22);
+        
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`Generated on: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 30);
+        
+        const tableData = filteredData.map((item, index) => [
+            index + 1,
+            item.student["SHORT NAME"] || item.student["FULL NAME"],
+            item.student.ADNO,
+            getLeague(item.totalPoints).name,
+            item.totalPoints
+        ]);
+
+        autoTable(doc, {
+            startY: 38,
+            head: [['Rank', 'Student Name', 'ADNO', 'League', 'Points']],
+            body: tableData,
+            theme: 'grid',
+            headStyles: { fillColor: [31, 41, 55], textColor: [255, 255, 255], fontStyle: 'bold' },
+            alternateRowStyles: { fillColor: [249, 250, 251] },
+            margin: { top: 38 },
+            styles: { fontSize: 9 }
+        });
+
+        doc.save(`Zehnuth_Leaderboard_${new Date().toISOString().split('T')[0]}.pdf`);
     };
 
     const filteredData = leaderboard.filter(item => 
@@ -88,16 +131,28 @@ export default function Leaderboard() {
                             </h1>
                             <p className="text-slate-500 text-sm font-medium mt-1">Top performers this season</p>
                         </div>
-                        <div className="relative">
-                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
-                             <input
-                                 type="text"
-                                 placeholder="Search..."
-                                 value={search}
-                                 onChange={(e) => setSearch(e.target.value)}
-                                 className="bg-slate-50 border-none rounded-xl py-2 pl-10 pr-4 text-xs font-bold text-slate-700 outline-none focus:bg-slate-100 transition-all w-32"
-                             />
+                        <div className="flex items-center gap-3">
+                            <div className="relative">
+                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                                 <input
+                                     type="text"
+                                     placeholder="Search..."
+                                     value={search}
+                                     onChange={(e) => setSearch(e.target.value)}
+                                     className="bg-slate-50 border-none rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-700 outline-none focus:bg-slate-100 transition-all w-32"
+                                     />
+                            </div>
                         </div>
+                                     {(teacher?.email || teacher?.EMAIL)?.toLowerCase() === ADMIN_EMAIL.toLowerCase() && (
+                                         <button 
+                                             onClick={downloadPDF}
+                                             className="p-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all active:scale-95 flex items-center gap-2 group shadow-lg shadow-slate-100"
+                                             title="Download PDF Report"
+                                         >
+                                             <Download size={18} />
+                                             {/* <span className="text-[10px] font-black uppercase tracking-widest pr-1">Report</span> */}
+                                         </button>
+                                     )}
                     </div>
                 </div>
 

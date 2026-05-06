@@ -24,6 +24,9 @@ export async function GET(req) {
         let query = {};
         if (studentId) query.studentId = studentId;
         if (mentorId) query.mentorId = mentorId;
+        
+        const status = searchParams.get('status');
+        if (status) query.status = status;
 
         if (searchParams.get('leaderboard')) {
             const leaderboard = await Points.aggregate([
@@ -51,11 +54,32 @@ export async function GET(req) {
         }
 
         const points = await Points.find(query)
-            .populate('studentId', { "SHORT NAME": 1, "FULL NAME": 1, "ADNO": 1 })
+            .populate('studentId', { "SHORT NAME": 1, "FULL NAME": 1, "ADNO": 1, "CLASS": 1 })
             .populate('mentorId', 'name')
             .sort({ createdAt: -1 });
         
         return NextResponse.json(points);
+    } catch (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+}
+export async function PUT(req) {
+    await dbConnect();
+    try {
+        const body = await req.json();
+        const { id, status, points, approved } = body;
+        
+        if (!id) return NextResponse.json({ error: "Missing ID" }, { status: 400 });
+
+        const updatedPoint = await Points.findByIdAndUpdate(
+            id, 
+            { status, points, approved }, 
+            { new: true }
+        );
+
+        if (!updatedPoint) return NextResponse.json({ error: "Record not found" }, { status: 404 });
+
+        return NextResponse.json(updatedPoint);
     } catch (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }

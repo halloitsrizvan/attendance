@@ -34,15 +34,19 @@ export default function MenteesSummary() {
             const relRes = await axios.get(`/api/zehnuth/mentor-mentee?mentorId=${mentorId}`);
             const menteeIds = relRes.data.map(rel => rel.menteeId._id);
 
-            // Get points for these mentees
+            // Get points for all students (global leaderboard)
             const pointsRes = await axios.get('/api/zehnuth/points?leaderboard=true');
+            const globalLeaderboard = pointsRes.data;
             
-            // Filter and sort
-            const filtered = pointsRes.data
-                .filter(item => menteeIds.includes(item.student._id))
-                .sort((a, b) => b.totalPoints - a.totalPoints);
+            // Filter only mentees but preserve their global rank
+            const menteesWithGlobalRank = globalLeaderboard
+                .map((item, index) => ({
+                    ...item,
+                    globalRank: index + 1
+                }))
+                .filter(item => menteeIds.includes(item.student._id));
 
-            setMentees(filtered);
+            setMentees(menteesWithGlobalRank);
         } catch (err) {
             console.error("Error fetching mentees data:", err);
         } finally {
@@ -121,7 +125,7 @@ export default function MenteesSummary() {
                                     </div>
                                     <div className="flex items-center gap-1.5 text-slate-400 font-bold text-xs">
                                         <TrendingUp size={14} />
-                                        Rank #{index + 1}
+                                        Rank #{item.globalRank}
                                     </div>
                                 </div>
                             </div>

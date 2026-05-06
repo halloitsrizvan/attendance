@@ -7,19 +7,19 @@ import { Plus, LayoutDashboard, ClipboardList, BarChart3, Trophy } from 'lucide-
 import Link from 'next/link'
 
 function Home() {
-  const [zehnuthPath, setZehnuthPath] = React.useState('/zehnuth/leaderboard');
+  const [zehnuthPath, setZehnuthPath] = React.useState('/zehnuth/submit-point');
 
-  React.useEffect(() => {
-    const storedTeacher = localStorage.getItem('teacher');
-    if (storedTeacher) {
-      const teacherData = JSON.parse(storedTeacher);
-      // Check both cases as data consistency varies
-      const email = teacherData.email || teacherData.EMAIL;
-      if (email === 'krehmankoolivayal13889@gmail.com') {
-        setZehnuthPath('/zehnuth/submit-point');
-      }
-    }
-  }, []);
+  // React.useEffect(() => {
+  //   const storedTeacher = localStorage.getItem('teacher');
+  //   if (storedTeacher) {
+  //     const teacherData = JSON.parse(storedTeacher);
+  //     // Check both cases as data consistency varies
+  //     const email = teacherData.email || teacherData.EMAIL;
+  //     if (email === 'krehmankoolivayal13889@gmail.com') {
+  //       setZehnuthPath('/zehnuth/submit-point');
+  //     }
+  //   }
+  // }, []);
 
   return (
     <div className="min-h-screen bg-slate-50">

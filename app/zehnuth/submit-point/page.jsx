@@ -5,29 +5,48 @@ import Header from '@/components/Header/Header';
 import axios from 'axios';
 import { Trophy, Star, Send, Loader2, User, Activity, Plus, CheckCircle2, X, ChevronDown, AlertTriangle, Search } from 'lucide-react';
 
-const SuccessModal = ({ isOpen, onClose, points }) => {
+const ADMIN_EMAIL = 'krehmankoolivayal13889@gmail.com';
+
+const SuccessModal = ({ isOpen, onClose, points, isAdmin,teacherMail }) => {
     if (!isOpen) return null;
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={onClose}></div>
             <div className="relative bg-white w-full max-w-sm rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in slide-in-from-bottom-10 duration-500">
                 <div className="p-10 text-center">
-                    <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 scale-110 animate-bounce">
-                        <CheckCircle2 size={48} />
+                    <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 scale-110 animate-bounce ${isAdmin ? 'bg-amber-100 text-amber-600 shadow-lg shadow-amber-100' : 'bg-emerald-100 text-emerald-600'}`}>
+                        {isAdmin ? <Trophy size={48} /> : <CheckCircle2 size={48} />}
                     </div>
-                    <h2 className="text-3xl font-black text-slate-800 tracking-tight uppercase italic mb-2">Success!</h2>
-                    <p className="text-slate-500 font-bold uppercase text-[10px] tracking-[0.2em] mb-8">Points Submitted Successfully</p>
+                    <h2 className="text-3xl font-black text-slate-800 tracking-tight uppercase italic mb-2">
+                        {isAdmin ? 'Congrats!' : 'Success!'}
+                    </h2>
+                    <p className="text-slate-500 font-bold uppercase text-[10px] tracking-[0.2em] mb-8">
+                        {isAdmin ? 'Points Awarded Instantly' : 'Points Submitted Successfully'}
+                    </p>
                     
-                    <div className="bg-slate-50 rounded-3xl p-6 mb-8 border border-slate-100">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Awarded</p>
-                        <p className="text-4xl font-black text-amber-500">+{points} PTS</p>
+                    <div className={`rounded-3xl p-6 mb-8 border ${isAdmin ? 'bg-amber-50 border-amber-100' : 'bg-slate-50 border-slate-100'}`}>
+                        <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isAdmin ? 'text-amber-500' : 'text-slate-400'}`}>
+                            {isAdmin ? 'Achievement Unlocked' : 'Request Sent'}
+                        </p>
+                        {isAdmin && (
+                            <div className="space-y-1">
+                                <p className="text-4xl font-black text-slate-900">+{points} PTS</p>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Live on Leaderboard</p>
+                            </div>
+                        )}
+                        {!isAdmin && (
+                            <div className="space-y-1">
+                                <p className="text-sm font-black text-slate-600 uppercase italic">Awaiting Approval</p>
+                                {/* <p className="text-[9px] font-medium text-slate-400 uppercase tracking-widest">Sent from {teacherMail}</p> */}
+                            </div>
+                        )}
                     </div>
 
                     <button 
                         onClick={onClose}
-                        className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] hover:bg-slate-800 active:scale-95 transition-all shadow-xl"
+                        className={`w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] active:scale-95 transition-all shadow-xl ${isAdmin ? 'bg-amber-500 text-white hover:bg-amber-600 shadow-amber-100' : 'bg-slate-900 text-white hover:bg-slate-800 shadow-slate-200'}`}
                     >
-                        Great, Thanks!
+                        {isAdmin ? 'Awesome!' : 'Great, Thanks!'}
                     </button>
                 </div>
                 <button onClick={onClose} className="absolute top-6 right-6 text-slate-300 hover:text-slate-500 transition-colors">
@@ -82,7 +101,7 @@ export default function SubmitPoint() {
 
     const fetchMentees = async (teacherData) => {
         const mentorId = teacherData.id || teacherData._id;
-        const isSpecialTeacher = teacherData.email === 'krehmankoolivayal13889@gmail.com';
+        const isSpecialTeacher = (teacherData.email || teacherData.EMAIL) === ADMIN_EMAIL;
         
         try { 
             if (isSpecialTeacher) {
@@ -99,9 +118,14 @@ export default function SubmitPoint() {
         }
     };
 
+    const currentEmail = (teacher?.email || teacher?.EMAIL || teacher?.mail || teacher?.MAIL || '').toString().trim();
+    const isAdmin = currentEmail.toLowerCase() === ADMIN_EMAIL.trim().toLowerCase();
+    const teacherMail = currentEmail || 'Teacher';
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!selectedMentee || !activity || !points) {
+        
+        if (!selectedMentee || !activity || (isAdmin && !points)) {
             alert("Please fill all fields");
             return;
         }
@@ -113,7 +137,9 @@ export default function SubmitPoint() {
                 mentorId: teacher.id || teacher._id,
                 activity,
                 category: selectedCategory,
-                points: Number(points),
+                points: isAdmin ? Number(points) : 0,
+                approved: isAdmin,
+                status: isAdmin ? 'approved' : 'pending'
             });
             setLastAwardedPoints(points);
             setShowSuccess(true);
@@ -155,34 +181,28 @@ export default function SubmitPoint() {
         </div>
     );
 
-    // SECURITY: Restrict to specific email
-    if (!teacher || teacher.email !== 'krehmankoolivayal13889@gmail.com') {
-        return (
-            <div className="min-h-screen bg-white">
-                <Header />
-                <main className="max-w-xl mx-auto px-4 pt-32 pb-12 text-center">
-                    <div className="w-20 h-20 bg-rose-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-6 text-rose-500">
-                        <AlertTriangle size={40} />
-                    </div>
-                    <h1 className="text-xl font-black text-slate-800 uppercase italic">Access Restricted</h1>
-                    <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-3 leading-relaxed">
-                        Only authorized administrators can award Zehnuth points at this stage.
-                    </p>
-                </main>
-            </div>
-        );
-    }
+    // Removed restricted access to allow all teachers to submit points
+
 
     return (
         <div className="min-h-screen bg-white">
             <Header />
             <main className="max-w-xl mx-auto px-4 pt-20 pb-12">
+                <SuccessModal 
+                    isOpen={showSuccess} 
+                    onClose={() => setShowSuccess(false)} 
+                    points={lastAwardedPoints} 
+                    teacherMail={teacherMail}
+                    isAdmin={isAdmin}
+                />
                 <div className="mb-8 px-2">
                     <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
                         <span className="p-2 bg-blue-600 text-white rounded-xl"><Trophy size={20} /></span>
-                       Submit <span className="bg-gradient-to-r from-amber-400 via-amber-600 to-amber-500 bg-clip-text text-transparent">Zehnuth</span>
+                        {isAdmin ? 'Award' : 'Request'} <span className="bg-gradient-to-r from-amber-400 via-amber-600 to-amber-500 bg-clip-text text-transparent">Zehnuth</span>
                     </h1>  
-                    <p className="text-slate-500 text-sm font-medium mt-1">Award points to your mentees</p>
+                    <p className="text-slate-500 text-sm font-medium mt-1">
+                        {isAdmin ? 'Instantly award points to any student' : 'Send achievement requests for approval'}
+                    </p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-8">
@@ -264,25 +284,30 @@ export default function SubmitPoint() {
                         </div>
                     </div>
 
-                    {/* Points Selection */}
-                    <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Award Points</label>
-                        <div className="flex flex-wrap gap-2">
-                            {CATEGORIES.find(c => c.id === selectedCategory).points.map((p) => (
-                                <button
-                                    key={p}
-                                    type="button"
-                                    onClick={() => setPoints(p)}
-                                    className={`flex-1 min-w-[60px] h-12 rounded-xl border-2 transition-all flex items-center justify-center text-sm font-black
-                                        ${points === p 
-                                            ? 'bg-amber-400 border-amber-400 text-white shadow-lg shadow-amber-100' 
-                                            : 'bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100'}`}
-                                >
-                                    +{p}
-                                </button>
-                            ))}
+                    {/* Award Points - ONLY for Admin */}
+                    {(teacher?.email || teacher?.EMAIL) === ADMIN_EMAIL && (
+                        <div className="space-y-4">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 flex items-center gap-2">
+                                <Star size={12} className="text-amber-500" /> Award Points
+                            </label>
+                            <div className="grid grid-cols-5 gap-2">
+                                {CATEGORIES.find(c => c.id === selectedCategory)?.points.map((p) => (
+                                    <button
+                                        key={p}
+                                        type="button"
+                                        onClick={() => setPoints(p)}
+                                        className={`py-4 rounded-2xl text-sm font-black transition-all border-2
+                                            ${points === p 
+                                                ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-100 scale-95' 
+                                                : 'bg-slate-50 border-transparent text-slate-400 hover:border-slate-200'
+                                            }`}
+                                    >
+                                        {p}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* Activity Description */}
                     <div className="space-y-3">
@@ -312,11 +337,7 @@ export default function SubmitPoint() {
                 </form>
             </main>
 
-            <SuccessModal 
-                isOpen={showSuccess} 
-                onClose={() => setShowSuccess(false)} 
-                points={lastAwardedPoints} 
-            />
+
         </div>
     );
 }

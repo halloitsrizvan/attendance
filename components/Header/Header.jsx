@@ -149,7 +149,13 @@ function Header() {
                 </button>
                 <div className="absolute top-full left-0 mt-0 pt-3 w-60 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-200 z-50">
                   <div className="bg-white shadow-2xl py-3 border border-slate-100 rounded-xl">
-                    {teacher && teacher.email === 'krehmankoolivayal13889@gmail.com' && <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/zehnuth/submit-point') }}>Submit Point</a>}
+                    <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/zehnuth/submit-point') }}>Submit Point</a>
+                    {(teacher?.email || teacher?.EMAIL) === 'krehmankoolivayal13889@gmail.com' && (
+                      <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base relative" onClick={() => { navigate.push('/zehnuth/requests') }}>
+                        Pending Requests
+                        <span className="ml-2 bg-amber-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse">NEW</span>
+                      </a>
+                    )}
                     <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/zehnuth/leaderboard') }}>Leaderboard</a>
                     <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/zehnuth/points') }}>My Mentees' Points</a>
                   </div>
@@ -341,7 +347,10 @@ function Header() {
               </button>
               {openDropdown === 'mb-zehnuth' && (
                 <div className="bg-slate-50/50 pb-3">
-                  {teacher && teacher.email === 'krehmankoolivayal13889@gmail.com' && <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/submit-point'); setIsMenuOpen(false) }}>Submit Point</a>}
+                  <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/submit-point'); setIsMenuOpen(false) }}>Submit Point</a>
+                  {(teacher?.email || teacher?.EMAIL) === 'krehmankoolivayal13889@gmail.com' && (
+                    <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/requests'); setIsMenuOpen(false) }}>Pending Requests</a>
+                  )}
                   <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/leaderboard'); setIsMenuOpen(false) }}>Leaderboard</a>
                   <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/points'); setIsMenuOpen(false) }}>My Mentees' Points</a>
                 </div>
