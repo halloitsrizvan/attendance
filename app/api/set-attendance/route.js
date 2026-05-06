@@ -13,6 +13,8 @@ export async function GET(req) {
   const time = searchParams.get('time');
   const period = searchParams.get('period');
 
+    const custom = searchParams.get('custom');
+
   try {
     let query = {};
     if (ad) {
@@ -33,6 +35,7 @@ export async function GET(req) {
     }
     if (time) query.attendanceTime = time;
     if (period) query.period = Number(period);
+    if (custom) query.custom = custom;
 
     const all = searchParams.get('all') === 'true';
     let mongoQuery = Attendance.find(query)
@@ -40,7 +43,7 @@ export async function GET(req) {
       .populate('teacherId')
       .sort({ createdAt: -1 });
 
-    if (!all) {
+    if (!all && !date && !classNumber) {
       mongoQuery = mongoQuery.limit(500);
     }
 

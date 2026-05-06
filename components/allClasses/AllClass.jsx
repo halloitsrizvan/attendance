@@ -44,40 +44,14 @@ function AllClass({edit,id}) {
             setLoad(false)
         })
 
-       axios.get(`${API_PORT}/set-attendance`)
-        .then((res) => {
-          console.log("All attendance data:", res.data);
-
-          // //  Group by student AD, keeping only the latest record
-          // const latestByStudent = {};
-
-          // res.data.forEach((record) => {
-          //   const existing = latestByStudent[record.ad];
-          //   const currentDate = new Date(record.attendanceDate);
-          //   if (!existing || currentDate > new Date(existing.attendanceDate)) {
-          //     latestByStudent[record.ad] = record;
-          //   }
-          // });
-
-          // //  Convert object to array
-          // const latestRecords = Object.values(latestByStudent);
-
-          setPreAttendance(res.data);
-          setPreAttendanceLoad(false);
-        })
-        .catch((err) => {
-          console.error(err);
-          setPreAttendanceLoad(false);
-        });
         axios.get(`${API_PORT}/students`).then((res)=>{
           setStudents(res.data)
         }).catch((err)=>{
           console.log(err);
           
         })
-
-
     },[])
+
     
     const today = new Date().toISOString().split("T")[0];
     const [date, setDate] = useState(today);
@@ -87,6 +61,26 @@ function AllClass({edit,id}) {
     const [more,setMore] = useState('')
 
     const [time, setTime] = useState('Period');
+
+    useEffect(() => {
+      setPreAttendanceLoad(true);
+      const queryParams = {
+        date: date,
+        time: time,
+      };
+      if (time === "Period" && period) queryParams.period = period;
+      if ((time === "Jamath" || time === "More") && more) queryParams.custom = more;
+
+      axios.get(`${API_PORT}/set-attendance`, { params: queryParams })
+        .then((res) => {
+          setPreAttendance(res.data);
+          setPreAttendanceLoad(false);
+        })
+        .catch((err) => {
+          console.error(err);
+          setPreAttendanceLoad(false);
+        });
+    }, [date, time, period, more]);
 
     useEffect(() => {
       const now = new Date();
@@ -207,7 +201,7 @@ function AllClass({edit,id}) {
           value={date}
           disabled={!isSuperAdmin}
           onChange={(e) => setDate(e.target.value)}
-          onFocus={(e) => isSuperAdmin && e.target.showPicker && e.target.showPicker()}
+          onClick={(e) => isSuperAdmin && e.target.showPicker && e.target.showPicker()}
           className={`flex-1 border border-sky-100 rounded-xl px-3 py-3 text-xs sm:text-sm font-bold text-slate-700 transition-all outline-none ${
             isSuperAdmin 
               ? 'bg-white focus:ring-2 focus:ring-sky-400 cursor-pointer' 
@@ -337,7 +331,7 @@ function AllClass({edit,id}) {
                 </span>
               </div>
             )}
-                {load && <AllClassLoad/>}
+                {(load || preAttendanceLoad) && <AllClassLoad/>}
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-6">
   {classes.map((cls, index) => {
     // Check if attendance already taken
