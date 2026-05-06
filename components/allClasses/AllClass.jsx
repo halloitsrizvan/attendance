@@ -14,6 +14,21 @@ function AllClass({edit,id}) {
     const [preAttendance,setPreAttendance]  = useState([])
     const [preAttendanceLoad,setPreAttendanceLoad]  = useState(true)
     const [students,setStudents] = useState([])
+    const [teacher, setTeacher] = useState(null);
+
+    useEffect(() => {
+        const storedTeacher = typeof window !== 'undefined' ? localStorage.getItem("teacher") : null;
+        if (storedTeacher) {
+            try {
+                setTeacher(JSON.parse(storedTeacher));
+            } catch (e) {
+                console.error("Invalid teacher data in localStorage");
+            }
+        }
+    }, []);
+
+    const isSuperAdmin = teacher?.role === 'super_admin' || (Array.isArray(teacher?.role) && teacher.role.includes('super_admin'));
+
     useEffect(()=>{
         setLoad(true)
         axios.get(`${API_PORT}/classes`)
@@ -190,10 +205,14 @@ function AllClass({edit,id}) {
         <input
           type="date"
           value={date}
-          disabled
+          disabled={!isSuperAdmin}
           onChange={(e) => setDate(e.target.value)}
-          onFocus={(e) => e.target.showPicker && e.target.showPicker()}
-          className="flex-1 border border-sky-100 bg-sky-50/30 rounded-xl px-3 py-3 text-xs sm:text-sm font-bold text-slate-700 transition-all outline-none"
+          onFocus={(e) => isSuperAdmin && e.target.showPicker && e.target.showPicker()}
+          className={`flex-1 border border-sky-100 rounded-xl px-3 py-3 text-xs sm:text-sm font-bold text-slate-700 transition-all outline-none ${
+            isSuperAdmin 
+              ? 'bg-white focus:ring-2 focus:ring-sky-400 cursor-pointer' 
+              : 'bg-sky-50/30 cursor-not-allowed'
+          }`}
         />
 
         {/* Time */}
