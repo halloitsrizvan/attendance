@@ -8,7 +8,7 @@ import { API_PORT } from '../../Constants';
 import axios from 'axios';
 import { Calendar, Download, FileText, Search, Clock, Users, FileSpreadsheet, AlertCircle, X, CheckCircle } from 'lucide-react';
 
-const getSafeLocalStorage = () => typeof window !== 'undefined' ? localStorage : { getItem: () => null, setItem: () => {}, removeItem: () => {} };
+const getSafeLocalStorage = () => typeof window !== 'undefined' ? localStorage : { getItem: () => null, setItem: () => { }, removeItem: () => { } };
 
 function DailyReport() {
   const [fromDate, setFromDate] = useState('');
@@ -23,7 +23,7 @@ function DailyReport() {
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [updating, setUpdating] = useState(false);
-  
+
   // Set default dates to today on mount
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -63,11 +63,11 @@ function DailyReport() {
         const j = await res.json().catch(() => ({}));
         throw new Error(j.error || 'Failed to fetch report');
       }
-      
+
       const j = await res.json();
       const results = j.results || [];
       const timeSlots = j.availableTimeSlots || [];
-      
+
       if (classNumber) {
         results.sort((a, b) => a.SL - b.SL);
       } else {
@@ -76,7 +76,7 @@ function DailyReport() {
           return a.SL - b.SL;
         });
       }
-      
+
       setData(results);
       setAvailableTimeSlots(timeSlots);
     } catch (e) {
@@ -159,7 +159,7 @@ function DailyReport() {
     });
     return Array.from(periodNumbers).sort((a, b) => parseInt(a) - parseInt(b));
   };
-  
+
   const handleDownloadExcel = () => {
     const wsData = [];
     data.forEach((r, i) => {
@@ -176,7 +176,7 @@ function DailyReport() {
         const slots = timeSlotsByDate[date] || [];
         const periodNumbers = getPeriodNumbersForDate(date);
         const hasPeriod = slots.includes('Period');
-        
+
         slots.forEach(timeSlot => {
           if (timeSlot === 'Period' && hasPeriod) {
             periodNumbers.forEach(periodNum => {
@@ -204,7 +204,7 @@ function DailyReport() {
   const handleEntryClick = (student, day, slot, periodNum = null) => {
     const id = periodNum ? day.PeriodIds?.[periodNum] : day.SlotIds?.[slot];
     const status = periodNum ? day.Period?.[periodNum] : day?.[slot];
-    
+
     if (!id || (status !== 'P' && status !== 'A')) return;
 
     setSelectedEntry({
@@ -239,7 +239,7 @@ function DailyReport() {
                 if (day.date === selectedEntry.date) {
                   const newDay = { ...day };
                   const shortStatus = newStatus === 'Present' ? 'P' : 'A';
-                  
+
                   if (selectedEntry.slot === 'Period') {
                     newDay.Period = { ...newDay.Period, [selectedEntry.periodNum]: shortStatus };
                   } else {
@@ -253,7 +253,7 @@ function DailyReport() {
                 return day;
               }),
               // Recalculate student level totals
-              present: newStatus === 'Present' 
+              present: newStatus === 'Present'
                 ? (selectedEntry.status === 'Absent' ? student.present + 1 : student.present)
                 : (selectedEntry.status === 'Present' ? student.present - 1 : student.present),
               absent: newStatus === 'Absent'
@@ -263,7 +263,7 @@ function DailyReport() {
           }
           return student;
         }));
-        
+
         setIsModalOpen(false);
         setSelectedEntry(null);
       }
@@ -280,12 +280,12 @@ function DailyReport() {
     usedDates.forEach(d => {
       const slots = timeSlotsByDate[d] || [];
       const hasPeriod = slots.includes('Period');
-      expectedCols += slots.length + (hasPeriod ? getPeriodNumbersForDate(d).length - 1 : 0); 
+      expectedCols += slots.length + (hasPeriod ? getPeriodNumbersForDate(d).length - 1 : 0);
     });
 
     const format = expectedCols > 18 ? [210, Math.max(297, expectedCols * 18)] : 'a4';
     const doc = new jsPDF({ orientation: 'landscape', format });
-    
+
     doc.setFontSize(14);
     doc.text(`Detailed Attendance Report (${fromDate} - ${toDate})`, 14, 15);
 
@@ -294,7 +294,7 @@ function DailyReport() {
       const slots = timeSlotsByDate[date] || [];
       const periodNumbers = getPeriodNumbersForDate(date);
       const hasPeriod = slots.includes('Period');
-      
+
       const dateObj = new Date(date);
       const shortDate = `${dateObj.getDate().toString().padStart(2, '0')} ${dateObj.toLocaleString('en-US', { month: 'short' })}`;
 
@@ -315,7 +315,7 @@ function DailyReport() {
         const slots = timeSlotsByDate[date] || [];
         const periodNumbers = getPeriodNumbersForDate(date);
         const hasPeriod = slots.includes('Period');
-        
+
         slots.forEach(timeSlot => {
           if (timeSlot === 'Period' && hasPeriod) {
             periodNumbers.forEach(periodNum => {
@@ -350,7 +350,7 @@ function DailyReport() {
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 p-4 sm:p-8 mt-16 font-sans">
       <div className="max-w-7xl mx-auto space-y-6">
-        
+
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 bg-sky-100 text-sky-600 flex items-center justify-center rounded-2xl shadow-inner">
             <FileText size={24} />
@@ -364,7 +364,7 @@ function DailyReport() {
         {/* Controls Card */}
         <div className="bg-white rounded-[2rem] p-6 sm:p-8 shadow-sm border border-slate-100">
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            
+
             {/* From Date */}
             <div className="col-span-2 sm:col-span-1">
               <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2">
@@ -432,7 +432,7 @@ function DailyReport() {
           )}
 
           <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row gap-4 justify-between items-center">
-            
+
             <button
               onClick={handleFetch}
               disabled={loading || !fromDate || !toDate}
@@ -489,13 +489,13 @@ function DailyReport() {
                     <th className="p-2 border-b-2 border-r-2 border-white w-12">AD</th>
                     <th className="p-2 border-b-2 border-r-2 border-white min-w-[120px]">Name</th>
                     <th className="p-2 border-b-2 border-r-2 border-white text-center w-12">Class</th>
-                    
+
                     {usedDates.map(date => {
                       const slots = timeSlotsByDate[date] || [];
                       const periodNumbers = getPeriodNumbersForDate(date);
                       const hasPeriod = slots.includes('Period');
                       const totalCols = slots.length + (hasPeriod ? periodNumbers.length - 1 : 0);
-                      
+
                       const dateObj = new Date(date);
                       const displayDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
@@ -509,11 +509,11 @@ function DailyReport() {
                         </th>
                       );
                     })}
-                    
+
                     <th className="p-2 border-b-2 border-r-2 border-white text-center text-emerald-600 bg-emerald-50 w-12">Tot P</th>
                     <th className="p-2 border-b-2 border-white rounded-tr-xl text-center text-rose-600 bg-rose-50 w-12">Tot A</th>
                   </tr>
-                  
+
                   {usedDates.length > 0 && (
                     <tr className="bg-slate-50/50 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
                       <th colSpan={4} className="border-r-2 border-white bg-slate-50"></th>
@@ -521,7 +521,7 @@ function DailyReport() {
                         const slots = timeSlotsByDate[date] || [];
                         const periodNumbers = getPeriodNumbersForDate(date);
                         const hasPeriod = slots.includes('Period');
-                        
+
                         return (
                           <React.Fragment key={`${date}-sub`}>
                             {slots.map(timeSlot => {
@@ -557,14 +557,14 @@ function DailyReport() {
                       <td className="p-2 border-r-2 border-white text-slate-600 font-bold text-xs">{r.ad}</td>
                       <td className="p-2 border-r-2 border-white text-slate-800 font-bold text-xs truncate max-w-[150px]">{r.nameOfStd}</td>
                       <td className="p-2 border-r-2 border-white text-center text-slate-600 font-bold bg-slate-50/50 rounded-lg text-xs">{r.class}</td>
-                      
+
                       {usedDates.map(date => {
                         const day = r.dailyAttendance?.find(d => d.date === date);
                         let total = 0;
                         const slots = timeSlotsByDate[date] || [];
                         const periodNumbers = getPeriodNumbersForDate(date);
                         const hasPeriod = slots.includes('Period');
-                        
+
                         slots.forEach(timeSlot => {
                           if (timeSlot === 'Period') {
                             total += Object.values(day?.Period || {}).filter(p => p === 'P').length;
@@ -572,7 +572,7 @@ function DailyReport() {
                             total += (day?.[timeSlot] === 'P' ? 1 : 0);
                           }
                         });
-                        
+
                         return (
                           <React.Fragment key={`${date}-data`}>
                             {slots.map(timeSlot => {
@@ -584,10 +584,10 @@ function DailyReport() {
                                       let bg = 'bg-slate-50 text-slate-400';
                                       if (periodValue === 'P') bg = 'bg-emerald-50 text-emerald-600 font-bold';
                                       if (periodValue === 'A') bg = 'bg-rose-50 text-rose-600 font-bold';
-                                      
+
                                       return (
-                                        <td 
-                                          key={`${timeSlot}-${periodNum}`} 
+                                        <td
+                                          key={`${timeSlot}-${periodNum}`}
                                           onClick={() => handleEntryClick(r, day, timeSlot, periodNum)}
                                           className={`px-1 py-2 border-r-2 border-white border-y-2 text-center text-[10px] ${bg} cursor-pointer hover:opacity-80 transition-opacity min-w-[24px]`}
                                         >
@@ -599,8 +599,8 @@ function DailyReport() {
                                 );
                               } else if (timeSlot !== 'Period') {
                                 return (
-                                  <td 
-                                    key={timeSlot} 
+                                  <td
+                                    key={timeSlot}
                                     onClick={() => handleEntryClick(r, day, timeSlot)}
                                     className={`px-1 py-2 border-r-2 border-white border-y-2 text-center text-[10px] ${getCellBgClass(day, timeSlot)} cursor-pointer hover:opacity-80 transition-opacity min-w-[24px]`}
                                   >
@@ -613,7 +613,7 @@ function DailyReport() {
                           </React.Fragment>
                         );
                       })}
-                      
+
                       <td className="p-2 border-r-2 border-white text-center font-black text-emerald-600 bg-emerald-50/50 rounded-lg text-xs">{r.present}</td>
                       <td className="p-2 text-center font-black text-rose-600 bg-rose-50/50 rounded-lg text-xs">{r.absent}</td>
                     </tr>
@@ -637,12 +637,12 @@ function DailyReport() {
       {/* Detail Popup Modal */}
       {isModalOpen && selectedEntry && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div 
-            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" 
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
             onClick={() => !updating && setIsModalOpen(false)}
           />
           <div className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 overflow-hidden transform transition-all animate-in fade-in zoom-in duration-300">
-            
+
             {/* Modal Header */}
             <div className={`p-6 flex items-center justify-between ${selectedEntry.status === 'Present' ? 'bg-emerald-50' : 'bg-rose-50'}`}>
               <div className="flex items-center gap-3">
@@ -658,7 +658,7 @@ function DailyReport() {
                   </div>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setIsModalOpen(false)}
                 className="w-10 h-10 bg-white/50 hover:bg-white text-slate-400 hover:text-slate-600 rounded-2xl flex items-center justify-center transition-all"
               >
@@ -668,7 +668,7 @@ function DailyReport() {
 
             {/* Modal Body */}
             <div className="p-8 space-y-6">
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 bg-slate-50 p-4 rounded-2xl border border-slate-100/50">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Student Name</label>
@@ -699,17 +699,16 @@ function DailyReport() {
                 <div className="grid grid-cols-2 gap-4">
                   <button
                     disabled={updating || selectedEntry.status === 'Present'}
-                    onClick={() =>{ 
+                    onClick={() => {
                       const confirmAction = window.confirm("Mark as Present?");
-                      if(confirmAction){
+                      if (confirmAction) {
                         handleStatusUpdate('Present')
                       }
                     }}
-                    className={`p-4 rounded-2xl font-black text-xs uppercase tracking-widest border-2 transition-all flex flex-col items-center gap-2 ${
-                      selectedEntry.status === 'Present' 
-                      ? 'border-emerald-500 bg-emerald-50 text-emerald-600' 
-                      : 'border-slate-100 bg-white text-slate-400 hover:border-emerald-400 hover:text-emerald-500'
-                    }`}
+                    className={`p-4 rounded-2xl font-black text-xs uppercase tracking-widest border-2 transition-all flex flex-col items-center gap-2 ${selectedEntry.status === 'Present'
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-600'
+                        : 'border-slate-100 bg-white text-slate-400 hover:border-emerald-400 hover:text-emerald-500'
+                      }`}
                   >
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${selectedEntry.status === 'Present' ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
                       ✓
@@ -718,17 +717,16 @@ function DailyReport() {
                   </button>
                   <button
                     disabled={updating || selectedEntry.status === 'Absent'}
-                    onClick={() =>{
+                    onClick={() => {
                       const confirmAction = window.confirm("Mark as Absent?");
-                      if(confirmAction){
-                      handleStatusUpdate('Absent')
-                    }
+                      if (confirmAction) {
+                        handleStatusUpdate('Absent')
+                      }
                     }}
-                    className={`p-4 rounded-2xl font-black text-xs uppercase tracking-widest border-2 transition-all flex flex-col items-center gap-2 ${
-                      selectedEntry.status === 'Absent' 
-                      ? 'border-rose-500 bg-rose-50 text-rose-600' 
-                      : 'border-slate-100 bg-white text-slate-400 hover:border-rose-400 hover:text-rose-500'
-                    }`}
+                    className={`p-4 rounded-2xl font-black text-xs uppercase tracking-widest border-2 transition-all flex flex-col items-center gap-2 ${selectedEntry.status === 'Absent'
+                        ? 'border-rose-500 bg-rose-50 text-rose-600'
+                        : 'border-slate-100 bg-white text-slate-400 hover:border-rose-400 hover:text-rose-500'
+                      }`}
                   >
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${selectedEntry.status === 'Absent' ? 'bg-rose-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
                       X

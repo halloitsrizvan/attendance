@@ -165,7 +165,7 @@ const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCust
   let reasonOptions = [];
   const classTeacher_reasons_for_primary = ['Medical (Home)', 'Room', 'Marriage', 'Hospital', 'Urgent (Death)', 'Custom'];
   const classTeacher_reasons_for_s5_ss_d = ['Medical (Home)', 'Room', 'Hospital', 'Urgent (Death)'];
-  const teacher_reasons_for_hos_hod = ['Medical (Home)', 'Room', 'Marriage', 'Custom'];
+  const teacher_reasons_for_hos_hod = ['Medical (Home)', 'Room', 'Marriage','OGEA', 'Custom'];
   const super_admin_reasons = ['Medical (Home)', 'Room', 'Marriage', 'Custom'];
   if (leaveType === "leave") {
     if (teacher?.role?.includes("super_admin")) {

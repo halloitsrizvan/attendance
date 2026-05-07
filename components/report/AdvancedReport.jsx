@@ -2,14 +2,14 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { 
-  Calendar, 
-  Users, 
-  Clock, 
-  Search, 
-  FileText, 
-  Download, 
-  FileSpreadsheet, 
+import {
+  Calendar,
+  Users,
+  Clock,
+  Search,
+  FileText,
+  Download,
+  FileSpreadsheet,
   AlertCircle,
   Plus,
   Minus as MinusIcon,
@@ -75,7 +75,7 @@ function AdvancedReport() {
   };
 
   const updateMultiplier = (id, field, value) => {
-    setSelectedTimes(selectedTimes.map(t => 
+    setSelectedTimes(selectedTimes.map(t =>
       t.id === id ? { ...t, [field]: value } : t
     ));
   };
@@ -120,15 +120,15 @@ function AdvancedReport() {
       const multTrue = evaluateMultiplier(st.multTrue);
 
       if (st.id === 'Minus') {
-        minus = student.totalManualMinus; 
+        minus = student.totalManualMinus;
       } else if (st.id === 'Period') {
-          const periodData = student.groupedAttendance['Period'];
-          if (periodData && periodData.periods) {
-              Object.values(periodData.periods).forEach(p => {
-                  minus += (p.absentOnLeaveFalse * multFalse);
-                  minus += (p.absentOnLeaveTrue * multTrue);
-              });
-          }
+        const periodData = student.groupedAttendance['Period'];
+        if (periodData && periodData.periods) {
+          Object.values(periodData.periods).forEach(p => {
+            minus += (p.absentOnLeaveFalse * multFalse);
+            minus += (p.absentOnLeaveTrue * multTrue);
+          });
+        }
       } else {
         const att = student.groupedAttendance[st.id];
         if (att) {
@@ -171,7 +171,7 @@ function AdvancedReport() {
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 p-4 sm:p-8 mt-16 font-sans">
       <div className="max-w-7xl mx-auto space-y-8">
-        
+
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
@@ -188,7 +188,7 @@ function AdvancedReport() {
         {/* Configuration Card */}
         <div className="bg-white rounded-[2.5rem] p-6 sm:p-10 shadow-xl shadow-slate-200/50 border border-slate-100">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            
+
             {/* Filters */}
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
@@ -242,7 +242,7 @@ function AdvancedReport() {
                   </span>
                   <ChevronDown className={`transition-transform duration-300 ${showTimeDropdown ? 'rotate-180' : ''}`} size={18} />
                 </button>
-                
+
                 {showTimeDropdown && (
                   <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 p-2 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                     {TIME_OPTIONS.map(opt => {
@@ -251,9 +251,8 @@ function AdvancedReport() {
                         <button
                           key={opt.id}
                           onClick={() => toggleTime(opt.id)}
-                          className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold transition-all mb-1 last:mb-0 ${
-                            isSelected ? 'bg-sky-50 text-sky-600' : 'text-slate-600 hover:bg-slate-50'
-                          }`}
+                          className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold transition-all mb-1 last:mb-0 ${isSelected ? 'bg-sky-50 text-sky-600' : 'text-slate-600 hover:bg-slate-50'
+                            }`}
                         >
                           {opt.label}
                           {isSelected && <Check size={16} />}
@@ -270,7 +269,7 @@ function AdvancedReport() {
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-4 flex items-center gap-2">
                 <Plus size={14} className="text-emerald-500" /> Deduction Multipliers
               </h3>
-              
+
               {selectedTimes.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center py-10 opacity-40">
                   <Clock size={48} className="mb-4" />
@@ -283,7 +282,7 @@ function AdvancedReport() {
                       <div className="flex-1">
                         <span className="text-xs font-black text-slate-800 uppercase tracking-wider">{st.id}</span>
                       </div>
-                      
+
                       <div className="flex flex-wrap gap-4 w-full sm:w-auto items-center">
                         {st.id === 'Minus' ? (
                           <div className="bg-amber-50 text-amber-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-amber-100">
@@ -304,7 +303,7 @@ function AdvancedReport() {
                                 />
                               </div>
                             </div>
-                            
+
                             <div className="flex-1 sm:flex-none min-w-[140px]">
                               <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">On Leave: TRUE</label>
                               <div className="relative">
@@ -321,7 +320,7 @@ function AdvancedReport() {
                           </>
                         )}
 
-                        <button 
+                        <button
                           onClick={() => toggleTime(st.id)}
                           className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
                         >
@@ -390,13 +389,13 @@ function AdvancedReport() {
                     <th className="p-6 border-r border-white w-24">AD NO</th>
                     <th className="p-6 border-r border-white min-w-[200px]">Student Name</th>
                     <th className="p-6 border-r border-white text-center w-24">Class</th>
-                    
+
                     {selectedTimes.map(st => (
                       <th key={st.id} className="p-6 border-r border-white text-center bg-rose-50/30 text-rose-600">
                         {st.id}
                       </th>
                     ))}
-                    
+
                     <th className="p-6 text-center bg-slate-900 text-white rounded-tr-[2.5rem]">Sub-Total</th>
                   </tr>
                 </thead>
@@ -409,13 +408,13 @@ function AdvancedReport() {
                       <td className="p-4 border-r border-white text-center">
                         <span className="px-3 py-1 bg-sky-50 text-sky-600 rounded-lg text-xs font-black">C-{row.class}</span>
                       </td>
-                      
+
                       {selectedTimes.map(st => (
                         <td key={st.id} className="p-4 border-r border-white text-center font-black text-rose-500 bg-rose-50/10">
                           {formatNum(row.times[st.id])}
                         </td>
                       ))}
-                      
+
                       <td className="p-4 text-center font-black text-lg text-slate-900 bg-slate-50/50">
                         {formatNum(row.subTotal)}
                       </td>
@@ -423,18 +422,18 @@ function AdvancedReport() {
                   ))}
                 </tbody>
                 <tfoot>
-                    <tr className="bg-slate-900 text-white font-black uppercase text-[10px] tracking-widest">
-                        <td colSpan={4} className="p-6 text-right">Total Page Deductions:</td>
-                        {selectedTimes.map(st => {
-                            const totalForTime = reportData.reduce((sum, r) => sum + (r.times[st.id] || 0), 0);
-                            return (
-                                <td key={st.id} className="p-6 text-center border-l border-white/10">{formatNum(totalForTime)}</td>
-                            );
-                        })}
-                        <td className="p-6 text-center bg-rose-600 text-white text-xl">
-                            {formatNum(reportData.reduce((sum, r) => sum + r.subTotal, 0))}
-                        </td>
-                    </tr>
+                  <tr className="bg-slate-900 text-white font-black uppercase text-[10px] tracking-widest">
+                    <td colSpan={4} className="p-6 text-right">Total Page Deductions:</td>
+                    {selectedTimes.map(st => {
+                      const totalForTime = reportData.reduce((sum, r) => sum + (r.times[st.id] || 0), 0);
+                      return (
+                        <td key={st.id} className="p-6 text-center border-l border-white/10">{formatNum(totalForTime)}</td>
+                      );
+                    })}
+                    <td className="p-6 text-center bg-rose-600 text-white text-xl">
+                      {formatNum(reportData.reduce((sum, r) => sum + r.subTotal, 0))}
+                    </td>
+                  </tr>
                 </tfoot>
               </table>
             </div>
