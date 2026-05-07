@@ -13,6 +13,7 @@ const MedicalDocsPage = () => {
     const [leaves, setLeaves] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [codeSearch, setCodeSearch] = useState('');
     const [filterStatus, setFilterStatus] = useState('all'); // all, pending, approved
 
     useEffect(() => {
@@ -22,9 +23,9 @@ const MedicalDocsPage = () => {
     const fetchLeaves = async () => {
         setLoading(true);
         try {
-            // We want leaves that have a documentUrl
+            // We want leaves that have been submitted OR have a legacy document URL
             const res = await axios.get(`${API_PORT}/leave`);
-            const docsOnly = res.data.filter(leave => leave.documentUrl);
+            const docsOnly = res.data.filter(leave => leave.documentUrl || leave.isMedicalSubmitted);
             setLeaves(docsOnly);
         } catch (err) {
             console.error("Error fetching leaves:", err);
@@ -55,14 +56,18 @@ const MedicalDocsPage = () => {
     const filteredLeaves = leaves.filter(leave => {
         const studentName = leave.studentId?.["FULL NAME"] || "";
         const adNo = String(leave.studentId?.ADNO || "");
+        const medCode = leave.medicalCode || "";
+        
         const matchesSearch = studentName.toLowerCase().includes(searchTerm.toLowerCase()) || 
                              adNo.includes(searchTerm);
+        
+        const matchesCode = medCode.toLowerCase().includes(codeSearch.toLowerCase());
         
         const matchesFilter = filterStatus === 'all' || 
                              (filterStatus === 'approved' && leave.documented) || 
                              (filterStatus === 'pending' && !leave.documented);
         
-        return matchesSearch && matchesFilter;
+        return matchesSearch && matchesCode && matchesFilter;
     });
 
     return (
@@ -84,21 +89,34 @@ const MedicalDocsPage = () => {
                         </p>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-3">
-                        <div className="relative">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                            <input 
-                                type="text" 
-                                placeholder="Search Name or AD NO..." 
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-12 pr-6 py-3.5 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-700 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all w-full sm:w-64 shadow-sm"
-                            />
+                    <div className="flex flex-col lg:flex-row gap-4 w-full lg:w-auto">
+                        <div className="flex flex-col sm:flex-row bg-white rounded-[1.5rem] border border-slate-200 shadow-sm overflow-hidden w-full lg:w-auto">
+                            <div className="relative flex-1 lg:w-64 border-b sm:border-b-0 sm:border-r border-slate-100">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                <input 
+                                    type="text" 
+                                    placeholder="Search student..." 
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full pl-12 pr-4 py-4 text-sm font-bold text-slate-700 focus:outline-none"
+                                />
+                            </div>
+                            <div className="relative flex-1 sm:w-48">
+                                <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                <input 
+                                    type="text" 
+                                    placeholder="Medical Code..." 
+                                    value={codeSearch}
+                                    onChange={(e) => setCodeSearch(e.target.value)}
+                                    className="w-full pl-12 pr-4 py-4 text-sm font-black text-blue-600 uppercase tracking-widest focus:outline-none placeholder:text-slate-300 placeholder:normal-case placeholder:tracking-normal"
+                                />
+                            </div>
                         </div>
+
                         <select 
                             value={filterStatus}
                             onChange={(e) => setFilterStatus(e.target.value)}
-                            className="px-6 py-3.5 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-700 focus:border-blue-500 outline-none transition-all shadow-sm cursor-pointer"
+                            className="w-full lg:w-auto px-6 py-4 bg-white border border-slate-200 rounded-[1.5rem] text-sm font-bold text-slate-700 focus:border-blue-500 outline-none transition-all shadow-sm cursor-pointer appearance-none"
                         >
                             <option value="all">All Documents</option>
                             <option value="pending">Pending Approval</option>
@@ -138,36 +156,59 @@ const MedicalDocsPage = () => {
                                                         <p className="text-sm font-black text-slate-800 uppercase italic leading-none mb-1">
                                                             {leave.studentId?.["FULL NAME"]}
                                                         </p>
-                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                                            AD: {leave.studentId?.ADNO} • CLASS: {leave.studentId?.CLASS}
-                                                        </p>
+                                                        <div className="flex items-center gap-2">
+                                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                                                AD: {leave.studentId?.ADNO} • CLASS: {leave.studentId?.CLASS}
+                                                            </p>
+                                                            {leave.medicalCode && (
+                                                                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-[9px] font-black uppercase">
+                                                                    CODE: {leave.medicalCode}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6">
                                                 <div className="space-y-1">
                                                     <p className="text-xs font-bold text-slate-700 italic line-clamp-1">"{leave.reason}"</p>
-                                                    <div className="flex flex-col gap-0.5 text-[9px] font-black uppercase tracking-widest">
+                                                    <div className="flex flex-col gap-1 text-[9px] font-black uppercase tracking-widest">
                                                         <div className="flex items-center gap-1.5 text-slate-400">
-                                                            <Calendar size={10} /> {leave.fromDate} {leave.fromTime}
+                                                            <Calendar size={10} className="text-slate-300" /> 
+                                                            <span className="text-slate-500">From:</span> {leave.fromDate} {leave.fromTime}
                                                         </div>
-                                                        <div className="flex items-center gap-1.5 text-blue-500">
-                                                            <Clock size={10} /> 
-                                                            {leave.returnedAt ? formatDateTime(leave.returnedAt) : 
-                                                             (leave.toDate ? `${leave.toDate} ${leave.toTime || ''}` : 'NOT RETURNED')}
-                                                        </div>
+                                                        {/* <div className="flex items-center gap-1.5 text-slate-400">
+                                                            <Calendar size={10} className="text-slate-300" /> 
+                                                            <span className="text-slate-500">To:</span> {leave.toDate} {leave.toTime}
+                                                        </div> */}
+                                                        {leave.returnedAt && (
+                                                            <div className="flex items-center gap-1.5 text-blue-500 mt-0.5 pt-0.5 border-t border-slate-100">
+                                                                <Clock size={10} /> 
+                                                                <span>Returned:</span> {formatDateTime(leave.returnedAt)}       
+                                                            </div>
+                                                        )}
+                                                        {!leave.returnedAt && (
+                                                            <div className="flex items-center gap-1.5 text-amber-500 mt-0.5 pt-0.5 border-t border-slate-100">
+                                                                <Clock size={10} /> 
+                                                                <span>Not Returned</span>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6">
-                                                <a 
-                                                    href={leave.documentUrl} 
-                                                    target="_blank" 
-                                                    rel="noopener noreferrer"
-                                                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-[10px] font-black uppercase tracking-widest border border-blue-100 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
-                                                >
-                                                    <ExternalLink size={14} /> View Doc
-                                                </a>
+                                                {leave.documentUrl ? (
+                                                    <a 
+                                                        href={leave.documentUrl} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-[10px] font-black uppercase tracking-widest border border-blue-100 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                                                    >
+                                                        <ExternalLink size={14} /> View Doc
+                                                    </a>
+                                                ) : (
+                                                    <span className="text-[9px] font-bold text-slate-300 uppercase italic">No Doc Uploaded</span>
+                                                )}
                                             </td>
                                             <td className="px-8 py-6 text-center">
                                                 <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm inline-flex items-center gap-1.5

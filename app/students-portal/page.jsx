@@ -824,18 +824,19 @@ const DocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!fileUrl) {
-            alert("Please upload a document first.");
-            return;
-        }
+        
+        // Generate a unique 5-letter code
+        const code = Math.random().toString(36).substring(2, 7).toUpperCase();
+        
         setLoading(true);
         try {
             await axios.patch(`${API_PORT}/leave/${leave._id}`, {
                 documented: false, // Remains false until admin approves
-                documentUrl: fileUrl
+                documentUrl: fileUrl || null,
+                medicalCode: code,
+                isMedicalSubmitted: true
             });
-            alert("Documentation uploaded. Waiting for admin approval.");
-            onUpdate();
+            onUpdate(code);
             onClose();
         } catch (err) {
             console.error(err);
@@ -852,7 +853,7 @@ const DocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
                 <div className="p-6 bg-blue-600 text-white flex items-center justify-between">
                     <div>
                         <h2 className="text-xl font-black uppercase italic">Document Leave</h2>
-                        <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest">Attach medical documents</p>
+                        <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest">Attach medical documents (Optional)</p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-xl transition-all"><X size={20} /></button>
                 </div>
@@ -891,6 +892,7 @@ const DocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">
                                             Click to select <br /> medical documents
                                         </p>
+                                        <p className="text-[8px] font-bold text-slate-300 uppercase mt-2">(Optional)</p>
                                     </>
                                 )}
                             </div>
@@ -932,14 +934,49 @@ const DocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
 
                     <button 
                         onClick={handleSubmit} 
-                        disabled={loading || uploading || !fileUrl} 
+                        disabled={loading || uploading} 
                         className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all shadow-xl
-                            ${!fileUrl ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-blue-200'}`}
+                            ${loading || uploading ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-blue-200'}`}
                     >
                         {loading ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle size={16} />}
-                        Save Documentation
+                        Confirm Submission
                     </button>
                 </div>
+            </div>
+        </div>
+    );
+};
+
+const SuccessModal = ({ isOpen, onClose, code }) => {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={onClose}></div>
+            <div className="relative bg-white w-full max-w-sm rounded-[3rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 border border-slate-100 text-center p-10">
+                <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-100">
+                    <CheckCircle size={40} />
+                </div>
+                <h2 className="text-2xl font-black text-slate-800 uppercase italic tracking-tight mb-2">Submitted!</h2>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-8">Medical documentation processed</p>
+                
+                <div className="bg-slate-50 rounded-[2rem] p-6 mb-8 border border-slate-100 relative overflow-hidden group">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500"></div>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Your Verification Code</p>
+                    <div className="text-4xl font-black text-blue-600 tracking-widest font-mono group-hover:scale-110 transition-transform duration-300">
+                        {code}
+                    </div>
+                </div>
+                
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed mb-8 bg-amber-50 p-4 rounded-2xl border border-amber-100">
+                    Please write down this code on your medical document paper.
+                </p>
+                
+                <button 
+                    onClick={onClose}
+                    className="w-full py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-blue-600 active:scale-95 transition-all shadow-xl shadow-slate-200"
+                >
+                    Got it, Close
+                </button>
             </div>
         </div>
     );
@@ -964,6 +1001,7 @@ const StudentsPortal = () => {
     const [selectedAttendance, setSelectedAttendance] = useState(null);
     const [selectedLogId, setSelectedLogId] = useState(null);
     const [selectedLeave, setSelectedLeave] = useState(null);
+    const [showSuccessCode, setShowSuccessCode] = useState(null);
     const [zehnuthPoints, setZehnuthPoints] = useState([]);
     const [isApplyLeaveOpen, setIsApplyLeaveOpen] = useState(false);
     const [isComplaintOpen, setIsComplaintOpen] = useState(false);
@@ -1092,12 +1130,6 @@ const StudentsPortal = () => {
                     attendance={selectedAttendance}
                     studentId={student._id || student.id}
                     onComplete={() => fetchStudentAnalytics(student.ADNO, student)}
-                />
-                <DocumentModal 
-                    isOpen={isDocumentOpen} 
-                    onClose={() => setIsDocumentOpen(false)} 
-                    leave={selectedLeave}
-                    onUpdate={() => fetchStudentAnalytics(student.ADNO)}
                 />
 
                 {/* Header */}
@@ -1460,7 +1492,7 @@ const StudentsPortal = () => {
                                                         </div>
                                                     </div>
 
-                                                    {!item.documented && !item.documentUrl && ['Room', 'Medical (Home)', 'Hospital'].some(r => item.reason?.includes(r)) && (
+                                                    {!item.documented && !item.isMedicalSubmitted && !item.documentUrl && ['Room', 'Medical (Home)', 'Hospital'].some(r => item.reason?.includes(r)) && (
                                                         <button 
                                                             onClick={() => { setSelectedLeave(item); setIsDocumentOpen(true); }}
                                                             className="mt-6 w-full py-3 bg-blue-50 border border-blue-100 rounded-2xl text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
@@ -1468,20 +1500,22 @@ const StudentsPortal = () => {
                                                             <Upload size={14} /> Upload Medical Documents
                                                         </button>
                                                     )}
-                                                    {!item.documented && item.documentUrl && (
+                                                    {!item.documented && (item.isMedicalSubmitted || item.documentUrl) && (
                                                          <div className="mt-6 flex flex-col sm:flex-row gap-2">
                                                              <div className="flex-1 p-3 bg-amber-50 rounded-2xl flex items-center justify-center gap-2 border border-amber-100">
                                                                  <Clock size={14} className="text-amber-500" />
                                                                  <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Waiting for Approval</span>
                                                              </div>
-                                                             <a 
-                                                                 href={item.documentUrl} 
-                                                                 target="_blank" 
-                                                                 rel="noopener noreferrer"
-                                                                 className="p-3 bg-white border border-slate-200 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black text-slate-600 uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm"
-                                                             >
-                                                                 <FileText size={14} /> View Doc
-                                                             </a>
+                                                             {item.documentUrl && (
+                                                                <a 
+                                                                    href={item.documentUrl} 
+                                                                    target="_blank" 
+                                                                    rel="noopener noreferrer"
+                                                                    className="p-3 bg-white border border-slate-200 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black text-slate-600 uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm"
+                                                                >
+                                                                    <FileText size={14} /> View Doc
+                                                                </a>
+                                                             )}
                                                          </div>
                                                      )}
                                                      {item.documented && (
@@ -1604,7 +1638,16 @@ const StudentsPortal = () => {
                     isOpen={isDocumentOpen} 
                     onClose={() => setIsDocumentOpen(false)} 
                     leave={selectedLeave}
-                    onUpdate={() => fetchStudentAnalytics(student.ADNO)}
+                    onUpdate={(code) => {
+                        fetchStudentAnalytics(student.ADNO, student);
+                        setShowSuccessCode(code);
+                    }}
+                />
+
+                <SuccessModal 
+                    isOpen={!!showSuccessCode} 
+                    onClose={() => setShowSuccessCode(null)} 
+                    code={showSuccessCode} 
                 />
 
                 <AttendanceModal

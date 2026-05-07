@@ -70,6 +70,14 @@ const leaveSchema = new Schema({
         type: String,
         default: null
     },
+    medicalCode: {
+        type: String,
+        default: null
+    },
+    isMedicalSubmitted: {
+        type: Boolean,
+        default: false
+    },
     reasonHistory: [
         {
             reason: String,
