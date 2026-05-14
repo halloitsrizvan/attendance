@@ -396,8 +396,13 @@ function EditAtt() {
                       let leaveType = "";
                       if (displayOnLeave) {
                         if (isOnShortLeave) leaveType = "CEP";
-                        else if (isOnMedicalLeave) leaveType = "Medical";
-                        else leaveType = "Leave";
+                        else if (isOnMedicalLeave) {
+                          const activeLeave = getStudentActiveLeave(ad);
+                          const reason = activeLeave?.reason || "";
+                          const isMed = reason === 'Medical' || reason === 'Medical (Home)' || reason === 'Medical (Room)' || reason === 'Room' || reason === 'Hospital';
+                          leaveType = isMed ? "Medical" : "On Leave";
+                        }
+                        else leaveType = "On Leave";
                       }
 
                       return (
@@ -506,6 +511,18 @@ function EditAtt() {
                 const currentStatus = status[ad] || student.status;
                 const isPresent = currentStatus === "Present" && !displayOnLeave;
                 
+                let leaveType = "";
+                if (displayOnLeave) {
+                  if (isOnShortLeave) leaveType = "CEP";
+                  else if (isOnMedicalLeave) {
+                    const activeLeave = getStudentActiveLeave(ad);
+                    const reason = activeLeave?.reason || "";
+                    const isMed = reason === 'Medical' || reason === 'Medical (Home)' || reason === 'Medical (Room)' || reason === 'Room' || reason === 'Hospital';
+                    leaveType = isMed ? "Medical" : "On Leave";
+                  }
+                  else leaveType = "On Leave";
+                }
+
                 return (
                    <div
                     key={index}
@@ -541,7 +558,7 @@ function EditAtt() {
                         displayOnLeave ? 'bg-amber-200/50 text-amber-700' : 
                         isPresent ? 'bg-emerald-200/50 text-emerald-700' : 'bg-rose-200/50 text-rose-700'
                       }`}>
-                        {displayOnLeave ? "Leave" : isPresent ? "Present" : "Absent"}
+                        {displayOnLeave ? leaveType : isPresent ? "Present" : "Absent"}
                       </div>
                       {isOnLeave && (
                         <button 
@@ -608,11 +625,12 @@ function EditAtt() {
                 const cep = getStudentActiveShortLeave(ad);
 
                 if (medical) {
+                  const isMed = medical.reason === 'Medical' || medical.reason === 'Medical (Home)' || medical.reason === 'Medical (Room)' || medical.reason === 'Room' || medical.reason === 'Hospital';
                   return (
                     <>
                       <div className="flex justify-between items-center border-b border-slate-200/50 pb-3">
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Type</span>
-                        <span className="text-[9px] font-black text-sky-500 bg-sky-50 px-2 py-0.5 rounded border border-sky-100 uppercase tracking-widest">Medical Leave</span>
+                        <span className="text-[9px] font-black text-sky-500 bg-sky-50 px-2 py-0.5 rounded border border-sky-100 uppercase tracking-widest">{isMed ? "Medical Leave" : "On Leave"}</span>
                       </div>
                       <div className="flex justify-between items-center border-b border-slate-200/50 pb-3">
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Reason</span>

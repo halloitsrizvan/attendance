@@ -127,6 +127,9 @@ function Header() {
                       <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/leave-form') }}>Apply Leave</a>
                     )}
                     <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/leave-dashboard') }}>Leave Dashboard</a>
+                    {hasRole("class_teacher") && (
+                      <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/my-class-leave') }}>My Class</a>
+                    )}
                     {(hasRole("HOD") || hasRole("HOS") || (hasRole("class_teacher") && teacher?.classNum <= 4)) && (
                       <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/leave-applications') }}>Leave Applications</a>
                     )}
@@ -325,6 +328,9 @@ function Header() {
                     <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/leave-form'); setIsMenuOpen(false) }}>Apply Leave</a>
                   )}
                   <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/leave-dashboard'); setIsMenuOpen(false) }}>Leave Dashboard</a>
+                  {hasRole("class_teacher") && (
+                    <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/my-class-leave'); setIsMenuOpen(false) }}>My Class</a>
+                  )}
                   {(hasRole("HOD") || hasRole("HOS") || (hasRole("class_teacher") && teacher?.classNum <= 4)) && (
                     <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/leave-applications'); setIsMenuOpen(false) }}>Leave Applications</a>
                   )}

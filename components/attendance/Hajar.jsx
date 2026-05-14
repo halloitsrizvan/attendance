@@ -810,9 +810,13 @@ function Hajar() {
 
                       let leaveType = "";
                       if (displayOnLeave) {
-                        if (student.onLeave) leaveType = "Leave";
-                        else if (isOnShortLeave) leaveType = "CEP";
-                        else if (isOnActiveLeave) leaveType = "Leave";
+                        if (isOnShortLeave) leaveType = "CEP";
+                        else {
+                          const activeLeave = getStudentActiveLeave(student.ADNO, student._id);
+                          const reason = activeLeave?.reason || "";
+                          const isMed = reason === 'Medical' || reason === 'Medical (Home)' || reason === 'Medical (Room)' || reason === 'Room' || reason === 'Hospital';
+                          leaveType = isMed ? "Medical" : "On Leave";
+                        }
                       }
 
                       return (
@@ -917,6 +921,17 @@ function Hajar() {
                 const displayOnLeave = isOnLeave && !isReturned;
                 const isPresent = attendance[student.ADNO] === "Present" && !displayOnLeave;
 
+                let leaveType = "";
+                if (displayOnLeave) {
+                  if (isOnShortLeave) leaveType = "CEP";
+                  else {
+                    const activeLeave = getStudentActiveLeave(student.ADNO, student._id);
+                    const reason = activeLeave?.reason || "";
+                    const isMed = reason === 'Medical' || reason === 'Medical (Home)' || reason === 'Medical (Room)' || reason === 'Room' || reason === 'Hospital';
+                    leaveType = isMed ? "Medical" : "On Leave";
+                  }
+                }
+
                 return (
                   <div
                     key={index}
@@ -955,7 +970,7 @@ function Hajar() {
                       isPresent ? 'bg-emerald-200/50 text-emerald-700' : 
                       'bg-rose-200/50 text-rose-700'
                     }`}>
-                      {displayOnLeave ? "On Leave" : isPresent ? "Present" : "Absent"}
+                      {displayOnLeave ? leaveType : isPresent ? "Present" : "Absent"}
                     </div>
                   </div>
                 );

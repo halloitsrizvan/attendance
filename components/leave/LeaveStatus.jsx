@@ -427,7 +427,7 @@ const StudentStatusCard = ({ student, onDelete, onEdit }) => {
   );
 };
 
-function LeaveStatus() {
+function LeaveStatus({ myClassOnly = false }) {
   const [activeTab, setActiveTab] = useState('actions');
   const [activeTabActions, setActiveTabActions] = useState('General');
   const [activeTabMyDB, setActiveTabMyDB] = useState('allActions');
@@ -542,6 +542,12 @@ function LeaveStatus() {
   };
 
   const matchesFilters = (student) => {
+    // 0. My Class Filter
+    if (myClassOnly && teacher?.classNum) {
+      const classNum = student.studentId?.CLASS || student.classNum;
+      if (String(classNum) !== String(teacher.classNum)) return false;
+    }
+
     // 1. Search Text
     const searchLower = searchValue.toLowerCase();
     const ad = student.studentId?.ADNO || student.ad;
@@ -797,9 +803,10 @@ function LeaveStatus() {
 
   const filteredDataForOnleave = useMemo(() => {
     return leaveData.filter(student => {
-      return ['On Leave', 'Late'].includes(student.displayStatus);
+      const classMatch = myClassOnly && teacher?.classNum ? String(student.studentId?.CLASS || student.classNum) === String(teacher.classNum) : true;
+      return ['On Leave', 'Late'].includes(student.displayStatus) && classMatch;
     });
-  }, [leaveData]);
+  }, [leaveData, myClassOnly, teacher?.classNum]);
   
   const activeCEPCount = useMemo(() => {
     const now = new Date();
@@ -907,20 +914,22 @@ function LeaveStatus() {
               )}
             </div>
 
-            <button 
-              onClick={() => setShowFilters(!showFilters)}
-              className={`p-2.5 rounded-xl border-2 transition-all flex items-center justify-center ${
-                showFilters || filterClass !== 'All' || filterAction !== 'All' || filterStartReturn !== 'All' || filterReason !== 'All'
-                ? 'bg-sky-500 border-sky-500 text-white shadow-lg shadow-sky-500/20' 
-                : 'bg-white border-slate-100 text-slate-400 hover:border-sky-200 hover:text-sky-500'
-              }`}
-              title="Filter Students"
-            >
-              <Filter size={18} />
-            </button>
+            {!myClassOnly && (
+              <button 
+                onClick={() => setShowFilters(!showFilters)}
+                className={`p-2.5 rounded-xl border-2 transition-all flex items-center justify-center ${
+                  showFilters || filterClass !== 'All' || filterAction !== 'All' || filterStartReturn !== 'All' || filterReason !== 'All'
+                  ? 'bg-sky-500 border-sky-500 text-white shadow-lg shadow-sky-500/20' 
+                  : 'bg-white border-slate-100 text-slate-400 hover:border-sky-200 hover:text-sky-500'
+                }`}
+                title="Filter Students"
+              >
+                <Filter size={18} />
+              </button>
+            )}
 
             {/* Filter Popup */}
-            {showFilters && (
+            {!myClassOnly && showFilters && (
               <div className="absolute top-full right-0 mt-3 w-64 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-100 p-5 z-[100] animate-in slide-in-from-top-2 duration-200">
                 <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-50">
                   <span className="text-xs font-black text-slate-800 uppercase tracking-tighter">Quick Filters</span>
@@ -1034,29 +1043,35 @@ function LeaveStatus() {
             isActive={activeTab === 'onLeave'}
             onClick={() => setActiveTab('onLeave')}
           />
+          {!myClassOnly && (
+            <TabButton
+              label={`CEP (${activeCEPCount})`}
+              isActive={activeTab === 'shortLeave'}
+              onClick={() => setActiveTab('shortLeave')}
+            />
+          )}
           <TabButton
-            label={`CEP (${activeCEPCount})`}
-            isActive={activeTab === 'shortLeave'}
-            onClick={() => setActiveTab('shortLeave')}
-          />
-          <TabButton
-            label={`History (${leaveData.length})`}
+            label={`History (${myClassOnly ? filteredData.length : leaveData.length})`}
             isActive={activeTab === 'all'}
             onClick={() => setActiveTab('all')}
           />
-          <TabButton
-            label={`Medical Room (${medicalRoomStatus.length})`}
-            isActive={activeTab === 'medicalRoom'}
-            onClick={() => setActiveTab('medicalRoom')}
-          />
-          <TabButton
-            label="My Dashboard"
-            isActive={activeTab === 'My Dashboard'}
-            onClick={() => setActiveTab('My Dashboard')}
-          />
+          {!myClassOnly && (
+            <>
+              <TabButton
+                label={`Medical Room (${medicalRoomStatus.length})`}
+                isActive={activeTab === 'medicalRoom'}
+                onClick={() => setActiveTab('medicalRoom')}
+              />
+              <TabButton
+                label="My Dashboard"
+                isActive={activeTab === 'My Dashboard'}
+                onClick={() => setActiveTab('My Dashboard')}
+              />
+            </>
+          )}
         </div>
 
-        {activeTab === 'all' && (
+        {!myClassOnly && activeTab === 'all' && (
           <div className="grid grid-cols-3 gap-3 mb-6 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
             <div className="text-center p-3 rounded-xl bg-slate-50 border border-slate-100">
               <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Today</span>
