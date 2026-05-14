@@ -67,13 +67,28 @@ export async function PUT(req) {
     await dbConnect();
     try {
         const body = await req.json();
-        const { id, status, points, approved, mentorApproved, imageUrl } = body;
+        const { id, ...updateData } = body;
 
         if (!id) return NextResponse.json({ error: "Missing ID" }, { status: 400 });
 
+        // Ensure imageUrl is in schema (Next.js dev mode fix)
+        if (!Points.schema.path('imageUrl')) {
+            Points.schema.add({ imageUrl: { type: String, default: null } });
+        }
+
+        // Filter out undefined values
+        const cleanUpdate = {};
+        Object.keys(updateData).forEach(key => {
+            if (updateData[key] !== undefined) {
+                cleanUpdate[key] = updateData[key];
+            }
+        });
+
+        console.log("Updating point record:", id, cleanUpdate);
+
         const updatedPoint = await Points.findByIdAndUpdate(
             id,
-            { status, points, approved, mentorApproved, imageUrl },
+            { $set: cleanUpdate },
             { new: true }
         );
 
@@ -81,6 +96,7 @@ export async function PUT(req) {
 
         return NextResponse.json(updatedPoint);
     } catch (error) {
+        console.error("Update error:", error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

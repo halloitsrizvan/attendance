@@ -36,6 +36,15 @@ const ReviewModal = ({ request, isOpen, onClose, onAction, onUpload, uploading, 
                                 </span>
                             </div>
                             <p className="text-sm font-bold text-slate-700 italic leading-relaxed">"{request.activity}"</p>
+                            
+                            {request.remarks && (
+                                <div className="mt-4 pt-4 border-t border-slate-200/60">
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1">
+                                        Remarks
+                                    </p>
+                                    <p className="text-xs font-bold text-slate-600 leading-relaxed">"{request.remarks}"</p>
+                                </div>
+                            )}
                         </div>
 
                         {/* Image Upload Section */}

@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Menu, X, CheckCircle, Clock, Calendar, CalendarClock, TrendingUp, LogOut, Info, AlertTriangle, FileText, User, ChevronRight, LayoutGrid, PlusCircle, MessageSquare, Upload, Loader2, Send, Trophy } from 'lucide-react';
+import { Menu, X, CheckCircle, Clock, Calendar, CalendarClock, TrendingUp, LogOut, Info, AlertTriangle, FileText, User, ChevronRight, LayoutGrid, PlusCircle, MessageSquare, Upload, Loader2, Send, Trophy, Image as ImageIcon } from 'lucide-react';
 import axios from 'axios';
 import { API_PORT } from '@/Constants';
 import StudentAuthGuard from '@/components/auth/StudentAuthGuard';
@@ -219,7 +219,7 @@ const AttendanceModal = ({ isOpen, onClose, data }) => {
 /**
  * Short History Modal for Metric Cards
  */
-const HistoryModal = ({ isOpen, onClose, title, data, type, color }) => {
+const HistoryModal = ({ isOpen, onClose, title, data, type, color, onZehnuthClick }) => {
     if (!isOpen) return null;
 
     const colorClasses = {
@@ -243,20 +243,32 @@ const HistoryModal = ({ isOpen, onClose, title, data, type, color }) => {
                 </div>
                 <div className="p-6 max-h-[60vh] overflow-y-auto space-y-3 custom-scrollbar">
                     {data.length > 0 ? (
-                        data.slice(0, 10).map((item, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        data.slice(0, 20).map((item, idx) => (
+                            <div 
+                                key={idx} 
+                                onClick={() => type === 'zehnuth' && onZehnuthClick && onZehnuthClick(item)}
+                                className={`flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 transition-all
+                                    ${type === 'zehnuth' ? 'cursor-pointer hover:bg-indigo-50 hover:border-indigo-200' : ''}`}
+                            >
                                 <div className="flex flex-col">
-                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                        {type === 'leave' 
-                                            ? `${formatDate(item.fromDate)} ${formatTimeTo12h(item.fromTime)} → ${item.toDate ? formatDate(item.toDate) : 'End'}`
-                                            : formatDate(item.createdAt || item.date)
-                                        }
-                                    </span>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                            {type === 'leave' 
+                                                ? `${formatDate(item.fromDate)} ${formatTimeTo12h(item.fromTime)}`
+                                                : formatDate(item.createdAt || item.date)
+                                            }
+                                        </span>
+                                        {type === 'zehnuth' && item.imageUrl && (
+                                            <span className="bg-indigo-100 text-indigo-600 text-[8px] font-black px-1.5 py-0.5 rounded uppercase flex items-center gap-1">
+                                                <ImageIcon size={8} /> Proof
+                                            </span>
+                                        )}
+                                    </div>
                                     <span className="text-sm font-black text-slate-800 truncate max-w-[200px]">
                                         {type === 'leave' ? item.reason : type === 'cep' ? item.reason : type === 'minus' ? item.reason : type === 'zehnuth' ? item.activity : 'Session Log'}
                                     </span>
                                 </div>
-                                <div className="text-right">
+                                <div className="flex flex-col items-end gap-1">
                                     <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
                                         type === 'minus' ? 'bg-rose-100 text-rose-600' : 
                                         type === 'leave' ? 'bg-amber-100 text-amber-600' :
@@ -271,6 +283,9 @@ const HistoryModal = ({ isOpen, onClose, title, data, type, color }) => {
                                             item.mentorApproved ? 'Awaiting Admin' : 'Awaiting Mentor'
                                          ) : 'Issued'}
                                     </span>
+                                    {type === 'zehnuth' && !item.imageUrl && item.status === 'pending' && (
+                                        <span className="text-[8px] font-black text-indigo-500 uppercase italic">Click to add proof</span>
+                                    )}
                                 </div>
                             </div>
                         ))
@@ -953,6 +968,146 @@ const DocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
     );
 };
 
+/**
+ * Zehnuth Evidence Modal
+ */
+const ZehnuthEvidenceModal = ({ isOpen, onClose, request, onUpdate }) => {
+    const [uploading, setUploading] = useState(false);
+    const [fileUrl, setFileUrl] = useState('');
+    const fileInputRef = useRef(null);
+
+    useEffect(() => {
+        if (isOpen && request) {
+            setFileUrl(request.imageUrl || '');
+        }
+    }, [isOpen, request]);
+
+    if (!isOpen || !request) return null;
+
+    const handleUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setUploading(true);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', 'leave_docs');
+
+        try {
+            const res = await axios.post(
+                'https://api.cloudinary.com/v1_1/dfetresky/image/upload',
+                formData
+            );
+            const imageUrl = res.data.secure_url;
+            
+            // Update on server
+            await axios.put('/api/zehnuth/points', { id: request._id, imageUrl });
+            
+            setFileUrl(imageUrl);
+            if (onUpdate) onUpdate();
+            alert("Proof uploaded successfully.");
+        } catch (err) {
+            console.error("Upload error:", err);
+            alert("Failed to upload proof. Please try again.");
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={onClose}></div>
+            <div className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 border border-slate-100">
+                <div className="p-6 bg-indigo-600 text-white flex items-center justify-between">
+                    <div>
+                        <h2 className="text-xl font-black uppercase italic tracking-tight flex items-center gap-2">
+                            <Trophy size={20} /> Achievement Proof
+                        </h2>
+                        <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest">{request.activity}</p>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-xl transition-all"><X size={20} /></button>
+                </div>
+
+                <div className="p-6 space-y-6">
+                    <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1">Activity</p>
+                                <p className="text-sm font-black text-slate-800 uppercase italic">{request.activity}</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1">Status</p>
+                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${request.status === 'approved' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
+                                    {request.status}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <input 
+                            type="file" 
+                            ref={fileInputRef} 
+                            onChange={handleUpload} 
+                            className="hidden" 
+                            accept="image/*"
+                        />
+                        
+                        {fileUrl ? (
+                            <div className="relative group rounded-[2rem] overflow-hidden border-2 border-indigo-100 shadow-xl bg-slate-50">
+                                <img src={fileUrl} alt="Proof" className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-105" />
+                                <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3 backdrop-blur-[2px]">
+                                    <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="px-6 py-3 bg-white rounded-2xl text-indigo-600 shadow-xl flex items-center gap-2 font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all">
+                                        <LayoutGrid size={16} /> View Full Size
+                                    </a>
+                                    {request.status === 'pending' && !request.mentorApproved && (
+                                        <button 
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="px-6 py-3 bg-indigo-600 text-white rounded-2xl shadow-xl flex items-center gap-2 font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all"
+                                        >
+                                            <Upload size={16} /> Replace Image
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <div 
+                                onClick={() => !uploading && fileInputRef.current?.click()}
+                                className={`w-full h-64 border-2 border-dashed rounded-[2.5rem] flex flex-col items-center justify-center p-8 text-center transition-all cursor-pointer group
+                                    ${uploading ? 'border-indigo-200 bg-indigo-50/30' : 'border-slate-200 hover:border-indigo-400 hover:bg-indigo-50'}`}
+                            >
+                                {uploading ? (
+                                    <>
+                                        <Loader2 className="w-12 h-12 text-indigo-600 animate-spin mb-3" />
+                                        <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Uploading proof...</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="w-16 h-16 bg-slate-50 rounded-[1.5rem] flex items-center justify-center text-slate-300 mb-4 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm">
+                                            <Upload size={28} />
+                                        </div>
+                                        <p className="text-xs font-black text-slate-400 uppercase tracking-[0.1em] leading-relaxed">
+                                            Click to upload <br /> achievement evidence
+                                        </p>
+                                        <p className="text-[9px] font-bold text-slate-300 uppercase mt-3 italic">Max size: 5MB • JPG, PNG</p>
+                                    </>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    <button 
+                        onClick={onClose}
+                        className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-indigo-600 active:scale-95 transition-all shadow-xl"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const SuccessModal = ({ isOpen, onClose, code }) => {
     if (!isOpen) return null;
     return (
@@ -995,6 +1150,7 @@ const ApplyZehnuthModal = ({ isOpen, onClose, student, mentor, onComplete }) => 
     const [loading, setLoading] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState('Exam');
     const [selectedAchievement, setSelectedAchievement] = useState(null);
+    const [remarks, setRemarks] = useState('');
 
     const CATEGORIES = [
         { id: 'Exam', label: 'Exam', icon: '🎓' },
@@ -1009,7 +1165,33 @@ const ApplyZehnuthModal = ({ isOpen, onClose, student, mentor, onComplete }) => 
         setSelectedAchievement(prev => prev === item ? null : item);
     };
 
+    const [fileUrl, setFileUrl] = useState('');
+    const [uploading, setUploading] = useState(false);
+
     if (!isOpen) return null;
+
+    const handleUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setUploading(true);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', 'leave_docs'); 
+
+        try {
+            const res = await axios.post(
+                'https://api.cloudinary.com/v1_1/dfetresky/image/upload',
+                formData
+            );
+            setFileUrl(res.data.secure_url);
+        } catch (err) {
+            console.error("Upload error:", err);
+            alert("Failed to upload image. Please try again.");
+        } finally {
+            setUploading(false);
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -1033,11 +1215,15 @@ const ApplyZehnuthModal = ({ isOpen, onClose, student, mentor, onComplete }) => 
                 points: 0,
                 approved: false,
                 mentorApproved: false,
-                status: 'pending'
+                status: 'pending',
+                imageUrl: fileUrl || null,
+                remarks: remarks || null
             });
             onComplete();
             onClose();
             setSelectedAchievement(null);
+            setFileUrl('');
+            setRemarks('');
         } catch (err) {
             console.error(err);
             alert("Failed to submit achievement request.");
@@ -1272,6 +1458,55 @@ const ApplyZehnuthModal = ({ isOpen, onClose, student, mentor, onComplete }) => 
                         <div className="space-y-3">
                             <div className="flex items-center gap-2 px-1">
                                 <div className="w-1.5 h-4 bg-indigo-600 rounded-full"></div>
+                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Evidence / Proof</h3>
+                            </div>
+                            <div className="px-1">
+                                {fileUrl ? (
+                                    <div className="relative group rounded-2xl overflow-hidden aspect-video bg-slate-100 border border-slate-200">
+                                        <img src={fileUrl} alt="Evidence" className="w-full h-full object-cover" />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                                            <button 
+                                                onClick={() => {
+                                                    const input = document.createElement('input');
+                                                    input.type = 'file';
+                                                    input.accept = 'image/*';
+                                                    input.onchange = handleUpload;
+                                                    input.click();
+                                                }}
+                                                className="p-2 bg-white text-indigo-600 rounded-xl shadow-lg"
+                                            >
+                                                <Upload size={18} />
+                                            </button>
+                                            <button onClick={() => setFileUrl('')} className="p-2 bg-white text-rose-500 rounded-xl shadow-lg">
+                                                <X size={18} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="border-2 border-dashed border-slate-200 rounded-3xl p-6 bg-slate-50/50 flex flex-col items-center justify-center transition-all hover:bg-slate-50">
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleUpload}
+                                            className="hidden"
+                                            id="zehnuth-upload"
+                                        />
+                                        <label
+                                            htmlFor="zehnuth-upload"
+                                            className={`cursor-pointer px-6 py-3 bg-white border border-slate-200 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:border-indigo-600 hover:text-indigo-600 transition-all flex items-center gap-2
+                                                ${uploading ? 'pointer-events-none opacity-50' : ''}`}
+                                        >
+                                            {uploading ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />}
+                                            {uploading ? 'Uploading...' : 'Attach Proof Image (Optional)'}
+                                        </label>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 px-1">
+                                <div className="w-1.5 h-4 bg-indigo-600 rounded-full"></div>
                                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Selected Achievement</h3>
                             </div>
                             <div className="px-2">
@@ -1283,6 +1518,21 @@ const ApplyZehnuthModal = ({ isOpen, onClose, student, mentor, onComplete }) => 
                                 ) : (
                                     <p className="text-[10px] font-bold text-slate-400 italic">No achievement selected. Click an item above to pick one.</p>
                                 )}
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 px-1">
+                                <div className="w-1.5 h-4 bg-indigo-600 rounded-full"></div>
+                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Remarks (Optional)</h3>
+                            </div>
+                            <div className="px-1">
+                                <textarea
+                                    value={remarks}
+                                    onChange={(e) => setRemarks(e.target.value)}
+                                    placeholder="Add any additional context or details here..."
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-indigo-400 focus:bg-white outline-none transition-all resize-none h-24"
+                                />
                             </div>
                         </div>
 
@@ -1300,9 +1550,9 @@ const ApplyZehnuthModal = ({ isOpen, onClose, student, mentor, onComplete }) => 
                         
                         <button
                             onClick={handleSubmit}
-                            disabled={loading || !selectedAchievement}
+                            disabled={loading || !selectedAchievement || uploading}
                             className={`w-full py-4 rounded-2xl text-xs font-black uppercase tracking-[0.2em] transition-all shadow-xl flex items-center justify-center gap-3
-                                ${!selectedAchievement ? 'bg-slate-100 text-slate-300 cursor-not-allowed shadow-none' : 'bg-slate-900 text-white hover:bg-indigo-600 active:scale-95 shadow-slate-200'}`}
+                                ${(!selectedAchievement || uploading) ? 'bg-slate-100 text-slate-300 cursor-not-allowed shadow-none' : 'bg-slate-900 text-white hover:bg-indigo-600 active:scale-95 shadow-slate-200'}`}
                         >
                             {loading ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
                             {loading ? 'Submitting...' : 'Apply for Points'}
@@ -1341,6 +1591,8 @@ const StudentsPortal = () => {
     const [isComplaintOpen, setIsComplaintOpen] = useState(false);
     const [isDocumentOpen, setIsDocumentOpen] = useState(false);
     const [showRecoveryWarning, setShowRecoveryWarning] = useState(false);
+    const [isZehnuthEvidenceOpen, setIsZehnuthEvidenceOpen] = useState(false);
+    const [selectedZehnuthRequest, setSelectedZehnuthRequest] = useState(null);
     const [historyModal, setHistoryModal] = useState({ isOpen: false, title: '', data: [], type: '', color: '' });
 
     useEffect(() => {
@@ -2022,6 +2274,17 @@ const StudentsPortal = () => {
                     data={historyModal.data}
                     type={historyModal.type}
                     color={historyModal.color}
+                    onZehnuthClick={(request) => {
+                        setSelectedZehnuthRequest(request);
+                        setIsZehnuthEvidenceOpen(true);
+                    }}
+                />
+
+                <ZehnuthEvidenceModal 
+                    isOpen={isZehnuthEvidenceOpen}
+                    onClose={() => setIsZehnuthEvidenceOpen(false)}
+                    request={selectedZehnuthRequest}
+                    onUpdate={() => fetchStudentAnalytics(student.ADNO, student)}
                 />
 
                 {/* Recovery Warning Modal */}

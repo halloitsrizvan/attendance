@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header/Header';
 import axios from 'axios';
-import { Trophy, Star, Send, Loader2, User, Activity, Plus, CheckCircle2, X, ChevronDown, AlertTriangle, Search, CheckCircle } from 'lucide-react';
+import { Trophy, Star, Send, Loader2, User, Activity, Plus, CheckCircle2, X, ChevronDown, AlertTriangle, Search, CheckCircle, Image as ImageIcon, Upload } from 'lucide-react';
 
 const ADMIN_EMAIL = 'krehmankoolivayal13889@gmail.com';
 
@@ -57,13 +57,40 @@ const SuccessModal = ({ isOpen, onClose, points, isAdmin, teacherMail }) => {
 };
 
 const CATEGORY_DATA = [
-    { id: 'Exam', label: 'Exam', icon: '🎓', points: [50, 35, 25, 20, 10] },
     { id: 'Writings', label: 'Writings', icon: '✍️', points: [20, 10, 5] },
-    { id: 'Presentation', label: 'Presentations', icon: '🎤', points: [40, 30, 20, 10, 5] },
     { id: 'Achievements', label: 'Achievements', icon: '🏆', points: [20, 10] },
-    { id: 'Competitions', label: 'Competitions', icon: '🏅', points: [25, 20, 15, 10, 5, 3] },
+    { id: 'Presentation', label: 'Presentations', icon: '🎤', points: [40, 30, 20, 10, 5] },
+    { id: 'Exam', label: 'Exam', icon: '🎓', points: [50, 35, 25, 20, 10] }, 
     { id: 'Mentor', label: 'Mentor', icon: '🤝', points: [5, 4, 3, 2, 1] },
+    { id: 'Competitions', label: 'Competitions', icon: '🏅', points: [25, 20, 15, 10, 5, 3] },
 ];
+
+const ACTIVITY_POINTS = {
+    // Writings
+    'Essay': [20], 'Story': [20], 'Poem': [20], 'Translation': [20], 'Feature': [20],
+    'Short story': [10], 'Short poem': [10], 'Travelogue': [10],
+    'Note': [5], 'Response': [5], 'Letter': [5], 'Drawing': [5], 'Cartoon': [5],
+    'Class magazine': [5],
+
+    // Exam
+    '1st Rank': [50], '2nd Rank': [35], '3rd Rank': [25],
+    'High score bonus (90%)': [20], 'High score bonus (95%)': [25], 'Improvement bonus': [10],
+
+    // Presentations
+    'Paper presentation (State)': [40], 'Paper presentation (National)': [50], 'Paper presentation (International)': [60],
+    'Keynote address': [30], 'Khutba': [20], 'Other presentations (Out)': [10],
+    'Speech': [10], 'Other presentations (In)': [5],
+
+    // Achievements
+    'Courses': [20], 'Innovations': [20], 'Awards': [20], 'Publications': [20],
+
+    // Competitions
+    '1st Place (Out)': [25], '2nd Place (Out)': [20], '3rd Place (Out)': [15], 'Participation (Out)': [5],
+    '1st Place (In)': [10], '2nd Place (In)': [8], '3rd Place (In)': [5], 'Participation (In)': [3],
+
+    // Mentor
+    'Language conversation': [5], 'Personal creative work': [5], 'Active student bonus': [5]
+};
 
 export default function SubmitPoint() {
     const [teacher, setTeacher] = useState(null);
@@ -72,13 +99,39 @@ export default function SubmitPoint() {
     const [submitting, setSubmitting] = useState(false);
 
     const [selectedMentee, setSelectedMentee] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState('Exam');
+    const [selectedCategory, setSelectedCategory] = useState('Writings');
     const [selectedAchievement, setSelectedAchievement] = useState(null);
     const [points, setPoints] = useState(0);
+    const [remarks, setRemarks] = useState('');
     const [showSuccess, setShowSuccess] = useState(false);
     const [lastAwardedPoints, setLastAwardedPoints] = useState(0);
     const [searchTerm, setSearchTerm] = useState('');
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const [fileUrl, setFileUrl] = useState('');
+    const [uploading, setUploading] = useState(false);
+
+    const handleUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setUploading(true);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', 'leave_docs'); 
+
+        try {
+            const res = await axios.post(
+                'https://api.cloudinary.com/v1_1/dfetresky/image/upload',
+                formData
+            );
+            setFileUrl(res.data.secure_url);
+        } catch (err) {
+            console.error("Upload error:", err);
+            alert("Failed to upload image. Please try again.");
+        } finally {
+            setUploading(false);
+        }
+    };
 
     const filteredMentees = (mentees || []).filter(rel => {
         const student = rel.menteeId;
@@ -97,6 +150,18 @@ export default function SubmitPoint() {
             fetchMentees(teacherData);
         }
     }, []);
+
+    useEffect(() => {
+        const categoryObj = CATEGORY_DATA.find(c => c.id === selectedCategory);
+        const displayPoints = selectedAchievement && ACTIVITY_POINTS[selectedAchievement]
+            ? ACTIVITY_POINTS[selectedAchievement]
+            : (categoryObj?.points || [0]);
+        if (displayPoints.length > 0) {
+            setPoints(displayPoints[0]);
+        } else {
+            setPoints(0);
+        }
+    }, [selectedAchievement, selectedCategory]);
 
     const fetchMentees = async (teacherData) => {
         const mentorId = teacherData.id || teacherData._id;
@@ -139,7 +204,9 @@ export default function SubmitPoint() {
                 points: isAdmin ? Number(points) : 0,
                 approved: isAdmin,
                 mentorApproved: true,
-                status: isAdmin ? 'approved' : 'pending'
+                status: isAdmin ? 'approved' : 'pending',
+                remarks: remarks || null,
+                imageUrl: fileUrl || null
             });
             setLastAwardedPoints(points);
             setShowSuccess(true);
@@ -147,6 +214,8 @@ export default function SubmitPoint() {
             setSelectedMentee('');
             setSearchTerm('');
             setPoints(0);
+            setRemarks('');
+            setFileUrl('');
         } catch (err) {
             console.error("Error submitting points:", err);
             alert("Failed to submit points");
@@ -202,14 +271,39 @@ export default function SubmitPoint() {
         </tr>
     );
 
-    if (loading) return (
+    const PageSkeleton = () => (
         <div className="min-h-screen bg-white">
             <Header />
-            <main className="max-w-xl mx-auto px-4 pt-20 pb-12 text-center">
-                <Loader2 className="w-10 h-10 animate-spin text-blue-600 mx-auto" />
+            <main className="max-w-xl mx-auto px-4 pt-20 pb-12">
+                <div className="mb-8 px-2 space-y-3">
+                    <div className="h-8 w-64 bg-slate-100 rounded-lg animate-pulse"></div>
+                    <div className="h-4 w-48 bg-slate-50 rounded animate-pulse"></div>
+                </div>
+                <div className="space-y-8">
+                    <div className="space-y-3">
+                        <div className="h-3 w-32 bg-slate-100 rounded animate-pulse"></div>
+                        <div className="h-14 w-full bg-slate-50 rounded-2xl animate-pulse"></div>
+                    </div>
+                    <div className="space-y-3">
+                        <div className="h-3 w-24 bg-slate-100 rounded animate-pulse"></div>
+                        <div className="flex gap-2 overflow-hidden">
+                            {[1, 2, 3, 4].map(i => <div key={i} className="h-10 w-24 bg-slate-50 rounded-xl shrink-0 animate-pulse"></div>)}
+                        </div>
+                    </div>
+                    <div className="bg-slate-50/50 rounded-3xl p-5 border border-slate-100 min-h-[300px]">
+                        <div className="grid grid-cols-3 gap-3 mb-6">
+                            {[1, 2, 3].map(i => <div key={i} className="h-16 w-full bg-slate-100 rounded-2xl animate-pulse"></div>)}
+                        </div>
+                        <div className="space-y-4">
+                            {[1, 2, 3].map(i => <div key={i} className="h-10 w-full bg-slate-50 rounded-xl animate-pulse"></div>)}
+                        </div>
+                    </div>
+                </div>
             </main>
         </div>
     );
+
+    if (loading) return <PageSkeleton />;
 
     return (
         <div className="min-h-screen bg-white">
@@ -452,26 +546,91 @@ export default function SubmitPoint() {
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 flex items-center gap-2">
                                 <Star size={12} className="text-amber-500" /> Award Points (Admin Only)
                             </label>
-                            <div className="grid grid-cols-5 gap-2">
-                                {CATEGORY_DATA.find(c => c.id === selectedCategory)?.points.map((p) => (
-                                    <button
-                                        key={p}
-                                        type="button"
-                                        onClick={() => setPoints(p)}
-                                        className={`py-4 rounded-2xl text-sm font-black transition-all border-2
-                                            ${points === p 
-                                                ? 'bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-100 scale-95' 
-                                                : 'bg-slate-50 border-transparent text-slate-400 hover:border-slate-200'
-                                            }`}
-                                    >
-                                        {p}
-                                    </button>
-                                ))}
+                            <div className="flex items-center justify-center gap-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                <button
+                                    type="button"
+                                    onClick={() => setPoints(prev => Math.max(0, prev - 1))}
+                                    className="w-12 h-12 rounded-2xl bg-white border-2 border-slate-200 flex items-center justify-center text-slate-500 hover:border-amber-400 hover:text-amber-500 transition-all active:scale-95 shadow-sm"
+                                >
+                                    <span className="text-2xl font-light leading-none mb-1">-</span>
+                                </button>
+                                
+                                <div className="w-24 text-center">
+                                    <span className="text-4xl font-black text-slate-800 tracking-tight">{points}</span>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Points</p>
+                                </div>
+                                
+                                <button
+                                    type="button"
+                                    onClick={() => setPoints(prev => prev + 1)}
+                                    className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center hover:bg-amber-600 transition-all active:scale-95 shadow-lg shadow-amber-200"
+                                >
+                                    <span className="text-2xl font-light leading-none mb-1">+</span>
+                                </button>
                             </div>
                         </div>
                     )}
 
                     <div className="space-y-4 pt-4 border-t border-slate-100">
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Evidence / Proof</label>
+                            <div className="px-1">
+                                {fileUrl ? (
+                                    <div className="relative group rounded-2xl overflow-hidden aspect-video bg-slate-100 border border-slate-200">
+                                        <img src={fileUrl} alt="Evidence" className="w-full h-full object-cover" />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                                            <button 
+                                                type="button"
+                                                onClick={() => {
+                                                    const input = document.createElement('input');
+                                                    input.type = 'file';
+                                                    input.accept = 'image/*';
+                                                    input.onchange = handleUpload;
+                                                    input.click();
+                                                }}
+                                                className="p-2 bg-white text-indigo-600 rounded-xl shadow-lg"
+                                            >
+                                                <Upload size={18} />
+                                            </button>
+                                            <button type="button" onClick={() => setFileUrl('')} className="p-2 bg-white text-rose-500 rounded-xl shadow-lg">
+                                                <X size={18} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="border-2 border-dashed border-slate-200 rounded-3xl p-6 bg-slate-50/50 flex flex-col items-center justify-center transition-all hover:bg-slate-50">
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleUpload}
+                                            className="hidden"
+                                            id="zehnuth-submit-upload"
+                                        />
+                                        <label
+                                            htmlFor="zehnuth-submit-upload"
+                                            className={`cursor-pointer px-6 py-3 bg-white border border-slate-200 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:border-indigo-600 hover:text-indigo-600 transition-all flex items-center gap-2
+                                                ${uploading ? 'pointer-events-none opacity-50' : ''}`}
+                                        >
+                                            {uploading ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />}
+                                            {uploading ? 'Uploading...' : 'Attach Proof Image (Optional)'}
+                                        </label>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Remarks (Optional)</label>
+                            <div className="px-1">
+                                <textarea
+                                    value={remarks}
+                                    onChange={(e) => setRemarks(e.target.value)}
+                                    placeholder="Add any additional context or details here..."
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-blue-400 focus:bg-white outline-none transition-all resize-none h-24"
+                                />
+                            </div>
+                        </div>
+
                         <div className="space-y-3">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Selected Achievement</label>
                             <div className="px-2">

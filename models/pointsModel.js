@@ -43,6 +43,10 @@ const pointsSchema = new mongoose.Schema({
     imageUrl: {
         type: String,
         default: null
+    },
+    remarks: {
+        type: String,
+        default: null
     }
 }, { timestamps: true });
 
