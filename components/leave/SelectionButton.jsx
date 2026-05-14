@@ -16,7 +16,9 @@ import {
   Edit3,
   CalendarCheck,
   ArrowRight,
-  SkipForward
+  SkipForward,
+  Presentation,
+  UserPlus
 } from 'lucide-react';
 
 const iconMap = {
@@ -37,9 +39,11 @@ const iconMap = {
   'Medical (Home)': Stethoscope,
   'Room': Bed,
   'Hospital': Building2,
+  'Hospital bi-stander': UserPlus,
   'Marriage': Heart,
   'Function': PartyPopper,
   'Custom': Edit3,
+  'OGEA': Presentation,
 };
 
 function SelectionButton({ label, isSelected, onClick, type, disabled }) {

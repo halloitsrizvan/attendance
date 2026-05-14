@@ -327,7 +327,7 @@ const SelectionButton = ({ label, isSelected, onClick, color = "blue" }) => (
     <button
         type="button"
         onClick={onClick}
-        className={`px-2 py-3 rounded-xl text-[10px] font-semibold uppercase tracking-widest transition-all border-2 
+        className={`w-full px-2 py-3 rounded-xl text-[10px] font-semibold uppercase tracking-widest transition-all border-2 
         ${isSelected 
             ? `bg-${color}-500 text-white border-${color}-500 shadow-lg shadow-${color}-200 scale-95` 
             : 'bg-white text-slate-400 border-slate-50 hover:border-slate-200'}`}
@@ -412,8 +412,10 @@ const ApplyLeaveModal = ({ isOpen, onClose, student, onComplete }) => {
     
     // UI States
     const [selectedTemplate, setSelectedTemplate] = useState(null);
-    const [selectedReason, setSelectedReason] = useState('Marriage');
+    const [selectedReason, setSelectedReason] = useState('Medical (Home)');
     const [customReason, setCustomReason] = useState('');
+    const [disease, setDisease] = useState('');
+    const [program, setProgram] = useState('');
     
     // Date & Time States
     const [fromDateOption, setFromDateOption] = useState('Today');
@@ -434,7 +436,7 @@ const ApplyLeaveModal = ({ isOpen, onClose, student, onComplete }) => {
         { id: 'thu-fri-eve', label: 'Thurs 🌇 → Friday 🌇' },
     ];
 
-    const reasons = ['Marriage', 'Function', 'Program', 'Custom'];
+    const reasons = ['Marriage','Function','Medical (Home)', 'Hospital', 'Hospital bi-stander', 'OGEA', 'Custom'];
 
     const handleTemplateSelect = (templateId) => {
         setSelectedTemplate(templateId);
@@ -498,7 +500,13 @@ const ApplyLeaveModal = ({ isOpen, onClose, student, onComplete }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const finalReason = selectedReason === 'Custom' ? customReason : selectedReason;
+        let finalReason = selectedReason === 'Custom' ? customReason : selectedReason;
+        if ((selectedReason?.includes('Medical') || selectedReason === 'Hospital' || selectedReason === 'Hospital bi-stander') && disease.trim() !== '') {
+            finalReason = `${selectedReason} - ${disease.trim()}`;
+        } else if (selectedReason === 'OGEA' && program.trim() !== '') {
+            finalReason = `OGEA - ${program.trim()}`;
+        }
+
         if (!finalReason) {
             alert("Please provide a reason.");
             return;
@@ -557,14 +565,14 @@ const ApplyLeaveModal = ({ isOpen, onClose, student, onComplete }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center sm:p-4 lg:items-start lg:pt-12">
+        <div className="fixed inset-0 z-50 flex items-center justify-center sm:p-4 lg:items-start lg:pt-4 ">
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={onClose}></div>
-            <div className="relative bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 border border-slate-100">
+            <div className="relative bg-white w-full max-w-4xl rounded-[3rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 border border-slate-100">
                 <div className="p-8 bg-amber-500 text-white flex items-center justify-between relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
                     <div className="relative z-10">
                         <h2 className="text-3xl font-black uppercase italic tracking-tight flex items-center gap-3">
-                            <Calendar size={28} /> Apply Leave
+                            <Calendar size={28} /> Apply Leave 
                         </h2>
                         <p className="text-[10px] font-bold opacity-90 uppercase tracking-widest mt-1 ml-10">Request permission for leave</p>
                     </div>
@@ -578,7 +586,7 @@ const ApplyLeaveModal = ({ isOpen, onClose, student, onComplete }) => {
                             <div className="w-1.5 h-4 bg-amber-500 rounded-full"></div>
                             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select Reason</h3>
                         </div>
-                        <div className="grid grid-cols-4 gap-1">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                             {reasons.map(r => (
                                 <SelectionButton  
                                     key={r} 
@@ -592,11 +600,29 @@ const ApplyLeaveModal = ({ isOpen, onClose, student, onComplete }) => {
                         {selectedReason === 'Custom' && (
                             <input 
                                 type="text" 
-                                placeholder="Type your reason here..." 
+                                placeholder="Type your custom reason here..." 
                                 value={customReason}
                                 onChange={e => setCustomReason(e.target.value)}
                                 className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-amber-400 focus:bg-white outline-none transition-all animate-in slide-in-from-top-2"
                                 required
+                            />
+                        )}
+                        {(selectedReason?.includes('Medical') || selectedReason === 'Hospital' || selectedReason === 'Hospital bi-stander') && (
+                            <input 
+                                type="text" 
+                                placeholder="Specify disease / condition..." 
+                                value={disease}
+                                onChange={e => setDisease(e.target.value)}
+                                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-amber-400 focus:bg-white outline-none transition-all animate-in slide-in-from-top-2"
+                            />
+                        )}
+                        {selectedReason === 'OGEA' && (
+                            <input 
+                                type="text" 
+                                placeholder="Specify which program..." 
+                                value={program}
+                                onChange={e => setProgram(e.target.value)}
+                                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-amber-400 focus:bg-white outline-none transition-all animate-in slide-in-from-top-2"
                             />
                         )}
                     </div>

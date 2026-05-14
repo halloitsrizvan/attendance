@@ -159,14 +159,14 @@ const TemplatePicker = ({ selectedTemplate, setSelectedTemplate, onTemplateSelec
   );
 };
 
-const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCustomReason, leaveType, teacher, disabled }) => {
+const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCustomReason, disease, setDisease, program, setProgram, leaveType, teacher, disabled }) => {
   const classNum = teacher?.classNum;
 
   let reasonOptions = [];
-  const classTeacher_reasons_for_primary = ['Medical (Home)', 'Room', 'Marriage', 'Hospital', 'Urgent (Death)', 'Custom'];
-  const classTeacher_reasons_for_s5_ss_d = ['Medical (Home)', 'Room', 'Hospital', 'Urgent (Death)'];
-  const teacher_reasons_for_hos_hod = ['Medical (Home)', 'Room', 'Marriage', 'Custom'];
-  const super_admin_reasons = ['Medical (Home)', 'Room', 'Marriage', 'Custom'];
+  const classTeacher_reasons_for_primary = ['Medical (Home)', 'Room', 'Marriage', 'Hospital', 'Hospital bi-stander', 'Urgent (Death)', 'OGEA', 'Custom'];
+  const classTeacher_reasons_for_s5_ss_d = ['Medical (Home)', 'Room', 'Hospital', 'Hospital bi-stander', 'Urgent (Death)', 'OGEA', 'Custom'];
+  const teacher_reasons_for_hos_hod = ['Medical (Home)', 'Room', 'Marriage', 'OGEA', 'Custom'];
+  const super_admin_reasons = ['Medical (Home)', 'Room', 'Marriage', 'OGEA', 'Custom'];
   if (leaveType === "leave") {
     if (teacher?.role?.includes("super_admin")) {
       reasonOptions = super_admin_reasons;
@@ -220,6 +220,30 @@ const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCust
           />
         </div>
       )}
+      {(selectedReason?.includes('Medical') || selectedReason === 'Hospital' || selectedReason === 'Hospital bi-stander' || selectedReason === 'Room') && (
+        <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+          <input
+            type="text"
+            value={disease || ''}
+            onChange={(e) => setDisease?.(e.target.value)}
+            disabled={disabled}
+            className={`w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all ${disabled ? 'opacity-50' : ''}`}
+            placeholder="Specify disease / condition..."
+          />
+        </div>
+      )}
+      {selectedReason === 'OGEA' && (
+        <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+          <input
+            type="text"
+            value={program || ''}
+            onChange={(e) => setProgram?.(e.target.value)}
+            disabled={disabled}
+            className={`w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all ${disabled ? 'opacity-50' : ''}`}
+            placeholder="Specify which program..."
+          />
+        </div>
+      )}
     </div>
   );
 };
@@ -270,6 +294,8 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   const [fromCustomDate, setFromCustomDate] = useState('');
   const [fromCustomTime, setFromCustomTime] = useState('');
   const [reason, setReason] = useState('Medical (Home)');
+  const [disease, setDisease] = useState('');
+  const [program, setProgram] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [toDate, setToDate] = useState('Tomorrow');
   const [toTime, setToTime] = useState('Evening');
@@ -375,6 +401,8 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   const [cepMode, setCepMode] = useState('period'); // 'period' or 'dars'
   const [shortLeaveReason, setShortLeaveReason] = useState('Custom');
   const [shortLeaveCustomReason, setShortLeaveCustomReason] = useState('');
+  const [shortLeaveDisease, setShortLeaveDisease] = useState('');
+  const [shortLeaveProgram, setShortLeaveProgram] = useState('');
   const [shortLeaveSuggestions, setShortLeaveSuggestions] = useState([]);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(null);
   const [shortLeaveDate, setShortLeaveDate] = useState('Today')
@@ -946,15 +974,37 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   // Helper to map DB values back to form options
   const mapDataToForm = (leave) => {
     // 1. Map Reason
-    // We need to know current reason options to see if it's "Custom"
-    // Since ReasonPicker determines this, we'll try to find a match
-    const standardReasons = ['Medical (Home)', 'Room', 'Marriage', 'Hospital', 'Urgent (Death)'];
-    if (standardReasons.includes(leave.reason)) {
-      setReason(leave.reason);
-      setCustomReason('');
-    } else {
+    const standardReasons = ['Medical (Home)', 'Room', 'Marriage', 'Hospital', 'Hospital bi-stander', 'Urgent (Death)', 'OGEA'];
+    let matchedStandard = false;
+    
+    for (const sr of standardReasons) {
+      if (leave.reason === sr || leave.reason?.startsWith(sr + ' - ')) {
+        setReason(sr);
+        setCustomReason('');
+        matchedStandard = true;
+        
+        if (leave.reason !== sr) {
+          const detail = leave.reason.substring(sr.length + 3);
+          if (sr.includes('Medical') || sr.includes('Hospital') || sr === 'Room') {
+             setDisease(detail);
+             setProgram('');
+          } else if (sr === 'OGEA') {
+             setProgram(detail);
+             setDisease('');
+          }
+        } else {
+          setDisease('');
+          setProgram('');
+        }
+        break;
+      }
+    }
+
+    if (!matchedStandard) {
       setReason('Custom');
       setCustomReason(leave.reason);
+      setDisease('');
+      setProgram('');
     }
 
     // 2. Map Dates
@@ -1147,7 +1197,12 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
 
     const finalFromTime = cepMode === 'dars' ? '19:00' : getPeriodTime(shortLeaveFromPeriod, shortLeaveFromCustomTime, true);
     const finalToTime = cepMode === 'dars' ? '20:30' : getPeriodTime(shortLeaveToPeriod, shortLeaveToCustomTime, false);
-    const finalReason = shortLeaveReason === 'Custom' ? shortLeaveCustomReason : shortLeaveReason;
+    let finalReason = shortLeaveReason === 'Custom' ? shortLeaveCustomReason : shortLeaveReason;
+    if ((shortLeaveReason?.includes('Medical') || shortLeaveReason?.includes('Hospital') || shortLeaveReason === 'Room') && shortLeaveDisease.trim() !== '') {
+      finalReason = `${shortLeaveReason} - ${shortLeaveDisease.trim()}`;
+    } else if (shortLeaveReason === 'OGEA' && shortLeaveProgram.trim() !== '') {
+      finalReason = `OGEA - ${shortLeaveProgram.trim()}`;
+    }
 
     let finalDate;
     if (shortLeaveDate === 'Calendar') {
@@ -1208,6 +1263,8 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     setShortLeaveToCustomTime('');
     setShortLeaveReason('Custom');
     setShortLeaveCustomReason('');
+    setShortLeaveDisease('');
+    setShortLeaveProgram('');
   };
 
   const handleSubmit = (e) => {
@@ -1268,7 +1325,12 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     }
 
     const finalFromTime = getFormattedTime(fromTime, fromCustomTime, 'From Time');
-    const finalReason = reason === 'Custom' ? customReason : reason;
+    let finalReason = reason === 'Custom' ? customReason : reason;
+    if ((reason?.includes('Medical') || reason?.includes('Hospital') || reason === 'Room') && disease.trim() !== '') {
+      finalReason = `${reason} - ${disease.trim()}`;
+    } else if (reason === 'OGEA' && program.trim() !== '') {
+      finalReason = `OGEA - ${program.trim()}`;
+    }
 
     // For medical reasons, set toDate and toTime to null unless user explicitly sets them
     const isMedicalReason = reason === 'Medical' || reason === 'Medical (Home)' || reason === 'Medical (Room)' || reason === 'Room';
@@ -1397,6 +1459,8 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     setToCustomTime('');
     setReason('Medical (Home)');
     setCustomReason('');
+    setDisease('');
+    setProgram('');
     setSuggestions([]);
     setShowEndDateForMedical(false);
     setStartImmediately(false);
@@ -1601,7 +1665,12 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     }
 
     const finalFromTime = getFormattedTime(fromTime, fromCustomTime, 'From Time');
-    const finalReason = reason === 'Custom' ? customReason : reason;
+    let finalReason = reason === 'Custom' ? customReason : reason;
+    if ((reason?.includes('Medical') || reason?.includes('Hospital') || reason === 'Room') && disease.trim() !== '') {
+      finalReason = `${reason} - ${disease.trim()}`;
+    } else if (reason === 'OGEA' && program.trim() !== '') {
+      finalReason = `OGEA - ${program.trim()}`;
+    }
 
     // For medical reasons, set toDate and toTime to null unless user explicitly sets them
     const isMedicalReason = reason === 'Medical' || reason === 'Medical (Home)' || reason === 'Medical (Room)' || reason === 'Room';
@@ -2092,6 +2161,10 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
               setSelectedReason={setReason}
               customReason={customReason}
               setCustomReason={setCustomReason}
+              disease={disease}
+              setDisease={setDisease}
+              program={program}
+              setProgram={setProgram}
               leaveType={leaveType}
               teacher={teacher}
               disabled={formMode === 'extend'}
@@ -2374,6 +2447,10 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
               setSelectedReason={setShortLeaveReason}
               customReason={shortLeaveCustomReason}
               setCustomReason={setShortLeaveCustomReason}
+              disease={shortLeaveDisease}
+              setDisease={setShortLeaveDisease}
+              program={shortLeaveProgram}
+              setProgram={setShortLeaveProgram}
               leaveType={leaveType}
             />
           </div>
