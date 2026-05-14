@@ -51,6 +51,22 @@ export default function MentorPoints() {
         }
     };
 
+    const handleMentorApprove = async (requestId) => {
+        try {
+            await axios.put('/api/zehnuth/points', {
+                id: requestId,
+                mentorApproved: true
+            });
+            // Update local state
+            setPoints(prev => prev.map(p => 
+                p._id === requestId ? { ...p, mentorApproved: true } : p
+            ));
+        } catch (err) {
+            console.error("Error verifying achievement:", err);
+            alert("Failed to verify achievement");
+        }
+    };
+
     const formatDate = (dateStr) => {
         const date = new Date(dateStr);
         return date.toLocaleDateString('en-US', { 
@@ -193,9 +209,17 @@ export default function MentorPoints() {
                                     <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-tighter border ${CATEGORY_COLORS[p.category] || 'bg-slate-50 text-slate-600'}`}>
                                         {p.category}
                                     </span>
-                                    {p.status === 'pending' && (
+                                    {p.status === 'pending' && !p.mentorApproved && (
+                                        <button 
+                                            onClick={() => handleMentorApprove(p._id)}
+                                            className="bg-indigo-600 text-white px-3 py-1 rounded-full text-[7px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-sm"
+                                        >
+                                            Verify Achievement
+                                        </button>
+                                    )}
+                                    {p.status === 'pending' && p.mentorApproved && (
                                         <span className="bg-amber-50 text-amber-500 border border-amber-100 px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest animate-pulse">
-                                            Pending Approval
+                                            Awaiting Admin
                                         </span>
                                     )}
                                     {p.status === 'rejected' && (

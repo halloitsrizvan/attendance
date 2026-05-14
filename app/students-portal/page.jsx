@@ -263,7 +263,13 @@ const HistoryModal = ({ isOpen, onClose, title, data, type, color }) => {
                                         type === 'zehnuth' ? 'bg-indigo-100 text-indigo-600' :
                                         'bg-sky-100 text-sky-600'
                                     }`}>
-                                        {type === 'minus' ? `-${item.minusNum}` : type === 'leave' ? getDetailedStatus(item) : type === 'zehnuth' ? `+${item.points}` : 'Issued'}
+                                        {type === 'minus' ? `-${item.minusNum}` : 
+                                         type === 'leave' ? getDetailedStatus(item) : 
+                                         type === 'zehnuth' ? (
+                                            item.status === 'approved' ? `+${item.points}` :
+                                            item.status === 'rejected' ? 'Rejected' :
+                                            item.mentorApproved ? 'Awaiting Admin' : 'Awaiting Mentor'
+                                         ) : 'Issued'}
                                     </span>
                                 </div>
                             </div>
@@ -982,6 +988,332 @@ const SuccessModal = ({ isOpen, onClose, code }) => {
     );
 };
 
+/**
+ * Apply Zehnuth Modal
+ */
+const ApplyZehnuthModal = ({ isOpen, onClose, student, mentor, onComplete }) => {
+    const [loading, setLoading] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState('Exam');
+    const [selectedAchievement, setSelectedAchievement] = useState(null);
+
+    const CATEGORIES = [
+        { id: 'Exam', label: 'Exam', icon: '🎓' },
+        { id: 'Writings', label: 'Writings', icon: '✍️' },
+        { id: 'Presentation', label: 'Presentations', icon: '🎤' },
+        { id: 'Achievements', label: 'Achievements', icon: '🏆' },
+        { id: 'Competitions', label: 'Competitions', icon: '🏅' },
+        { id: 'Mentor', label: 'Mentor', icon: '🤝' },
+    ];
+
+    const toggleAchievement = (item) => {
+        setSelectedAchievement(prev => prev === item ? null : item);
+    };
+
+    if (!isOpen) return null;
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!selectedAchievement) {
+            alert("Please select an achievement.");
+            return;
+        }
+
+        if (!mentor) {
+            alert("No mentor assigned to you yet. Please contact your HOD or admin.");
+            return;
+        }
+
+        setLoading(true);
+        try {
+            await axios.post(`${API_PORT}/zehnuth/points`, {
+                studentId: student.id || student._id,
+                mentorId: mentor._id || mentor.id,
+                activity: selectedAchievement,
+                category: selectedCategory,
+                points: 0,
+                approved: false,
+                mentorApproved: false,
+                status: 'pending'
+            });
+            onComplete();
+            onClose();
+            setSelectedAchievement(null);
+        } catch (err) {
+            console.error(err);
+            alert("Failed to submit achievement request.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const Badge = ({ children, color }) => {
+        const colors = {
+            teal: 'bg-emerald-50 text-emerald-700',
+            blue: 'bg-blue-50 text-blue-700',
+            amber: 'bg-amber-50 text-amber-700',
+            purple: 'bg-purple-50 text-purple-700',
+            coral: 'bg-orange-50 text-orange-700'
+        };
+        return <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${colors[color] || colors.blue}`}>{children}</span>;
+    };
+
+    const Card = ({ label }) => (
+        <button
+            type="button"
+            onClick={() => toggleAchievement(label)}
+            className={`p-4 rounded-2xl border-2 transition-all text-left relative overflow-hidden group w-full
+                ${selectedAchievement === label 
+                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-100' 
+                    : 'bg-white border-slate-100 text-slate-800 hover:border-indigo-200'}`}
+        >
+            <p className={`text-[10px] font-black uppercase tracking-widest ${selectedAchievement === label ? 'text-indigo-200' : 'text-slate-400'}`}>{label}</p>
+            {selectedAchievement === label && (
+                <div className="absolute top-2 right-2 text-white">
+                    <CheckCircle size={14} />
+                </div>
+            )}
+        </button>
+    );
+
+    const Row = ({ label, condition, badgeColor }) => (
+        <tr 
+            onClick={() => toggleAchievement(label)}
+            className={`group cursor-pointer transition-all ${selectedAchievement === label ? 'bg-indigo-50' : 'hover:bg-slate-50'}`}
+        >
+            <td className="py-3 px-2">
+                <div className="flex items-center gap-3">
+                    <div className={`w-5 h-5 rounded-md flex items-center justify-center border-2 transition-all
+                        ${selectedAchievement === label ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-slate-200 bg-white'}`}>
+                        {selectedAchievement === label && <CheckCircle size={12} />}
+                    </div>
+                    <span className="font-bold text-slate-700">{label}</span>
+                </div>
+            </td>
+            <td className="py-3 px-2"><Badge color={badgeColor}>{condition}</Badge></td>
+        </tr>
+    );
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={onClose}></div>
+            <div className="relative bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 border border-slate-100 flex flex-col h-[85vh]">
+                <div className="p-6 bg-indigo-600 text-white flex items-center justify-between relative overflow-hidden shrink-0">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+                    <div className="relative z-10">
+                        <h2 className="text-xl font-black uppercase italic tracking-tight flex items-center gap-3">
+                            <Trophy size={24} /> Zehnuth Point
+                        </h2>
+                        <p className="text-[9px] font-bold opacity-90 uppercase tracking-widest mt-1">Select your achievement</p>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-2xl transition-all relative z-10"><X size={20} /></button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2 px-1">
+                            <div className="w-1.5 h-4 bg-indigo-600 rounded-full"></div>
+                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Category</h3>
+                        </div>
+                        <div className="flex flex-wrap gap-2 px-1">
+                            {CATEGORIES.map(cat => (
+                                <button
+                                    key={cat.id}
+                                    type="button"
+                                    onClick={() => {
+                                        setSelectedCategory(cat.id);
+                                        setSelectedAchievement(null); // Reset selection on category change
+                                    }}
+                                    className={`px-4 py-2 rounded-xl border-2 transition-all flex items-center gap-2 whitespace-nowrap shrink-0
+                                        ${selectedCategory === cat.id 
+                                            ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-100' 
+                                            : 'bg-slate-50 border-transparent text-slate-500 hover:bg-slate-100'}`}
+                                >
+                                    <span className="text-lg">{cat.icon}</span>
+                                    <span className="text-[10px] font-black uppercase tracking-tight">{cat.label}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-50/50 rounded-3xl p-5 border border-slate-100 min-h-[300px]">
+                        {selectedCategory === 'Exam' && (
+                            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+                                    <Card label="1st Rank" />
+                                    <Card label="2nd Rank" />
+                                    <Card label="3rd Rank" />
+                                </div>
+                                <table className="w-full text-[13px]">
+                                    <thead><tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100"><th className="pb-2 text-left px-2">Criteria</th><th className="pb-2 text-left px-2">Condition</th></tr></thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        <Row label="High score bonus (90%)" condition="Above 90%" badgeColor="teal" />
+                                        <Row label="High score bonus (95%)" condition="Above 95%" badgeColor="blue" />
+                                        <Row label="Improvement bonus" condition="Performance increase" badgeColor="amber" />
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        {selectedCategory === 'Writings' && (
+                            <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-6">
+                                <div>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Full-length works</p>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                        {['Essay', 'Story', 'Poem', 'Translation', 'Feature'].map(item => (
+                                            <Card key={item} label={item} />
+                                        ))}
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Short works</p>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                        {['Short story', 'Short poem', 'Travelogue'].map(item => (
+                                            <Card key={item} label={item} />
+                                        ))}
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Brief writings</p>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                        {['Note', 'Response', 'Letter', 'Drawing', 'Cartoon'].map(item => (
+                                            <Card key={item} label={item} />
+                                        ))}
+                                    </div>
+                                </div>
+                                <table className="w-full text-[13px] border-t border-slate-100 pt-4">
+                                    <tbody className="divide-y divide-slate-100">
+                                        <Row label="Class magazine" condition="Published in secondary class magazine" badgeColor="coral" />
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        {selectedCategory === 'Presentation' && (
+                            <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-8">
+                                <div>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Out of campus</p>
+                                    <table className="w-full text-[13px]">
+                                        <thead><tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100"><th className="pb-2 text-left px-2">Type</th><th className="pb-2 text-left px-2">Level</th></tr></thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            <Row label="Paper presentation (State)" condition="State" badgeColor="teal" />
+                                            <Row label="Paper presentation (National)" condition="National" badgeColor="blue" />
+                                            <Row label="Paper presentation (International)" condition="International" badgeColor="purple" />
+                                            <Row label="Keynote address" condition="Guest Speaker" badgeColor="blue" />
+                                            <Row label="Khutba" condition="Public Address" badgeColor="teal" />
+                                            <Row label="Other presentations (Out)" condition="External" badgeColor="amber" />
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Inside campus</p>
+                                    <table className="w-full text-[13px]">
+                                        <tbody className="divide-y divide-slate-100">
+                                            <Row label="Speech" condition="Campus Event" badgeColor="blue" />
+                                            <Row label="Other presentations (In)" condition="Campus internal" badgeColor="teal" />
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedCategory === 'Achievements' && (
+                            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                <div className="grid grid-cols-2 gap-3 mb-6">
+                                    <Card label="Courses" />
+                                    <Card label="Innovations" />
+                                    <Card label="Awards" />
+                                    <Card label="Publications" />
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedCategory === 'Competitions' && (
+                            <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-8">
+                                <div>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Out of campus</p>
+                                    <table className="w-full text-[13px]">
+                                        <tbody className="divide-y divide-slate-100">
+                                            <Row label="1st Place (Out)" condition="Out of Campus" badgeColor="amber" />
+                                            <Row label="2nd Place (Out)" condition="Out of Campus" badgeColor="teal" />
+                                            <Row label="3rd Place (Out)" condition="Out of Campus" badgeColor="blue" />
+                                            <Row label="Participation (Out)" condition="Out of Campus" badgeColor="purple" />
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Inside campus</p>
+                                    <table className="w-full text-[13px]">
+                                        <tbody className="divide-y divide-slate-100">
+                                            <Row label="1st Place (In)" condition="Inside Campus" badgeColor="amber" />
+                                            <Row label="2nd Place (In)" condition="Inside Campus" badgeColor="teal" />
+                                            <Row label="3rd Place (In)" condition="Inside Campus" badgeColor="blue" />
+                                            <Row label="Participation (In)" condition="Inside Campus" badgeColor="purple" />
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedCategory === 'Mentor' && (
+                            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                <table className="w-full text-[13px]">
+                                    <thead><tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100"><th className="pb-2 text-left px-2">Activity</th><th className="pb-2 text-left px-2">Details</th></tr></thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        <Row label="Language conversation" condition="Min. 20 minutes" badgeColor="teal" />
+                                        <Row label="Personal creative work" condition="Poem / Story / Essay / Translation" badgeColor="purple" />
+                                        <Row label="Active student bonus" condition="Lesson plans listed" badgeColor="amber" />
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="space-y-4 pt-4 border-t border-slate-100">
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 px-1">
+                                <div className="w-1.5 h-4 bg-indigo-600 rounded-full"></div>
+                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Selected Achievement</h3>
+                            </div>
+                            <div className="px-2">
+                                {selectedAchievement ? (
+                                    <div className="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-2xl text-[11px] font-black uppercase flex items-center justify-between animate-in slide-in-from-left-2 duration-200">
+                                        <span className="flex items-center gap-3"><Trophy size={14} /> {selectedAchievement}</span>
+                                        <button onClick={() => setSelectedAchievement(null)} className="hover:text-indigo-900"><X size={14} /></button>
+                                    </div>
+                                ) : (
+                                    <p className="text-[10px] font-bold text-slate-400 italic">No achievement selected. Click an item above to pick one.</p>
+                                )}
+                            </div>
+                        </div>
+
+                        {mentor && (
+                            <div className="p-3.5 bg-indigo-50 rounded-2xl border border-indigo-100 flex items-center gap-3">
+                                <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center text-indigo-600 shadow-sm shrink-0">
+                                    <User size={18} />
+                                </div>
+                                <div>
+                                    <p className="text-[8px] font-black text-indigo-400 uppercase tracking-widest leading-none mb-1">Your Mentor</p>
+                                    <p className="text-[9px] font-bold text-slate-700 uppercase">Usthad {mentor.name || 'Assigned'}</p>
+                                </div>
+                            </div>
+                        )}
+                        
+                        <button
+                            onClick={handleSubmit}
+                            disabled={loading || !selectedAchievement}
+                            className={`w-full py-4 rounded-2xl text-xs font-black uppercase tracking-[0.2em] transition-all shadow-xl flex items-center justify-center gap-3
+                                ${!selectedAchievement ? 'bg-slate-100 text-slate-300 cursor-not-allowed shadow-none' : 'bg-slate-900 text-white hover:bg-indigo-600 active:scale-95 shadow-slate-200'}`}
+                        >
+                            {loading ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
+                            {loading ? 'Submitting...' : 'Apply for Points'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const StudentsPortal = () => {
     const navigate = useRouter();
     const [student, setStudent] = useState(null);
@@ -1004,6 +1336,8 @@ const StudentsPortal = () => {
     const [showSuccessCode, setShowSuccessCode] = useState(null);
     const [zehnuthPoints, setZehnuthPoints] = useState([]);
     const [isApplyLeaveOpen, setIsApplyLeaveOpen] = useState(false);
+    const [isApplyZehnuthOpen, setIsApplyZehnuthOpen] = useState(false);
+    const [mentor, setMentor] = useState(null);
     const [isComplaintOpen, setIsComplaintOpen] = useState(false);
     const [isDocumentOpen, setIsDocumentOpen] = useState(false);
     const [showRecoveryWarning, setShowRecoveryWarning] = useState(false);
@@ -1027,6 +1361,7 @@ const StudentsPortal = () => {
             const profileData = res.data;
             setStudent(profileData);
             await fetchStudentAnalytics(profileData.ADNO, profileData);
+            await fetchMentorInfo(profileData._id || profileData.id);
         } catch (err) {
             console.error("Error fetching profile:", err);
             if (err.response?.status === 401) {
@@ -1035,6 +1370,17 @@ const StudentsPortal = () => {
             }
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchMentorInfo = async (sid) => {
+        try {
+            const res = await axios.get(`${API_PORT}/zehnuth/mentor-mentee?studentId=${sid}`);
+            if (res.data && res.data.length > 0) {
+                setMentor(res.data[0].mentorId);
+            }
+        } catch (err) {
+            console.error("Error fetching mentor info:", err);
         }
     };
 
@@ -1124,6 +1470,13 @@ const StudentsPortal = () => {
                     student={student}
                     onComplete={() => fetchStudentAnalytics(student.ADNO)}
                 />
+                <ApplyZehnuthModal
+                    isOpen={isApplyZehnuthOpen}
+                    onClose={() => setIsApplyZehnuthOpen(false)}
+                    student={student}
+                    mentor={mentor}
+                    onComplete={() => fetchStudentAnalytics(student.ADNO, student)}
+                />
                 <ComplaintModal 
                     isOpen={isComplaintOpen} 
                     onClose={() => setIsComplaintOpen(false)} 
@@ -1194,6 +1547,12 @@ const StudentsPortal = () => {
                             </div>
                         </div>
                         <div className="flex gap-3">
+                            <button 
+                                onClick={() => setIsApplyZehnuthOpen(true)}
+                                className="bg-indigo-600 text-white p-3 pr-6 rounded-[1.5rem] flex items-center gap-2 shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all text-xs font-black uppercase tracking-widest whitespace-nowrap"
+                            >
+                                <Trophy size={18} /> Apply Zehnuth
+                            </button>
                             <button 
                                 onClick={() => {
                                     const hasOverdueRecovery = leaveData.some(l => {

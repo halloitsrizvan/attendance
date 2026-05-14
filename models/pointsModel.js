@@ -32,9 +32,17 @@ const pointsSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    mentorApproved: {
+        type: Boolean,
+        default: false
+    },
     academicYearId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'AcademicYear'
+    },
+    imageUrl: {
+        type: String,
+        default: null
     }
 }, { timestamps: true });
 

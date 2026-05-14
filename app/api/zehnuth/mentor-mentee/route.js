@@ -7,13 +7,22 @@ export async function GET(req) {
     await dbConnect();
     const { searchParams } = new URL(req.url);
     const mentorId = searchParams.get('mentorId');
+    const studentId = searchParams.get('studentId');
 
-    if (!mentorId || mentorId === 'undefined' || mentorId === 'null') {
-        return NextResponse.json({ error: "Valid Mentor ID is required" }, { status: 400 });
+    if (!mentorId && !studentId) {
+        return NextResponse.json({ error: "Mentor ID or Student ID is required" }, { status: 400 });
     }
 
     try {
-        const relations = await MentorMentee.find({ mentorId, isActive: true })
+        let query = { isActive: true };
+        if (mentorId) query.mentorId = mentorId;
+        if (studentId) query.menteeId = studentId;
+
+        const relations = await MentorMentee.find(query)
+            .populate({
+                path: 'mentorId',
+                select: { "name": 1, "EMAIL": 1 }
+            })
             .populate({
                 path: 'menteeId',
                 select: { "SHORT NAME": 1, "FULL NAME": 1, "ADNO": 1, "CLASS": 1 }

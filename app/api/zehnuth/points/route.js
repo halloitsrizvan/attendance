@@ -24,7 +24,7 @@ export async function GET(req) {
         let query = {};
         if (studentId) query.studentId = studentId;
         if (mentorId) query.mentorId = mentorId;
-        
+
         const status = searchParams.get('status');
         if (status) query.status = status;
 
@@ -57,7 +57,7 @@ export async function GET(req) {
             .populate('studentId', { "SHORT NAME": 1, "FULL NAME": 1, "ADNO": 1, "CLASS": 1 })
             .populate('mentorId', 'name')
             .sort({ createdAt: -1 });
-        
+
         return NextResponse.json(points);
     } catch (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
@@ -67,13 +67,13 @@ export async function PUT(req) {
     await dbConnect();
     try {
         const body = await req.json();
-        const { id, status, points, approved } = body;
-        
+        const { id, status, points, approved, mentorApproved, imageUrl } = body;
+
         if (!id) return NextResponse.json({ error: "Missing ID" }, { status: 400 });
 
         const updatedPoint = await Points.findByIdAndUpdate(
-            id, 
-            { status, points, approved }, 
+            id,
+            { status, points, approved, mentorApproved, imageUrl },
             { new: true }
         );
 

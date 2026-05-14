@@ -16,29 +16,61 @@ const CATEGORIES = [
     { id: 'MentorBonus', label: 'Mentor Bonus', icon: '🤝', points: [5, 4, 3, 2, 1] },
 ];
 
+const ACTIVITY_POINTS = {
+    // Writings
+    'Essay': [20], 'Story': [20], 'Poem': [20], 'Translation': [20], 'Feature': [20],
+    'Short story': [10], 'Short poem': [10], 'Travelogue': [10],
+    'Note': [5], 'Response': [5], 'Letter': [5], 'Drawing': [5], 'Cartoon': [5],
+    'Class magazine': [5],
+
+    // Exam
+    '1st Rank': [50], '2nd Rank': [35], '3rd Rank': [25],
+    'High score bonus (90%)': [20], 'High score bonus (95%)': [25], 'Improvement bonus': [10],
+
+    // Presentations
+    'Paper presentation (State)': [40], 'Paper presentation (National)': [50], 'Paper presentation (International)': [60],
+    'Keynote address': [30], 'Khutba': [20], 'Other presentations (Out)': [10],
+    'Speech': [10], 'Other presentations (In)': [5],
+
+    // Achievements
+    'Courses': [20], 'Innovations': [20], 'Awards': [20], 'Publications': [20],
+
+    // Competitions
+    '1st Place (Out)': [25], '2nd Place (Out)': [20], '3rd Place (Out)': [15], 'Participation (Out)': [5],
+    '1st Place (In)': [10], '2nd Place (In)': [8], '3rd Place (In)': [5], 'Participation (In)': [3],
+
+    // Mentor
+    'Language conversation': [5], 'Personal creative work': [5], 'Active student bonus': [5]
+};
+
 const ReviewModal = ({ request, isOpen, onClose, onAction, processingId }) => {
     const [points, setPoints] = useState(0);
     const categoryObj = CATEGORIES.find(c => c.id === request?.category);
 
+    // Determine which points to show: activity-specific or category fallback
+    const displayPoints = request?.activity && ACTIVITY_POINTS[request.activity]
+        ? ACTIVITY_POINTS[request.activity]
+        : (categoryObj?.points || [0]);
+
     useEffect(() => {
-        if (categoryObj) setPoints(categoryObj.points[0]);
-    }, [request, categoryObj]);
+        if (displayPoints.length > 0) setPoints(displayPoints[0]);
+    }, [request, displayPoints]);
 
     if (!isOpen || !request) return null;
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={onClose}></div>
-            <div className="relative bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in slide-in-from-bottom-10 duration-500">
+            <div className="relative bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in slide-in-from-bottom-10 duration-500 max-h-[90vh] overflow-y-auto custom-scrollbar">
                 <div className="p-8 md:p-12">
                     <div className="flex items-center justify-between mb-8">
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-2xl">
-                                {categoryObj?.icon}
+                                {categoryObj?.icon || '⭐'}
                             </div>
                             <div>
                                 <h2 className="text-xl font-black text-slate-800 uppercase italic leading-tight">Review Achievement</h2>
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{categoryObj?.label}</p>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{categoryObj?.label || request.category}</p>
                             </div>
                         </div>
                         <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-full transition-colors text-slate-400">
@@ -65,15 +97,44 @@ const ReviewModal = ({ request, isOpen, onClose, onAction, processingId }) => {
                                 <Activity size={10} /> Activity Details
                             </p>
                             <p className="text-sm font-bold text-slate-700 italic leading-relaxed">"{request.activity}"</p>
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-4">
-                                Submitted by <span className="text-blue-600">Usthad {request.mentorId?.name}</span>
-                            </p>
+                            <div className="flex items-center justify-between mt-4 pt-4 border-t border-blue-100/30">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                    {request.mentorApproved ? 'by' : 'Assigned Mentor'} <span className="text-blue-600"> {request.mentorId?.name}</span>
+                                </p>
+                                {request.mentorApproved ? (
+                                    <span className="bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded text-[8px] font-black uppercase flex items-center gap-1">
+                                        <CheckCircle2 size={10} /> Mentor Verified
+                                    </span>
+                                ) : (
+                                    <span className="bg-amber-100 text-amber-600 px-2 py-0.5 rounded text-[8px] font-black uppercase flex items-center gap-1">
+                                        <Clock size={10} /> Pending Mentor
+                                    </span>
+                                )}
+                            </div>
                         </div>
+
+                        {/* Image Evidence Section */}
+                        {request.imageUrl && (
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 block">Evidence Attached</label>
+                                <div className="relative group rounded-3xl overflow-hidden aspect-video bg-slate-100 border border-slate-200">
+                                    <img src={request.imageUrl} alt="Evidence" className="w-full h-full object-cover" />
+                                    <a
+                                        href={request.imageUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-black uppercase text-[10px] tracking-[0.2em] gap-2"
+                                    >
+                                        Click to View Full Image
+                                    </a>
+                                </div>
+                            </div>
+                        )}
 
                         <div>
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 mb-3 block">Set Points Value</label>
                             <div className="grid grid-cols-5 gap-2">
-                                {categoryObj?.points.map((p) => (
+                                {displayPoints.map((p) => (
                                     <button
                                         key={p}
                                         onClick={() => setPoints(p)}
@@ -150,7 +211,7 @@ export default function ZehnuthRequests() {
                 fetchRequests();
             } else {
                 setLoading(false);
-            } 
+            }
         } else {
             setLoading(false);
         }
