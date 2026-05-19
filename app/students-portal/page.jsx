@@ -1831,7 +1831,8 @@ const StudentsPortal = () => {
                             >
                                 <Trophy size={18} /> Apply Zehnuth
                             </button>
-                            {/* <button 
+                            <button 
+                            disabled={true}
                                 onClick={() => {
                                     const hasOverdueRecovery = leaveData.some(l => {
                                         if (l.recovery || l.recoveryNeeded === false) return false;
@@ -1847,7 +1848,7 @@ const StudentsPortal = () => {
                                 className="bg-amber-500 text-white p-3 pr-6 rounded-[1.5rem] flex items-center gap-2 shadow-lg shadow-amber-200 hover:bg-amber-600 active:scale-95 transition-all text-xs font-black uppercase tracking-widest whitespace-nowrap"
                             >
                                 <PlusCircle size={18} /> Apply Leave
-                            </button> */}
+                            </button> 
                         </div>
                     </div>
 
