@@ -1832,7 +1832,6 @@ const StudentsPortal = () => {
                                 <Trophy size={18} /> Apply Zehnuth
                             </button>
                             <button 
-                            disabled={true}
                                 onClick={() => {
                                     const hasOverdueRecovery = leaveData.some(l => {
                                         if (l.recovery || l.recoveryNeeded === false) return false;
