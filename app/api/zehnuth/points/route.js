@@ -47,6 +47,39 @@ export async function GET(req) {
                     }
                 },
                 { $unwind: '$student' },
+                {
+                    $lookup: {
+                        from: 'mentormentees',
+                        localField: '_id',
+                        foreignField: 'menteeId',
+                        as: 'mentorRelation'
+                    }
+                },
+                {
+                    $unwind: {
+                        path: '$mentorRelation',
+                        preserveNullAndEmptyArrays: true
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'teachers',
+                        localField: 'mentorRelation.mentorId',
+                        foreignField: '_id',
+                        as: 'mentor'
+                    }
+                },
+                {
+                    $unwind: {
+                        path: '$mentor',
+                        preserveNullAndEmptyArrays: true
+                    }
+                },
+                {
+                    $addFields: {
+                        mentorName: '$mentor.name'
+                    }
+                },
                 { $sort: { totalPoints: -1 } },
                 { $limit: 100 }
             ]);

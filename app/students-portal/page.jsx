@@ -35,6 +35,11 @@ const formatDate = (dateString, monthOnly = false) => {
     return d.toLocaleDateString('en-GB');
 };
 
+const isToday = (dateString) => {
+    if (!dateString) return false;
+    return new Date(dateString).toDateString() === new Date().toDateString();
+};
+
 const getDetailedStatus = (item) => {
     if (item.status === 'rejected') return 'Rejected';
     if (item.approved === false) return 'Approval Pending';
@@ -75,7 +80,7 @@ const calculateLeaveDays = (leave, offDays) => {
     while (current <= endDay) {
         const dateStr = current.toISOString().split('T')[0];
         const isOffDay = offDays.some(d => {
-            const inRange = d.toDate 
+            const inRange = d.toDate
                 ? (dateStr >= d.fromDate && dateStr <= d.toDate)
                 : (dateStr === d.fromDate);
             return inRange && (d.type === 'global' || (d.classes && d.classes.includes(String(studentClass))));
@@ -97,12 +102,12 @@ const calculateLeaveDays = (leave, offDays) => {
 
 const getRecoveryInfo = (leave, offDays) => {
     if ((leave.status !== 'returned' && !leave.returnedAt) || leave.recovery === true || leave.recoveryNeeded === false) return null;
-    
+
     const leaveDays = calculateLeaveDays(leave, offDays);
     if (leaveDays === 0) return null;
 
     const graceDays = leaveDays * 2;
-    
+
     // Helper to calculate deadline by adding working days
     const calculateDeadline = (startDate, workingDays) => {
         let current = new Date(startDate);
@@ -111,7 +116,7 @@ const getRecoveryInfo = (leave, offDays) => {
             current.setDate(current.getDate() + 1);
             const dateStr = current.toISOString().split('T')[0];
             const isOffDay = offDays.some(d => {
-                const inRange = d.toDate 
+                const inRange = d.toDate
                     ? (dateStr >= d.fromDate && dateStr <= d.toDate)
                     : (dateStr === d.fromDate);
                 return inRange && (d.type === 'global' || (d.classes && d.classes.includes(String(studentClass))));
@@ -123,9 +128,9 @@ const getRecoveryInfo = (leave, offDays) => {
 
     const deadline = calculateDeadline(new Date(leave.returnedAt), graceDays);
     const today = new Date();
-    
+
     if (today > deadline) return { status: 'Overdue', deadline };
-    
+
     // Calculate remaining WORKING days for the badge
     let remaining = 0;
     let temp = new Date(today);
@@ -133,7 +138,7 @@ const getRecoveryInfo = (leave, offDays) => {
         temp.setDate(temp.getDate() + 1);
         const dateStr = temp.toISOString().split('T')[0];
         const isOffDay = offDays.some(d => {
-            const inRange = d.toDate 
+            const inRange = d.toDate
                 ? (dateStr >= d.fromDate && dateStr <= d.toDate)
                 : (dateStr === d.fromDate);
             return inRange && (d.type === 'global' || (d.classes && d.classes.includes(String(studentClass))));
@@ -209,7 +214,7 @@ const AttendanceModal = ({ isOpen, onClose, data }) => {
                     ))}
                 </div>
                 <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-center">
-                   <button onClick={onClose} className="px-8 py-3 bg-slate-800 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-700 active:scale-95 transition-all">Close Analytics</button>
+                    <button onClick={onClose} className="px-8 py-3 bg-slate-800 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-700 active:scale-95 transition-all">Close Analytics</button>
                 </div>
             </div>
         </div>
@@ -244,8 +249,8 @@ const HistoryModal = ({ isOpen, onClose, title, data, type, color, onZehnuthClic
                 <div className="p-6 max-h-[60vh] overflow-y-auto space-y-3 custom-scrollbar">
                     {data.length > 0 ? (
                         data.slice(0, 20).map((item, idx) => (
-                            <div 
-                                key={idx} 
+                            <div
+                                key={idx}
                                 onClick={() => type === 'zehnuth' && onZehnuthClick && onZehnuthClick(item)}
                                 className={`flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 transition-all
                                     ${type === 'zehnuth' ? 'cursor-pointer hover:bg-indigo-50 hover:border-indigo-200' : ''}`}
@@ -253,7 +258,7 @@ const HistoryModal = ({ isOpen, onClose, title, data, type, color, onZehnuthClic
                                 <div className="flex flex-col">
                                     <div className="flex items-center gap-2 mb-1">
                                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                            {type === 'leave' 
+                                            {type === 'leave'
                                                 ? `${formatDate(item.fromDate)} ${formatTimeTo12h(item.fromTime)}`
                                                 : formatDate(item.createdAt || item.date)
                                             }
@@ -269,19 +274,18 @@ const HistoryModal = ({ isOpen, onClose, title, data, type, color, onZehnuthClic
                                     </span>
                                 </div>
                                 <div className="flex flex-col items-end gap-1">
-                                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                                        type === 'minus' ? 'bg-rose-100 text-rose-600' : 
-                                        type === 'leave' ? 'bg-amber-100 text-amber-600' :
-                                        type === 'zehnuth' ? 'bg-indigo-100 text-indigo-600' :
-                                        'bg-sky-100 text-sky-600'
-                                    }`}>
-                                        {type === 'minus' ? `-${item.minusNum}` : 
-                                         type === 'leave' ? getDetailedStatus(item) : 
-                                         type === 'zehnuth' ? (
-                                            item.status === 'approved' ? `+${item.points}` :
-                                            item.status === 'rejected' ? 'Rejected' :
-                                            item.mentorApproved ? 'Awaiting Admin' : 'Awaiting Mentor'
-                                         ) : 'Issued'}
+                                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${type === 'minus' ? 'bg-rose-100 text-rose-600' :
+                                            type === 'leave' ? 'bg-amber-100 text-amber-600' :
+                                                type === 'zehnuth' ? 'bg-indigo-100 text-indigo-600' :
+                                                    'bg-sky-100 text-sky-600'
+                                        }`}>
+                                        {type === 'minus' ? `-${item.minusNum}` :
+                                            type === 'leave' ? getDetailedStatus(item) :
+                                                type === 'zehnuth' ? (
+                                                    item.status === 'approved' ? `+${item.points}` :
+                                                        item.status === 'rejected' ? 'Rejected' :
+                                                            item.mentorApproved ? 'Awaiting Admin' : 'Awaiting Mentor'
+                                                ) : 'Issued'}
                                     </span>
                                     {type === 'zehnuth' && !item.imageUrl && item.status === 'pending' && (
                                         <span className="text-[8px] font-black text-indigo-500 uppercase italic">Click to add proof</span>
@@ -309,9 +313,9 @@ const MetricCard = ({ title, value, subText, color, icon: Icon, onClick }) => (
         className={`flex flex-col items-center justify-center p-6 rounded-[2rem] shadow-sm transition-all duration-300 hover:shadow-xl cursor-pointer border border-transparent
       ${color === 'green' ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-600 hover:text-white' :
                 color === 'red' ? 'bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-600 hover:text-white' :
-                color === 'amber' ? 'bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-600 hover:text-white' :
-                color === 'indigo' ? 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-600 hover:text-white' :
-                'bg-sky-50 text-sky-600 border-sky-100 hover:bg-sky-600 hover:text-white'}`}
+                    color === 'amber' ? 'bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-600 hover:text-white' :
+                        color === 'indigo' ? 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-600 hover:text-white' :
+                            'bg-sky-50 text-sky-600 border-sky-100 hover:bg-sky-600 hover:text-white'}`}
         onClick={onClick}
     >
         <div className={`p-3 rounded-2xl mb-4 ${color === 'green' ? 'bg-emerald-100/50' : color === 'red' ? 'bg-rose-100/50' : color === 'amber' ? 'bg-amber-100/50' : color === 'indigo' ? 'bg-indigo-100/50' : 'bg-sky-100/50'} group-hover:bg-white/20`}>
@@ -328,9 +332,9 @@ const SelectionButton = ({ label, isSelected, onClick, color = "blue" }) => (
         type="button"
         onClick={onClick}
         className={`w-full px-2 py-3 rounded-xl text-[10px] font-semibold uppercase tracking-widest transition-all border-2 
-        ${isSelected 
-            ? `bg-${color}-500 text-white border-${color}-500 shadow-lg shadow-${color}-200 scale-95` 
-            : 'bg-white text-slate-400 border-slate-50 hover:border-slate-200'}`}
+        ${isSelected
+                ? `bg-${color}-500 text-white border-${color}-500 shadow-lg shadow-${color}-200 scale-95`
+                : 'bg-white text-slate-400 border-slate-50 hover:border-slate-200'}`}
     >
         {label}
     </button>
@@ -346,20 +350,20 @@ const DatePicker = ({ label, selectedOption, setSelectedOption, customDate, setC
             </div>
             <div className="grid grid-cols-4 gap-1">
                 {options.map(opt => (
-                    <SelectionButton 
-                        key={opt} 
-                        label={opt} 
-                        isSelected={selectedOption === opt} 
-                        onClick={() => setSelectedOption(opt)} 
+                    <SelectionButton
+                        key={opt}
+                        label={opt}
+                        isSelected={selectedOption === opt}
+                        onClick={() => setSelectedOption(opt)}
                         color={color}
                     />
                 ))}
             </div>
             {selectedOption === 'Calendar' && (
                 <div className="mt-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <input 
-                        type="date" 
-                        value={customDate} 
+                    <input
+                        type="date"
+                        value={customDate}
                         onChange={e => setCustomDate(e.target.value)}
                         className={`w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-${color}-400 focus:bg-white outline-none transition-all`}
                         required
@@ -380,20 +384,20 @@ const TimePicker = ({ label, selectedOption, setSelectedOption, customTime, setC
             </div>
             <div className="grid grid-cols-4 gap-1">
                 {options.map(opt => (
-                    <SelectionButton 
-                        key={opt} 
-                        label={opt} 
-                        isSelected={selectedOption === opt} 
-                        onClick={() => setSelectedOption(opt)} 
+                    <SelectionButton
+                        key={opt}
+                        label={opt}
+                        isSelected={selectedOption === opt}
+                        onClick={() => setSelectedOption(opt)}
                         color={color}
                     />
                 ))}
             </div>
             {selectedOption === 'Clock' && (
                 <div className="mt-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <input 
-                        type="time" 
-                        value={customTime} 
+                    <input
+                        type="time"
+                        value={customTime}
                         onChange={e => setCustomTime(e.target.value)}
                         className={`w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-${color}-400 focus:bg-white outline-none transition-all`}
                         required
@@ -409,14 +413,14 @@ const TimePicker = ({ label, selectedOption, setSelectedOption, customTime, setC
  */
 const ApplyLeaveModal = ({ isOpen, onClose, student, onComplete }) => {
     const [loading, setLoading] = useState(false);
-    
+
     // UI States
     const [selectedTemplate, setSelectedTemplate] = useState(null);
     const [selectedReason, setSelectedReason] = useState('Medical (Home)');
     const [customReason, setCustomReason] = useState('');
     const [disease, setDisease] = useState('');
     const [program, setProgram] = useState('');
-    
+
     // Date & Time States
     const [fromDateOption, setFromDateOption] = useState('Today');
     const [fromTimeOption, setFromTimeOption] = useState('Evening');
@@ -436,7 +440,7 @@ const ApplyLeaveModal = ({ isOpen, onClose, student, onComplete }) => {
         { id: 'thu-fri-eve', label: 'Thurs 🌇 → Friday 🌇' },
     ];
 
-    const reasons = ['Marriage','Function','Medical (Home)', 'Hospital', 'Hospital bi-stander', 'OGEA', 'Custom'];
+    const reasons = ['Marriage', 'Function', 'Medical (Home)', 'Hospital', 'Hospital bi-stander', 'OGEA', 'Custom'];
 
     const handleTemplateSelect = (templateId) => {
         setSelectedTemplate(templateId);
@@ -484,7 +488,7 @@ const ApplyLeaveModal = ({ isOpen, onClose, student, onComplete }) => {
         const today = new Date().toISOString().split('T')[0];
         const tmrw = new Date(Date.now() + 86400000).toISOString().split('T')[0];
         const dayAfter = new Date(Date.now() + 172800000).toISOString().split('T')[0];
-        
+
         if (option === 'Today') return today;
         if (option === 'Tomorrow') return tmrw;
         if (option === 'Day After') return dayAfter;
@@ -526,7 +530,7 @@ const ApplyLeaveModal = ({ isOpen, onClose, student, onComplete }) => {
         try {
             const teachersRes = await axios.get(`${API_PORT}/teachers`);
             const teachers = teachersRes.data;
-            
+
             let responsibleTeacherId = null;
             const classNum = Number(student.CLASS);
 
@@ -572,7 +576,7 @@ const ApplyLeaveModal = ({ isOpen, onClose, student, onComplete }) => {
                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
                     <div className="relative z-10">
                         <h2 className="text-3xl font-black uppercase italic tracking-tight flex items-center gap-3">
-                            <Calendar size={28} /> Apply Leave 
+                            <Calendar size={28} /> Apply Leave
                         </h2>
                         <p className="text-[10px] font-bold opacity-90 uppercase tracking-widest mt-1 ml-10">Request permission for leave</p>
                     </div>
@@ -580,7 +584,7 @@ const ApplyLeaveModal = ({ isOpen, onClose, student, onComplete }) => {
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-8 max-h-[80vh] overflow-y-auto custom-scrollbar">
-                    {/* Reason Selection */} 
+                    {/* Reason Selection */}
                     <div className="space-y-4">
                         <div className="flex items-center gap-2 px-1">
                             <div className="w-1.5 h-4 bg-amber-500 rounded-full"></div>
@@ -588,19 +592,19 @@ const ApplyLeaveModal = ({ isOpen, onClose, student, onComplete }) => {
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                             {reasons.map(r => (
-                                <SelectionButton  
-                                    key={r} 
-                                    label={r} 
-                                    isSelected={selectedReason === r} 
+                                <SelectionButton
+                                    key={r}
+                                    label={r}
+                                    isSelected={selectedReason === r}
                                     onClick={() => setSelectedReason(r)}
                                     color="amber"
                                 />
                             ))}
                         </div>
                         {selectedReason === 'Custom' && (
-                            <input 
-                                type="text" 
-                                placeholder="Type your custom reason here..." 
+                            <input
+                                type="text"
+                                placeholder="Type your custom reason here..."
                                 value={customReason}
                                 onChange={e => setCustomReason(e.target.value)}
                                 className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-amber-400 focus:bg-white outline-none transition-all animate-in slide-in-from-top-2"
@@ -608,18 +612,18 @@ const ApplyLeaveModal = ({ isOpen, onClose, student, onComplete }) => {
                             />
                         )}
                         {(selectedReason?.includes('Medical') || selectedReason === 'Hospital' || selectedReason === 'Hospital bi-stander') && (
-                            <input 
-                                type="text" 
-                                placeholder="Specify disease / condition..." 
+                            <input
+                                type="text"
+                                placeholder="Specify disease / condition..."
                                 value={disease}
                                 onChange={e => setDisease(e.target.value)}
                                 className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-amber-400 focus:bg-white outline-none transition-all animate-in slide-in-from-top-2"
                             />
                         )}
                         {selectedReason === 'OGEA' && (
-                            <input 
-                                type="text" 
-                                placeholder="Specify which program..." 
+                            <input
+                                type="text"
+                                placeholder="Specify which program..."
                                 value={program}
                                 onChange={e => setProgram(e.target.value)}
                                 className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-amber-400 focus:bg-white outline-none transition-all animate-in slide-in-from-top-2"
@@ -635,10 +639,10 @@ const ApplyLeaveModal = ({ isOpen, onClose, student, onComplete }) => {
                         </div>
                         <div className="grid grid-cols-5 gap-1">
                             {templates.map(t => (
-                                <SelectionButton 
-                                    key={t.id} 
-                                    label={t.label} 
-                                    isSelected={selectedTemplate === t.id} 
+                                <SelectionButton
+                                    key={t.id}
+                                    label={t.label}
+                                    isSelected={selectedTemplate === t.id}
                                     onClick={() => handleTemplateSelect(t.id)}
                                     color="blue"
                                 />
@@ -655,7 +659,7 @@ const ApplyLeaveModal = ({ isOpen, onClose, student, onComplete }) => {
                             <h3 className="text-sm font-black uppercase italic tracking-wider">From Date & Time</h3>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <DatePicker 
+                            <DatePicker
                                 label="From"
                                 selectedOption={fromDateOption}
                                 setSelectedOption={(opt) => { setFromDateOption(opt); setSelectedTemplate(null); }}
@@ -663,7 +667,7 @@ const ApplyLeaveModal = ({ isOpen, onClose, student, onComplete }) => {
                                 setCustomDate={setFromCustomDate}
                                 color="sky"
                             />
-                            <TimePicker 
+                            <TimePicker
                                 label="From"
                                 selectedOption={fromTimeOption}
                                 setSelectedOption={(opt) => { setFromTimeOption(opt); setSelectedTemplate(null); }}
@@ -684,7 +688,7 @@ const ApplyLeaveModal = ({ isOpen, onClose, student, onComplete }) => {
                             <h3 className="text-sm font-black uppercase italic tracking-wider">To Date & Time</h3>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <DatePicker 
+                            <DatePicker
                                 label="To"
                                 selectedOption={toDateOption}
                                 setSelectedOption={(opt) => { setToDateOption(opt); setSelectedTemplate(null); }}
@@ -692,7 +696,7 @@ const ApplyLeaveModal = ({ isOpen, onClose, student, onComplete }) => {
                                 setCustomDate={setToCustomDate}
                                 color="amber"
                             />
-                            <TimePicker 
+                            <TimePicker
                                 label="To"
                                 selectedOption={toTimeOption}
                                 setSelectedOption={(opt) => { setToTimeOption(opt); setSelectedTemplate(null); }}
@@ -704,8 +708,8 @@ const ApplyLeaveModal = ({ isOpen, onClose, student, onComplete }) => {
                     </div>
 
                     <div className="pt-4 border-t border-slate-50 flex flex-col gap-3">
-                        <button 
-                            type="submit" 
+                        <button
+                            type="submit"
                             disabled={loading}
                             className="w-full py-5 bg-slate-900 text-white rounded-[2rem] text-sm font-black uppercase tracking-[0.2em] hover:bg-amber-500 active:scale-95 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3 disabled:opacity-50 disabled:pointer-events-none"
                         >
@@ -788,13 +792,13 @@ const ComplaintModal = ({ isOpen, onClose, attendance, studentId, records = [], 
                     {!attendance ? (
                         <div className="space-y-1">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Select Record to Dispute</label>
-                            <select 
+                            <select
                                 value={selectedId}
                                 onChange={(e) => setSelectedId(e.target.value)}
                                 className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-rose-400 outline-none transition-all appearance-none cursor-pointer"
                             >
                                 <option value="">Choose an absent session...</option>
-                                {records.filter(r => r.status !== 'Present').map(r => (
+                                {records.filter(r => r.status !== 'Present' && isToday(r.createdAt)).map(r => (
                                     <option key={r._id} value={r._id}>
                                         {formatDate(r.createdAt, false)} - {r.attendanceTime || 'General'}
                                     </option>
@@ -820,7 +824,7 @@ const ComplaintModal = ({ isOpen, onClose, attendance, studentId, records = [], 
                         </div>
                     </div>
 
-                     <div className="space-y-1">
+                    <div className="space-y-1">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Remarks (Optional)</label>
                         <textarea value={message} onChange={e => setMessage(e.target.value)} placeholder="Explain why the data might be wrong..." className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-rose-400 outline-none transition-all h-24 resize-none" />
                     </div>
@@ -853,7 +857,7 @@ const DocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
         setUploading(true);
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('upload_preset', 'leave_docs'); 
+        formData.append('upload_preset', 'leave_docs');
 
         try {
             const res = await axios.post(
@@ -871,10 +875,10 @@ const DocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         // Generate a unique 5-letter code
         const code = Math.random().toString(36).substring(2, 7).toUpperCase();
-        
+
         setLoading(true);
         try {
             await axios.patch(`${API_PORT}/leave/${leave._id}`, {
@@ -912,16 +916,16 @@ const DocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
                     </div>
 
                     <div className="space-y-4">
-                        <input 
-                            type="file" 
-                            ref={fileInputRef} 
-                            onChange={handleUpload} 
-                            className="hidden" 
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleUpload}
+                            className="hidden"
                             accept="image/*,.pdf"
                         />
-                        
+
                         {!fileUrl || uploading ? (
-                            <div 
+                            <div
                                 onClick={() => !uploading && fileInputRef.current?.click()}
                                 className={`w-full h-48 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center p-6 text-center transition-all cursor-pointer group
                                     ${uploading ? 'border-blue-200 bg-blue-50/30' : 'border-slate-200 hover:border-blue-400 hover:bg-blue-50'}`}
@@ -979,9 +983,9 @@ const DocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
                         )}
                     </div>
 
-                    <button 
-                        onClick={handleSubmit} 
-                        disabled={loading || uploading} 
+                    <button
+                        onClick={handleSubmit}
+                        disabled={loading || uploading}
                         className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all shadow-xl
                             ${loading || uploading ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-blue-200'}`}
                     >
@@ -1025,10 +1029,10 @@ const ZehnuthEvidenceModal = ({ isOpen, onClose, request, onUpdate }) => {
                 formData
             );
             const imageUrl = res.data.secure_url;
-            
+
             // Update on server
             await axios.put('/api/zehnuth/points', { id: request._id, imageUrl });
-            
+
             setFileUrl(imageUrl);
             if (onUpdate) onUpdate();
             alert("Proof uploaded successfully.");
@@ -1071,14 +1075,14 @@ const ZehnuthEvidenceModal = ({ isOpen, onClose, request, onUpdate }) => {
                     </div>
 
                     <div className="space-y-4">
-                        <input 
-                            type="file" 
-                            ref={fileInputRef} 
-                            onChange={handleUpload} 
-                            className="hidden" 
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleUpload}
+                            className="hidden"
                             accept="image/*"
                         />
-                        
+
                         {fileUrl ? (
                             <div className="relative group rounded-[2rem] overflow-hidden border-2 border-indigo-100 shadow-xl bg-slate-50">
                                 <img src={fileUrl} alt="Proof" className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-105" />
@@ -1087,7 +1091,7 @@ const ZehnuthEvidenceModal = ({ isOpen, onClose, request, onUpdate }) => {
                                         <LayoutGrid size={16} /> View Full Size
                                     </a>
                                     {request.status === 'pending' && !request.mentorApproved && (
-                                        <button 
+                                        <button
                                             onClick={() => fileInputRef.current?.click()}
                                             className="px-6 py-3 bg-indigo-600 text-white rounded-2xl shadow-xl flex items-center gap-2 font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all"
                                         >
@@ -1097,7 +1101,7 @@ const ZehnuthEvidenceModal = ({ isOpen, onClose, request, onUpdate }) => {
                                 </div>
                             </div>
                         ) : (
-                            <div 
+                            <div
                                 onClick={() => !uploading && fileInputRef.current?.click()}
                                 className={`w-full h-64 border-2 border-dashed rounded-[2.5rem] flex flex-col items-center justify-center p-8 text-center transition-all cursor-pointer group
                                     ${uploading ? 'border-indigo-200 bg-indigo-50/30' : 'border-slate-200 hover:border-indigo-400 hover:bg-indigo-50'}`}
@@ -1122,7 +1126,7 @@ const ZehnuthEvidenceModal = ({ isOpen, onClose, request, onUpdate }) => {
                         )}
                     </div>
 
-                    <button 
+                    <button
                         onClick={onClose}
                         className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-indigo-600 active:scale-95 transition-all shadow-xl"
                     >
@@ -1145,7 +1149,7 @@ const SuccessModal = ({ isOpen, onClose, code }) => {
                 </div>
                 <h2 className="text-2xl font-black text-slate-800 uppercase italic tracking-tight mb-2">Submitted!</h2>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-8">Medical documentation processed</p>
-                
+
                 <div className="bg-slate-50 rounded-[2rem] p-6 mb-8 border border-slate-100 relative overflow-hidden group">
                     <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500"></div>
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Your Verification Code</p>
@@ -1153,12 +1157,12 @@ const SuccessModal = ({ isOpen, onClose, code }) => {
                         {code}
                     </div>
                 </div>
-                
+
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed mb-8 bg-amber-50 p-4 rounded-2xl border border-amber-100">
                     Please write down this code on your medical document paper.
                 </p>
-                
-                <button 
+
+                <button
                     onClick={onClose}
                     className="w-full py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-blue-600 active:scale-95 transition-all shadow-xl shadow-slate-200"
                 >
@@ -1203,7 +1207,7 @@ const ApplyZehnuthModal = ({ isOpen, onClose, student, mentor, onComplete }) => 
         setUploading(true);
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('upload_preset', 'leave_docs'); 
+        formData.append('upload_preset', 'leave_docs');
 
         try {
             const res = await axios.post(
@@ -1274,8 +1278,8 @@ const ApplyZehnuthModal = ({ isOpen, onClose, student, mentor, onComplete }) => 
             type="button"
             onClick={() => toggleAchievement(label)}
             className={`p-4 rounded-2xl border-2 transition-all text-left relative overflow-hidden group w-full
-                ${selectedAchievement === label 
-                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-100' 
+                ${selectedAchievement === label
+                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-100'
                     : 'bg-white border-slate-100 text-slate-800 hover:border-indigo-200'}`}
         >
             <p className={`text-[10px] font-black uppercase tracking-widest ${selectedAchievement === label ? 'text-indigo-200' : 'text-slate-400'}`}>{label}</p>
@@ -1288,7 +1292,7 @@ const ApplyZehnuthModal = ({ isOpen, onClose, student, mentor, onComplete }) => 
     );
 
     const Row = ({ label, condition, badgeColor }) => (
-        <tr 
+        <tr
             onClick={() => toggleAchievement(label)}
             className={`group cursor-pointer transition-all ${selectedAchievement === label ? 'bg-indigo-50' : 'hover:bg-slate-50'}`}
         >
@@ -1336,8 +1340,8 @@ const ApplyZehnuthModal = ({ isOpen, onClose, student, mentor, onComplete }) => 
                                         setSelectedAchievement(null); // Reset selection on category change
                                     }}
                                     className={`px-4 py-2 rounded-xl border-2 transition-all flex items-center gap-2 whitespace-nowrap shrink-0
-                                        ${selectedCategory === cat.id 
-                                            ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-100' 
+                                        ${selectedCategory === cat.id
+                                            ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-100'
                                             : 'bg-slate-50 border-transparent text-slate-500 hover:bg-slate-100'}`}
                                 >
                                     <span className="text-lg">{cat.icon}</span>
@@ -1491,7 +1495,7 @@ const ApplyZehnuthModal = ({ isOpen, onClose, student, mentor, onComplete }) => 
                                     <div className="relative group rounded-2xl overflow-hidden aspect-video bg-slate-100 border border-slate-200">
                                         <img src={fileUrl} alt="Evidence" className="w-full h-full object-cover" />
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                                            <button 
+                                            <button
                                                 onClick={() => {
                                                     const input = document.createElement('input');
                                                     input.type = 'file';
@@ -1573,7 +1577,7 @@ const ApplyZehnuthModal = ({ isOpen, onClose, student, mentor, onComplete }) => 
                                 </div>
                             </div>
                         )}
-                        
+
                         <button
                             onClick={handleSubmit}
                             disabled={loading || !selectedAchievement || uploading}
@@ -1742,9 +1746,9 @@ const StudentsPortal = () => {
         <StudentAuthGuard>
             <div className="min-h-screen bg-[#f8fafc] font-sans text-slate-900 flex flex-col">
                 <AttendanceModal isOpen={showBreakdown} onClose={() => setShowBreakdown(false)} data={attendanceData} />
-                <ApplyLeaveModal 
-                    isOpen={isApplyLeaveOpen} 
-                    onClose={() => setIsApplyLeaveOpen(false)} 
+                <ApplyLeaveModal
+                    isOpen={isApplyLeaveOpen}
+                    onClose={() => setIsApplyLeaveOpen(false)}
                     student={student}
                     onComplete={() => fetchStudentAnalytics(student.ADNO)}
                 />
@@ -1755,13 +1759,7 @@ const StudentsPortal = () => {
                     mentor={mentor}
                     onComplete={() => fetchStudentAnalytics(student.ADNO, student)}
                 />
-                <ComplaintModal 
-                    isOpen={isComplaintOpen} 
-                    onClose={() => setIsComplaintOpen(false)} 
-                    attendance={selectedAttendance}
-                    studentId={student._id || student.id}
-                    onComplete={() => fetchStudentAnalytics(student.ADNO, student)}
-                />
+
 
                 {/* Header */}
                 <header className="fixed top-0 left-0 w-full bg-white/80 backdrop-blur-md border-b border-slate-100 z-40">
@@ -1781,7 +1779,7 @@ const StudentsPortal = () => {
                                         {student["SHORT NAME"] || student.name}
                                     </span>
                                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">AD: {student.ADNO || student.ad}</span>
-                                </div> 
+                                </div>
                                 <button onClick={handleLogout} className="w-11 h-11 bg-rose-50 border-2 border-white shadow-sm rounded-2xl flex items-center justify-center text-rose-500 hover:bg-rose-500 hover:text-white transition-all"><LogOut size={20} /></button>
                             </div>
                         </div>
@@ -1789,7 +1787,7 @@ const StudentsPortal = () => {
                 </header>
 
                 <main className="flex-grow p-4 md:p-8 max-w-7xl w-full mx-auto mt-24">
-                    
+
                     {/* Header Section */}
                     <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
                         <div>
@@ -1825,7 +1823,7 @@ const StudentsPortal = () => {
                             </div>
                         </div>
                         <div className="flex gap-3">
-                            <button 
+                            <button
                                 onClick={() => setIsApplyZehnuthOpen(true)}
                                 className="bg-indigo-600 text-white p-3 pr-6 rounded-[1.5rem] flex items-center gap-2 shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all text-xs font-black uppercase tracking-widest whitespace-nowrap"
                             >
@@ -1856,90 +1854,67 @@ const StudentsPortal = () => {
                         <MetricCard title="Attendance" value={`${stats.rate}%`} subText={`${stats.present}/${stats.total} SESSIONS`} color="blue" icon={TrendingUp} onClick={() => setShowBreakdown(true)} />
                         <MetricCard title="Leave Records" value={stats.leaves} subText="TOTAL ENTERED" color="amber" icon={FileText} onClick={() => setHistoryModal({ isOpen: true, title: 'Leave History', data: leaveData, type: 'leave', color: 'amber' })} />
                         <MetricCard title="CEP Passes" value={stats.ceps} subText="EXCUSED PASSES" color="sky" icon={Clock} onClick={() => setHistoryModal({ isOpen: true, title: 'CEP History', data: cepData, type: 'cep', color: 'sky' })} />
-                        <MetricCard 
-                            title="ZEHNUTH" 
-                            value={stats.zehnuth} 
+                        <MetricCard
+                            title="ZEHNUTH"
+                            value={stats.zehnuth}
                             subText={
                                 stats.zehnuth >= 750 ? "LEGENDARY BADGE" :
-                                stats.zehnuth >= 500 ? "MASTER BADGE" :
-                                stats.zehnuth >= 250 ? "STAR BADGE" :
-                                stats.zehnuth >= 100 ? "CHAMPION BADGE" :
-                                "TOTAL POINTS"
-                            } 
-                            color="indigo" 
-                            icon={Trophy} 
-                            onClick={() => setHistoryModal({ isOpen: true, title: 'Achievement History', data: zehnuthPoints, type: 'zehnuth', color: 'indigo' })} 
+                                    stats.zehnuth >= 500 ? "MASTER BADGE" :
+                                        stats.zehnuth >= 250 ? "STAR BADGE" :
+                                            stats.zehnuth >= 100 ? "CHAMPION BADGE" :
+                                                "TOTAL POINTS"
+                            }
+                            color="indigo"
+                            icon={Trophy}
+                            onClick={() => setHistoryModal({ isOpen: true, title: 'Achievement History', data: zehnuthPoints, type: 'zehnuth', color: 'indigo' })}
                         />
                     </section>
 
                     {/* Detailed Lists Grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        
+
                         {/* Left Column: Recent Items */}
                         <div className="space-y-8">
-                            <section className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
-                                <div className="p-8 border-b border-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <section className="bg-white rounded-[1.75rem] sm:rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
+                                <div className="p-5 sm:p-8 border-b border-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                     <h2 className="text-xl font-black text-slate-800 tracking-tight uppercase italic flex items-center gap-3">
                                         <Clock size={20} className="text-blue-500" /> Attendance Log
                                     </h2>
                                     <div className="flex items-center gap-2">
                                         <div className="flex items-center gap-3 bg-slate-50 p-1.5 px-3 rounded-2xl border border-slate-100">
                                             <Calendar size={14} className="text-slate-400" />
-                                            <input 
-                                                type="month" 
+                                            <input
+                                                type="month"
                                                 value={selectedMonth}
                                                 onChange={(e) => setSelectedMonth(e.target.value)}
                                                 className="bg-transparent text-[10px] font-black uppercase text-slate-600 focus:outline-none cursor-pointer"
                                             />
                                         </div>
-                                        <button 
-                                            onClick={() => { 
-                                                const target = filteredAttendance.find(r => r._id === selectedLogId);
-                                                setSelectedAttendance(target); 
-                                                setIsComplaintOpen(true); 
-                                            }}
-                                            className={`px-4 py-2 rounded-2xl text-[9px] font-black uppercase tracking-widest border transition-all flex items-center gap-2 
-                                                ${selectedLogId ? 'bg-rose-500 text-white border-rose-600 shadow-lg shadow-rose-200' : 'bg-rose-50 text-rose-300 border-rose-100 cursor-not-allowed opacity-50'}`}
-                                            title={selectedLogId ? "Dispute selected record" : "Select a record below first"}
-                                        >
-                                            <AlertTriangle size={12} /> Complaint
-                                        </button>
                                     </div>
                                 </div>
                                 <div className="p-4 sm:p-6 h-[500px] overflow-y-auto">
-                                    {selectedLogId && (
-                                        <div className="mb-4 px-4 py-2 bg-sky-50 rounded-xl border border-sky-100 flex items-center justify-between animate-in slide-in-from-top-1 duration-200">
-                                            <p className="text-[9px] font-black text-sky-600 uppercase tracking-widest">Selected for dispute</p>
-                                            <button onClick={() => setSelectedLogId(null)} className="text-sky-400 hover:text-sky-600"><X size={12} /></button>
-                                        </div>
-                                    )}
                                     {filteredAttendance.length > 0 ? (
                                         <div className="space-y-3">
                                             {filteredAttendance.map((item, idx) => (
-                                                <div 
-                                                    key={idx} 
-                                                    onClick={() => item.status !== 'Present' && setSelectedLogId(item._id)}
-                                                    className={`flex items-center justify-between p-5 rounded-[2rem] transition-all border-2 group cursor-pointer
-                                                        ${selectedLogId === item._id 
-                                                            ? 'bg-rose-50 border-rose-300 shadow-lg shadow-rose-100 scale-[1.02]' 
-                                                            : 'bg-slate-50/50 border-transparent hover:bg-slate-50 hover:border-slate-200'
-                                                        } ${item.status === 'Present' ? 'cursor-default opacity-80' : ''}`}
+                                                <div
+                                                    key={idx}
+                                                    className={`flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 sm:p-5 rounded-[1.5rem] sm:rounded-[2rem] transition-all border-2 group bg-slate-50/50 border-transparent hover:bg-slate-50 hover:border-slate-200 cursor-default gap-4 ${item.status === 'Present' ? 'opacity-80' : ''}`}
                                                 >
-                                                    <div className="flex items-center gap-5">
-                                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm shadow-sm transition-all group-hover:scale-110 ${item.status === 'Present' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                                                    <div className="flex items-center gap-3 sm:gap-5">
+                                                        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center font-black text-xs sm:text-sm shadow-sm transition-all group-hover:scale-110 shrink-0 ${item.status === 'Present' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
                                                             {item.status[0]}
                                                         </div>
-                                                        <div>
-                                                            <div className="flex items-center gap-2 mb-1">
-                                                                <h4 className="text-sm font-black text-slate-800 uppercase italic leading-none">
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
+                                                                <h4 className="text-xs sm:text-sm font-black text-slate-800 uppercase italic leading-none truncate">
                                                                     {item.attendanceTime || 'General Session'}
-                                                                    {item.period && <span className="ml-2 bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded text-[8px] font-black not-italic">P{item.period}</span>}
+                                                                    {item.period && <span className="ml-1.5 bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded text-[8px] font-black not-italic inline-block">P{item.period}</span>}
                                                                 </h4>
-                                                                <span className="text-[10px] font-bold text-slate-300 mx-1">•</span>
-                                                                <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">{formatTime(item.createdAt)}</span>
+                                                                <span className="text-[10px] font-bold text-slate-300 hidden xs:inline">•</span>
+                                                                <span className="text-[9px] sm:text-[10px] font-black text-blue-500 uppercase tracking-widest">{formatTime(item.createdAt)}</span>
                                                             </div>
-                                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                                                {formatDate(item.createdAt)}
+                                                            <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest flex flex-wrap items-center gap-1.5 sm:gap-2">
+                                                                <span>{formatDate(item.createdAt)}</span>
                                                                 {item.status !== 'Present' && (
                                                                     <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded shadow-sm ${item.onLeave ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
                                                                         {item.onLeave ? 'On Leave' : 'Not on Leave'}
@@ -1948,17 +1923,28 @@ const StudentsPortal = () => {
                                                             </p>
                                                         </div>
                                                     </div>
-                                                    <div className="flex flex-col items-end gap-2">
-                                                        <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${item.status === 'Present' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
-                                                            {item.status}
-                                                        </div>
-                                                        {item.teacherId && (
-                                                            <div className="flex items-center gap-1.5 mt-1 bg-white/60 px-2.5 py-1 rounded-full border border-slate-200 shadow-sm">
+                                                    <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 w-full sm:w-auto border-t border-slate-100 pt-3 sm:pt-0 sm:mt-0 sm:border-t-0">
+                                                        {item.teacherId ? (
+                                                            <div className="flex items-center gap-1.5 bg-white/60 px-2.5 py-1 rounded-full border border-slate-200 shadow-sm shrink-0">
                                                                 <User size={10} className="text-slate-500" />
-                                                                <span className="text-[9px] font-black text-slate-600 uppercase tracking-tight truncate max-w-[140px]">
+                                                                <span className="text-[8px] sm:text-[9px] font-black text-slate-600 uppercase tracking-tight truncate max-w-[120px] sm:max-w-[140px]">
                                                                     Usthad {item.teacherId.name || 'Teacher'}
                                                                 </span>
                                                             </div>
+                                                        ) : (
+                                                            <div className="hidden sm:block"></div>
+                                                        )}
+                                                        {item.status !== 'Present' && isToday(item.createdAt) && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setSelectedAttendance(item);
+                                                                    setIsComplaintOpen(true);
+                                                                }}
+                                                                className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 shadow-sm shadow-rose-200 hover:scale-105 active:scale-95 animate-in fade-in duration-200"
+                                                            >
+                                                                <AlertTriangle size={10} /> Raise Complaint
+                                                            </button>
                                                         )}
                                                     </div>
                                                 </div>
@@ -2022,7 +2008,7 @@ const StudentsPortal = () => {
                                     </div>
                                 </section>
                             )}
-                            
+
                             {/* CEP Passes Section */}
                             <section className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
                                 <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-sky-50/50">
@@ -2078,7 +2064,7 @@ const StudentsPortal = () => {
 
                         {/* Right Column: Other Records */}
                         <div className="space-y-8">
-                           
+
 
                             <section className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
                                 <div className="p-8 border-b border-slate-50 flex items-center justify-between">
@@ -2123,14 +2109,14 @@ const StudentsPortal = () => {
                                                         <div className="flex flex-col gap-1">
                                                             <span className="text-slate-300 group-hover:text-amber-500">Return</span>
                                                             <span className="text-slate-800">
-                                                                {item.returnedAt ? `${formatDate(item.returnedAt)} ${formatTime(item.returnedAt)}` : 
-                                                                 (item.toDate ? `${formatDate(item.toDate)} ${formatTimeTo12h(item.toTime)}` : 'PENDING')}
+                                                                {item.returnedAt ? `${formatDate(item.returnedAt)} ${formatTime(item.returnedAt)}` :
+                                                                    (item.toDate ? `${formatDate(item.toDate)} ${formatTimeTo12h(item.toTime)}` : 'PENDING')}
                                                             </span>
                                                         </div>
                                                     </div>
 
                                                     {!item.documented && !item.isMedicalSubmitted && !item.documentUrl && ['Room', 'Medical (Home)', 'Hospital'].some(r => item.reason?.includes(r)) && (
-                                                        <button 
+                                                        <button
                                                             onClick={() => { setSelectedLeave(item); setIsDocumentOpen(true); }}
                                                             className="mt-6 w-full py-3 bg-blue-50 border border-blue-100 rounded-2xl text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
                                                         >
@@ -2138,34 +2124,34 @@ const StudentsPortal = () => {
                                                         </button>
                                                     )}
                                                     {!item.documented && (item.isMedicalSubmitted || item.documentUrl) && (
-                                                         <div className="mt-6 flex flex-col sm:flex-row gap-2">
-                                                             <div className="flex-1 p-3 bg-amber-50 rounded-2xl flex items-center justify-center gap-2 border border-amber-100">
-                                                                 <Clock size={14} className="text-amber-500" />
-                                                                 <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Waiting for Approval</span>
-                                                             </div>
-                                                             {item.documentUrl && (
-                                                                <a 
-                                                                    href={item.documentUrl} 
-                                                                    target="_blank" 
+                                                        <div className="mt-6 flex flex-col sm:flex-row gap-2">
+                                                            <div className="flex-1 p-3 bg-amber-50 rounded-2xl flex items-center justify-center gap-2 border border-amber-100">
+                                                                <Clock size={14} className="text-amber-500" />
+                                                                <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Waiting for Approval</span>
+                                                            </div>
+                                                            {item.documentUrl && (
+                                                                <a
+                                                                    href={item.documentUrl}
+                                                                    target="_blank"
                                                                     rel="noopener noreferrer"
                                                                     className="p-3 bg-white border border-slate-200 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black text-slate-600 uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm"
                                                                 >
                                                                     <FileText size={14} /> View Doc
                                                                 </a>
-                                                             )}
-                                                         </div>
-                                                     )}
-                                                     {item.documented && (
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    {item.documented && (
                                                         <div className="mt-6 p-3 bg-emerald-50 rounded-2xl flex items-center justify-center gap-2 border border-emerald-100">
                                                             <CheckCircle size={14} className="text-emerald-500" />
                                                             <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Documents Verified</span>
-                                                         </div>
-                                                     )}
-                                                     {(item.status === "returned" || item.returnedAt) && (() => {
+                                                        </div>
+                                                    )}
+                                                    {(item.status === "returned" || item.returnedAt) && (() => {
                                                         const isNotNeeded = item.recoveryNeeded === false || (item.recoveryNeeded === undefined && calculateLeaveDays(item, offDays) === 0);
                                                         const isCompleted = item.recovery && !isNotNeeded;
                                                         const isPending = !item.recovery && !isNotNeeded;
-                                                        
+
                                                         return (
                                                             <div className={`mt-3 p-3 rounded-2xl flex items-center justify-between border transition-all ${isCompleted || isNotNeeded ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-100'}`}>
                                                                 <div className="flex items-center gap-2">
@@ -2196,7 +2182,7 @@ const StudentsPortal = () => {
                                                                 })()}
                                                             </div>
                                                         );
-                                                     })()}
+                                                    })()}
                                                 </div>
                                             ))}
                                         </div>
@@ -2211,7 +2197,7 @@ const StudentsPortal = () => {
                                 </div>
                             </section>
 
-                             <section className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
+                            <section className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
                                 <div className="p-8 border-b border-slate-50 flex items-center justify-between">
                                     <h2 className="text-xl font-black text-slate-800 tracking-tight uppercase italic flex items-center gap-3">
                                         <AlertTriangle size={20} className="text-rose-500" /> Minus report
@@ -2256,24 +2242,29 @@ const StudentsPortal = () => {
                         </div>
                     </div>
                 </main>
-                <ComplaintModal 
-                    isOpen={isComplaintOpen} 
-                    onClose={() => setIsComplaintOpen(false)} 
+                <ComplaintModal
+                    isOpen={isComplaintOpen}
+                    onClose={() => {
+                        setIsComplaintOpen(false);
+                        setSelectedLogId(null);
+                        setSelectedAttendance(null);
+                    }}
                     attendance={selectedAttendance}
-                    studentId={student.id || student._id}
+                    studentId={student._id || student.id}
                     records={filteredAttendance}
+                    onComplete={() => fetchStudentAnalytics(student.ADNO, student)}
                 />
-                
-                <ApplyLeaveModal 
-                    isOpen={isApplyLeaveOpen} 
-                    onClose={() => setIsApplyLeaveOpen(false)} 
+
+                <ApplyLeaveModal
+                    isOpen={isApplyLeaveOpen}
+                    onClose={() => setIsApplyLeaveOpen(false)}
                     student={student}
                     onComplete={() => fetchStudentAnalytics(student.ADNO)}
                 />
 
-                <DocumentModal 
-                    isOpen={isDocumentOpen} 
-                    onClose={() => setIsDocumentOpen(false)} 
+                <DocumentModal
+                    isOpen={isDocumentOpen}
+                    onClose={() => setIsDocumentOpen(false)}
                     leave={selectedLeave}
                     onUpdate={(code) => {
                         fetchStudentAnalytics(student.ADNO, student);
@@ -2281,10 +2272,10 @@ const StudentsPortal = () => {
                     }}
                 />
 
-                <SuccessModal 
-                    isOpen={!!showSuccessCode} 
-                    onClose={() => setShowSuccessCode(null)} 
-                    code={showSuccessCode} 
+                <SuccessModal
+                    isOpen={!!showSuccessCode}
+                    onClose={() => setShowSuccessCode(null)}
+                    code={showSuccessCode}
                 />
 
                 <AttendanceModal
@@ -2293,7 +2284,7 @@ const StudentsPortal = () => {
                     data={attendanceData}
                 />
 
-                <HistoryModal 
+                <HistoryModal
                     isOpen={historyModal.isOpen}
                     onClose={() => setHistoryModal({ ...historyModal, isOpen: false })}
                     title={historyModal.title}
@@ -2306,7 +2297,7 @@ const StudentsPortal = () => {
                     }}
                 />
 
-                <ZehnuthEvidenceModal 
+                <ZehnuthEvidenceModal
                     isOpen={isZehnuthEvidenceOpen}
                     onClose={() => setIsZehnuthEvidenceOpen(false)}
                     request={selectedZehnuthRequest}
@@ -2327,14 +2318,14 @@ const StudentsPortal = () => {
                             <div className="p-8 text-center space-y-6">
                                 <div className="p-5 bg-rose-50 rounded-[2rem] border border-rose-100">
                                     <p className="text-sm font-bold text-slate-700 leading-relaxed">
-                                        You have an <span className="text-rose-600 font-black">uncompleted recovery</span> from your previous leave. 
+                                        You have an <span className="text-rose-600 font-black">uncompleted recovery</span> from your previous leave.
                                     </p>
                                     {/* <p className="text-[11px] text-slate-500 mt-2 font-medium">
                                         Please complete your pending recovery lessons or contact your HOD before applying for a new leave.
                                     </p> */}
                                 </div>
                                 <div className="flex flex-col gap-3">
-                                    <button 
+                                    <button
                                         onClick={() => setShowRecoveryWarning(false)}
                                         className="w-full py-4 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl"
                                     >
