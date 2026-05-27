@@ -5,52 +5,36 @@ import axios from 'axios';
 import {
   Calendar,
   Users,
-  Clock,
   Search,
   FileText,
-  Download,
   FileSpreadsheet,
   AlertCircle,
-  Plus,
-  Minus as MinusIcon,
-  ChevronDown,
-  X,
-  Check
+  Settings,
+  MinusIcon
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
-
-const TIME_OPTIONS = [
-  { id: 'Period', label: 'Period' },
-  { id: 'Morning', label: 'Morning' },
-  { id: 'Afternoon', label: 'Afternoon' },
-  { id: 'Night', label: 'Night' },
-  { id: 'Jamath', label: 'Jamath' },
-  { id: 'Minus', label: 'Minus' }
-];
 
 function AdvancedReport() {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [classNumber, setClassNumber] = useState('');
-  const [selectedTimes, setSelectedTimes] = useState([]); // Array of { id, multFalse, multTrue }
+  
+  // Multipliers
+  const [manMultiplierTrue, setManMultiplierTrue] = useState('1');
+  const [manMultiplierFalse, setManMultiplierFalse] = useState('1');
+  const [pjMultiplierTrue, setPjMultiplierTrue] = useState('1');
+  const [pjMultiplierFalse, setPjMultiplierFalse] = useState('1');
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [data, setData] = useState([]);
-  const [showTimeDropdown, setShowTimeDropdown] = useState(false);
+
   // Set default dates to today on mount
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
     setFromDate(today);
     setToDate(today);
   }, []);
-
-  const toggleTime = (timeId) => {
-    if (selectedTimes.find(t => t.id === timeId)) {
-      setSelectedTimes(selectedTimes.filter(t => t.id !== timeId));
-    } else {
-      setSelectedTimes([...selectedTimes, { id: timeId, multFalse: '0', multTrue: '0' }]);
-    }
-  };
 
   const evaluateMultiplier = (val) => {
     if (typeof val === 'number') return val;
@@ -69,25 +53,14 @@ function AdvancedReport() {
   };
 
   const formatNum = (num) => {
-    if (num === 0) return '0';
+    if (!num && num !== 0) return '0';
     const rounded = Math.round(num * 10) / 10;
     return Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(1);
-  };
-
-  const updateMultiplier = (id, field, value) => {
-    setSelectedTimes(selectedTimes.map(t =>
-      t.id === id ? { ...t, [field]: value } : t
-    ));
   };
 
   const handleFetch = async () => {
     if (!fromDate || !toDate) {
       setError('Please select both From Date and To Date');
-      return;
-    }
-
-    if (selectedTimes.length === 0) {
-      setError('Please select at least one Time category');
       return;
     }
 
@@ -105,72 +78,101 @@ function AdvancedReport() {
   };
 
   const calculateStudentRow = (student) => {
-    const rowData = {
+    let leave_MAN = 0;
+    let absence_PJ = 0;
+
+    const manTrueMult = evaluateMultiplier(manMultiplierTrue);
+    const manFalseMult = evaluateMultiplier(manMultiplierFalse);
+    const pjTrueMult = evaluateMultiplier(pjMultiplierTrue);
+    const pjFalseMult = evaluateMultiplier(pjMultiplierFalse);
+
+    // Morning, Afternoon, Night
+    ['Morning', 'Afternoon', 'Night'].forEach(t => {
+        const d = student.groupedAttendance[t];
+        if (d) {
+            leave_MAN += (d.absentOnLeaveFalse || 0) * manFalseMult + (d.absentOnLeaveTrue || 0) * manTrueMult;
+        }
+    });
+
+    // Period
+    const periodData = student.groupedAttendance['Period'];
+    if (periodData && periodData.periods) {
+        Object.values(periodData.periods).forEach(p => {
+            absence_PJ += (p.absentOnLeaveFalse || 0) * pjFalseMult + (p.absentOnLeaveTrue || 0) * pjTrueMult;
+        });
+    }
+
+    // Jamath
+    const jamathData = student.groupedAttendance['Jamath'];
+    if (jamathData) {
+        absence_PJ += (jamathData.absentOnLeaveFalse || 0) * pjFalseMult + (jamathData.absentOnLeaveTrue || 0) * pjTrueMult;
+    }
+
+    const c = parseInt(student.class, 10);
+    let permitted = 0;
+    if (!isNaN(c)) {
+        if (c >= 1 && c <= 5) permitted = 6;
+        else if (c === 6 || c === 7) permitted = 7;
+        else if (c >= 8 && c <= 10) permitted = 8;
+    }
+
+    const minus = student.totalManualMinus || 0;
+    const totalAbsence = leave_MAN + absence_PJ + minus;
+    const overBy = Math.max(0, totalAbsence - permitted);
+
+    return {
       sl: student.SL,
-      ad: student.ad,
+      adno: student.ad,
       name: student.nameOfStd,
       class: student.class,
-      times: {},
-      subTotal: 0
+      permitted,
+      leave: leave_MAN,
+      absence: absence_PJ,
+      minus,
+      totalAbsence,
+      medicalLeave: student.totalMedicalLeave || 0,
+      documentedLeave: student.totalDocumentedLeave || 0,
+      zehnuthPoints: student.totalZehnuthPoints || 0,
+      overBy
     };
-
-    selectedTimes.forEach(st => {
-      let minus = 0;
-      const multFalse = evaluateMultiplier(st.multFalse);
-      const multTrue = evaluateMultiplier(st.multTrue);
-
-      if (st.id === 'Minus') {
-        minus = student.totalManualMinus;
-      } else if (st.id === 'Period') {
-        const periodData = student.groupedAttendance['Period'];
-        if (periodData && periodData.periods) {
-          Object.values(periodData.periods).forEach(p => {
-            minus += (p.absentOnLeaveFalse * multFalse);
-            minus += (p.absentOnLeaveTrue * multTrue);
-          });
-        }
-      } else {
-        const att = student.groupedAttendance[st.id];
-        if (att) {
-          minus += (att.absentOnLeaveFalse * multFalse);
-          minus += (att.absentOnLeaveTrue * multTrue);
-        }
-      }
-      rowData.times[st.id] = minus;
-      rowData.subTotal += minus;
-    });
-
-    return rowData;
   };
 
+  // Re-calculate data if multipliers change even without fetching
   const reportData = useMemo(() => {
     return data.map(calculateStudentRow);
-  }, [data, selectedTimes]);
+  }, [data, manMultiplierTrue, manMultiplierFalse, pjMultiplierTrue, pjMultiplierFalse]);
 
   const handleDownloadExcel = () => {
-    const wsData = reportData.map(r => {
-      const base = {
-        'SL': r.sl,
-        'AD NO': r.ad,
-        'Name': r.name,
-        'Class': r.class,
-      };
-      selectedTimes.forEach(st => {
-        base[st.id] = formatNum(r.times[st.id]);
-      });
-      base['Sub-Total'] = formatNum(r.subTotal);
-      return base;
-    });
+    const formatExcelNum = (num) => {
+      if (!num && num !== 0) return 0;
+      return Math.round(num * 100) / 100;
+    };
+
+    const wsData = reportData.map(r => ({
+      'SL': r.sl,
+      'AD NO': r.adno,
+      'Name': r.name,
+      'Class': r.class,
+      'Total Permitted Leave': formatExcelNum(r.permitted),
+      'Leave (M+A+N)': formatExcelNum(r.leave),
+      'Absence (P+J)': formatExcelNum(r.absence),
+      'Minus': formatExcelNum(r.minus),
+      'Total Absence': formatExcelNum(r.totalAbsence),
+      'Medical Leave': formatExcelNum(r.medicalLeave),
+      'Documented Leave': formatExcelNum(r.documentedLeave),
+      'Zehnuth Points': formatExcelNum(r.zehnuthPoints),
+      'Over By': formatExcelNum(r.overBy)
+    }));
 
     const ws = XLSX.utils.json_to_sheet(wsData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Minus Report');
-    XLSX.writeFile(wb, `Minus_Report_${classNumber}_${fromDate}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, 'Deduction Report');
+    XLSX.writeFile(wb, `Deduction_Report_${classNumber || 'All'}_${fromDate}.xlsx`);
   };
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 p-4 sm:p-8 mt-16 font-sans">
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="max-w-[1400px] mx-auto space-y-8">
 
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -179,160 +181,131 @@ function AdvancedReport() {
               <FileText size={28} />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-slate-800 tracking-tight">Advanced Minus Report</h1>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Configure deductions and generate summary</p>
+              <h1 className="text-3xl font-black text-slate-800 tracking-tight">Deduction Report</h1>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Generate final deduction summary</p>
             </div>
           </div>
         </div>
 
         {/* Configuration Card */}
-        <div className="bg-white rounded-[2.5rem] p-6 sm:p-10 shadow-xl shadow-slate-200/50 border border-slate-100">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-
-            {/* Filters */}
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2">
-                    <Calendar size={14} className="text-rose-500" /> From
-                  </label>
-                  <input
-                    type="date"
-                    value={fromDate}
-                    onChange={e => setFromDate(e.target.value)}
-                    className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-rose-400 focus:bg-white outline-none transition-all"
-                  />
-                </div>
-                <div>
-                  <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2">
-                    <Calendar size={14} className="text-rose-500" /> To
-                  </label>
-                  <input
-                    type="date"
-                    value={toDate}
-                    onChange={e => setToDate(e.target.value)}
-                    className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-rose-400 focus:bg-white outline-none transition-all"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2">
-                  <Users size={14} className="text-sky-500" /> Enter Class Number <span className="text-slate-300 font-normal lowercase tracking-normal">(Optional)</span>
-                </label>
-                <input
-                  type="number"
-                  placeholder="Enter Class Number"
-                  value={classNumber}
-                  onChange={e => setClassNumber(e.target.value)}
-                  className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all"
-                />
-              </div>
-
-              <div className="relative">
-                <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2">
-                  <Clock size={14} className="text-amber-500" /> Categories
-                </label>
-                <button
-                  onClick={() => setShowTimeDropdown(!showTimeDropdown)}
-                  className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 flex items-center justify-between hover:bg-slate-100 transition-all"
-                >
-                  <span className="truncate">
-                    {selectedTimes.length === 0 ? "Select Categories" : `${selectedTimes.length} selected`}
-                  </span>
-                  <ChevronDown className={`transition-transform duration-300 ${showTimeDropdown ? 'rotate-180' : ''}`} size={18} />
-                </button>
-
-                {showTimeDropdown && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 p-2 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                    {TIME_OPTIONS.map(opt => {
-                      const isSelected = selectedTimes.some(t => t.id === opt.id);
-                      return (
-                        <button
-                          key={opt.id}
-                          onClick={() => toggleTime(opt.id)}
-                          className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold transition-all mb-1 last:mb-0 ${isSelected ? 'bg-sky-50 text-sky-600' : 'text-slate-600 hover:bg-slate-50'
-                            }`}
-                        >
-                          {opt.label}
-                          {isSelected && <Check size={16} />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+        <div className="bg-white rounded-[2.5rem] p-6 sm:p-10 shadow-xl shadow-slate-200/50 border border-slate-100 space-y-8">
+          
+          {/* Main Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-end">
+            <div>
+              <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2">
+                <Calendar size={14} className="text-rose-500" /> From
+              </label>
+              <input
+                type="date"
+                value={fromDate}
+                onChange={e => setFromDate(e.target.value)}
+                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-rose-400 focus:bg-white outline-none transition-all"
+              />
             </div>
-
-            {/* Selected Categories Configuration */}
-            <div className="md:col-span-2 bg-slate-50/50 rounded-[2rem] p-6 border border-slate-100 min-h-[300px]">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-4 flex items-center gap-2">
-                <Plus size={14} className="text-emerald-500" /> Deduction Multipliers
-              </h3>
-
-              {selectedTimes.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center py-10 opacity-40">
-                  <Clock size={48} className="mb-4" />
-                  <p className="text-sm font-bold">Select categories to configure multipliers</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {selectedTimes.map(st => (
-                    <div key={st.id} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col sm:flex-row items-start sm:items-center gap-4 animate-in slide-in-from-right-4 duration-300">
-                      <div className="flex-1">
-                        <span className="text-xs font-black text-slate-800 uppercase tracking-wider">{st.id}</span>
-                      </div>
-
-                      <div className="flex flex-wrap gap-4 w-full sm:w-auto items-center">
-                        {st.id === 'Minus' ? (
-                          <div className="bg-amber-50 text-amber-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-amber-100">
-                            Uses Direct DB Values
-                          </div>
-                        ) : (
-                          <>
-                            <div className="flex-1 sm:flex-none min-w-[140px]">
-                              <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">On Leave: FALSE</label>
-                              <div className="relative">
-                                <MinusIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-rose-500" />
-                                <input
-                                  type="text"
-                                  placeholder="0"
-                                  value={st.multFalse}
-                                  onChange={e => updateMultiplier(st.id, 'multFalse', e.target.value)}
-                                  className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-8 pr-3 py-2 text-sm font-black text-slate-700 focus:border-rose-400 outline-none"
-                                />
-                              </div>
-                            </div>
-
-                            <div className="flex-1 sm:flex-none min-w-[140px]">
-                              <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">On Leave: TRUE</label>
-                              <div className="relative">
-                                <MinusIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500" />
-                                <input
-                                  type="text"
-                                  placeholder="0"
-                                  value={st.multTrue}
-                                  onChange={e => updateMultiplier(st.id, 'multTrue', e.target.value)}
-                                  className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-8 pr-3 py-2 text-sm font-black text-slate-700 focus:border-emerald-400 outline-none"
-                                />
-                              </div>
-                            </div>
-                          </>
-                        )}
-
-                        <button
-                          onClick={() => toggleTime(st.id)}
-                          className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
-                        >
-                          <X size={18} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <div>
+              <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2">
+                <Calendar size={14} className="text-rose-500" /> To
+              </label>
+              <input
+                type="date"
+                value={toDate}
+                onChange={e => setToDate(e.target.value)}
+                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-rose-400 focus:bg-white outline-none transition-all"
+              />
+            </div>
+            <div>
+              <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2">
+                <Users size={14} className="text-sky-500" /> Enter Class Number <span className="text-slate-300 font-normal lowercase tracking-normal">(Optional)</span>
+              </label>
+              <input
+                type="number"
+                placeholder="Enter Class Number"
+                value={classNumber}
+                onChange={e => setClassNumber(e.target.value)}
+                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all"
+              />
             </div>
           </div>
+
+          {/* Multiplier Configuration */}
+          <div className="bg-slate-50/50 rounded-[2rem] p-6 border border-slate-100">
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-4 flex items-center gap-2">
+                <Settings size={14} className="text-emerald-500" /> Deduction Multipliers
+              </h3>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {/* M+A+N Multipliers */}
+                  <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                      <div className="flex-1">
+                        <span className="text-xs font-black text-amber-600 uppercase tracking-wider">Leave (M+A+N)</span>
+                      </div>
+                      <div className="flex flex-wrap gap-4 w-full sm:w-auto items-center">
+                          <div className="flex-1 sm:flex-none min-w-[140px]">
+                              <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">On Leave: FALSE</label>
+                              <div className="relative">
+                                  <MinusIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-rose-500" />
+                                  <input
+                                      type="text"
+                                      placeholder="0"
+                                      value={manMultiplierFalse}
+                                      onChange={e => setManMultiplierFalse(e.target.value)}
+                                      className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-8 pr-3 py-2 text-sm font-black text-slate-700 focus:border-rose-400 outline-none"
+                                  />
+                              </div>
+                          </div>
+                          <div className="flex-1 sm:flex-none min-w-[140px]">
+                              <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">On Leave: TRUE</label>
+                              <div className="relative">
+                                  <MinusIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500" />
+                                  <input
+                                      type="text"
+                                      placeholder="0"
+                                      value={manMultiplierTrue}
+                                      onChange={e => setManMultiplierTrue(e.target.value)}
+                                      className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-8 pr-3 py-2 text-sm font-black text-slate-700 focus:border-emerald-400 outline-none"
+                                  />
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+
+                  {/* P+J Multipliers */}
+                  <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                      <div className="flex-1">
+                        <span className="text-xs font-black text-orange-600 uppercase tracking-wider">Absence (P+J)</span>
+                      </div>
+                      <div className="flex flex-wrap gap-4 w-full sm:w-auto items-center">
+                          <div className="flex-1 sm:flex-none min-w-[140px]">
+                              <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">On Leave: FALSE</label>
+                              <div className="relative">
+                                  <MinusIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-rose-500" />
+                                  <input
+                                      type="text"
+                                      placeholder="0"
+                                      value={pjMultiplierFalse}
+                                      onChange={e => setPjMultiplierFalse(e.target.value)}
+                                      className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-8 pr-3 py-2 text-sm font-black text-slate-700 focus:border-rose-400 outline-none"
+                                  />
+                              </div>
+                          </div>
+                          <div className="flex-1 sm:flex-none min-w-[140px]">
+                              <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">On Leave: TRUE</label>
+                              <div className="relative">
+                                  <MinusIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500" />
+                                  <input
+                                      type="text"
+                                      placeholder="0"
+                                      value={pjMultiplierTrue}
+                                      onChange={e => setPjMultiplierTrue(e.target.value)}
+                                      className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-8 pr-3 py-2 text-sm font-black text-slate-700 focus:border-emerald-400 outline-none"
+                                  />
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+
 
           {error && (
             <div className="mt-8 flex items-center gap-3 text-rose-600 bg-rose-50 p-4 rounded-2xl text-sm font-bold border border-rose-100 animate-bounce">
@@ -340,24 +313,24 @@ function AdvancedReport() {
             </div>
           )}
 
-          <div className="mt-10 pt-8 border-t border-slate-100 flex flex-col sm:flex-row gap-4 justify-between items-center">
+          <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row gap-4 justify-between items-center">
             <button
               onClick={handleFetch}
               disabled={loading}
-              className="w-full sm:w-auto flex-1 bg-slate-900 hover:bg-slate-800 text-white font-black text-sm uppercase tracking-widest py-5 px-10 rounded-2xl shadow-xl shadow-slate-900/20 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
+              className="w-full sm:w-auto flex-1 md:flex-none md:w-64 bg-slate-900 hover:bg-slate-800 text-white font-black text-sm uppercase tracking-widest py-4 px-8 rounded-2xl shadow-xl shadow-slate-900/20 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
               ) : (
                 <Search size={20} />
               )}
-              Generate Analysis
+              Generate
             </button>
 
             {reportData.length > 0 && (
               <button
                 onClick={handleDownloadExcel}
-                className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-white font-black text-sm uppercase tracking-widest py-5 px-8 rounded-2xl shadow-xl shadow-emerald-500/20 transition-all active:scale-95 flex items-center justify-center gap-2"
+                className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-white font-black text-sm uppercase tracking-widest py-4 px-8 rounded-2xl shadow-xl shadow-emerald-500/20 transition-all active:scale-95 flex items-center justify-center gap-2"
               >
                 <FileSpreadsheet size={20} /> Export Excel
               </button>
@@ -382,59 +355,47 @@ function AdvancedReport() {
         ) : reportData.length > 0 ? (
           <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table className="w-full text-left border-collapse whitespace-nowrap">
                 <thead>
                   <tr className="bg-slate-50/80 text-[10px] font-black uppercase tracking-widest text-slate-500 border-b border-slate-100">
-                    <th className="p-6 border-r border-white text-center w-16">SL</th>
-                    <th className="p-6 border-r border-white w-24">AD NO</th>
-                    <th className="p-6 border-r border-white min-w-[200px]">Student Name</th>
-                    <th className="p-6 border-r border-white text-center w-24">Class</th>
-
-                    {selectedTimes.map(st => (
-                      <th key={st.id} className="p-6 border-r border-white text-center bg-rose-50/30 text-rose-600">
-                        {st.id}
-                      </th>
-                    ))}
-
-                    <th className="p-6 text-center bg-slate-900 text-white rounded-tr-[2.5rem]">Sub-Total</th>
+                    <th className="p-4 border-r border-white text-center">SL</th>
+                    <th className="p-4 border-r border-white">AD NO</th>
+                    <th className="p-4 border-r border-white min-w-[150px]">Student Name</th>
+                    <th className="p-4 border-r border-white text-center">Class</th>
+                    <th className="p-4 border-r border-white text-center bg-blue-50/50 text-blue-600">Total Permitted<br/>Leave</th>
+                    <th className="p-4 border-r border-white text-center bg-amber-50/50 text-amber-600">Leave<br/>(M+A+N)</th>
+                    <th className="p-4 border-r border-white text-center bg-orange-50/50 text-orange-600">Absence<br/>(P+J)</th>
+                    <th className="p-4 border-r border-white text-center bg-rose-50/50 text-rose-600">Minus</th>
+                    <th className="p-4 border-r border-white text-center bg-slate-100 text-slate-800">Total Absence</th>
+                    <th className="p-4 border-r border-white text-center bg-emerald-50/50 text-emerald-600">Medical Leave</th>
+                    <th className="p-4 border-r border-white text-center bg-teal-50/50 text-teal-600">Documented<br/>Leave</th>
+                    <th className="p-4 border-r border-white text-center bg-purple-50/50 text-purple-600">Zehnuth<br/>Points</th>
+                    <th className="p-4 text-center bg-red-100 text-red-600">Over By</th>
                   </tr>
                 </thead>
                 <tbody className="text-sm font-medium">
                   {reportData.map((row, idx) => (
-                    <tr key={row.ad} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors group">
-                      <td className="p-4 border-r border-white text-center text-slate-400 font-bold text-xs">{idx + 1}</td>
-                      <td className="p-4 border-r border-white text-slate-600 font-black">{row.ad}</td>
-                      <td className="p-4 border-r border-white text-slate-800 font-black group-hover:text-rose-600 transition-colors">{row.name}</td>
-                      <td className="p-4 border-r border-white text-center">
-                        <span className="px-3 py-1 bg-sky-50 text-sky-600 rounded-lg text-xs font-black">C-{row.class}</span>
+                    <tr key={row.adno} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors group">
+                      <td className="p-3 border-r border-white text-center text-slate-400 font-bold text-xs">{idx + 1}</td>
+                      <td className="p-3 border-r border-white text-slate-600 font-black">{row.adno}</td>
+                      <td className="p-3 border-r border-white text-slate-800 font-black truncate max-w-[200px]" title={row.name}>{row.name}</td>
+                      <td className="p-3 border-r border-white text-center">
+                        <span className="px-2 py-1 bg-sky-50 text-sky-600 rounded-lg text-xs font-black">C-{row.class}</span>
                       </td>
-
-                      {selectedTimes.map(st => (
-                        <td key={st.id} className="p-4 border-r border-white text-center font-black text-rose-500 bg-rose-50/10">
-                          {formatNum(row.times[st.id])}
-                        </td>
-                      ))}
-
-                      <td className="p-4 text-center font-black text-lg text-slate-900 bg-slate-50/50">
-                        {formatNum(row.subTotal)}
+                      <td className="p-3 border-r border-white text-center font-black text-blue-600 bg-blue-50/20">{row.permitted}</td>
+                      <td className="p-3 border-r border-white text-center font-black text-amber-600 bg-amber-50/20">{formatNum(row.leave)}</td>
+                      <td className="p-3 border-r border-white text-center font-black text-orange-600 bg-orange-50/20">{formatNum(row.absence)}</td>
+                      <td className="p-3 border-r border-white text-center font-black text-rose-600 bg-rose-50/20">{formatNum(row.minus)}</td>
+                      <td className="p-3 border-r border-white text-center font-black text-slate-800 bg-slate-50">{formatNum(row.totalAbsence)}</td>
+                      <td className="p-3 border-r border-white text-center font-black text-emerald-600 bg-emerald-50/20">{formatNum(row.medicalLeave)}</td>
+                      <td className="p-3 border-r border-white text-center font-black text-teal-600 bg-teal-50/20">{formatNum(row.documentedLeave)}</td>
+                      <td className="p-3 border-r border-white text-center font-black text-purple-600 bg-purple-50/20">{formatNum(row.zehnuthPoints)}</td>
+                      <td className={`p-3 text-center font-black ${row.overBy > 0 ? 'text-red-600 bg-red-50/50' : 'text-slate-300'}`}>
+                        {row.overBy > 0 ? formatNum(row.overBy) : '-'}
                       </td>
                     </tr>
                   ))}
                 </tbody>
-                <tfoot>
-                  <tr className="bg-slate-900 text-white font-black uppercase text-[10px] tracking-widest">
-                    <td colSpan={4} className="p-6 text-right">Total Page Deductions:</td>
-                    {selectedTimes.map(st => {
-                      const totalForTime = reportData.reduce((sum, r) => sum + (r.times[st.id] || 0), 0);
-                      return (
-                        <td key={st.id} className="p-6 text-center border-l border-white/10">{formatNum(totalForTime)}</td>
-                      );
-                    })}
-                    <td className="p-6 text-center bg-rose-600 text-white text-xl">
-                      {formatNum(reportData.reduce((sum, r) => sum + r.subTotal, 0))}
-                    </td>
-                  </tr>
-                </tfoot>
               </table>
             </div>
           </div>
@@ -445,7 +406,6 @@ function AdvancedReport() {
                 <Search size={40} />
               </div>
               <p className="text-slate-400 font-black uppercase tracking-widest">Select criteria to generate report</p>
-              <p className="text-sm text-slate-300 mt-2">Adjust dates, class and categories above.</p>
             </div>
           )
         )}

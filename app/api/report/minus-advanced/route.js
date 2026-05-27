@@ -4,6 +4,7 @@ import Student from "@/models/studentsModel";
 import Minus from "@/models/minusModel";
 import Leave from "@/models/leaveModel";
 import ClassExcusedPass from "@/models/shortLeaveModel";
+import Points from "@/models/pointsModel";
 import { NextResponse } from "next/server";
 
 export async function GET(req) {
@@ -42,14 +43,25 @@ export async function GET(req) {
       createdAt: { $gte: startDate, $lte: endDate }
     });
 
+    // Fetch Points
+    const pointsRecords = await Points.find({
+      studentId: { $in: studentIds },
+      createdAt: { $gte: startDate, $lte: endDate },
+      status: 'approved'
+    });
+
     const studentData = students.map(student => {
       const id = student._id.toString();
       
       const attendance = attendanceRecords.filter(r => r.studentId.toString() === id);
       const manualMinus = minusRecords.filter(r => r.studentId.toString() === id);
+      const studentPoints = pointsRecords.filter(r => r.studentId.toString() === id);
 
       // Group attendance by time slot
       const groupedAttendance = {};
+      const medicalLeavesSet = new Set();
+      const documentedLeavesSet = new Set();
+
       attendance.forEach(record => {
         const time = record.attendanceTime;
         if (!groupedAttendance[time]) {
@@ -57,16 +69,29 @@ export async function GET(req) {
         }
 
         if (record.status === 'Absent') {
-          // Check for Documented Medical (Home) leave
-          const isMedicalDocumented = record.onLeave && 
-            record.leaveId && 
-            record.leaveId.reason === 'Medical (Home)' && 
-            record.leaveId.documented === true;
+          // Check for Medical Leaves
+          let isMedical = false;
+          let isOtherDocumented = false;
+
+          if (record.onLeave && record.leaveId) {
+            const reason = record.leaveId.reason;
+            isMedical = reason === 'Medical (Home)' || reason === 'Medical (Room)' || reason === 'Hospital';
+            
+            if (isMedical) {
+              medicalLeavesSet.add(record.leaveId._id.toString());
+            } else if (record.leaveId.documented === true) {
+              documentedLeavesSet.add(record.leaveId._id.toString());
+              isOtherDocumented = true;
+            }
+          }
+
+          // Backwards compatibility for exclusion from minus purposes
+          const isMedicalDocumented = isMedical && record.leaveId?.documented === true;
 
           if (isMedicalDocumented) {
             return; // Don't count as absent for minus purposes
           }
-
+          
           if (time === 'Period') {
             const p = record.period || 1;
             if (!groupedAttendance[time].periods[p]) {
@@ -88,6 +113,7 @@ export async function GET(req) {
       });
 
       const totalManualMinus = manualMinus.reduce((sum, r) => sum + (r.minusNum || 0), 0);
+      const totalZehnuthPoints = studentPoints.reduce((sum, r) => sum + (r.points || 0), 0);
 
       return {
         _id: student._id,
@@ -96,7 +122,10 @@ export async function GET(req) {
         nameOfStd: student["SHORT NAME"] || student["FULL NAME"],
         class: student.CLASS,
         groupedAttendance,
-        totalManualMinus
+        totalManualMinus,
+        totalMedicalLeave: medicalLeavesSet.size,
+        totalDocumentedLeave: documentedLeavesSet.size,
+        totalZehnuthPoints
       };
     });
 
