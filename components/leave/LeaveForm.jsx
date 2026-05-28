@@ -437,6 +437,22 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   useEffect(() => {
     if (!teacher) return;
 
+    const filterByRole = (rawStudents) => {
+      if (teacher?.role?.includes("super_admin")) return rawStudents;
+      
+      const allowedClasses = [];
+      if (teacher?.role?.includes("HOD")) allowedClasses.push(8, 9, 10);
+      if (teacher?.role?.includes("HOS")) allowedClasses.push(1, 2, 3, 4, 5, 6, 7);
+      if (teacher?.role?.includes("class_teacher") && teacher?.classNum) {
+        if (!allowedClasses.includes(Number(teacher.classNum))) {
+          allowedClasses.push(Number(teacher.classNum));
+        }
+      }
+
+      if (allowedClasses.length === 0) return rawStudents;
+      return rawStudents.filter(std => allowedClasses.includes(Number(std.CLASS)));
+    };
+
     const fetchStudents = async () => {
       setLoading(true);
       try {
@@ -448,23 +464,6 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         }
         
         const res = await axios.get(url);
-        
-        const filterByRole = (rawStudents) => {
-          if (teacher?.role?.includes("super_admin")) return rawStudents;
-          
-          const allowedClasses = [];
-          if (teacher?.role?.includes("HOD")) allowedClasses.push(8, 9, 10);
-          if (teacher?.role?.includes("HOS")) allowedClasses.push(1, 2, 3, 4, 5, 6, 7);
-          if (teacher?.role?.includes("class_teacher") && teacher?.classNum) {
-            if (!allowedClasses.includes(Number(teacher.classNum))) {
-              allowedClasses.push(Number(teacher.classNum));
-            }
-          }
-
-          if (allowedClasses.length === 0) return rawStudents;
-          return rawStudents.filter(std => allowedClasses.includes(Number(std.CLASS)));
-        };
-
         setStudents(filterByRole(res.data));
       } catch (err) {
         console.error("Error fetching students:", err);
@@ -474,7 +473,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     };
 
     if (initialStudents) {
-      setStudents(initialStudents);
+      setStudents(filterByRole(initialStudents));
     } else {
       fetchStudents();
     }
@@ -879,32 +878,66 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   };
 
   const showRecoveryAlert = (found, onBypass = null, onOkay = null) => {
+    const hasUrgentDeath = !!teacher?.classNum && !teacher?.role?.includes("super_admin");
+
+    const actions = [
+      {
+        label: "Okay",
+        stack: true,
+        onClick: () => {
+          if (onOkay) onOkay();
+          setAlertState(prev => ({ ...prev, isOpen: false }));
+        },
+        className: "bg-red-500 hover:bg-red-600 text-white font-black py-4 shadow-red-500/20"
+      }
+    ];
+
+    if (hasUrgentDeath) {
+      actions.push({
+        label: "Proceed with Urgent Death",
+        stack: true,
+        autoClose: false,
+        variant: "link",
+        onClick: () => {
+          setBypassRecovery(true);
+          setReason('Urgent (Death)');
+          setAlertState(prev => ({ ...prev, isOpen: false }));
+          if (onBypass) onBypass();
+        }
+      });
+    }
+
+    actions.push(
+      {
+        label: "Proceed with Medical",
+        stack: true,
+        autoClose: false,
+        variant: "link",
+        onClick: () => {
+          setBypassRecovery(true);
+          setReason('Medical (Home)');
+          setAlertState(prev => ({ ...prev, isOpen: false }));
+          if (onBypass) onBypass();
+        }
+      },
+      {
+        label: "PWR",  
+        stack: true,
+        autoClose: false, 
+        onClick: () => {
+          setBypassRecovery(true);
+          setAlertState(prev => ({ ...prev, isOpen: false }));
+          if (onBypass) onBypass();
+        },
+        variant: "link"
+      }
+    );
+
     showAlert(
       `${found["SHORT NAME"] || found["FULL NAME"]} has an uncompleted recovery from their previous leave.`,
       "Recovery Not Completed",
       "warning",
-      [
-        {
-          label: "Okay",
-          stack: true,
-          onClick: () => {
-            if (onOkay) onOkay();
-            setAlertState(prev => ({ ...prev, isOpen: false }));
-          },
-          className: "bg-red-500 hover:bg-red-600 text-white font-black py-4 shadow-red-500/20"
-        },
-        {
-          label: "PWR",  
-          stack: true,
-          autoClose: false, 
-          onClick: () => {
-            setBypassRecovery(true);
-            setAlertState(prev => ({ ...prev, isOpen: false }));
-            if (onBypass) onBypass();
-          },
-          variant: "link"
-        }
-      ]
+      actions
     );
   };
   useEffect(() => {
@@ -1128,17 +1161,6 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         if (activeRecord) {
           showConflictAlert(found, activeRecord, 'cep');
           updatedStudents[index].ad = '';
-        } else if (!bypassRecovery && !checkRecoveryStatus(found.ADNO)) {
-          showRecoveryAlert(found, () => {
-            // Bypass handler - restore the AD and update state
-            updatedStudents[index].ad = found.ADNO;
-            setShortLeaveStudents([...updatedStudents]);
-          }, () => {
-            // Okay/Cancel handler - keep it empty
-            updatedStudents[index].ad = '';
-            setShortLeaveStudents([...updatedStudents]);
-          });
-          updatedStudents[index].ad = '';
         }
       } else {
         updatedStudents[index].student = null;
@@ -1185,11 +1207,11 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       return;
     }
 
-    // Check if any student is already on leave or has incomplete recovery
-    const unavailableStudents = shortLeaveStudents.filter(student => checkLeaveStatus(student.ad) || !checkRecoveryStatus(student.ad));
+    // Check if any student is already on leave
+    const unavailableStudents = shortLeaveStudents.filter(student => checkLeaveStatus(student.ad));
     if (unavailableStudents.length > 0) {
       const names = unavailableStudents.map(s => s.name).join(', ');
-      showAlert(`Cannot submit. These students are currently unavailable (On Leave or Incomplete Recovery): ${names}`, "Student Status Error", "error");
+      showAlert(`Cannot submit. These students are currently unavailable (On Leave): ${names}`, "Student Status Error", "error");
       return;
     }
 

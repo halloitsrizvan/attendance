@@ -64,35 +64,59 @@ const CustomAlert = ({
 
           <div className={`${actions && actions.length >= 2 && !actions.some(a => a.stack) ? 'grid grid-cols-2 gap-2.5' : 'flex flex-col gap-2'}`}>
             {actions && actions.length > 0 ? (
-              actions.map((action, index) => {
-                if (action.variant === 'link') {
-                  return (
-                    <div key={index} className="flex justify-end px-2 pt-1">
+              (() => {
+                const normalActions = actions.filter(a => a.variant !== 'link');
+                const linkActions = actions.filter(a => a.variant === 'link');
+                
+                return (
+                  <>
+                    {normalActions.map((action, index) => (
                       <button
+                        key={'normal-' + index}
                         onClick={() => {
                           action.onClick();
                           if (action.autoClose !== false) onClose();
                         }}
-                        className="text-[9px] font-black text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-widest bg-transparent border-none p-0 cursor-pointer"
+                        className={`w-full py-4 ${action.className || theme.btn} text-white text-[9px] font-black uppercase tracking-widest rounded-2xl shadow-lg transition-all active:scale-95 group overflow-hidden`}
                       >
-                        {action.label}
+                        <span className="relative z-10">{action.label}</span>
                       </button>
-                    </div>
-                  );
-                }
-                return (
-                  <button
-                    key={index}
-                    onClick={() => {
-                      action.onClick();
-                      if (action.autoClose !== false) onClose();
-                    }}
-                    className={`w-full py-4 ${action.className || theme.btn} text-white text-[9px] font-black uppercase tracking-widest rounded-2xl shadow-lg transition-all active:scale-95 group overflow-hidden`}
-                  >
-                    <span className="relative z-10">{action.label}</span>
-                  </button>
+                    ))}
+                    
+                    {linkActions.length > 0 && (
+                      <div className="flex items-center w-full px-2 pt-1">
+                        <div className="flex gap-3 flex-wrap">
+                          {linkActions.slice(0, -1).map((action, index) => (
+                            <button
+                              key={'link-' + index}
+                              onClick={() => {
+                                action.onClick();
+                                if (action.autoClose !== false) onClose();
+                              }}
+                              className="text-[9px] font-black text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-widest bg-transparent border-none p-0 cursor-pointer"
+                            >
+                              {action.label}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="ml-auto">
+                          <button
+                            key="link-last"
+                            onClick={() => {
+                              const lastAction = linkActions[linkActions.length - 1];
+                              lastAction.onClick();
+                              if (lastAction.autoClose !== false) onClose();
+                            }}
+                            className="text-[9px] font-black text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-widest bg-transparent border-none p-0 cursor-pointer"
+                          >
+                            {linkActions[linkActions.length - 1].label}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 );
-              })
+              })()
             ) : (
               <button
                 onClick={onClose}
