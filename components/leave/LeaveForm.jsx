@@ -1257,6 +1257,14 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         fromTime: finalFromTime,
         toTime: finalToTime,
         reason: finalReason,
+        disease: (shortLeaveReason?.includes('Medical') || shortLeaveReason?.includes('Hospital') || shortLeaveReason === 'Room') ? shortLeaveDisease.trim() : undefined,
+        program: shortLeaveReason === 'OGEA' ? shortLeaveProgram.trim() : undefined,
+        ...(shortLeaveReason === 'OGEA' && {
+          isProgramSubmitted: false,
+          programDocumentUrl: null,
+          programCode: null,
+          programDocumented: false
+        }),
         date: finalDate,
         ...(academicYearId && { academicYearId })
       };
@@ -1403,6 +1411,8 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         updatePayload.reason = finalReason;
         updatePayload.toDate = finalToDate;
         updatePayload.toTime = finalToTime;
+        updatePayload.disease = (reason?.includes('Medical') || reason?.includes('Hospital') || reason === 'Room') ? disease.trim() : undefined;
+        updatePayload.program = reason === 'OGEA' ? program.trim() : undefined;
         updatePayload.reasonHistory = [
           ...(activeLeave.reasonHistory || []),
           {
@@ -1436,6 +1446,14 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       toDate: finalToDate,
       toTime: finalToTime,
       reason: finalReason,
+      disease: (reason?.includes('Medical') || reason?.includes('Hospital') || reason === 'Room') ? disease.trim() : undefined,
+      program: reason === 'OGEA' ? program.trim() : undefined,
+      ...(reason === 'OGEA' && {
+        isProgramSubmitted: false,
+        programDocumentUrl: null,
+        programCode: null,
+        programDocumented: false
+      }),
       status: startImmediately ? "active" : "Scheduled",
       ...(startImmediately && { leaveStartTeacher: teacher?.name || 'Unknown' }),
       recovery: false,
@@ -1743,6 +1761,13 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         toDate: finalToDate,
         toTime: finalToTime,
         reason: finalReason,
+        ...(reason === 'OGEA' && {
+          program: program.trim(),
+          isProgramSubmitted: false,
+          programDocumentUrl: null,
+          programCode: null,
+          programDocumented: false
+        }),
         status: startImmediately ? "active" : "Scheduled",
         ...(startImmediately && { leaveStartTeacher: teacher?.name || 'Unknown' }),
         recovery: false

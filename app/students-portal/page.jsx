@@ -999,6 +999,165 @@ const DocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
 };
 
 /**
+ * Program Document Modal
+ */
+const ProgramDocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
+    const [loading, setLoading] = useState(false);
+    const [fileUrl, setFileUrl] = useState('');
+    const [uploading, setUploading] = useState(false);
+    const fileInputRef = useRef(null);
+
+    if (!isOpen || !leave) return null;
+
+    const handleUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setUploading(true);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', 'leave_docs');
+
+        try {
+            const res = await axios.post(
+                'https://api.cloudinary.com/v1_1/dfetresky/image/upload',
+                formData
+            );
+            setFileUrl(res.data.secure_url);
+        } catch (err) {
+            console.error("Upload error:", err);
+            alert("Failed to upload file. Please ensure you have a valid internet connection.");
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        // Generate a unique 5-letter code
+        const code = Math.random().toString(36).substring(2, 7).toUpperCase();
+
+        setLoading(true);
+        try {
+            await axios.patch(`${API_PORT}/leave/${leave._id}`, {
+                programDocumented: false, // Remains false until admin approves
+                programDocumentUrl: fileUrl || null,
+                programCode: code,
+                isProgramSubmitted: true
+            });
+            onUpdate(code);
+            onClose();
+        } catch (err) {
+            console.error(err);
+            alert("Failed to submit documentation.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose}></div>
+            <div className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+                <div className="p-6 bg-purple-600 text-white flex items-center justify-between">
+                    <div>
+                        <h2 className="text-xl font-black uppercase italic">Program Document</h2>
+                        <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest">Attach program documents (Optional)</p>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-xl transition-all"><X size={20} /></button>
+                </div>
+                <div className="p-6 space-y-6">
+                    <div className="p-4 bg-purple-50 border border-purple-100 rounded-2xl">
+                        <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest mb-1">Leave Reason</p>
+                        <p className="text-sm font-black text-purple-800 italic">"{leave.reason}"</p>
+                        <p className="text-[10px] font-bold text-purple-400 mt-2 uppercase">{leave.fromDate} → {leave.toDate || 'End of Day'}</p>
+                    </div>
+
+                    <div className="space-y-4">
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleUpload}
+                            className="hidden"
+                            accept="image/*,.pdf"
+                        />
+
+                        {!fileUrl || uploading ? (
+                            <div
+                                onClick={() => !uploading && fileInputRef.current?.click()}
+                                className={`w-full h-48 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center p-6 text-center transition-all cursor-pointer group
+                                    ${uploading ? 'border-purple-200 bg-purple-50/30' : 'border-slate-200 hover:border-purple-400 hover:bg-purple-50'}`}
+                            >
+                                {uploading ? (
+                                    <>
+                                        <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-3" />
+                                        <p className="text-[10px] font-black text-purple-600 uppercase tracking-widest">Uploading document...</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 mb-3 group-hover:bg-purple-600 group-hover:text-white transition-all">
+                                            <Upload size={24} />
+                                        </div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">
+                                            Click to select <br /> program documents
+                                        </p>
+                                        <p className="text-[8px] font-bold text-slate-300 uppercase mt-2">(Optional)</p>
+                                    </>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="relative group rounded-[2rem] overflow-hidden border-2 border-emerald-400 shadow-xl bg-slate-50 animate-in zoom-in duration-300">
+                                {fileUrl.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i) ? (
+                                    <img src={fileUrl} alt="Preview" className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500" />
+                                ) : (
+                                    <div className="w-full h-48 flex flex-col items-center justify-center gap-3">
+                                        <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center text-purple-600">
+                                            <FileText size={32} />
+                                        </div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">PDF Document Attachment</p>
+                                    </div>
+                                )}
+                                <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-[2px]">
+                                    <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="p-4 bg-white rounded-2xl text-purple-600 hover:scale-110 transition-all shadow-2xl flex items-center gap-2 font-black text-[10px] uppercase tracking-widest">
+                                        <LayoutGrid size={18} /> View
+                                    </a>
+                                    <button onClick={() => setFileUrl('')} className="p-4 bg-white rounded-2xl text-rose-600 hover:scale-110 transition-all shadow-2xl flex items-center gap-2 font-black text-[10px] uppercase tracking-widest">
+                                        <X size={18} /> Remove
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {fileUrl && !uploading && (
+                            <div className="flex items-center gap-3 p-4 bg-emerald-50 rounded-2xl border border-emerald-100 overflow-hidden animate-in slide-in-from-top-2">
+                                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-emerald-600 shadow-sm shrink-0">
+                                    <CheckCircle size={20} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest leading-none mb-1">Ready to Save</p>
+                                    <p className="text-[10px] font-bold text-slate-600 truncate">{fileUrl.split('/').pop()}</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <button
+                        onClick={handleSubmit}
+                        disabled={loading || uploading}
+                        className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all shadow-xl
+                            ${loading || uploading ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' : 'bg-purple-600 text-white hover:bg-purple-700 active:scale-95 shadow-purple-200'}`}
+                    >
+                        {loading ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle size={16} />}
+                        Confirm Submission
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+/**
  * Zehnuth Evidence Modal
  */
 const ZehnuthEvidenceModal = ({ isOpen, onClose, request, onUpdate }) => {
@@ -1620,6 +1779,7 @@ const StudentsPortal = () => {
     const [mentor, setMentor] = useState(null);
     const [isComplaintOpen, setIsComplaintOpen] = useState(false);
     const [isDocumentOpen, setIsDocumentOpen] = useState(false);
+    const [isProgramDocumentOpen, setIsProgramDocumentOpen] = useState(false);
     const [showRecoveryWarning, setShowRecoveryWarning] = useState(false);
     const [isZehnuthEvidenceOpen, setIsZehnuthEvidenceOpen] = useState(false);
     const [selectedZehnuthRequest, setSelectedZehnuthRequest] = useState(null);
@@ -2123,11 +2283,19 @@ const StudentsPortal = () => {
                                                             <Upload size={14} /> Upload Medical Documents
                                                         </button>
                                                     )}
+                                                    {!item.programDocumented && !item.isProgramSubmitted && !item.programDocumentUrl && item.reason?.includes('OGEA') && (
+                                                        <button
+                                                            onClick={() => { setSelectedLeave(item); setIsProgramDocumentOpen(true); }}
+                                                            className="mt-6 w-full py-3 bg-purple-50 border border-purple-100 rounded-2xl text-[10px] font-black text-purple-600 uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-purple-600 hover:text-white transition-all shadow-sm"
+                                                        >
+                                                            <Upload size={14} /> Upload Program Documents
+                                                        </button>
+                                                    )}
                                                     {!item.documented && (item.isMedicalSubmitted || item.documentUrl) && (
                                                         <div className="mt-6 flex flex-col sm:flex-row gap-2">
                                                             <div className="flex-1 p-3 bg-amber-50 rounded-2xl flex items-center justify-center gap-2 border border-amber-100">
                                                                 <Clock size={14} className="text-amber-500" />
-                                                                <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Waiting for Approval</span>
+                                                                <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Medical Doc Waiting for Approval</span>
                                                             </div>
                                                             {item.documentUrl && (
                                                                 <a
@@ -2141,7 +2309,25 @@ const StudentsPortal = () => {
                                                             )}
                                                         </div>
                                                     )}
-                                                    {item.documented && (
+                                                    {!item.programDocumented && (item.isProgramSubmitted || item.programDocumentUrl) && (
+                                                        <div className="mt-6 flex flex-col sm:flex-row gap-2">
+                                                            <div className="flex-1 p-3 bg-amber-50 rounded-2xl flex items-center justify-center gap-2 border border-amber-100">
+                                                                <Clock size={14} className="text-amber-500" />
+                                                                <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Program Doc Waiting for Approval</span>
+                                                            </div>
+                                                            {item.programDocumentUrl && (
+                                                                <a
+                                                                    href={item.programDocumentUrl}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="p-3 bg-white border border-slate-200 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black text-slate-600 uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm"
+                                                                >
+                                                                    <FileText size={14} /> View Doc
+                                                                </a>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    {(item.documented || item.programDocumented) && (
                                                         <div className="mt-6 p-3 bg-emerald-50 rounded-2xl flex items-center justify-center gap-2 border border-emerald-100">
                                                             <CheckCircle size={14} className="text-emerald-500" />
                                                             <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Documents Verified</span>
@@ -2265,6 +2451,16 @@ const StudentsPortal = () => {
                 <DocumentModal
                     isOpen={isDocumentOpen}
                     onClose={() => setIsDocumentOpen(false)}
+                    leave={selectedLeave}
+                    onUpdate={(code) => {
+                        fetchStudentAnalytics(student.ADNO, student);
+                        setShowSuccessCode(code);
+                    }}
+                />
+
+                <ProgramDocumentModal
+                    isOpen={isProgramDocumentOpen}
+                    onClose={() => setIsProgramDocumentOpen(false)}
                     leave={selectedLeave}
                     onUpdate={(code) => {
                         fetchStudentAnalytics(student.ADNO, student);

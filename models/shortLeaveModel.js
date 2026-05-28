@@ -21,6 +21,14 @@ const shortLeaveSchema = new Schema({
         required: true
     },
     date: { type: Date },
+    disease: {
+        type: String,
+        default: null
+    },
+    program: {
+        type: String,
+        default: null
+    },
     teacherId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Teacher',

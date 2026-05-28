@@ -74,7 +74,31 @@ const leaveSchema = new Schema({
         type: String,
         default: null
     },
+    disease: {
+        type: String,
+        default: null
+    },
+    program: {
+        type: String,
+        default: null
+    },
     isMedicalSubmitted: {
+        type: Boolean,
+        default: false
+    },
+    isProgramSubmitted: {
+        type: Boolean,
+        default: false
+    },
+    programDocumentUrl: {
+        type: String,
+        default: null
+    },
+    programCode: {
+        type: String,
+        default: null
+    },
+    programDocumented: {
         type: Boolean,
         default: false
     },
