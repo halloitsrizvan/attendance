@@ -64,11 +64,6 @@ const ComplaintsPage = () => {
   };
 
   const handleResolve = async (id, status) => {
-    if (!remark.trim()) {
-      alert("Please enter a remark before resolving.");
-      return;
-    }
-    
     try {
       setSubmitting(true);
       await axios.patch(`${API_PORT}/complaints`, {
@@ -340,7 +335,7 @@ const ComplaintsPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">My Response</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">My Response (Optional)</label>
                   <textarea
                     placeholder="Explain your decision..."
                     value={remark}
