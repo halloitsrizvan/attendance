@@ -241,7 +241,7 @@ function AdvancedReport() {
                       </div>
                       <div className="flex flex-wrap gap-4 w-full sm:w-auto items-center">
                           <div className="flex-1 sm:flex-none min-w-[140px]">
-                              <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">On Leave: FALSE</label>
+                              <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">Absent without permission</label>
                               <div className="relative">
                                   <MinusIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-rose-500" />
                                   <input
@@ -254,7 +254,7 @@ function AdvancedReport() {
                               </div>
                           </div>
                           <div className="flex-1 sm:flex-none min-w-[140px]">
-                              <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">On Leave: TRUE</label>
+                              <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">On Leave</label>
                               <div className="relative">
                                   <MinusIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500" />
                                   <input
