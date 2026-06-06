@@ -20,10 +20,59 @@ function AdvancedReport() {
   const [classNumber, setClassNumber] = useState('');
   
   // Multipliers
-  const [manMultiplierTrue, setManMultiplierTrue] = useState('1');
-  const [manMultiplierFalse, setManMultiplierFalse] = useState('1');
-  const [pjMultiplierTrue, setPjMultiplierTrue] = useState('1');
-  const [pjMultiplierFalse, setPjMultiplierFalse] = useState('1');
+  const [multipliers, setMultipliers] = useState({
+    Morning: { true: '1', false: '1', active: true },
+    Afternoon: { true: '1', false: '1', active: true },
+    Night: { true: '1', false: '1', active: true },
+    Period: { true: '1', false: '1', active: true },
+    Jamath: { true: '1', false: '1', active: true },
+    Quiraath: { true: '1', false: '1', active: true }
+  });
+
+  const handleMultiplierChange = (time, type, value) => {
+    setMultipliers(prev => ({
+      ...prev,
+      [time]: {
+        ...prev[time],
+        [type]: value
+      }
+    }));
+  };
+
+  const applyTemplate = (type) => {
+    if (type === 'normal') {
+      setMultipliers({
+        Morning: { true: '1/3', false: '2/3', active: true },
+        Afternoon: { true: '1/3', false: '2/3', active: true },
+        Night: { true: '1/3', false: '2/3', active: true },
+        Period: { true: '1/3', false: '2/3', active: true },
+        Jamath: { true: '1/3', false: '2/3', active: true },
+        Quiraath: { true: '1/3', false: '2/3', active: true }
+      });
+    }
+  };
+
+  const manHeader = useMemo(() => {
+    const active = [];
+    if (multipliers['Morning']?.active) active.push('M');
+    if (multipliers['Afternoon']?.active) active.push('A');
+    if (multipliers['Night']?.active) active.push('N');
+    return {
+      main: 'Leave',
+      sub: active.length > 0 ? `(${active.join('+')})` : ''
+    };
+  }, [multipliers]);
+
+  const pjqHeader = useMemo(() => {
+    const active = [];
+    if (multipliers['Period']?.active) active.push('P');
+    if (multipliers['Jamath']?.active) active.push('J');
+    if (multipliers['Quiraath']?.active) active.push('Q');
+    return {
+      main: 'Absence',
+      sub: active.length > 0 ? `(${active.join('+')})` : ''
+    };
+  }, [multipliers]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -81,31 +130,48 @@ function AdvancedReport() {
     let leave_MAN = 0;
     let absence_PJ = 0;
 
-    const manTrueMult = evaluateMultiplier(manMultiplierTrue);
-    const manFalseMult = evaluateMultiplier(manMultiplierFalse);
-    const pjTrueMult = evaluateMultiplier(pjMultiplierTrue);
-    const pjFalseMult = evaluateMultiplier(pjMultiplierFalse);
-
     // Morning, Afternoon, Night
     ['Morning', 'Afternoon', 'Night'].forEach(t => {
-        const d = student.groupedAttendance[t];
-        if (d) {
-            leave_MAN += (d.absentOnLeaveFalse || 0) * manFalseMult + (d.absentOnLeaveTrue || 0) * manTrueMult;
+        if (multipliers[t]?.active) {
+            const d = student.groupedAttendance[t];
+            if (d) {
+                const mFalse = evaluateMultiplier(multipliers[t].false);
+                const mTrue = evaluateMultiplier(multipliers[t].true);
+                leave_MAN += (d.absentOnLeaveFalse || 0) * mFalse + (d.absentOnLeaveTrue || 0) * mTrue;
+            }
         }
     });
 
     // Period
-    const periodData = student.groupedAttendance['Period'];
-    if (periodData && periodData.periods) {
-        Object.values(periodData.periods).forEach(p => {
-            absence_PJ += (p.absentOnLeaveFalse || 0) * pjFalseMult + (p.absentOnLeaveTrue || 0) * pjTrueMult;
-        });
+    if (multipliers['Period']?.active) {
+        const periodData = student.groupedAttendance['Period'];
+        if (periodData && periodData.periods) {
+            const pFalse = evaluateMultiplier(multipliers['Period'].false);
+            const pTrue = evaluateMultiplier(multipliers['Period'].true);
+            Object.values(periodData.periods).forEach(p => {
+                absence_PJ += (p.absentOnLeaveFalse || 0) * pFalse + (p.absentOnLeaveTrue || 0) * pTrue;
+            });
+        }
     }
 
     // Jamath
-    const jamathData = student.groupedAttendance['Jamath'];
-    if (jamathData) {
-        absence_PJ += (jamathData.absentOnLeaveFalse || 0) * pjFalseMult + (jamathData.absentOnLeaveTrue || 0) * pjTrueMult;
+    if (multipliers['Jamath']?.active) {
+        const jamathData = student.groupedAttendance['Jamath'];
+        if (jamathData) {
+            const jFalse = evaluateMultiplier(multipliers['Jamath'].false);
+            const jTrue = evaluateMultiplier(multipliers['Jamath'].true);
+            absence_PJ += (jamathData.absentOnLeaveFalse || 0) * jFalse + (jamathData.absentOnLeaveTrue || 0) * jTrue;
+        }
+    }
+
+    // Quiraath
+    if (multipliers['Quiraath']?.active) {
+        const quiraathData = student.groupedAttendance['Quiraath'];
+        if (quiraathData) {
+            const qFalse = evaluateMultiplier(multipliers['Quiraath'].false);
+            const qTrue = evaluateMultiplier(multipliers['Quiraath'].true);
+            absence_PJ += (quiraathData.absentOnLeaveFalse || 0) * qFalse + (quiraathData.absentOnLeaveTrue || 0) * qTrue;
+        }
     }
 
     const c = parseInt(student.class, 10);
@@ -140,7 +206,7 @@ function AdvancedReport() {
   // Re-calculate data if multipliers change even without fetching
   const reportData = useMemo(() => {
     return data.map(calculateStudentRow);
-  }, [data, manMultiplierTrue, manMultiplierFalse, pjMultiplierTrue, pjMultiplierFalse]);
+  }, [data, multipliers]);
 
   const handleDownloadExcel = () => {
     const formatExcelNum = (num) => {
@@ -154,8 +220,8 @@ function AdvancedReport() {
       'Name': r.name,
       'Class': r.class,
       'Total Permitted Leave': formatExcelNum(r.permitted),
-      'Leave (M+A+N)': formatExcelNum(r.leave),
-      'Absence (P+J)': formatExcelNum(r.absence),
+      [`Leave ${manHeader.sub}`.trim()]: formatExcelNum(r.leave),
+      [`Absence ${pjqHeader.sub}`.trim()]: formatExcelNum(r.absence),
       'Minus': formatExcelNum(r.minus),
       'Total Absence': formatExcelNum(r.totalAbsence),
       'Medical Leave': formatExcelNum(r.medicalLeave),
@@ -230,77 +296,63 @@ function AdvancedReport() {
 
           {/* Multiplier Configuration */}
           <div className="bg-slate-50/50 rounded-[2rem] p-6 border border-slate-100">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-4 flex items-center gap-2">
-                <Settings size={14} className="text-emerald-500" /> Deduction Multipliers
-              </h3>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {/* M+A+N Multipliers */}
-                  <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                      <div className="flex-1">
-                        <span className="text-xs font-black text-amber-600 uppercase tracking-wider">Leave (M+A+N)</span>
-                      </div>
-                      <div className="flex flex-wrap gap-4 w-full sm:w-auto items-center">
-                          <div className="flex-1 sm:flex-none min-w-[140px]">
-                              <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">Absent without permission</label>
-                              <div className="relative">
-                                  <MinusIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-rose-500" />
-                                  <input
-                                      type="text"
-                                      placeholder="0"
-                                      value={manMultiplierFalse}
-                                      onChange={e => setManMultiplierFalse(e.target.value)}
-                                      className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-8 pr-3 py-2 text-sm font-black text-slate-700 focus:border-rose-400 outline-none"
-                                  />
-                              </div>
-                          </div>
-                          <div className="flex-1 sm:flex-none min-w-[140px]">
-                              <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">On Leave</label>
-                              <div className="relative">
-                                  <MinusIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500" />
-                                  <input
-                                      type="text"
-                                      placeholder="0"
-                                      value={manMultiplierTrue}
-                                      onChange={e => setManMultiplierTrue(e.target.value)}
-                                      className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-8 pr-3 py-2 text-sm font-black text-slate-700 focus:border-emerald-400 outline-none"
-                                  />
-                              </div>
-                          </div>
-                      </div>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 flex items-center gap-2">
+                    <Settings size={14} className="text-emerald-500" /> Deduction Multipliers
+                  </h3>
+                  <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Templates:</span>
+                      <button 
+                          onClick={() => applyTemplate('normal')}
+                          className="px-3 py-1.5 bg-white border border-slate-200 shadow-sm text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-colors active:scale-95"
+                      >
+                          Normal (1/3, 2/3)
+                      </button>
                   </div>
-
-                  {/* P+J Multipliers */}
-                  <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                      <div className="flex-1">
-                        <span className="text-xs font-black text-orange-600 uppercase tracking-wider">Absence (P+J)</span>
+              </div>
+              <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 overflow-x-auto">
+                  <div className="min-w-[600px]">
+                      <div className="grid grid-cols-[150px_1fr_1fr] gap-4 mb-3 px-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-3">
+                          <div>Time / Session</div>
+                          <div>Absent without permission </div>
+                          <div>On Leave </div>
                       </div>
-                      <div className="flex flex-wrap gap-4 w-full sm:w-auto items-center">
-                          <div className="flex-1 sm:flex-none min-w-[140px]">
-                              <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">On Leave: FALSE</label>
-                              <div className="relative">
-                                  <MinusIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-rose-500" />
-                                  <input
-                                      type="text"
-                                      placeholder="0"
-                                      value={pjMultiplierFalse}
-                                      onChange={e => setPjMultiplierFalse(e.target.value)}
-                                      className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-8 pr-3 py-2 text-sm font-black text-slate-700 focus:border-rose-400 outline-none"
-                                  />
+                      <div className="space-y-3">
+                          {['Morning', 'Afternoon', 'Night', 'Period', 'Jamath', 'Quiraath'].map(time => (
+                              <div key={time} className={`grid grid-cols-[150px_1fr_1fr] gap-4 items-center transition-opacity ${!multipliers[time]?.active ? 'opacity-50 grayscale' : ''}`}>
+                                  <label className="flex items-center gap-2 text-xs font-black text-slate-600 uppercase tracking-wider px-2 cursor-pointer">
+                                      <input 
+                                          type="checkbox" 
+                                          checked={multipliers[time]?.active || false} 
+                                          onChange={e => handleMultiplierChange(time, 'active', e.target.checked)}
+                                          className="w-4 h-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                                      />
+                                      {time}
+                                  </label>
+                                  <div className="relative">
+                                      <MinusIcon size={14} className={`absolute left-3 top-1/2 -translate-y-1/2 ${!multipliers[time]?.active ? 'text-slate-400' : 'text-rose-500'}`} />
+                                      <input
+                                          type="text"
+                                          placeholder="0"
+                                          disabled={!multipliers[time]?.active}
+                                          value={multipliers[time]?.false || ''}
+                                          onChange={e => handleMultiplierChange(time, 'false', e.target.value)}
+                                          className={`w-full border border-slate-100 rounded-xl pl-8 pr-3 py-2 text-sm font-black text-slate-700 focus:border-rose-400 outline-none transition-colors ${!multipliers[time]?.active ? 'bg-slate-100 text-slate-400' : 'bg-slate-50'}`}
+                                      />
+                                  </div>
+                                  <div className="relative">
+                                      <MinusIcon size={14} className={`absolute left-3 top-1/2 -translate-y-1/2 ${!multipliers[time]?.active ? 'text-slate-400' : 'text-emerald-500'}`} />
+                                      <input
+                                          type="text"
+                                          placeholder="0"
+                                          disabled={!multipliers[time]?.active}
+                                          value={multipliers[time]?.true || ''}
+                                          onChange={e => handleMultiplierChange(time, 'true', e.target.value)}
+                                          className={`w-full border border-slate-100 rounded-xl pl-8 pr-3 py-2 text-sm font-black text-slate-700 focus:border-emerald-400 outline-none transition-colors ${!multipliers[time]?.active ? 'bg-slate-100 text-slate-400' : 'bg-slate-50'}`}
+                                      />
+                                  </div>
                               </div>
-                          </div>
-                          <div className="flex-1 sm:flex-none min-w-[140px]">
-                              <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">On Leave: TRUE</label>
-                              <div className="relative">
-                                  <MinusIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500" />
-                                  <input
-                                      type="text"
-                                      placeholder="0"
-                                      value={pjMultiplierTrue}
-                                      onChange={e => setPjMultiplierTrue(e.target.value)}
-                                      className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-8 pr-3 py-2 text-sm font-black text-slate-700 focus:border-emerald-400 outline-none"
-                                  />
-                              </div>
-                          </div>
+                          ))}
                       </div>
                   </div>
               </div>
@@ -363,8 +415,12 @@ function AdvancedReport() {
                     <th className="p-4 border-r border-white min-w-[150px]">Student Name</th>
                     <th className="p-4 border-r border-white text-center">Class</th>
                     <th className="p-4 border-r border-white text-center bg-blue-50/50 text-blue-600">Total Permitted<br/>Leave</th>
-                    <th className="p-4 border-r border-white text-center bg-amber-50/50 text-amber-600">Leave<br/>(M+A+N)</th>
-                    <th className="p-4 border-r border-white text-center bg-orange-50/50 text-orange-600">Absence<br/>(P+J)</th>
+                    <th className="p-4 border-r border-white text-center bg-amber-50/50 text-amber-600">
+                      {manHeader.main}{manHeader.sub && <><br/>{manHeader.sub}</>}
+                    </th>
+                    <th className="p-4 border-r border-white text-center bg-orange-50/50 text-orange-600">
+                      {pjqHeader.main}{pjqHeader.sub && <><br/>{pjqHeader.sub}</>}
+                    </th>
                     <th className="p-4 border-r border-white text-center bg-rose-50/50 text-rose-600">Minus</th>
                     <th className="p-4 border-r border-white text-center bg-slate-100 text-slate-800">Total Absence</th>
                     <th className="p-4 border-r border-white text-center bg-emerald-50/50 text-emerald-600">Medical Leave</th>
