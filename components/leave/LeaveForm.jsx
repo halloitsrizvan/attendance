@@ -801,6 +801,8 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Reason</span>
             <span className="px-2 py-0.5 bg-sky-100 text-sky-700 rounded-full text-[10px] font-black uppercase">
               {activeRecord.reason}
+              {activeRecord.disease ? ` - ${activeRecord.disease}` : ''}
+              {activeRecord.program ? ` - ${activeRecord.program}` : ''}
             </span>
           </div>
           <div className="grid grid-cols-2 gap-4 mt-2">
@@ -1220,11 +1222,6 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     const finalFromTime = cepMode === 'dars' ? '19:00' : getPeriodTime(shortLeaveFromPeriod, shortLeaveFromCustomTime, true);
     const finalToTime = cepMode === 'dars' ? '20:30' : getPeriodTime(shortLeaveToPeriod, shortLeaveToCustomTime, false);
     let finalReason = shortLeaveReason === 'Custom' ? shortLeaveCustomReason : shortLeaveReason;
-    if ((shortLeaveReason?.includes('Medical') || shortLeaveReason?.includes('Hospital') || shortLeaveReason === 'Room') && shortLeaveDisease.trim() !== '') {
-      finalReason = `${shortLeaveReason} - ${shortLeaveDisease.trim()}`;
-    } else if (shortLeaveReason === 'OGEA' && shortLeaveProgram.trim() !== '') {
-      finalReason = `OGEA - ${shortLeaveProgram.trim()}`;
-    }
 
     let finalDate;
     if (shortLeaveDate === 'Calendar') {
@@ -1356,11 +1353,6 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
 
     const finalFromTime = getFormattedTime(fromTime, fromCustomTime, 'From Time');
     let finalReason = reason === 'Custom' ? customReason : reason;
-    if ((reason?.includes('Medical') || reason?.includes('Hospital') || reason === 'Room') && disease.trim() !== '') {
-      finalReason = `${reason} - ${disease.trim()}`;
-    } else if (reason === 'OGEA' && program.trim() !== '') {
-      finalReason = `OGEA - ${program.trim()}`;
-    }
 
     // For medical reasons, set toDate and toTime to null unless user explicitly sets them
     const isMedicalReason = reason === 'Medical' || reason === 'Medical (Home)' || reason === 'Medical (Room)' || reason === 'Room';

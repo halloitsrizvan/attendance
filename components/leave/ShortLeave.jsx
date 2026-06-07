@@ -514,7 +514,11 @@ function ShortLeave({ statusData: initialStatusData, type, onDataUpdate }) {
 
                 {leave.reason && (
                   <div className="items-center gap-1 text-gray-600 bg-gray-50 px-2 py-1 rounded">
-                    <span className="truncate italic">{leave.reason}</span>
+                    <span className="truncate italic">
+                      {leave.reason}
+                      {leave.disease ? ` - ${leave.disease}` : ''}
+                      {leave.program ? ` - ${leave.program}` : ''}
+                    </span>
                   </div>
                 )}
               </div>

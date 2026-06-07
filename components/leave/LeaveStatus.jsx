@@ -394,7 +394,11 @@ const StudentStatusCard = ({ student, onDelete, onEdit }) => {
               {/* Reason */}
               {student.reason && (
                 <div className="w-full flex items-center gap-1 text-gray-600 bg-gray-50 px-2 py-1.5 rounded mt-1 border border-gray-100/50">
-                  <span className="italic leading-relaxed">{student.reason}</span>
+                  <span className="italic leading-relaxed">
+                    {student.reason}
+                    {student.disease ? ` - ${student.disease}` : ''}
+                    {student.program ? ` - ${student.program}` : ''}
+                  </span>
                 </div>
               )}
             </div>
@@ -743,7 +747,8 @@ function LeaveStatus({ myClassOnly = false }) {
       const fromTimeStr = formatTimeTo12h(l.fromTime);
       const toTimeStr = formatTimeTo12h(l.toTime);
       
-      return `${i + 1}. ${name} (${ad}) - Class ${className}\n   Reason: ${l.reason}\n   From: ${l.fromDate} ${fromTimeStr}\n   To: ${l.toDate} ${toTimeStr}`;
+      const specificReason = l.disease ? ` - ${l.disease}` : (l.program ? ` - ${l.program}` : '');
+      return `${i + 1}. ${name} (${ad}) - Class ${className}\n   Reason: ${l.reason}${specificReason}\n   From: ${l.fromDate} ${fromTimeStr}\n   To: ${l.toDate} ${toTimeStr}`;
     }).join('\n\n');
 
     navigator.clipboard.writeText(text).then(() => {

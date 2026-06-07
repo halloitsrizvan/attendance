@@ -255,7 +255,9 @@ function LeaveApplications() {
 
                   <div className="space-y-4 mb-8">
                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 italic font-medium text-slate-600 text-sm">
-                      “{leave.reason}”
+                      “{leave.reason}
+                      {leave.disease ? ` - ${leave.disease}` : ''}
+                      {leave.program ? ` - ${leave.program}` : ''}”
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1">

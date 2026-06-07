@@ -18,7 +18,7 @@ function AdvancedReport() {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [classNumber, setClassNumber] = useState('');
-  
+
   // Multipliers
   const [multipliers, setMultipliers] = useState({
     Morning: { true: '1', false: '1', active: true },
@@ -132,54 +132,54 @@ function AdvancedReport() {
 
     // Morning, Afternoon, Night
     ['Morning', 'Afternoon', 'Night'].forEach(t => {
-        if (multipliers[t]?.active) {
-            const d = student.groupedAttendance[t];
-            if (d) {
-                const mFalse = evaluateMultiplier(multipliers[t].false);
-                const mTrue = evaluateMultiplier(multipliers[t].true);
-                leave_MAN += (d.absentOnLeaveFalse || 0) * mFalse + (d.absentOnLeaveTrue || 0) * mTrue;
-            }
+      if (multipliers[t]?.active) {
+        const d = student.groupedAttendance[t];
+        if (d) {
+          const mFalse = evaluateMultiplier(multipliers[t].false);
+          const mTrue = evaluateMultiplier(multipliers[t].true);
+          leave_MAN += (d.absentOnLeaveFalse || 0) * mFalse + (d.absentOnLeaveTrue || 0) * mTrue;
         }
+      }
     });
 
     // Period
     if (multipliers['Period']?.active) {
-        const periodData = student.groupedAttendance['Period'];
-        if (periodData && periodData.periods) {
-            const pFalse = evaluateMultiplier(multipliers['Period'].false);
-            const pTrue = evaluateMultiplier(multipliers['Period'].true);
-            Object.values(periodData.periods).forEach(p => {
-                absence_PJ += (p.absentOnLeaveFalse || 0) * pFalse + (p.absentOnLeaveTrue || 0) * pTrue;
-            });
-        }
+      const periodData = student.groupedAttendance['Period'];
+      if (periodData && periodData.periods) {
+        const pFalse = evaluateMultiplier(multipliers['Period'].false);
+        const pTrue = evaluateMultiplier(multipliers['Period'].true);
+        Object.values(periodData.periods).forEach(p => {
+          absence_PJ += (p.absentOnLeaveFalse || 0) * pFalse + (p.absentOnLeaveTrue || 0) * pTrue;
+        });
+      }
     }
 
     // Jamath
     if (multipliers['Jamath']?.active) {
-        const jamathData = student.groupedAttendance['Jamath'];
-        if (jamathData) {
-            const jFalse = evaluateMultiplier(multipliers['Jamath'].false);
-            const jTrue = evaluateMultiplier(multipliers['Jamath'].true);
-            absence_PJ += (jamathData.absentOnLeaveFalse || 0) * jFalse + (jamathData.absentOnLeaveTrue || 0) * jTrue;
-        }
+      const jamathData = student.groupedAttendance['Jamath'];
+      if (jamathData) {
+        const jFalse = evaluateMultiplier(multipliers['Jamath'].false);
+        const jTrue = evaluateMultiplier(multipliers['Jamath'].true);
+        absence_PJ += (jamathData.absentOnLeaveFalse || 0) * jFalse + (jamathData.absentOnLeaveTrue || 0) * jTrue;
+      }
     }
 
     // Quiraath
     if (multipliers['Quiraath']?.active) {
-        const quiraathData = student.groupedAttendance['Quiraath'];
-        if (quiraathData) {
-            const qFalse = evaluateMultiplier(multipliers['Quiraath'].false);
-            const qTrue = evaluateMultiplier(multipliers['Quiraath'].true);
-            absence_PJ += (quiraathData.absentOnLeaveFalse || 0) * qFalse + (quiraathData.absentOnLeaveTrue || 0) * qTrue;
-        }
+      const quiraathData = student.groupedAttendance['Quiraath'];
+      if (quiraathData) {
+        const qFalse = evaluateMultiplier(multipliers['Quiraath'].false);
+        const qTrue = evaluateMultiplier(multipliers['Quiraath'].true);
+        absence_PJ += (quiraathData.absentOnLeaveFalse || 0) * qFalse + (quiraathData.absentOnLeaveTrue || 0) * qTrue;
+      }
     }
 
     const c = parseInt(student.class, 10);
     let permitted = 0;
     if (!isNaN(c)) {
-        if (c >= 1 && c <= 5) permitted = 6;
-        else if (c === 6 || c === 7) permitted = 7;
-        else if (c >= 8 && c <= 10) permitted = 8;
+      if (c >= 1 && c <= 5) permitted = 6;
+      else if (c === 6 || c === 7) permitted = 7;
+      else if (c >= 8 && c <= 10) permitted = 8;
     }
 
     const minus = student.totalManualMinus || 0;
@@ -255,7 +255,7 @@ function AdvancedReport() {
 
         {/* Configuration Card */}
         <div className="bg-white rounded-[2.5rem] p-6 sm:p-10 shadow-xl shadow-slate-200/50 border border-slate-100 space-y-8">
-          
+
           {/* Main Filters */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-end">
             <div>
@@ -296,66 +296,66 @@ function AdvancedReport() {
 
           {/* Multiplier Configuration */}
           <div className="bg-slate-50/50 rounded-[2rem] p-6 border border-slate-100">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
-                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 flex items-center gap-2">
-                    <Settings size={14} className="text-emerald-500" /> Deduction Multipliers
-                  </h3>
-                  <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Templates:</span>
-                      <button 
-                          onClick={() => applyTemplate('normal')}
-                          className="px-3 py-1.5 bg-white border border-slate-200 shadow-sm text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-colors active:scale-95"
-                      >
-                          Normal (1/3, 2/3)
-                      </button>
-                  </div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 flex items-center gap-2">
+                <Settings size={14} className="text-emerald-500" /> Deduction Multipliers
+              </h3>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Templates:</span>
+                <button
+                  onClick={() => applyTemplate('normal')}
+                  className="px-3 py-1.5 bg-white border border-slate-200 shadow-sm text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-colors active:scale-95"
+                >
+                  Normal (1/3, 2/3)
+                </button>
               </div>
-              <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 overflow-x-auto">
-                  <div className="min-w-[600px]">
-                      <div className="grid grid-cols-[150px_1fr_1fr] gap-4 mb-3 px-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-3">
-                          <div>Time / Session</div>
-                          <div>Absent without permission </div>
-                          <div>On Leave </div>
+            </div>
+            <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 overflow-x-auto">
+              <div className="min-w-[600px]">
+                <div className="grid grid-cols-[150px_1fr_1fr] gap-4 mb-3 px-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-3">
+                  <div>Time / Session</div>
+                  <div>Absent without permission </div>
+                  <div>On Leave </div>
+                </div>
+                <div className="space-y-3">
+                  {['Morning', 'Afternoon', 'Night', 'Period', 'Jamath', 'Quiraath'].map(time => (
+                    <div key={time} className={`grid grid-cols-[150px_1fr_1fr] gap-4 items-center transition-opacity ${!multipliers[time]?.active ? 'opacity-50 grayscale' : ''}`}>
+                      <label className="flex items-center gap-2 text-xs font-black text-slate-600 uppercase tracking-wider px-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={multipliers[time]?.active || false}
+                          onChange={e => handleMultiplierChange(time, 'active', e.target.checked)}
+                          className="w-4 h-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                        />
+                        {time}
+                      </label>
+                      <div className="relative">
+                        <MinusIcon size={14} className={`absolute left-3 top-1/2 -translate-y-1/2 ${!multipliers[time]?.active ? 'text-slate-400' : 'text-rose-500'}`} />
+                        <input
+                          type="text"
+                          placeholder="0"
+                          disabled={!multipliers[time]?.active}
+                          value={multipliers[time]?.false || ''}
+                          onChange={e => handleMultiplierChange(time, 'false', e.target.value)}
+                          className={`w-full border border-slate-100 rounded-xl pl-8 pr-3 py-2 text-sm font-black text-slate-700 focus:border-rose-400 outline-none transition-colors ${!multipliers[time]?.active ? 'bg-slate-100 text-slate-400' : 'bg-slate-50'}`}
+                        />
                       </div>
-                      <div className="space-y-3">
-                          {['Morning', 'Afternoon', 'Night', 'Period', 'Jamath', 'Quiraath'].map(time => (
-                              <div key={time} className={`grid grid-cols-[150px_1fr_1fr] gap-4 items-center transition-opacity ${!multipliers[time]?.active ? 'opacity-50 grayscale' : ''}`}>
-                                  <label className="flex items-center gap-2 text-xs font-black text-slate-600 uppercase tracking-wider px-2 cursor-pointer">
-                                      <input 
-                                          type="checkbox" 
-                                          checked={multipliers[time]?.active || false} 
-                                          onChange={e => handleMultiplierChange(time, 'active', e.target.checked)}
-                                          className="w-4 h-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
-                                      />
-                                      {time}
-                                  </label>
-                                  <div className="relative">
-                                      <MinusIcon size={14} className={`absolute left-3 top-1/2 -translate-y-1/2 ${!multipliers[time]?.active ? 'text-slate-400' : 'text-rose-500'}`} />
-                                      <input
-                                          type="text"
-                                          placeholder="0"
-                                          disabled={!multipliers[time]?.active}
-                                          value={multipliers[time]?.false || ''}
-                                          onChange={e => handleMultiplierChange(time, 'false', e.target.value)}
-                                          className={`w-full border border-slate-100 rounded-xl pl-8 pr-3 py-2 text-sm font-black text-slate-700 focus:border-rose-400 outline-none transition-colors ${!multipliers[time]?.active ? 'bg-slate-100 text-slate-400' : 'bg-slate-50'}`}
-                                      />
-                                  </div>
-                                  <div className="relative">
-                                      <MinusIcon size={14} className={`absolute left-3 top-1/2 -translate-y-1/2 ${!multipliers[time]?.active ? 'text-slate-400' : 'text-emerald-500'}`} />
-                                      <input
-                                          type="text"
-                                          placeholder="0"
-                                          disabled={!multipliers[time]?.active}
-                                          value={multipliers[time]?.true || ''}
-                                          onChange={e => handleMultiplierChange(time, 'true', e.target.value)}
-                                          className={`w-full border border-slate-100 rounded-xl pl-8 pr-3 py-2 text-sm font-black text-slate-700 focus:border-emerald-400 outline-none transition-colors ${!multipliers[time]?.active ? 'bg-slate-100 text-slate-400' : 'bg-slate-50'}`}
-                                      />
-                                  </div>
-                              </div>
-                          ))}
+                      <div className="relative">
+                        <MinusIcon size={14} className={`absolute left-3 top-1/2 -translate-y-1/2 ${!multipliers[time]?.active ? 'text-slate-400' : 'text-emerald-500'}`} />
+                        <input
+                          type="text"
+                          placeholder="0"
+                          disabled={!multipliers[time]?.active}
+                          value={multipliers[time]?.true || ''}
+                          onChange={e => handleMultiplierChange(time, 'true', e.target.value)}
+                          className={`w-full border border-slate-100 rounded-xl pl-8 pr-3 py-2 text-sm font-black text-slate-700 focus:border-emerald-400 outline-none transition-colors ${!multipliers[time]?.active ? 'bg-slate-100 text-slate-400' : 'bg-slate-50'}`}
+                        />
                       </div>
-                  </div>
+                    </div>
+                  ))}
+                </div>
               </div>
+            </div>
           </div>
 
 
@@ -414,18 +414,18 @@ function AdvancedReport() {
                     <th className="p-4 border-r border-white">AD NO</th>
                     <th className="p-4 border-r border-white min-w-[150px]">Student Name</th>
                     <th className="p-4 border-r border-white text-center">Class</th>
-                    <th className="p-4 border-r border-white text-center bg-blue-50/50 text-blue-600">Total Permitted<br/>Leave</th>
+                    <th className="p-4 border-r border-white text-center bg-blue-50/50 text-blue-600">Total Permitted<br />Leave</th>
                     <th className="p-4 border-r border-white text-center bg-amber-50/50 text-amber-600">
-                      {manHeader.main}{manHeader.sub && <><br/>{manHeader.sub}</>}
+                      {manHeader.main}{manHeader.sub && <><br />{manHeader.sub}</>}
                     </th>
                     <th className="p-4 border-r border-white text-center bg-orange-50/50 text-orange-600">
-                      {pjqHeader.main}{pjqHeader.sub && <><br/>{pjqHeader.sub}</>}
+                      {pjqHeader.main}{pjqHeader.sub && <><br />{pjqHeader.sub}</>}
                     </th>
                     <th className="p-4 border-r border-white text-center bg-rose-50/50 text-rose-600">Minus</th>
                     <th className="p-4 border-r border-white text-center bg-slate-100 text-slate-800">Total Absence</th>
                     <th className="p-4 border-r border-white text-center bg-emerald-50/50 text-emerald-600">Medical Leave</th>
-                    <th className="p-4 border-r border-white text-center bg-teal-50/50 text-teal-600">Documented<br/>Leave</th>
-                    <th className="p-4 border-r border-white text-center bg-purple-50/50 text-purple-600">Zehnuth<br/>Points</th>
+                    <th className="p-4 border-r border-white text-center bg-teal-50/50 text-teal-600">Documented<br />Leave</th>
+                    <th className="p-4 border-r border-white text-center bg-purple-50/50 text-purple-600">Zehnuth<br />Points</th>
                     <th className="p-4 text-center bg-red-100 text-red-600">Over By</th>
                   </tr>
                 </thead>

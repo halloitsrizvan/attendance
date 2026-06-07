@@ -266,7 +266,7 @@ const EditLeaveModal = ({ classInfo, onSave, onClose, isOpen, onDelete }) => {
 };
 
 const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassData, teacher, type, isSelected, onSelect, selectedIds }) => {
-  const { _id, studentId, teacherId, remainingTime, status, returnedAt, toDate, toTime, fromTime, fromDate, reason } = classInfo;
+  const { _id, studentId, teacherId, remainingTime, status, returnedAt, toDate, toTime, fromTime, fromDate, reason, disease, program } = classInfo;
   const ad = studentId?.ADNO || classInfo.ad;
   const name = studentId?.['SHORT NAME'] || studentId?.['FULL NAME'] || classInfo.name;
   const classNum = studentId?.CLASS || classInfo.classNum;
@@ -749,7 +749,11 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
                   </div>
                 )}
                 <div className="flex items-center gap-1 text-slate-500 bg-slate-50 px-2 py-0.5 rounded text-[10px] font-medium italic">
-                  <span>{reason}</span>
+                  <span>
+                    {reason}
+                    {disease ? ` - ${disease}` : ''}
+                    {program ? ` - ${program}` : ''}
+                  </span>
                 </div>
               </div>
             </div>

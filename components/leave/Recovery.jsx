@@ -316,7 +316,11 @@ const Recovery = () => {
                                             <h3 className="text-base font-black text-slate-800 leading-tight">
                                                 {leave.studentId?.['SHORT NAME'] || leave.studentId?.['FULL NAME'] || leave.name}
                                             </h3>
-                                            <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">{leave.reason}</p>
+                                            <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">
+                                                {leave.reason}
+                                                {leave.disease ? ` - ${leave.disease}` : ''}
+                                                {leave.program ? ` - ${leave.program}` : ''}
+                                            </p>
                                         </div>
                                     </div>
                                     <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest ${leave.recovery ? 'text-emerald-600 bg-emerald-50 border border-emerald-100' : statusInfo.color} shadow-sm`}>
