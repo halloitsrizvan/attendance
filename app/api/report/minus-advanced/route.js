@@ -61,6 +61,7 @@ export async function GET(req) {
       const groupedAttendance = {};
       const medicalLeavesSet = new Set();
       const documentedLeavesSet = new Set();
+      const ogeaLeavesSet = new Set();
 
       attendance.forEach(record => {
         const time = record.attendanceTime;
@@ -72,14 +73,20 @@ export async function GET(req) {
           // Check for Medical Leaves
           let isMedical = false;
           let isOtherDocumented = false;
+          let isOgea = false;
 
           if (record.onLeave && record.leaveId) {
             const reason = record.leaveId.reason;
             isMedical = reason === 'Medical (Home)' || reason === 'Medical (Room)' || reason === 'Hospital';
+            isOgea = reason === 'OGEA';
             
             if (isMedical) {
               medicalLeavesSet.add(record.leaveId._id.toString());
-            } else if (record.leaveId.documented === true) {
+            } else if (isOgea) {
+              ogeaLeavesSet.add(record.leaveId._id.toString());
+            }
+            
+            if (record.leaveId.documented === true || record.leaveId.programDocumented === true) {
               documentedLeavesSet.add(record.leaveId._id.toString());
               isOtherDocumented = true;
             }
@@ -124,6 +131,7 @@ export async function GET(req) {
         groupedAttendance,
         totalManualMinus,
         totalMedicalLeave: medicalLeavesSet.size,
+        totalOgeaLeave: ogeaLeavesSet.size,
         totalDocumentedLeave: documentedLeavesSet.size,
         totalZehnuthPoints
       };

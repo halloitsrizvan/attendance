@@ -197,6 +197,7 @@ function AdvancedReport() {
       minus,
       totalAbsence,
       medicalLeave: student.totalMedicalLeave || 0,
+      ogeaLeave: student.totalOgeaLeave || 0,
       documentedLeave: student.totalDocumentedLeave || 0,
       zehnuthPoints: student.totalZehnuthPoints || 0,
       overBy
@@ -225,8 +226,8 @@ function AdvancedReport() {
       'Minus': formatExcelNum(r.minus),
       'Total Absence': formatExcelNum(r.totalAbsence),
       'Medical Leave': formatExcelNum(r.medicalLeave),
+      'OGEA Leave': formatExcelNum(r.ogeaLeave),
       'Documented Leave': formatExcelNum(r.documentedLeave),
-      'Zehnuth Points': formatExcelNum(r.zehnuthPoints),
       'Over By': formatExcelNum(r.overBy)
     }));
 
@@ -424,8 +425,8 @@ function AdvancedReport() {
                     <th className="p-4 border-r border-white text-center bg-rose-50/50 text-rose-600">Minus</th>
                     <th className="p-4 border-r border-white text-center bg-slate-100 text-slate-800">Total Absence</th>
                     <th className="p-4 border-r border-white text-center bg-emerald-50/50 text-emerald-600">Medical Leave</th>
+                    <th className="p-4 border-r border-white text-center bg-indigo-50/50 text-indigo-600">OGEA<br />Leave</th>
                     <th className="p-4 border-r border-white text-center bg-teal-50/50 text-teal-600">Documented<br />Leave</th>
-                    <th className="p-4 border-r border-white text-center bg-purple-50/50 text-purple-600">Zehnuth<br />Points</th>
                     <th className="p-4 text-center bg-red-100 text-red-600">Over By</th>
                   </tr>
                 </thead>
@@ -444,8 +445,8 @@ function AdvancedReport() {
                       <td className="p-3 border-r border-white text-center font-black text-rose-600 bg-rose-50/20">{formatNum(row.minus)}</td>
                       <td className="p-3 border-r border-white text-center font-black text-slate-800 bg-slate-50">{formatNum(row.totalAbsence)}</td>
                       <td className="p-3 border-r border-white text-center font-black text-emerald-600 bg-emerald-50/20">{formatNum(row.medicalLeave)}</td>
+                      <td className="p-3 border-r border-white text-center font-black text-indigo-600 bg-indigo-50/20">{formatNum(row.ogeaLeave)}</td>
                       <td className="p-3 border-r border-white text-center font-black text-teal-600 bg-teal-50/20">{formatNum(row.documentedLeave)}</td>
-                      <td className="p-3 border-r border-white text-center font-black text-purple-600 bg-purple-50/20">{formatNum(row.zehnuthPoints)}</td>
                       <td className={`p-3 text-center font-black ${row.overBy > 0 ? 'text-red-600 bg-red-50/50' : 'text-slate-300'}`}>
                         {row.overBy > 0 ? formatNum(row.overBy) : '-'}
                       </td>
