@@ -14,6 +14,7 @@ const CATEGORIES = [
     { id: 'Competitions', label: 'Competitions', icon: '🏅', points: [25, 20, 15, 10, 5, 3] },
     { id: 'MentorBonus', label: 'Mentor Bonus', icon: '🤝', points: [5, 4, 3, 2, 1] },
     { id: 'Exam', label: 'Academic/Exam', icon: '🎓', points: [50, 35, 25, 20, 10] },
+    { id: 'Works', label: 'Works', icon: '🎨', points: [4] },
 ];
 
 const ACTIVITY_POINTS = {
@@ -40,7 +41,10 @@ const ACTIVITY_POINTS = {
     '1st Place (In)': [10], '2nd Place (In)': [8], '3rd Place (In)': [5], 'Participation (In)': [3],
 
     // Mentor
-    'Language conversation': [5], 'Personal creative work': [5], 'Active student bonus': [5]
+    'Language conversation': [5], 'Personal creative work': [5], 'Active student bonus': [5],
+
+    // Works
+    'Social works': [4], 'Poster design': [4], 'video edit': [4]
 };
 
 const ReviewModal = ({ request, isOpen, onClose, onAction, processingId }) => {

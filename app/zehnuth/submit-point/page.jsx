@@ -63,6 +63,7 @@ const CATEGORY_DATA = [
     { id: 'Exam', label: 'Exam', icon: '🎓', points: [50, 35, 25, 20, 10] }, 
     { id: 'Mentor', label: 'Mentor', icon: '🤝', points: [5, 4, 3, 2, 1] },
     { id: 'Competitions', label: 'Competitions', icon: '🏅', points: [25, 20, 15, 10, 5, 3] },
+    { id: 'Works', label: 'Works', icon: '🎨', points: [4] },
 ];
 
 const ACTIVITY_POINTS = {
@@ -89,7 +90,10 @@ const ACTIVITY_POINTS = {
     '1st Place (In)': [10], '2nd Place (In)': [8], '3rd Place (In)': [5], 'Participation (In)': [3],
 
     // Mentor
-    'Language conversation': [5], 'Personal creative work': [5], 'Active student bonus': [5]
+    'Language conversation': [5], 'Personal creative work': [5], 'Active student bonus': [5],
+
+    // Works
+    'Social works': [4], 'Poster design': [4], 'video edit': [4]
 };
 
 export default function SubmitPoint() {
@@ -522,6 +526,16 @@ export default function SubmitPoint() {
                                             <Row label="Participation (In)" condition="Inside Campus" badgeColor="purple" />
                                         </tbody>
                                     </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedCategory === 'Works' && (
+                            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+                                    <Card label="Social works" />
+                                    <Card label="Poster design" />
+                                    <Card label="video edit" />
                                 </div>
                             </div>
                         )}

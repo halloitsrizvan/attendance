@@ -1348,6 +1348,7 @@ const ApplyZehnuthModal = ({ isOpen, onClose, student, mentor, onComplete }) => 
         { id: 'Achievements', label: 'Achievements', icon: '🏆' },
         { id: 'Competitions', label: 'Competitions', icon: '🏅' },
         { id: 'Mentor', label: 'Mentor', icon: '🤝' },
+        { id: 'Works', label: 'Works', icon: '🎨' },
     ];
 
     const toggleAchievement = (item) => {
@@ -1639,6 +1640,16 @@ const ApplyZehnuthModal = ({ isOpen, onClose, student, mentor, onComplete }) => 
                                         <Row label="Active student bonus" condition="Lesson plans listed" badgeColor="amber" />
                                     </tbody>
                                 </table>
+                            </div>
+                        )}
+
+                        {selectedCategory === 'Works' && (
+                            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+                                    <Card label="Social works" />
+                                    <Card label="Poster design" />
+                                    <Card label="video edit" />
+                                </div>
                             </div>
                         )}
                     </div>
