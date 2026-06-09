@@ -173,6 +173,24 @@ function Header() {
                 </div> 
               </div>
 
+              {/* Class Programs Dropdown */}
+              <div className="relative group">
+                <button
+                  className="text-white hover:text-sky-100 transition-colors duration-200 font-semibold text-lg flex items-center gap-1 px-2 py-1"
+                >
+                  Class Programs
+                  <svg className="w-5 h-5 transition-transform duration-200 group-hover:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                <div className="absolute top-full left-0 mt-0 pt-3 w-60 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-200 z-50">
+                  <div className="bg-white shadow-2xl py-3 border border-slate-100 rounded-xl">
+                    <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/class-reports/submit') }}>Submit Report</a>
+                    <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/class-reports/leaderboard') }}>Leaderboard</a>
+                  </div>
+                </div> 
+              </div>
+
               {/* Admin Dropdown */}
               {hasRole("super_admin") && (
                 <div className="relative group">
@@ -374,6 +392,25 @@ function Header() {
                   <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/mentees-requests'); setIsMenuOpen(false) }}>Mentees' Requests</a>
                   <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/points'); setIsMenuOpen(false) }}>My Mentees' Points</a>
                   <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/mentor-activities'); setIsMenuOpen(false) }}>Mentor Activities</a>
+                </div>
+              )}
+            </div>
+
+            {/* Class Programs Group */}
+            <div className="border-t border-slate-100">
+              <button
+                className="w-full flex items-center justify-between px-4 py-5 font-bold text-slate-800 hover:bg-sky-50 transition-colors"
+                onClick={() => toggleDropdown('mb-class-programs')}
+              >
+                <span className="text-lg">Class Programs</span>
+                <svg className={`w-6 h-6 transition-transform duration-200 text-slate-400 ${openDropdown === 'mb-class-programs' ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {openDropdown === 'mb-class-programs' && (
+                <div className="bg-slate-50/50 pb-3">
+                  <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/class-reports/submit'); setIsMenuOpen(false) }}>Submit Report</a>
+                  <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/class-reports/leaderboard'); setIsMenuOpen(false) }}>Leaderboard</a>
                 </div>
               )}
             </div>

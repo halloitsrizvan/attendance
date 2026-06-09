@@ -1,6 +1,7 @@
 import dbConnect from "@/lib/mongodb";
 import MentorMentee from "@/models/mentorMenteeModel";
 import Student from "@/models/studentsModel";
+import Teacher from "@/models/teachersModel";
 import { NextResponse } from "next/server";
 
 export async function GET(req) {
