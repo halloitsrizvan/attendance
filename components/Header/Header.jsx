@@ -154,14 +154,21 @@ function Header() {
                   <div className="bg-white shadow-2xl py-3 border border-slate-100 rounded-xl">
                     <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/zehnuth/submit-point') }}>Submit Point</a>
                     {(teacher?.email || teacher?.EMAIL) === 'krehmankoolivayal13889@gmail.com' && (
-                      <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base relative" onClick={() => { navigate.push('/zehnuth/requests') }}>
-                        Pending Requests
-                        <span className="ml-2 bg-amber-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse">NEW</span>
-                      </a>
+                      <>
+                        <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base relative" onClick={() => { navigate.push('/zehnuth/requests') }}>
+                          Pending Requests
+                          <span className="ml-2 bg-amber-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse">NEW</span>
+                        </a>
+                        <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/zehnuth/mentor-approvals') }}>
+                          Mentor Approvals
+                        </a>
+                      </>
                     )}
-                    <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/zehnuth/leaderboard') }}>Leaderboard</a>
+                    <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/zehnuth/leaderboard') }}>Student Leaderboard</a>
+                    <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/zehnuth/mentor-leaderboard') }}>Mentor Leaderboard</a>
                     <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/zehnuth/mentees-requests') }}>Mentees' Requests</a>
                     <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/zehnuth/points') }}>My Mentees' Points</a>
+                    <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/zehnuth/mentor-activities') }}>Mentor Activities</a>
                   </div>
                 </div> 
               </div>
@@ -357,11 +364,16 @@ function Header() {
                 <div className="bg-slate-50/50 pb-3">
                   <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/submit-point'); setIsMenuOpen(false) }}>Submit Point</a>
                   {(teacher?.email || teacher?.EMAIL) === 'krehmankoolivayal13889@gmail.com' && (
-                    <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/requests'); setIsMenuOpen(false) }}>Pending Requests</a>
+                    <>
+                      <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/requests'); setIsMenuOpen(false) }}>Pending Requests</a>
+                      <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/mentor-approvals'); setIsMenuOpen(false) }}>Mentor Approvals</a>
+                    </>
                   )}
-                  <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/leaderboard'); setIsMenuOpen(false) }}>Leaderboard</a>
+                  <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/leaderboard'); setIsMenuOpen(false) }}>Student Leaderboard</a>
+                  <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/mentor-leaderboard'); setIsMenuOpen(false) }}>Mentor Leaderboard</a>
                   <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/mentees-requests'); setIsMenuOpen(false) }}>Mentees' Requests</a>
                   <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/points'); setIsMenuOpen(false) }}>My Mentees' Points</a>
+                  <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/mentor-activities'); setIsMenuOpen(false) }}>Mentor Activities</a>
                 </div>
               )}
             </div>
