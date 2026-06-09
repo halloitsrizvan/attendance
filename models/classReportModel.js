@@ -61,7 +61,14 @@ const classReportSchema = new Schema({
     },
     status: {
         type: String,
-        default: 'pending' // For when admin reviews it later
+        default: 'pending' // pending, reviewed
+    },
+    markedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Teacher'
+    },
+    reviewedAt: {
+        type: Date
     }
 }, { timestamps: true });
 

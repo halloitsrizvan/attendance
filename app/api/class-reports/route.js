@@ -55,8 +55,13 @@ export async function GET(req) {
         const type = searchParams.get('type');
 
         if (type === 'leaderboard') {
+            const month = searchParams.get('month');
+            const query = {};
+            if (month && month !== 'All') {
+                query.month = month;
+            }
             // Aggregate total marks by class
-            const reports = await ClassReport.find({}).lean();
+            const reports = await ClassReport.find(query).lean();
             
             const classMap = {};
             
@@ -80,7 +85,10 @@ export async function GET(req) {
         }
 
         // Return all reports
-        const reports = await ClassReport.find({}).populate('teacherId', 'name').sort({ createdAt: -1 });
+        const reports = await ClassReport.find({})
+            .populate('teacherId', 'name')
+            .populate('markedBy', 'name')
+            .sort({ createdAt: -1 });
         return NextResponse.json(reports);
     } catch (error) {
         console.error("Error fetching class reports:", error);

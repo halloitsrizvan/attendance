@@ -3,20 +3,26 @@
 import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header/Header';
 import axios from 'axios';
-import { Trophy, Medal, Crown, Loader2, Search, Award, Star } from 'lucide-react';
+import { Trophy, Medal, Crown, Loader2, Calendar, Award, Star } from 'lucide-react';
+
+const MONTHS = [
+    'All', 'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+];
 
 export default function ClassLeaderboard() {
     const [leaderboard, setLeaderboard] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [search, setSearch] = useState('');
+    const [selectedMonth, setSelectedMonth] = useState(MONTHS[new Date().getMonth() + 1]); // +1 because 'All' is at 0
 
     useEffect(() => {
         fetchLeaderboard();
-    }, []);
+    }, [selectedMonth]);
 
     const fetchLeaderboard = async () => {
         try {
-            const res = await axios.get('/api/class-reports?type=leaderboard');
+            setLoading(true);
+            const res = await axios.get(`/api/class-reports?type=leaderboard&month=${selectedMonth}`);
             setLeaderboard(res.data);
         } catch (err) {
             console.error("Error fetching class leaderboard:", err);
@@ -24,11 +30,6 @@ export default function ClassLeaderboard() {
             setLoading(false);
         }
     };
-
-    const filteredData = leaderboard.filter(item =>
-        (item.className || "").toLowerCase().includes(search.toLowerCase()) ||
-        (item.section || "").toLowerCase().includes(search.toLowerCase())
-    );
 
     if (loading) return (
         <div className="min-h-screen bg-white flex flex-col">
@@ -61,20 +62,22 @@ export default function ClassLeaderboard() {
                         <p className="text-indigo-100 text-sm font-medium mt-3 max-w-sm">Leading classes based on their monthly programs and curriculum execution.</p>
                         
                         <div className="mt-6 relative">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-300" size={18} />
-                            <input
-                                type="text"
-                                placeholder="Search by class or section..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="w-full bg-indigo-500/50 border border-indigo-400 rounded-2xl py-3.5 pl-12 pr-4 text-sm font-bold text-white placeholder:text-indigo-200 outline-none focus:bg-indigo-500 transition-all shadow-inner"
-                            />
+                            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-300" size={18} />
+                            <select
+                                value={selectedMonth}
+                                onChange={(e) => setSelectedMonth(e.target.value)}
+                                className="w-full bg-indigo-500/50 border border-indigo-400 rounded-2xl py-3.5 pl-12 pr-4 text-sm font-bold text-white outline-none focus:bg-indigo-500 transition-all shadow-inner appearance-none cursor-pointer"
+                            >
+                                {MONTHS.map(m => (
+                                    <option key={m} value={m} className="bg-slate-800 text-white">{m}</option>
+                                ))}
+                            </select>
                         </div>
                     </div>
                 </div>
 
                 {/* Compact Top 3 */}
-                {!search && filteredData.length >= 3 && (
+                {leaderboard.length >= 3 && (
                     <div className="flex items-end justify-center gap-3 mb-10 h-64 mt-4">
                         {/* 2nd Place */}
                         <div className="flex-1 flex flex-col items-center hover:scale-[1.03] transition-all">
@@ -82,8 +85,8 @@ export default function ClassLeaderboard() {
                                 <Medal size={28} />
                                 <span className="absolute -top-2 -right-2 bg-slate-500 text-white text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-[3px] border-slate-50 shadow-sm">2</span>
                             </div>
-                            <p className="text-[11px] font-black text-slate-800 text-center line-clamp-1 w-full px-1">{filteredData[1].className}</p>
-                            <p className="text-[10px] font-black text-indigo-500 mt-1">{filteredData[1].totalMark} PTS</p>
+                            <p className="text-[11px] font-black text-slate-800 text-center line-clamp-1 w-full px-1">{leaderboard[1].className}</p>
+                            <p className="text-[10px] font-black text-indigo-500 mt-1">{leaderboard[1].totalMark} PTS</p>
                             <div className="w-full bg-gradient-to-t from-slate-200 to-slate-100 h-24 rounded-t-3xl mt-3 shadow-inner"></div>
                         </div>
 
@@ -93,8 +96,8 @@ export default function ClassLeaderboard() {
                                 <Crown size={36} />
                                 <span className="absolute -top-2 -right-2 bg-amber-500 text-white text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-[3px] border-slate-50 shadow-sm">1</span>
                             </div>
-                            <p className="text-xs font-black text-slate-900 text-center line-clamp-1 w-full mt-2 px-1">{filteredData[0].className}</p>
-                            <p className="text-[11px] font-black text-amber-600 mt-1">{filteredData[0].totalMark} PTS</p>
+                            <p className="text-xs font-black text-slate-900 text-center line-clamp-1 w-full mt-2 px-1">{leaderboard[0].className}</p>
+                            <p className="text-[11px] font-black text-amber-600 mt-1">{leaderboard[0].totalMark} PTS</p>
                             <div className="w-full bg-gradient-to-t from-amber-400 to-amber-300 h-32 rounded-t-3xl mt-3 shadow-inner"></div>
                         </div>
 
@@ -104,8 +107,8 @@ export default function ClassLeaderboard() {
                                 <Medal size={28} />
                                 <span className="absolute -top-2 -right-2 bg-orange-400 text-white text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-[3px] border-slate-50 shadow-sm">3</span>
                             </div>
-                            <p className="text-[11px] font-black text-slate-800 text-center line-clamp-1 w-full px-1">{filteredData[2].className}</p>
-                            <p className="text-[10px] font-black text-indigo-500 mt-1">{filteredData[2].totalMark} PTS</p>
+                            <p className="text-[11px] font-black text-slate-800 text-center line-clamp-1 w-full px-1">{leaderboard[2].className}</p>
+                            <p className="text-[10px] font-black text-indigo-500 mt-1">{leaderboard[2].totalMark} PTS</p>
                             <div className="w-full bg-gradient-to-t from-orange-200 to-orange-100 h-16 rounded-t-3xl mt-3 shadow-inner"></div>
                         </div>
                     </div>
@@ -113,7 +116,7 @@ export default function ClassLeaderboard() {
 
                 {/* Ranking List */}
                 <div className="space-y-3">
-                    {filteredData.map((item, index) => {
+                    {leaderboard.map((item, index) => {
                         return (
                             <div
                                 key={item.className}
@@ -142,7 +145,7 @@ export default function ClassLeaderboard() {
                         );
                     })}
                     
-                    {filteredData.length === 0 && (
+                    {leaderboard.length === 0 && (
                         <div className="text-center py-12 text-slate-400 text-sm font-black uppercase tracking-widest bg-white rounded-3xl border border-slate-100 border-dashed">
                             No classes found
                         </div>
