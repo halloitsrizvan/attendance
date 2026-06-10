@@ -45,9 +45,9 @@ function AdvancedReport() {
         Morning: { true: '1/3', false: '2/3', active: true },
         Afternoon: { true: '1/3', false: '2/3', active: true },
         Night: { true: '1/3', false: '2/3', active: true },
-        Period: { true: '1/3', false: '2/3', active: true },
-        Jamath: { true: '1/3', false: '2/3', active: true },
-        Quiraath: { true: '1/3', false: '2/3', active: true }
+        Period: { true: '0', false: '1/3', active: true },
+        Jamath: { true: '0', false: '1/3', active: true },
+        Quiraath: { true: '0', false: '1/3', active: true }
       });
     }
   };
@@ -206,8 +206,23 @@ function AdvancedReport() {
 
   // Re-calculate data if multipliers change even without fetching
   const reportData = useMemo(() => {
-    return data.map(calculateStudentRow);
-  }, [data, multipliers]);
+    let mappedData = data.map(calculateStudentRow);
+    
+    if (!classNumber) {
+      mappedData.sort((a, b) => {
+        const classA = parseInt(a.class, 10) || 0;
+        const classB = parseInt(b.class, 10) || 0;
+        if (classA !== classB) {
+          return classA - classB;
+        }
+        return (a.sl || 0) - (b.sl || 0);
+      });
+    } else {
+      mappedData.sort((a, b) => (a.sl || 0) - (b.sl || 0));
+    }
+    
+    return mappedData;
+  }, [data, multipliers, classNumber]);
 
   const handleDownloadExcel = () => {
     const formatExcelNum = (num) => {
