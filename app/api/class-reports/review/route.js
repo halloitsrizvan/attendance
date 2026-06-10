@@ -7,7 +7,7 @@ export async function PATCH(req) {
         await dbConnect();
         
         const body = await req.json();
-        const { reportId, programs, adminId } = body;
+        const { reportId, programs, adminId, vivaPoints, zehnuthPoints } = body;
 
         if (!reportId || !programs || !adminId) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -19,7 +19,7 @@ export async function PATCH(req) {
             return NextResponse.json({ error: 'Report not found' }, { status: 404 });
         }
 
-        let totalMark = 0;
+        let programPoints = 0;
 
         // Update each program's mark
         programs.forEach(updatedProgram => {
@@ -28,12 +28,18 @@ export async function PATCH(req) {
                 // Ensure mark is a valid number, default to 0
                 const markValue = Number(updatedProgram.mark) || 0;
                 programToUpdate.mark = markValue;
-                totalMark += markValue;
+                programPoints += markValue;
             }
         });
 
         // Update root report properties
-        report.totalMark = totalMark;
+        const vp = Number(vivaPoints) || 0;
+        const zp = Number(zehnuthPoints) || 0;
+        
+        report.programPoints = programPoints;
+        report.vivaPoints = vp;
+        report.zehnuthPoints = zp;
+        report.totalMark = programPoints + vp + zp;
         report.status = 'reviewed';
         report.markedBy = adminId;
         report.reviewedAt = new Date();

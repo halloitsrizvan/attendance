@@ -25,6 +25,7 @@ export default function AdminReviewClassReports() {
     // State to keep track of marks being entered before saving
     // Structure: { [reportId]: { [programId]: number } }
     const [marks, setMarks] = useState({});
+    const [vivaPoints, setVivaPoints] = useState({});
 
     useEffect(() => {
         const storedTeacher = localStorage.getItem('teacher');
@@ -47,15 +48,18 @@ export default function AdminReviewClassReports() {
             const res = await axios.get('/api/class-reports');
             setReports(res.data);
 
-            // Initialize marks state for pending reports
+            // Initialize marks and viva state for reports
             const initialMarks = {};
+            const initialViva = {};
             res.data.forEach(report => {
                 initialMarks[report._id] = {};
+                initialViva[report._id] = report.vivaPoints || 0;
                 report.programs.forEach(program => {
                     initialMarks[report._id][program._id] = program.mark || 0;
                 });
             });
             setMarks(initialMarks);
+            setVivaPoints(initialViva);
         } catch (error) {
             console.error("Error fetching reports:", error);
         } finally {
@@ -90,6 +94,8 @@ export default function AdminReviewClassReports() {
             await axios.patch('/api/class-reports/review', {
                 reportId: report._id,
                 programs: updatedPrograms,
+                vivaPoints: vivaPoints[report._id] || 0,
+                zehnuthPoints: report.zehnuthPoints || 0,
                 adminId
             });
 
@@ -355,11 +361,37 @@ export default function AdminReviewClassReports() {
                         </div>
 
                         {/* Modal Footer */}
-                        <div className="p-6 border-t border-slate-100 bg-white flex items-center justify-end">
+                        <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                            
+                            {/* Points Summary & Viva Input */}
+                            <div className="flex flex-wrap items-center gap-6">
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Program Points</p>
+                                    <p className="text-xl font-black text-indigo-600">
+                                        {selectedReport.programs.reduce((acc, p) => acc + (marks[selectedReport._id]?.[p._id] || 0), 0)}
+                                    </p>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Zehnuth Points</p>
+                                    <p className="text-xl font-black text-amber-600">
+                                        {selectedReport.zehnuthPoints || 0}
+                                    </p>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Daily Viva Points</p>
+                                    <input 
+                                        type="number"
+                                        value={vivaPoints[selectedReport._id] || 0}
+                                        onChange={(e) => setVivaPoints(prev => ({...prev, [selectedReport._id]: Number(e.target.value)}))}
+                                        className="w-20 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xl font-black text-emerald-600 outline-none focus:border-indigo-500 transition-colors"
+                                    />
+                                </div>
+                            </div>
+
                             <button
                                 onClick={() => handleSaveMarks(selectedReport)}
                                 disabled={submittingId === selectedReport._id}
-                                className="px-8 py-4 bg-slate-900 text-white rounded-[1.5rem] text-[11px] font-black uppercase tracking-[0.2em] hover:bg-emerald-600 active:scale-95 transition-all shadow-xl shadow-slate-200 flex items-center gap-2 disabled:opacity-50"
+                                className="px-8 py-4 bg-slate-900 text-white rounded-[1.5rem] text-[11px] font-black uppercase tracking-[0.2em] hover:bg-emerald-600 active:scale-95 transition-all shadow-xl shadow-slate-200 flex items-center gap-2 disabled:opacity-50 shrink-0"
                             >
                                 {submittingId === selectedReport._id ? (
                                     <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>

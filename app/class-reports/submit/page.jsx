@@ -185,9 +185,8 @@ export default function SubmitClassReport() {
 
     const getSectionLabel = (cNum) => {
         const num = Number(cNum);
-        if (num === 1 || num === 2) return 'Sub-Junior';
-        if (num === 3 || num === 4) return 'Junior';
-        if (num >= 5 && num <= 7) return 'Senior';
+        if (num >= 1 && num <= 3) return 'Junior';
+        if (num >= 4 && num <= 7) return 'Senior';
         if (num >= 8 && num <= 10) return 'Super-Senior';
         return 'Unknown Section';
     };

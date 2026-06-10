@@ -52,10 +52,22 @@ const classReportSchema = new Schema({
     section: {
         type: String,
         required: true,
-        enum: ['Sub-Junior', 'Junior', 'Senior', 'Super-Senior']
+        enum: ['Junior', 'Senior', 'Super-Senior']
     },
     programs: [programSchema],
     totalMark: {
+        type: Number,
+        default: 0
+    },
+    programPoints: {
+        type: Number,
+        default: 0
+    },
+    zehnuthPoints: {
+        type: Number,
+        default: 0
+    },
+    vivaPoints: {
         type: Number,
         default: 0
     },
