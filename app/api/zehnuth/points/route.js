@@ -1,5 +1,8 @@
 import dbConnect from "@/lib/mongodb";
 import Points from "@/models/pointsModel";
+import Student from "@/models/studentsModel";
+import Teacher from "@/models/teachersModel";
+import MentorMentee from "@/models/mentorMenteeModel";
 import { NextResponse } from "next/server";
 
 export async function POST(req) {
