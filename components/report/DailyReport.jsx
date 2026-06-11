@@ -207,6 +207,9 @@ function DailyReport() {
 
     if (!id || (status !== 'P' && status !== 'A')) return;
 
+    const onLeave = periodNum ? !!day.PeriodOnLeave?.[periodNum] : !!day.SlotOnLeave?.[slot];
+    const time = periodNum ? day.PeriodTimes?.[periodNum] : day.SlotTimes?.[slot];
+
     setSelectedEntry({
       studentName: student.nameOfStd,
       ad: student.ad,
@@ -215,6 +218,8 @@ function DailyReport() {
       slot,
       periodNum,
       status: status === 'P' ? 'Present' : 'Absent',
+      onLeave,
+      time,
       id
     });
     setIsModalOpen(true);
@@ -671,27 +676,35 @@ function DailyReport() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 bg-slate-50 p-4 rounded-2xl border border-slate-100/50">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Student Name</label>
-                  <p className="font-bold text-slate-800">{selectedEntry.studentName}</p>
+                  <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest block mb-1">Student Name</label>
+                  <p className="font-medium text-slate-800">{selectedEntry.studentName}</p>
                 </div>
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100/50">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">AD NO</label>
-                  <p className="font-bold text-slate-800 uppercase">{selectedEntry.ad}</p>
+                  <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest block mb-1">AD NO</label>
+                  <p className="font-medium text-slate-800 uppercase">{selectedEntry.ad}</p>
                 </div>
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100/50">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Class</label>
-                  <p className="font-bold text-slate-800 uppercase">{selectedEntry.class}</p>
+                  <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest block mb-1">Class</label>
+                  <p className="font-medium text-slate-800 uppercase">{selectedEntry.class}</p>
                 </div>
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100/50">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Date</label>
-                  <p className="font-bold text-slate-800">{new Date(selectedEntry.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                  <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest block mb-1">Date</label>
+                  <p className="font-medium text-slate-800">{new Date(selectedEntry.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                 </div>
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100/50">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Time Slot</label>
-                  <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
-                    {new Date(selectedEntry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} • {selectedEntry.slot} {selectedEntry.periodNum ? `• P${selectedEntry.periodNum}` : ''}
+                  <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest block mb-1">Time Slot</label>
+                  <p className="text-sm font-medium text-slate-400 uppercase tracking-widest">
+                    {selectedEntry.time ? new Date(selectedEntry.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'N/A'} • {selectedEntry.slot} {selectedEntry.periodNum ? `• P${selectedEntry.periodNum}` : ''}
                   </p>
                 </div>
+                {selectedEntry.status === 'Absent' && (
+                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100/50">
+                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest block mb-1">On Leave</label>
+                    <p className={`font-bold ${selectedEntry.onLeave ? 'text-amber-600' : 'text-slate-500'}`}>
+                      {selectedEntry.onLeave ? 'true' : 'false'}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-3 pt-2">
@@ -706,8 +719,8 @@ function DailyReport() {
                       }
                     }}
                     className={`p-4 rounded-2xl font-black text-xs uppercase tracking-widest border-2 transition-all flex flex-col items-center gap-2 ${selectedEntry.status === 'Present'
-                        ? 'border-emerald-500 bg-emerald-50 text-emerald-600'
-                        : 'border-slate-100 bg-white text-slate-400 hover:border-emerald-400 hover:text-emerald-500'
+                      ? 'border-emerald-500 bg-emerald-50 text-emerald-600'
+                      : 'border-slate-100 bg-white text-slate-400 hover:border-emerald-400 hover:text-emerald-500'
                       }`}
                   >
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${selectedEntry.status === 'Present' ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
@@ -724,8 +737,8 @@ function DailyReport() {
                       }
                     }}
                     className={`p-4 rounded-2xl font-black text-xs uppercase tracking-widest border-2 transition-all flex flex-col items-center gap-2 ${selectedEntry.status === 'Absent'
-                        ? 'border-rose-500 bg-rose-50 text-rose-600'
-                        : 'border-slate-100 bg-white text-slate-400 hover:border-rose-400 hover:text-rose-500'
+                      ? 'border-rose-500 bg-rose-50 text-rose-600'
+                      : 'border-slate-100 bg-white text-slate-400 hover:border-rose-400 hover:text-rose-500'
                       }`}
                   >
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${selectedEntry.status === 'Absent' ? 'bg-rose-500 text-white' : 'bg-slate-100 text-slate-400'}`}>

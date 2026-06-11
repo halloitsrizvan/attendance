@@ -86,13 +86,21 @@ export async function GET(req) {
         const periodNum = record.period || 1;
         if (!dayAttendance.Period) dayAttendance.Period = {};
         if (!dayAttendance.PeriodIds) dayAttendance.PeriodIds = {};
+        if (!dayAttendance.PeriodOnLeave) dayAttendance.PeriodOnLeave = {};
+        if (!dayAttendance.PeriodTimes) dayAttendance.PeriodTimes = {};
         dayAttendance.Period[periodNum] = record.status === 'Present' ? 'P' : 'A';
         dayAttendance.PeriodIds[periodNum] = record._id;
+        dayAttendance.PeriodOnLeave[periodNum] = !!record.onLeave;
+        dayAttendance.PeriodTimes[periodNum] = record.attendanceDate;
         availableTimeSlots.add('Period');
       } else {
         dayAttendance[timeKey] = record.status === 'Present' ? 'P' : 'A';
         if (!dayAttendance.SlotIds) dayAttendance.SlotIds = {};
         dayAttendance.SlotIds[timeKey] = record._id;
+        if (!dayAttendance.SlotOnLeave) dayAttendance.SlotOnLeave = {};
+        dayAttendance.SlotOnLeave[timeKey] = !!record.onLeave;
+        if (!dayAttendance.SlotTimes) dayAttendance.SlotTimes = {};
+        dayAttendance.SlotTimes[timeKey] = record.attendanceDate;
         availableTimeSlots.add(timeKey);
       }
     });

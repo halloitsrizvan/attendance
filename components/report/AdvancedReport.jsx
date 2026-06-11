@@ -13,6 +13,8 @@ import {
   MinusIcon
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 function AdvancedReport() {
   const [fromDate, setFromDate] = useState('');
@@ -26,7 +28,9 @@ function AdvancedReport() {
     Night: { true: '1', false: '1', active: true },
     Period: { true: '1', false: '1', active: true },
     Jamath: { true: '1', false: '1', active: true },
-    Quiraath: { true: '1', false: '1', active: true }
+    Quiraath: { true: '1', false: '1', active: true },
+    Minus: { active: true },
+    Weekend: { true: '1/6', false: '1/6', active: true }
   });
 
   const handleMultiplierChange = (time, type, value) => {
@@ -41,14 +45,16 @@ function AdvancedReport() {
 
   const applyTemplate = (type) => {
     if (type === 'normal') {
-      setMultipliers({
-        Morning: { true: '1/3', false: '2/3', active: true },
-        Afternoon: { true: '1/3', false: '2/3', active: true },
-        Night: { true: '1/3', false: '2/3', active: true },
-        Period: { true: '0', false: '1/3', active: true },
-        Jamath: { true: '0', false: '1/3', active: true },
-        Quiraath: { true: '0', false: '1/3', active: true }
-      });
+      setMultipliers(prev => ({
+        Morning: { true: '1/3', false: '1/3', active: true },
+        Afternoon: { true: '1/3', false: '1/3', active: true },
+        Night: { true: '1/3', false: '1/3', active: true },
+        Period: { true: '0', false: '0', active: true },
+        Jamath: { true: '0', false: '0', active: true },
+        Quiraath: { true: '0', false: '0', active: true },
+        Minus: { active: prev.Minus?.active ?? true },
+        Weekend: { true: '1/6', false: '1/6', active: true }
+      }));
     }
   };
 
@@ -103,6 +109,45 @@ function AdvancedReport() {
 
   const formatNum = (num) => {
     if (!num && num !== 0) return '0';
+    if (Number.isInteger(num)) return num.toString();
+
+    const integerPart = Math.floor(num);
+    const decimalPart = num - integerPart;
+
+    let bestDen = 1;
+    let bestNum = 0;
+    let minDiff = 1;
+
+    for (let d = 2; d <= 12; d++) {
+      const n = Math.round(decimalPart * d);
+      const diff = Math.abs(decimalPart - n / d);
+      if (diff < minDiff) {
+        minDiff = diff;
+        bestDen = d;
+        bestNum = n;
+      }
+    }
+
+    if (minDiff < 0.01) {
+      if (bestNum === 0) {
+        return integerPart.toString();
+      }
+      if (bestNum === bestDen) {
+        return (integerPart + 1).toString();
+      }
+
+      const gcd = (a, b) => b ? gcd(b, a % b) : a;
+      const divisor = gcd(bestNum, bestDen);
+      const finalNum = bestNum / divisor;
+      const finalDen = bestDen / divisor;
+
+      if (integerPart === 0) {
+        return `${finalNum}/${finalDen}`;
+      } else {
+        return `${integerPart} ${finalNum}/${finalDen}`;
+      }
+    }
+
     const rounded = Math.round(num * 10) / 10;
     return Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(1);
   };
@@ -129,15 +174,40 @@ function AdvancedReport() {
   const calculateStudentRow = (student) => {
     let leave_MAN = 0;
     let absence_PJ = 0;
+    let punishment = 0;
+    let documentedMedicalLeaveMinus = 0;
+    let documentedOgeaLeaveMinus = 0;
+    let documentedLeaveMinus = 0;
 
     // Morning, Afternoon, Night
     ['Morning', 'Afternoon', 'Night'].forEach(t => {
       if (multipliers[t]?.active) {
         const d = student.groupedAttendance[t];
         if (d) {
-          const mFalse = evaluateMultiplier(multipliers[t].false);
           const mTrue = evaluateMultiplier(multipliers[t].true);
-          leave_MAN += (d.absentOnLeaveFalse || 0) * mFalse + (d.absentOnLeaveTrue || 0) * mTrue;
+          const wkTrue = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].true) : mTrue;
+
+          // Regular weekday absences
+          leave_MAN += (d.absentOnLeaveTrue || 0) * mTrue;
+          leave_MAN += (d.absentOnLeaveFalse || 0) * mTrue;
+          punishment += (d.absentOnLeaveFalse || 0) * mTrue;
+
+          // Weekend absences
+          leave_MAN += (d.weekendAbsentOnLeaveTrue || 0) * wkTrue;
+          leave_MAN += (d.weekendAbsentOnLeaveFalse || 0) * wkTrue;
+          punishment += (d.weekendAbsentOnLeaveFalse || 0) * wkTrue;
+
+          // Documented Medical Leave minuses
+          documentedMedicalLeaveMinus += (d.documentedMedicalAbsentOnLeaveTrue || 0) * mTrue;
+          documentedMedicalLeaveMinus += (d.weekendDocumentedMedicalAbsentOnLeaveTrue || 0) * wkTrue;
+
+          // Documented OGEA Leave minuses
+          documentedOgeaLeaveMinus += (d.documentedOgeaAbsentOnLeaveTrue || 0) * mTrue;
+          documentedOgeaLeaveMinus += (d.weekendDocumentedOgeaAbsentOnLeaveTrue || 0) * wkTrue;
+
+          // Documented Leave minuses
+          documentedLeaveMinus += (d.documentedAbsentOnLeaveTrue || 0) * mTrue;
+          documentedLeaveMinus += (d.weekendDocumentedAbsentOnLeaveTrue || 0) * wkTrue;
         }
       }
     });
@@ -146,10 +216,31 @@ function AdvancedReport() {
     if (multipliers['Period']?.active) {
       const periodData = student.groupedAttendance['Period'];
       if (periodData && periodData.periods) {
-        const pFalse = evaluateMultiplier(multipliers['Period'].false);
         const pTrue = evaluateMultiplier(multipliers['Period'].true);
+        const wkTrue = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].true) : pTrue;
+
         Object.values(periodData.periods).forEach(p => {
-          absence_PJ += (p.absentOnLeaveFalse || 0) * pFalse + (p.absentOnLeaveTrue || 0) * pTrue;
+          // Regular weekday absences
+          absence_PJ += (p.absentOnLeaveTrue || 0) * pTrue;
+          absence_PJ += (p.absentOnLeaveFalse || 0) * pTrue;
+          punishment += (p.absentOnLeaveFalse || 0) * pTrue;
+
+          // Weekend absences
+          absence_PJ += (p.weekendAbsentOnLeaveTrue || 0) * wkTrue;
+          absence_PJ += (p.weekendAbsentOnLeaveFalse || 0) * wkTrue;
+          punishment += (p.weekendAbsentOnLeaveFalse || 0) * wkTrue;
+
+          // Documented Medical Leave minuses
+          documentedMedicalLeaveMinus += (p.documentedMedicalAbsentOnLeaveTrue || 0) * pTrue;
+          documentedMedicalLeaveMinus += (p.weekendDocumentedMedicalAbsentOnLeaveTrue || 0) * wkTrue;
+
+          // Documented OGEA Leave minuses
+          documentedOgeaLeaveMinus += (p.documentedOgeaAbsentOnLeaveTrue || 0) * pTrue;
+          documentedOgeaLeaveMinus += (p.weekendDocumentedOgeaAbsentOnLeaveTrue || 0) * wkTrue;
+
+          // Documented Leave minuses
+          documentedLeaveMinus += (p.documentedAbsentOnLeaveTrue || 0) * pTrue;
+          documentedLeaveMinus += (p.weekendDocumentedAbsentOnLeaveTrue || 0) * wkTrue;
         });
       }
     }
@@ -158,9 +249,30 @@ function AdvancedReport() {
     if (multipliers['Jamath']?.active) {
       const jamathData = student.groupedAttendance['Jamath'];
       if (jamathData) {
-        const jFalse = evaluateMultiplier(multipliers['Jamath'].false);
         const jTrue = evaluateMultiplier(multipliers['Jamath'].true);
-        absence_PJ += (jamathData.absentOnLeaveFalse || 0) * jFalse + (jamathData.absentOnLeaveTrue || 0) * jTrue;
+        const wkTrue = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].true) : jTrue;
+
+        // Regular weekday absences
+        absence_PJ += (jamathData.absentOnLeaveTrue || 0) * jTrue;
+        absence_PJ += (jamathData.absentOnLeaveFalse || 0) * jTrue;
+        punishment += (jamathData.absentOnLeaveFalse || 0) * jTrue;
+
+        // Weekend absences
+        absence_PJ += (jamathData.weekendAbsentOnLeaveTrue || 0) * wkTrue;
+        absence_PJ += (jamathData.weekendAbsentOnLeaveFalse || 0) * wkTrue;
+        punishment += (jamathData.weekendAbsentOnLeaveFalse || 0) * wkTrue;
+
+        // Documented Medical Leave minuses
+        documentedMedicalLeaveMinus += (jamathData.documentedMedicalAbsentOnLeaveTrue || 0) * jTrue;
+        documentedMedicalLeaveMinus += (jamathData.weekendDocumentedMedicalAbsentOnLeaveTrue || 0) * wkTrue;
+
+        // Documented OGEA Leave minuses
+        documentedOgeaLeaveMinus += (jamathData.documentedOgeaAbsentOnLeaveTrue || 0) * jTrue;
+        documentedOgeaLeaveMinus += (jamathData.weekendDocumentedOgeaAbsentOnLeaveTrue || 0) * wkTrue;
+
+        // Documented Leave minuses
+        documentedLeaveMinus += (jamathData.documentedAbsentOnLeaveTrue || 0) * jTrue;
+        documentedLeaveMinus += (jamathData.weekendDocumentedAbsentOnLeaveTrue || 0) * wkTrue;
       }
     }
 
@@ -168,9 +280,30 @@ function AdvancedReport() {
     if (multipliers['Quiraath']?.active) {
       const quiraathData = student.groupedAttendance['Quiraath'];
       if (quiraathData) {
-        const qFalse = evaluateMultiplier(multipliers['Quiraath'].false);
         const qTrue = evaluateMultiplier(multipliers['Quiraath'].true);
-        absence_PJ += (quiraathData.absentOnLeaveFalse || 0) * qFalse + (quiraathData.absentOnLeaveTrue || 0) * qTrue;
+        const wkTrue = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].true) : qTrue;
+
+        // Regular weekday absences
+        absence_PJ += (quiraathData.absentOnLeaveTrue || 0) * qTrue;
+        absence_PJ += (quiraathData.absentOnLeaveFalse || 0) * qTrue;
+        punishment += (quiraathData.absentOnLeaveFalse || 0) * qTrue;
+
+        // Weekend absences
+        absence_PJ += (quiraathData.weekendAbsentOnLeaveTrue || 0) * wkTrue;
+        absence_PJ += (quiraathData.weekendAbsentOnLeaveFalse || 0) * wkTrue;
+        punishment += (quiraathData.weekendAbsentOnLeaveFalse || 0) * wkTrue;
+
+        // Documented Medical Leave minuses
+        documentedMedicalLeaveMinus += (quiraathData.documentedMedicalAbsentOnLeaveTrue || 0) * qTrue;
+        documentedMedicalLeaveMinus += (quiraathData.weekendDocumentedMedicalAbsentOnLeaveTrue || 0) * wkTrue;
+
+        // Documented OGEA Leave minuses
+        documentedOgeaLeaveMinus += (quiraathData.documentedOgeaAbsentOnLeaveTrue || 0) * qTrue;
+        documentedOgeaLeaveMinus += (quiraathData.weekendDocumentedOgeaAbsentOnLeaveTrue || 0) * wkTrue;
+
+        // Documented Leave minuses
+        documentedLeaveMinus += (quiraathData.documentedAbsentOnLeaveTrue || 0) * qTrue;
+        documentedLeaveMinus += (quiraathData.weekendDocumentedAbsentOnLeaveTrue || 0) * wkTrue;
       }
     }
 
@@ -182,8 +315,8 @@ function AdvancedReport() {
       else if (c >= 8 && c <= 10) permitted = 8;
     }
 
-    const minus = student.totalManualMinus || 0;
-    const totalAbsence = leave_MAN + absence_PJ + minus;
+    const minus = multipliers['Minus']?.active ? (student.totalManualMinus || 0) : 0;
+    const totalAbsence = leave_MAN + absence_PJ + punishment + minus;
     const overBy = Math.max(0, totalAbsence - permitted);
 
     return {
@@ -194,11 +327,12 @@ function AdvancedReport() {
       permitted,
       leave: leave_MAN,
       absence: absence_PJ,
+      punishment,
       minus,
       totalAbsence,
-      medicalLeave: student.totalMedicalLeave || 0,
-      ogeaLeave: student.totalOgeaLeave || 0,
-      documentedLeave: student.totalDocumentedLeave || 0,
+      medicalLeave: documentedMedicalLeaveMinus,
+      ogeaLeave: documentedOgeaLeaveMinus,
+      documentedLeave: documentedLeaveMinus,
       zehnuthPoints: student.totalZehnuthPoints || 0,
       overBy
     };
@@ -226,8 +360,7 @@ function AdvancedReport() {
 
   const handleDownloadExcel = () => {
     const formatExcelNum = (num) => {
-      if (!num && num !== 0) return 0;
-      return Math.round(num * 100) / 100;
+      return formatNum(num);
     };
 
     const wsData = reportData.map(r => ({
@@ -238,6 +371,7 @@ function AdvancedReport() {
       'Total Permitted Leave': formatExcelNum(r.permitted),
       [`Leave ${manHeader.sub}`.trim()]: formatExcelNum(r.leave),
       [`Absence ${pjqHeader.sub}`.trim()]: formatExcelNum(r.absence),
+      'Absent Punishment': formatExcelNum(r.punishment),
       'Minus': formatExcelNum(r.minus),
       'Total Absence': formatExcelNum(r.totalAbsence),
       'Medical Leave': formatExcelNum(r.medicalLeave),
@@ -250,6 +384,65 @@ function AdvancedReport() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Deduction Report');
     XLSX.writeFile(wb, `Deduction_Report_${classNumber || 'All'}_${fromDate}.xlsx`);
+  };
+
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF({ orientation: 'landscape', format: 'a4', unit: 'mm' });
+    
+    // Header title
+    doc.setFontSize(16);
+    doc.text("Deduction Report", 14, 15);
+    
+    // Header subtitle
+    doc.setFontSize(9);
+    doc.text(`Class: ${classNumber || 'All'}  |  Date Range: ${fromDate} to ${toDate}`, 14, 21);
+    
+    const headers = [
+      'SL',
+      'AD NO',
+      'Name',
+      'Class',
+      'Permitted',
+      `Leave\n${manHeader.sub}`.trim(),
+      `Absence\n${pjqHeader.sub}`.trim(),
+      'Punishment',
+      'Minus',
+      'Total Abs.',
+      'Doc. Med.',
+      'Doc. OGEA',
+      'Total Doc.',
+      'Over By'
+    ];
+
+    const tableData = reportData.map((r, idx) => [
+      idx + 1,
+      r.adno,
+      r.name,
+      r.class,
+      formatNum(r.permitted),
+      formatNum(r.leave),
+      formatNum(r.absence),
+      formatNum(r.punishment),
+      formatNum(r.minus),
+      formatNum(r.totalAbsence),
+      formatNum(r.medicalLeave),
+      formatNum(r.ogeaLeave),
+      formatNum(r.documentedLeave),
+      r.overBy > 0 ? formatNum(r.overBy) : '-'
+    ]);
+
+    autoTable(doc, {
+      head: [headers],
+      body: tableData,
+      startY: 26,
+      styles: { fontSize: 7, cellPadding: 1.5, halign: 'center' },
+      columnStyles: {
+        2: { halign: 'left', cellWidth: 'auto' }, // Student Name column left aligned
+      },
+      headStyles: { fillColor: [15, 23, 42] } // dark slate theme matching report table
+    });
+
+    doc.save(`Deduction_Report_${classNumber || 'All'}_${fromDate}.pdf`);
   };
 
   return (
@@ -328,47 +521,55 @@ function AdvancedReport() {
             </div>
             <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 overflow-x-auto">
               <div className="min-w-[600px]">
-                <div className="grid grid-cols-[150px_1fr_1fr] gap-4 mb-3 px-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-3">
+                <div className="grid grid-cols-[180px_1fr] gap-4 mb-3 px-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-3">
                   <div>Time / Session</div>
-                  <div>Absent without permission </div>
-                  <div>On Leave </div>
+                  <div>Minus Count</div>
                 </div>
                 <div className="space-y-3">
-                  {['Morning', 'Afternoon', 'Night', 'Period', 'Jamath', 'Quiraath'].map(time => (
-                    <div key={time} className={`grid grid-cols-[150px_1fr_1fr] gap-4 items-center transition-opacity ${!multipliers[time]?.active ? 'opacity-50 grayscale' : ''}`}>
-                      <label className="flex items-center gap-2 text-xs font-black text-slate-600 uppercase tracking-wider px-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={multipliers[time]?.active || false}
-                          onChange={e => handleMultiplierChange(time, 'active', e.target.checked)}
-                          className="w-4 h-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
-                        />
-                        {time}
-                      </label>
-                      <div className="relative">
-                        <MinusIcon size={14} className={`absolute left-3 top-1/2 -translate-y-1/2 ${!multipliers[time]?.active ? 'text-slate-400' : 'text-rose-500'}`} />
-                        <input
-                          type="text"
-                          placeholder="0"
-                          disabled={!multipliers[time]?.active}
-                          value={multipliers[time]?.false || ''}
-                          onChange={e => handleMultiplierChange(time, 'false', e.target.value)}
-                          className={`w-full border border-slate-100 rounded-xl pl-8 pr-3 py-2 text-sm font-black text-slate-700 focus:border-rose-400 outline-none transition-colors ${!multipliers[time]?.active ? 'bg-slate-100 text-slate-400' : 'bg-slate-50'}`}
-                        />
+                  {['Morning', 'Afternoon', 'Night', 'Period', 'Jamath', 'Quiraath', 'Minus', 'Weekend'].map(time => {
+                    if (time === 'Minus') {
+                      return (
+                        <div key={time} className={`grid grid-cols-[180px_1fr] gap-4 items-center transition-opacity ${!multipliers[time]?.active ? 'opacity-50 grayscale' : ''}`}>
+                          <label className="flex items-center gap-2 text-xs font-black text-slate-600 uppercase tracking-wider px-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={multipliers[time]?.active || false}
+                              onChange={e => handleMultiplierChange(time, 'active', e.target.checked)}
+                              className="w-4 h-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                            />
+                             Minus
+                          </label>
+                          <div className="text-xs text-slate-400 font-bold italic px-3 py-2 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                            Include manually logged minus points.
+                          </div>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div key={time} className={`grid grid-cols-[180px_1fr] gap-4 items-center transition-opacity ${!multipliers[time]?.active ? 'opacity-50 grayscale' : ''}`}>
+                        <label className="flex items-center gap-2 text-xs font-bold text-slate-600 uppercase tracking-wider px-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={multipliers[time]?.active || false}
+                            onChange={e => handleMultiplierChange(time, 'active', e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                          />
+                          {time === 'Weekend' ? 'Weekend Days' : time}
+                        </label>
+                        <div className="relative">
+                          <MinusIcon size={14} className={`absolute left-3 top-1/2 -translate-y-1/2 ${!multipliers[time]?.active ? 'text-slate-400' : 'text-emerald-500'}`} />
+                          <input
+                            type="text"
+                            placeholder="0"
+                            disabled={!multipliers[time]?.active}
+                            value={multipliers[time]?.true || ''}
+                            onChange={e => handleMultiplierChange(time, 'true', e.target.value)}
+                            className={`w-full border border-slate-100 rounded-xl pl-8 pr-3 py-2 text-sm font-bold text-slate-700 focus:border-emerald-400 outline-none transition-colors ${!multipliers[time]?.active ? 'bg-slate-100 text-slate-400' : 'bg-slate-50'}`}
+                          />
+                        </div>
                       </div>
-                      <div className="relative">
-                        <MinusIcon size={14} className={`absolute left-3 top-1/2 -translate-y-1/2 ${!multipliers[time]?.active ? 'text-slate-400' : 'text-emerald-500'}`} />
-                        <input
-                          type="text"
-                          placeholder="0"
-                          disabled={!multipliers[time]?.active}
-                          value={multipliers[time]?.true || ''}
-                          onChange={e => handleMultiplierChange(time, 'true', e.target.value)}
-                          className={`w-full border border-slate-100 rounded-xl pl-8 pr-3 py-2 text-sm font-black text-slate-700 focus:border-emerald-400 outline-none transition-colors ${!multipliers[time]?.active ? 'bg-slate-100 text-slate-400' : 'bg-slate-50'}`}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -385,7 +586,7 @@ function AdvancedReport() {
             <button
               onClick={handleFetch}
               disabled={loading}
-              className="w-full sm:w-auto flex-1 md:flex-none md:w-64 bg-slate-900 hover:bg-slate-800 text-white font-black text-sm uppercase tracking-widest py-4 px-8 rounded-2xl shadow-xl shadow-slate-900/20 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
+              className="w-full sm:w-auto flex-1 md:flex-none md:w-64 bg-slate-900 hover:bg-slate-800 text-white font-black text-sm uppercase tracking-widest py-4 px-8 rounded-2xl  transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -396,12 +597,20 @@ function AdvancedReport() {
             </button>
 
             {reportData.length > 0 && (
-              <button
-                onClick={handleDownloadExcel}
-                className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-white font-black text-sm uppercase tracking-widest py-4 px-8 rounded-2xl shadow-xl shadow-emerald-500/20 transition-all active:scale-95 flex items-center justify-center gap-2"
-              >
-                <FileSpreadsheet size={20} /> Export Excel
-              </button>
+              <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                <button
+                  onClick={handleDownloadExcel}
+                  className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-white font-black text-sm uppercase tracking-widest py-4 px-8 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2"
+                >
+                  <FileSpreadsheet size={20} /> Export Excel
+                </button>
+                <button
+                  onClick={handleDownloadPDF}
+                  className="w-full sm:w-auto bg-sky-500 hover:bg-sky-400 text-white font-black text-sm uppercase tracking-widest py-4 px-8 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2"
+                >
+                  <FileText size={20} /> Export PDF
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -437,32 +646,36 @@ function AdvancedReport() {
                     <th className="p-4 border-r border-white text-center bg-orange-50/50 text-orange-600">
                       {pjqHeader.main}{pjqHeader.sub && <><br />{pjqHeader.sub}</>}
                     </th>
+                    <th className="p-4 border-r border-white text-center bg-purple-50/50 text-purple-600">
+                      Absent<br />Punishment
+                    </th>
                     <th className="p-4 border-r border-white text-center bg-rose-50/50 text-rose-600">Minus</th>
                     <th className="p-4 border-r border-white text-center bg-slate-100 text-slate-800">Total Absence</th>
-                    <th className="p-4 border-r border-white text-center bg-emerald-50/50 text-emerald-600">Medical Leave</th>
-                    <th className="p-4 border-r border-white text-center bg-indigo-50/50 text-indigo-600">OGEA<br />Leave</th>
-                    <th className="p-4 border-r border-white text-center bg-teal-50/50 text-teal-600">Documented<br />Leave</th>
+                    <th className="p-4 border-r border-white text-center bg-emerald-50/50 text-emerald-600">Documented<br />Medical Leave</th>
+                    <th className="p-4 border-r border-white text-center bg-indigo-50/50 text-indigo-600">Documented<br />OGEA Leave</th>
+                    <th className="p-4 border-r border-white text-center bg-teal-50/50 text-teal-600">Total<br />Documented</th>
                     <th className="p-4 text-center bg-red-100 text-red-600">Over By</th>
                   </tr>
                 </thead>
                 <tbody className="text-sm font-medium">
                   {reportData.map((row, idx) => (
                     <tr key={row.adno} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors group">
-                      <td className="p-3 border-r border-white text-center text-slate-400 font-bold text-xs">{idx + 1}</td>
-                      <td className="p-3 border-r border-white text-slate-600 font-black">{row.adno}</td>
-                      <td className="p-3 border-r border-white text-slate-800 font-black truncate max-w-[200px]" title={row.name}>{row.name}</td>
+                      <td className="p-3 border-r border-white text-center text-slate-400 font-semibold text-xs">{idx + 1}</td>
+                      <td className="p-3 border-r border-white text-slate-600 font-bold">{row.adno}</td>
+                      <td className="p-3 border-r border-white text-slate-800 font-bold truncate max-w-[200px]" title={row.name}>{row.name}</td>
                       <td className="p-3 border-r border-white text-center">
-                        <span className="px-2 py-1 bg-sky-50 text-sky-600 rounded-lg text-xs font-black">C-{row.class}</span>
+                        <span className="px-2 py-1 bg-sky-50 text-sky-600 rounded-lg text-xs font-bold">{row.class}</span>
                       </td>
-                      <td className="p-3 border-r border-white text-center font-black text-blue-600 bg-blue-50/20">{row.permitted}</td>
-                      <td className="p-3 border-r border-white text-center font-black text-amber-600 bg-amber-50/20">{formatNum(row.leave)}</td>
-                      <td className="p-3 border-r border-white text-center font-black text-orange-600 bg-orange-50/20">{formatNum(row.absence)}</td>
-                      <td className="p-3 border-r border-white text-center font-black text-rose-600 bg-rose-50/20">{formatNum(row.minus)}</td>
-                      <td className="p-3 border-r border-white text-center font-black text-slate-800 bg-slate-50">{formatNum(row.totalAbsence)}</td>
-                      <td className="p-3 border-r border-white text-center font-black text-emerald-600 bg-emerald-50/20">{formatNum(row.medicalLeave)}</td>
-                      <td className="p-3 border-r border-white text-center font-black text-indigo-600 bg-indigo-50/20">{formatNum(row.ogeaLeave)}</td>
-                      <td className="p-3 border-r border-white text-center font-black text-teal-600 bg-teal-50/20">{formatNum(row.documentedLeave)}</td>
-                      <td className={`p-3 text-center font-black ${row.overBy > 0 ? 'text-red-600 bg-red-50/50' : 'text-slate-300'}`}>
+                      <td className="p-3 border-r border-white text-center font-semibold text-blue-600 bg-blue-50/20">{row.permitted}</td>
+                      <td className="p-3 border-r border-white text-center font-semibold text-amber-600 bg-amber-50/20">{formatNum(row.leave)}</td>
+                      <td className="p-3 border-r border-white text-center font-semibold text-orange-600 bg-orange-50/20">{formatNum(row.absence)}</td>
+                      <td className="p-3 border-r border-white text-center font-semibold text-purple-600 bg-purple-50/20">{formatNum(row.punishment)}</td>
+                      <td className="p-3 border-r border-white text-center font-semibold text-rose-600 bg-rose-50/20">{formatNum(row.minus)}</td>
+                      <td className="p-3 border-r border-white text-center font-semibold text-slate-800 bg-slate-50">{formatNum(row.totalAbsence)}</td>
+                      <td className="p-3 border-r border-white text-center font-semibold text-emerald-600 bg-emerald-50/20">{formatNum(row.medicalLeave)}</td>
+                      <td className="p-3 border-r border-white text-center font-semibold text-indigo-600 bg-indigo-50/20">{formatNum(row.ogeaLeave)}</td>
+                      <td className="p-3 border-r border-white text-center font-semibold text-teal-600 bg-teal-50/20">{formatNum(row.documentedLeave)}</td>
+                      <td className={`p-3 text-center font-semibold ${row.overBy > 0 ? 'text-red-600 bg-red-50/50' : 'text-slate-300'}`}>
                         {row.overBy > 0 ? formatNum(row.overBy) : '-'}
                       </td>
                     </tr>
