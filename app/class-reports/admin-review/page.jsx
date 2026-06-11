@@ -45,7 +45,7 @@ export default function AdminReviewClassReports() {
 
     const fetchReports = async () => {
         try {
-            const res = await axios.get('/api/class-reports');
+            const res = await axios.get('/api/class-reports?adminView=true');
             setReports(res.data);
 
             // Initialize marks and viva state for reports
@@ -263,7 +263,12 @@ export default function AdminReviewClassReports() {
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2 flex items-center gap-2">
                                     <span className="bg-white px-2 py-1 rounded-lg border border-slate-200">C: {selectedReport.classNumber}</span>
                                     <span className="bg-white px-2 py-1 rounded-lg border border-slate-200">{selectedReport.section}</span>
-                                    <span className="bg-white px-2 py-1 rounded-lg border border-slate-200">{selectedReport.teacherId?.name || 'Unknown'}</span>
+                                    <span className="bg-white px-2 py-1 rounded-lg border border-slate-200">
+                                        {selectedReport.submitterType === 'student' 
+                                            ? `Student: ${selectedReport.studentId?.['SHORT NAME'] || selectedReport.studentId?.name || 'Unknown'}` 
+                                            : `Teacher: ${selectedReport.teacherId?.name || 'Unknown'}`
+                                        }
+                                    </span>
                                     
                                 </p>
                             </div>

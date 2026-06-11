@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Menu, X, CheckCircle, Clock, Calendar, CalendarClock, TrendingUp, LogOut, Info, AlertTriangle, FileText, User, ChevronRight, LayoutGrid, PlusCircle, MessageSquare, Upload, Loader2, Send, Trophy, Image as ImageIcon } from 'lucide-react';
+import { Menu, X, CheckCircle, Clock, Calendar, CalendarClock, TrendingUp, LogOut, Info, AlertTriangle, FileText, User, ChevronRight, LayoutGrid, PlusCircle, MessageSquare, Upload, Loader2, Send, Trophy, Image as ImageIcon, BookOpen } from 'lucide-react';
 import axios from 'axios';
 import { API_PORT } from '@/Constants';
 import StudentAuthGuard from '@/components/auth/StudentAuthGuard';
@@ -1768,6 +1768,7 @@ const StudentsPortal = () => {
     const navigate = useRouter();
     const [student, setStudent] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showBreakdown, setShowBreakdown] = useState(false);
     const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
@@ -1797,6 +1798,7 @@ const StudentsPortal = () => {
     const [historyModal, setHistoryModal] = useState({ isOpen: false, title: '', data: [], type: '', color: '' });
 
     useEffect(() => {
+        setIsInitialLoad(!sessionStorage.getItem('portalVerified'));
         fetchProfile();
     }, []);
 
@@ -1815,6 +1817,7 @@ const StudentsPortal = () => {
             setStudent(profileData);
             await fetchStudentAnalytics(profileData.ADNO, profileData);
             await fetchMentorInfo(profileData._id || profileData.id);
+            sessionStorage.setItem('portalVerified', 'true');
         } catch (err) {
             console.error("Error fetching profile:", err);
             if (err.response?.status === 401) {
@@ -1907,7 +1910,7 @@ const StudentsPortal = () => {
 
     if (loading) return (
         <StudentAuthGuard>
-            <VerifyingAccess />
+            {isInitialLoad ? <VerifyingAccess /> : <StudentPortalSkeleton />}
         </StudentAuthGuard>
     );
 
@@ -1930,7 +1933,6 @@ const StudentsPortal = () => {
                     mentor={mentor}
                     onComplete={() => fetchStudentAnalytics(student.ADNO, student)}
                 />
-
 
                 {/* Header */}
                 <header className="fixed top-0 left-0 w-full bg-white/80 backdrop-blur-md border-b border-slate-100 z-40">
@@ -1996,10 +1998,18 @@ const StudentsPortal = () => {
                         <div className="flex gap-3">
                             <button
                                 onClick={() => setIsApplyZehnuthOpen(true)}
-                                className="bg-indigo-600 text-white p-3 pr-6 rounded-[1.5rem] flex items-center gap-2 shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all text-xs font-black uppercase tracking-widest whitespace-nowrap"
+                                className="bg-indigo-600 text-white p-3 pr-6 rounded-[1.5rem] flex items-center gap-2 shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all text-xs font-bold uppercase tracking-widest whitespace-nowrap"
                             >
                                 <Trophy size={18} /> Apply Zehnuth
                             </button>
+                            {student?.role && student.role !== 'student' && (
+                                <button
+                                    onClick={() => navigate.push('/students-portal/program-reports')}
+                                    className="bg-blue-600 text-white p-3 pr-6 rounded-[1.5rem] flex items-center gap-2 shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-95 transition-all text-xs font-bold uppercase tracking-widest whitespace-nowrap"
+                                >
+                                    <BookOpen size={18} /> Submit Best Class Report
+                                </button>
+                            )}
                             {/* <button 
                                 onClick={() => {
                                     const hasOverdueRecovery = leaveData.some(l => {
@@ -2417,10 +2427,6 @@ const StudentsPortal = () => {
                                                         </div>
                                                         <div className="flex flex-col items-end">
                                                             <span className="text-xl font-black text-rose-600">-{parseFloat(item.minusNum).toFixed(1)}</span>
-                                                            {/* <div className="flex items-center gap-1.5 mt-2 bg-white/40 px-2 py-0.5 rounded-full border border-rose-100/50">
-                                                                <User size={10} className="text-rose-400" />
-                                                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-tight">BY: {item.teacher || 'ADMIN'}</span>
-                                                            </div> */}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -2511,6 +2517,8 @@ const StudentsPortal = () => {
                     onUpdate={() => fetchStudentAnalytics(student.ADNO, student)}
                 />
 
+
+
                 {/* Recovery Warning Modal */}
                 {showRecoveryWarning && (
                     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
@@ -2527,9 +2535,6 @@ const StudentsPortal = () => {
                                     <p className="text-sm font-bold text-slate-700 leading-relaxed">
                                         You have an <span className="text-rose-600 font-black">uncompleted recovery</span> from your previous leave.
                                     </p>
-                                    {/* <p className="text-[11px] text-slate-500 mt-2 font-medium">
-                                        Please complete your pending recovery lessons or contact your HOD before applying for a new leave.
-                                    </p> */}
                                 </div>
                                 <div className="flex flex-col gap-3">
                                     <button
@@ -2538,15 +2543,6 @@ const StudentsPortal = () => {
                                     >
                                         I Understand
                                     </button>
-                                    {/* <button 
-                                        onClick={() => {
-                                            setShowRecoveryWarning(false);
-                                            setIsApplyLeaveOpen(true);
-                                        }}
-                                        className="text-[10px] font-black text-rose-500 uppercase tracking-widest hover:underline"
-                                    >
-                                        Proceed Anyway (Urgent Only)
-                                    </button> */}
                                 </div>
                             </div>
                         </div>

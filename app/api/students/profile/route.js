@@ -34,7 +34,8 @@ export async function GET(req) {
         ADNO: student.ADNO, 
         SL: student.SL,
         CLASS: student.CLASS,
-        "FULL NAME": student["FULL NAME"]
+        "FULL NAME": student["FULL NAME"],
+        role: student.role
     });
   } catch (error) {
     return NextResponse.json({ error: error.message || "Failed to fetch profile" }, { status: 500 });

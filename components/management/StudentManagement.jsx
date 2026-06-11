@@ -5,7 +5,7 @@ import {
   Users, UserPlus, Search, Edit2, Trash2, 
   X, Check, AlertCircle, Filter, 
   MoreVertical, ChevronRight, ChevronLeft, 
-  Hash, BookOpen, Key, Calendar, 
+  Hash, BookOpen, Key, Calendar, Shield,
   ArrowUpDown, FileSpreadsheet, Upload, Download
 } from 'lucide-react';
 import axios from 'axios';
@@ -32,7 +32,8 @@ const StudentManagement = () => {
     CLASS: '',
     Password: '',
     onLeave: false,
-    active: true
+    active: true,
+    role: 'student'
   });
 
   // Pagination states
@@ -69,7 +70,8 @@ const StudentManagement = () => {
       CLASS: '',
       Password: '',
       onLeave: false,
-      active: true
+      active: true,
+      role: 'student'
     });
     setSelectedStudent(null);
     setIsModalOpen(true);
@@ -86,7 +88,8 @@ const StudentManagement = () => {
       CLASS: student.CLASS || '',
       Password: student.Password || '',
       onLeave: student.onLeave || false,
-      active: student.active !== false
+      active: student.active !== false,
+      role: student.role || 'student'
     });
     setIsModalOpen(true);
   };
@@ -350,6 +353,7 @@ const StudentManagement = () => {
                     <th className="p-6">ADNO</th>
                     <th className="p-6">Student Name</th>
                     <th className="p-6 text-center">Class</th>
+                    <th className="p-6 text-center">Role</th>
                     <th className="p-6 text-center">Leave Status</th>
                     <th className="p-6 text-right">Actions</th>
                   </tr>
@@ -378,6 +382,11 @@ const StudentManagement = () => {
                       <td className="p-6 text-center">
                         <span className="inline-flex bg-emerald-50 text-emerald-600 px-3 py-1 rounded-xl text-xs font-black ring-1 ring-emerald-100">
                           Class {student.CLASS}
+                        </span>
+                      </td>
+                      <td className="p-6 text-center">
+                        <span className="inline-flex bg-sky-50 text-sky-600 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest ring-1 ring-sky-100">
+                          {student.role || 'student'}
                         </span>
                       </td>
                       <td className="p-6 text-center">
@@ -432,7 +441,7 @@ const StudentManagement = () => {
                       </div>
                       <div>
                         <h4 className="font-black text-slate-800 tracking-tight leading-tight">{student["FULL NAME"]}</h4>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Class {student.CLASS} • SL {student.SL}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Class {student.CLASS} • SL {student.SL} • {student.role || 'student'}</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -762,6 +771,26 @@ const StudentManagement = () => {
                     className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-violet-400 focus:bg-white outline-none transition-all"
                     placeholder="4-digit PIN"
                   />
+                </div>
+
+                <div className="sm:col-span-1">
+                  <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2">
+                    <Shield size={14} className="text-rose-500" /> Program Role
+                  </label>
+                  <select
+                    value={formData.role}
+                    onChange={e => setFormData({...formData, role: e.target.value})}
+                    className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-rose-400 focus:bg-white outline-none transition-all appearance-none cursor-pointer"
+                  >
+                    <option value="student">Student</option>
+                    <option value="treasurer">Treasurer</option>
+                    <option value="convenor">Convenor</option>
+                    <option value="chairman">Chairman</option>
+                    <option value="secretary">Secretary</option>
+                    <option value="president">President</option>
+                    <option value="PRO">PRO</option>
+                    <option value="joint secretary">Joint Secretary</option>
+                  </select>
                 </div>
 
                 <div className="sm:col-span-2 space-y-4 pt-4 border-t border-slate-100">

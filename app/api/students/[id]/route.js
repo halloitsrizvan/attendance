@@ -59,7 +59,11 @@ export async function PATCH(req, { params }) {
       body.Password = Number(body.Password);
     }
     
-    const student = await Student.findOneAndUpdate(query, { $set: body }, { new: true });
+    const student = await Student.findOneAndUpdate(
+      query, 
+      { $set: body }, 
+      { returnDocument: 'after' }
+    );
     if (!student) return NextResponse.json({ error: "Student not found" }, { status: 404 });
     return NextResponse.json(student);
   } catch (error) {

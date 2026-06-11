@@ -43,10 +43,19 @@ const studentsSchema = new Schema({
     active: {
         type: Boolean,
         default: true
+    },
+    role: {
+        type: String,
+        enum: ['student', 'treasurer', 'convenor', 'chairman', 'secretary', 'president', 'PRO', 'joint secretary'],
+        default: 'student'
     }
 }, { timestamps: true });
 
 studentsSchema.index({ CLASS: 1 });
 studentsSchema.index({ ADNO: 1 });
 
-export default mongoose.models['Student'] || mongoose.model('Student', studentsSchema);
+if (mongoose.models['Student']) {
+  delete mongoose.models['Student'];
+}
+
+export default mongoose.model('Student', studentsSchema);

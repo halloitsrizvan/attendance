@@ -35,7 +35,17 @@ const classReportSchema = new Schema({
     teacherId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Teacher',
-        required: true
+        required: false
+    },
+    studentId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Student',
+        required: false
+    },
+    submitterType: {
+        type: String,
+        enum: ['teacher', 'student'],
+        default: 'teacher'
     },
     month: {
         type: String,
@@ -81,6 +91,10 @@ const classReportSchema = new Schema({
     },
     reviewedAt: {
         type: Date
+    },
+    classTeacherApproved: {
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true });
 

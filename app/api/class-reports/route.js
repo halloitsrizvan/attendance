@@ -15,9 +15,9 @@ export async function POST(req) {
         await dbConnect();
         
         const body = await req.json();
-        const { teacherId, month, year, classNumber, programs } = body;
+        const { teacherId, studentId, submitterType, month, year, classNumber, programs } = body;
 
-        if (!teacherId || !month || !year || !classNumber || !programs) {
+        if ((!teacherId && !studentId) || !month || !year || !classNumber || !programs) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
@@ -36,7 +36,9 @@ export async function POST(req) {
             return NextResponse.json({ message: 'Programs added to existing report successfully', report: existingReport }, { status: 200 });
         } else {
             const newReport = new ClassReport({
-                teacherId,
+                teacherId: teacherId || undefined,
+                studentId: studentId || undefined,
+                submitterType: submitterType || 'teacher',
                 month,
                 year,
                 classNumber: cNum,
@@ -90,9 +92,24 @@ export async function GET(req) {
             return NextResponse.json(leaderboard);
         }
 
+        const adminView = searchParams.get('adminView') === 'true';
+        const classNumber = searchParams.get('classNumber');
+        const filter = {};
+        if (classNumber) {
+            filter.classNumber = Number(classNumber);
+        }
+
+        if (adminView) {
+            filter.$or = [
+                { submitterType: { $ne: 'student' } },
+                { classTeacherApproved: true }
+            ];
+        }
+
         // Return all reports
-        const reports = await ClassReport.find({})
+        const reports = await ClassReport.find(filter)
             .populate('teacherId', 'name')
+            .populate('studentId', 'name FULL NAME SHORT NAME role')
             .populate('markedBy', 'name')
             .sort({ createdAt: -1 })
             .lean();
