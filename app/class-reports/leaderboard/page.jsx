@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header/Header';
 import axios from 'axios';
-import { Trophy, Medal, Crown, Loader2, Calendar, Award, Star } from 'lucide-react';
+import { Trophy, Medal, Crown, Loader2, Calendar, Award, Star, AlertTriangle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 const MONTHS = [
     'All', 'January', 'February', 'March', 'April', 'May', 'June',
@@ -11,13 +12,30 @@ const MONTHS = [
 ];
 
 export default function ClassLeaderboard() {
+    const router = useRouter();
     const [leaderboard, setLeaderboard] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedMonth, setSelectedMonth] = useState(MONTHS[new Date().getMonth() + 1]); // +1 because 'All' is at 0
+    const [teacher, setTeacher] = useState(null);
+    const [authLoading, setAuthLoading] = useState(true);
+
+    const ADMIN_EMAILS = ['shahinpandikkad4@gmail.com', 'dkp17713@gmail.com', 'unaisnellikkuth@gmail.com', 'kthaseeb11@gmail.com', 'saheedchunku@gmail.com'];
 
     useEffect(() => {
-        fetchLeaderboard();
-    }, [selectedMonth]);
+        const storedTeacher = localStorage.getItem('teacher');
+        if (storedTeacher) {
+            setTeacher(JSON.parse(storedTeacher));
+        }
+        setAuthLoading(false);
+    }, []);
+
+    useEffect(() => {
+        if (!authLoading && teacher && ADMIN_EMAILS.includes((teacher.email || teacher.EMAIL)?.toLowerCase())) {
+            fetchLeaderboard();
+        } else if (!authLoading) {
+            setLoading(false); // finish loading if not authorized
+        }
+    }, [selectedMonth, authLoading, teacher]);
 
     const fetchLeaderboard = async () => {
         try {
@@ -31,11 +49,81 @@ export default function ClassLeaderboard() {
         }
     };
 
-    if (loading) return (
-        <div className="min-h-screen bg-white flex flex-col">
+    if (authLoading) return (
+        <div className="min-h-screen bg-slate-50 flex flex-col">
             <Header />
-            <main className="flex-1 flex items-center justify-center">
-                <Loader2 className="animate-spin text-indigo-500 w-8 h-8" />
+            <div className="flex-1 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+            </div>
+        </div>
+    );
+
+    const isAuthorized = teacher && ADMIN_EMAILS.includes((teacher.email || teacher.EMAIL)?.toLowerCase());
+
+    if (!isAuthorized) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex flex-col">
+                <Header />
+                <div className="flex-1 flex items-center justify-center p-6">
+                    <div className="text-center">
+                        <AlertTriangle className="w-12 h-12 text-rose-500 mx-auto mb-4" />
+                        <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">Access Denied</h2>
+                        <p className="text-slate-500 font-medium mt-2">Only administrators can view this page.</p>
+                        <button onClick={() => router.push('/login')} className="mt-6 px-6 py-3 bg-slate-900 text-white rounded-xl text-xs font-bold uppercase tracking-widest">Login</button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (loading) return (
+        <div className="min-h-screen bg-slate-50 flex flex-col pb-20">
+            <Header />
+            <main className="max-w-xl mx-auto px-4 pt-24 space-y-6 w-full">
+                {/* Header Skeleton */}
+                <div className="bg-slate-200 rounded-[2.5rem] p-8 h-48 animate-pulse shadow-sm w-full"></div>
+
+                {/* Podium Skeleton */}
+                <div className="flex items-end justify-center gap-3 mb-10 h-64 mt-4 w-full">
+                    {/* 2nd Place */}
+                    <div className="flex-1 flex flex-col items-center">
+                        <div className="w-16 h-16 bg-slate-200 rounded-[1.5rem] mb-3 animate-pulse"></div>
+                        <div className="w-12 h-3 bg-slate-200 rounded mb-1 animate-pulse"></div>
+                        <div className="w-10 h-2 bg-slate-200 rounded mb-3 animate-pulse"></div>
+                        <div className="w-full bg-slate-200 h-24 rounded-t-3xl animate-pulse"></div>
+                    </div>
+                    {/* 1st Place */}
+                    <div className="flex-1 flex flex-col items-center">
+                        <div className="w-20 h-20 bg-slate-200 rounded-[1.8rem] mb-3 animate-pulse"></div>
+                        <div className="w-14 h-3 bg-slate-200 rounded mb-1 animate-pulse"></div>
+                        <div className="w-12 h-2 bg-slate-200 rounded mb-3 animate-pulse"></div>
+                        <div className="w-full bg-slate-200 h-32 rounded-t-3xl animate-pulse"></div>
+                    </div>
+                    {/* 3rd Place */}
+                    <div className="flex-1 flex flex-col items-center">
+                        <div className="w-16 h-16 bg-slate-200 rounded-[1.5rem] mb-3 animate-pulse"></div>
+                        <div className="w-12 h-3 bg-slate-200 rounded mb-1 animate-pulse"></div>
+                        <div className="w-10 h-2 bg-slate-200 rounded mb-3 animate-pulse"></div>
+                        <div className="w-full bg-slate-200 h-16 rounded-t-3xl animate-pulse"></div>
+                    </div>
+                </div>
+
+                {/* List Skeleton */}
+                <div className="space-y-3 w-full">
+                    {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="bg-white p-5 rounded-3xl flex items-center gap-4 border border-slate-100 animate-pulse w-full">
+                            <div className="w-8 h-8 rounded-xl bg-slate-200 shrink-0"></div>
+                            <div className="flex-grow space-y-2">
+                                <div className="h-4 bg-slate-200 rounded w-1/3"></div>
+                                <div className="flex gap-2">
+                                    <div className="h-3 bg-slate-200 rounded w-12"></div>
+                                    <div className="h-3 bg-slate-200 rounded w-16"></div>
+                                </div>
+                            </div>
+                            <div className="w-16 h-8 bg-slate-200 rounded-xl shrink-0"></div>
+                        </div>
+                    ))}
+                </div>
             </main>
         </div>
     );

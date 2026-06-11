@@ -255,29 +255,22 @@ export default function AdminReviewClassReports() {
                     <div className="relative w-full max-w-4xl max-h-[90vh] bg-white rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
 
                         {/* Modal Header */}
-                        <div className="p-6 sm:p-8 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50">
-                            <div>
-                                <h3 className="text-2xl font-black text-slate-800 uppercase italic">
-                                    {selectedReport.month} {selectedReport.year} Programs
-                                </h3>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2 flex items-center gap-2">
-                                    <span className="bg-white px-2 py-1 rounded-lg border border-slate-200">C: {selectedReport.classNumber}</span>
+                        <div className="p-6 sm:p-8 border-b border-slate-100 bg-slate-50/50">
+                            <h3 className="text-2xl font-black text-slate-800 uppercase italic">
+                                {selectedReport.month} {selectedReport.year} Programs
+                            </h3>
+                            <div className="mt-2 flex items-center justify-between">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                    <span className="bg-white px-2 py-1 rounded-lg border border-slate-200">Class: {selectedReport.classNumber}</span>
                                     <span className="bg-white px-2 py-1 rounded-lg border border-slate-200">{selectedReport.section}</span>
-                                    <span className="bg-white px-2 py-1 rounded-lg border border-slate-200">
-                                        {selectedReport.submitterType === 'student' 
-                                            ? `Student: ${selectedReport.studentId?.['SHORT NAME'] || selectedReport.studentId?.name || 'Unknown'}` 
-                                            : `Teacher: ${selectedReport.teacherId?.name || 'Unknown'}`
-                                        }
-                                    </span>
-                                    
                                 </p>
+                                <button
+                                    onClick={() => setSelectedReport(null)}
+                                    className="w-10 h-10 shrink-0 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 hover:border-rose-200 transition-colors"
+                                >
+                                    <X size={20} />
+                                </button>
                             </div>
-                            <button
-                                onClick={() => setSelectedReport(null)}
-                                className="w-10 h-10 shrink-0 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 hover:border-rose-200 transition-colors"
-                            >
-                                <X size={20} />
-                            </button>
                         </div>
 
                         {/* Modal Body */}

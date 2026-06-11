@@ -320,8 +320,16 @@ export default function ProgramReportsPage() {
                                             {report.status === 'reviewed' ? (
                                                 <>
                                                     <span className="text-[10px] font-black text-emerald-600 flex items-center gap-1 uppercase tracking-widest bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100">
-                                                        <CheckCircle2 size={14} /> Marked: {report.totalMark || 0} pts
+                                                        <CheckCircle2 size={14} /> Total: {report.totalMark || 0} pts
                                                     </span>
+                                                    <div className="flex items-center gap-2 mt-2">
+                                                        <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-100">
+                                                            Zehnuth: {report.zehnuthPoints || 0}
+                                                        </span>
+                                                        <span className="text-[9px] font-black text-purple-600 uppercase tracking-widest bg-purple-50 px-2 py-1 rounded-lg border border-purple-100">
+                                                            Viva: {report.vivaPoints || 0}
+                                                        </span>
+                                                    </div>
                                                     <span className="text-[9px] font-bold text-slate-400 mt-2 uppercase tracking-widest">
                                                         By {report.markedBy?.name || 'Admin'}
                                                     </span>
