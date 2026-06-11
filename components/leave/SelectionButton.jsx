@@ -1,18 +1,18 @@
 "use client";
 
 import React from 'react';
-import { 
-  Calendar, 
-  CalendarDays, 
-  Sun, 
-  Moon, 
-  Zap, 
-  Clock, 
-  Stethoscope, 
-  Bed, 
-  Building2, 
-  Heart, 
-  PartyPopper, 
+import {
+  Calendar,
+  CalendarDays,
+  Sun,
+  Moon,
+  Zap,
+  Clock,
+  Stethoscope,
+  Bed,
+  Building2,
+  Heart,
+  PartyPopper,
   Edit3,
   CalendarCheck,
   ArrowRight,
@@ -27,19 +27,19 @@ const iconMap = {
   'Tomorrow': ArrowRight,
   'Day After': SkipForward,
   'Calendar': CalendarDays,
-  
+
   // Time
   'Morning': Sun,
   'Evening': Moon,
   'Now': Zap,
   'Clock': Clock,
-  
+
   // Reason
   'Medical': Stethoscope,
   'Medical (Home)': Stethoscope,
   'Room': Bed,
   'Hospital': Building2,
-  'Hospital bi-stander': UserPlus,
+  'Hospital bystander': UserPlus,
   'Marriage': Heart,
   'Function': PartyPopper,
   'Custom': Edit3,
@@ -55,7 +55,7 @@ function SelectionButton({ label, isSelected, onClick, type, disabled }) {
       onClick={disabled ? undefined : onClick}
       disabled={disabled}
       className={`w-full py-4 px-2 ${type === "Template" ? 'text-[9px]' : 'text-[9px]'} font-medium uppercase tracking-widest rounded-xl transition-all duration-300 border-2 flex flex-col items-center justify-center gap-1
-        ${isSelected 
+        ${isSelected
           ? type === "Reason"
             ? 'bg-rose-500 text-white border-rose-500 shadow-lg shadow-rose-500/20 scale-[1.02]'
             : type === "From"

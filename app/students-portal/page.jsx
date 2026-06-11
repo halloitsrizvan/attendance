@@ -275,9 +275,9 @@ const HistoryModal = ({ isOpen, onClose, title, data, type, color, onZehnuthClic
                                 </div>
                                 <div className="flex flex-col items-end gap-1">
                                     <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${type === 'minus' ? 'bg-rose-100 text-rose-600' :
-                                            type === 'leave' ? 'bg-amber-100 text-amber-600' :
-                                                type === 'zehnuth' ? 'bg-indigo-100 text-indigo-600' :
-                                                    'bg-sky-100 text-sky-600'
+                                        type === 'leave' ? 'bg-amber-100 text-amber-600' :
+                                            type === 'zehnuth' ? 'bg-indigo-100 text-indigo-600' :
+                                                'bg-sky-100 text-sky-600'
                                         }`}>
                                         {type === 'minus' ? `-${item.minusNum}` :
                                             type === 'leave' ? getDetailedStatus(item) :
@@ -440,7 +440,7 @@ const ApplyLeaveModal = ({ isOpen, onClose, student, onComplete }) => {
         { id: 'thu-fri-eve', label: 'Thurs 🌇 → Friday 🌇' },
     ];
 
-    const reasons = ['Marriage', 'Function', 'Medical (Home)', 'Hospital', 'Hospital bi-stander', 'OGEA', 'Custom'];
+    const reasons = ['Marriage', 'Function', 'Medical (Home)', 'Hospital', 'Hospital bystander', 'OGEA', 'Custom'];
 
     const handleTemplateSelect = (templateId) => {
         setSelectedTemplate(templateId);
@@ -505,7 +505,7 @@ const ApplyLeaveModal = ({ isOpen, onClose, student, onComplete }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         let finalReason = selectedReason === 'Custom' ? customReason : selectedReason;
-        if ((selectedReason?.includes('Medical') || selectedReason === 'Hospital' || selectedReason === 'Hospital bi-stander') && disease.trim() !== '') {
+        if ((selectedReason?.includes('Medical') || selectedReason === 'Hospital' || selectedReason === 'Hospital bystander') && disease.trim() !== '') {
             finalReason = `${selectedReason} - ${disease.trim()}`;
         } else if (selectedReason === 'OGEA' && program.trim() !== '') {
             finalReason = `OGEA - ${program.trim()}`;
@@ -611,7 +611,7 @@ const ApplyLeaveModal = ({ isOpen, onClose, student, onComplete }) => {
                                 required
                             />
                         )}
-                        {(selectedReason?.includes('Medical') || selectedReason === 'Hospital' || selectedReason === 'Hospital bi-stander') && (
+                        {(selectedReason?.includes('Medical') || selectedReason === 'Hospital' || selectedReason === 'Hospital bystander') && (
                             <input
                                 type="text"
                                 placeholder="Specify disease / condition..."

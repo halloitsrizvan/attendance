@@ -124,8 +124,8 @@ const TemplatePicker = ({ selectedTemplate, setSelectedTemplate, onTemplateSelec
     { id: 'tmrw-dayafter-eve', label: 'Tom 🌇 → Next 🌇' },
     { id: 'thu-fri-eve', label: 'Thu 🌇→ Friday 🌇' },
     { id: 'thu-sat-morn', label: 'Thu 🌇 → Sat 🌅' },
-  ]; 
- 
+  ];
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between px-1">
@@ -163,21 +163,33 @@ const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCust
   const classNum = teacher?.classNum;
 
   let reasonOptions = [];
-  const classTeacher_reasons_for_primary = ['Medical (Home)', 'Room', 'Marriage', 'Hospital', 'Hospital bi-stander', 'Urgent (Death)', 'OGEA', 'Custom'];
-  const classTeacher_reasons_for_s5_ss_d = ['Medical (Home)', 'Room', 'Hospital', 'Hospital bi-stander', 'Urgent (Death)', 'OGEA', 'Custom'];
+  const classTeacher_reasons_for_primary = ['Medical (Home)', 'Room', 'Marriage', 'Hospital', 'Hospital bystander', 'Urgent (Death)', 'OGEA', 'Custom'];
+  const classTeacher_reasons_for_s5_ss_d = ['Medical (Home)', 'Room', 'Hospital', 'Hospital bystander', 'Urgent (Death)', 'OGEA', 'Custom'];
   const teacher_reasons_for_hos_hod = ['Medical (Home)', 'Room', 'Marriage', 'OGEA', 'Custom'];
   const super_admin_reasons = ['Medical (Home)', 'Room', 'Marriage', 'OGEA', 'Custom'];
   if (leaveType === "leave") {
-    if (teacher?.role?.includes("super_admin")) {
-      reasonOptions = super_admin_reasons;
-    } else if (teacher?.classNum) {
-      if (teacher?.classNum <= 4) {
-        reasonOptions = classTeacher_reasons_for_primary;
+    const roles = Array.isArray(teacher?.role) ? teacher.role : (teacher?.role ? [teacher.role] : []);
+    const hasRole = (r) => roles.includes(r);
+    const matchedReasons = [];
+
+    if (hasRole("super_admin")) {
+      matchedReasons.push(...super_admin_reasons);
+    }
+
+    if (hasRole("class_teacher") || teacher?.classNum) {
+      if (teacher?.classNum && Number(teacher.classNum) <= 4) {
+        matchedReasons.push(...classTeacher_reasons_for_primary);
       } else {
-        reasonOptions = classTeacher_reasons_for_s5_ss_d;
+        matchedReasons.push(...classTeacher_reasons_for_s5_ss_d);
       }
-    } else if (teacher?.role?.includes("HOD") || teacher?.role?.includes("HOS")) {
-      reasonOptions = teacher_reasons_for_hos_hod;
+    }
+
+    if (hasRole("HOD") || hasRole("HOS")) {
+      matchedReasons.push(...teacher_reasons_for_hos_hod);
+    }
+
+    if (matchedReasons.length > 0) {
+      reasonOptions = [...new Set(matchedReasons)];
     } else {
       reasonOptions = ['Custom'];
     }
@@ -220,7 +232,7 @@ const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCust
           />
         </div>
       )}
-      {(selectedReason?.includes('Medical') || selectedReason === 'Hospital' || selectedReason === 'Hospital bi-stander' || selectedReason === 'Room') && (
+      {(selectedReason?.includes('Medical') || selectedReason === 'Hospital' || selectedReason === 'Hospital bystander' || selectedReason === 'Room') && (
         <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
           <input
             type="text"
@@ -281,7 +293,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   useEffect(() => {
     // Focus the search input on mount
     setTimeout(() => {
-        searchInputRef.current?.focus();
+      searchInputRef.current?.focus();
     }, 100);
   }, []);
   const [leaveData, setLeaveData] = useState(initialLeaves || []);
@@ -356,7 +368,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         const tmrw = new Date();
         tmrw.setDate(tmrw.getDate() + 1);
         const tmrwStr = tmrw.toISOString().split('T')[0];
-        
+
         const dayAfter = new Date();
         dayAfter.setDate(dayAfter.getDate() + 2);
         const dayAfterStr = dayAfter.toISOString().split('T')[0];
@@ -439,7 +451,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
 
     const filterByRole = (rawStudents) => {
       if (teacher?.role?.includes("super_admin")) return rawStudents;
-      
+
       const allowedClasses = [];
       if (teacher?.role?.includes("HOD")) allowedClasses.push(8, 9, 10);
       if (teacher?.role?.includes("HOS")) allowedClasses.push(1, 2, 3, 4, 5, 6, 7);
@@ -458,11 +470,11 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       try {
         let url = `${API_PORT}/students`;
         // Optimization: For class teachers with no higher roles, fetch only their class
-        if (teacher.role?.includes("class_teacher") && 
-            !teacher.role?.some(r => ["HOD", "HOS", "super_admin"].includes(r))) {
+        if (teacher.role?.includes("class_teacher") &&
+          !teacher.role?.some(r => ["HOD", "HOS", "super_admin"].includes(r))) {
           url += `?class=${teacher.classNum}`;
         }
-        
+
         const res = await axios.get(url);
         setStudents(filterByRole(res.data));
       } catch (err) {
@@ -499,20 +511,20 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     try {
       const date = new Date(dateInput);
       if (isNaN(date.getTime())) return dateInput;
-      
+
       const today = new Date();
-      
+
       const d1 = new Date(date.getFullYear(), date.getMonth(), date.getDate());
       const d2 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      
+
       const diffTime = d1 - d2;
       const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-      
+
       if (diffDays === 0) return "Today";
       if (diffDays === -1) return "Yesterday";
       if (diffDays === 1) return "Tomorrow";
       if (diffDays === 2) return "Day After";
-      
+
       return d1.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     } catch (e) {
       return typeof dateInput === 'string' ? dateInput : '';
@@ -523,7 +535,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     if (!from) return { days: 0, hours: 0 };
     // Try to use provided times, fallback to standard Morning/Evening if needed
     const start = new Date(`${from}T${fromTime || '07:00'}`);
-    
+
     let endDate;
     if (to && to.includes('T')) {
       // It's likely an ISO returnedAt string
@@ -533,11 +545,11 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     }
 
     if (isNaN(start.getTime()) || isNaN(endDate.getTime())) return { days: 0, hours: 0 };
-    
+
     const diffTime = Math.abs(endDate - start);
     const days = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    
+
     return { days, hours };
   };
 
@@ -545,7 +557,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     if (leave.status !== 'returned' || !leave.returnedAt || !leave.toDate || !leave.toTime) return null;
     const returned = new Date(leave.returnedAt);
     const scheduled = new Date(`${leave.toDate}T${leave.toTime}`);
-    
+
     if (returned > scheduled) {
       const diffMs = returned - scheduled;
       const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
@@ -558,37 +570,37 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
 
   const getTimeLabel = (timeStr, isFrom = true) => {
     if (!timeStr) return '';
-    
+
     // Exact standard matches first
     const morning = isFrom ? "05:30" : "07:00";
     const evening = isFrom ? "16:30" : "18:00";
     if (timeStr === morning) return "Morning";
     if (timeStr === evening) return "Evening";
-    
+
     // Fallback to fuzzy categorization
     const hour = parseInt(timeStr.split(':')[0]);
     if (hour >= 4 && hour < 12) return 'Morning';
     if (hour >= 12 && hour < 17) return 'Afternoon';
     if (hour >= 17 || hour < 4) return 'Evening';
-    
+
     return formatTimeTo12h(timeStr);
   };
 
   const handleMarkReturned = async (leave) => {
     setLoading(true);
     try {
-      const payload = { 
-        status: 'returned', 
+      const payload = {
+        status: 'returned',
         markReturnedTeacher: teacher?.name || 'Unknown',
-        returnedAt: new Date().toISOString() 
+        returnedAt: new Date().toISOString()
       };
       await axios.put(`${API_PORT}/leave/${leave._id}`, payload);
       await axios.patch(`${API_PORT}/students/on-leave/${leave.studentId?.ADNO || leave.ad}`, { onLeave: false });
-      
+
       // Refresh local data
       const res = await axios.get(`${API_PORT}/leave`);
       setLeaveData(res.data);
-      
+
       setAd('');
       setAlertState(prev => ({ ...prev, isOpen: false }));
       showAlert(`${leave.studentId?.['SHORT NAME'] || 'Student'} marked as returned.`, "Success", "success");
@@ -603,13 +615,13 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   const handleStartLeave = async (leave) => {
     setLoading(true);
     try {
-      const payload = { 
-        status: 'active', 
-        leaveStartTeacher: teacher?.name || 'Unknown' 
+      const payload = {
+        status: 'active',
+        leaveStartTeacher: teacher?.name || 'Unknown'
       };
       await axios.put(`${API_PORT}/leave/${leave._id}`, payload);
       await axios.patch(`${API_PORT}/students/on-leave/${leave.studentId?.ADNO || leave.ad}`, { onLeave: true });
-      
+
       const res = await axios.get(`${API_PORT}/leave`);
       setLeaveData(res.data);
 
@@ -649,7 +661,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       });
 
       await axios.patch(`${API_PORT}/students/on-leave/${leave.studentId?.ADNO || leave.ad}`, { onLeave: true });
-      
+
       const res = await axios.get(`${API_PORT}/leave`);
       setLeaveData(res.data);
 
@@ -718,13 +730,13 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   const getActiveLeaveDays = (fromDateStr, fromTimeStr, returnedAt) => {
     const start = new Date(`${fromDateStr}T${fromTimeStr}`);
     const end = new Date(returnedAt);
-    
+
     if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
 
     let count = 0;
     let current = new Date(start);
     current.setHours(0, 0, 0, 0);
-    
+
     const endDay = new Date(end);
     endDay.setHours(0, 0, 0, 0);
 
@@ -734,10 +746,10 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         dayStart.setHours(7, 0, 0, 0);
         const dayEnd = new Date(current);
         dayEnd.setHours(16, 0, 0, 0);
-        
+
         const overlapStart = start > dayStart ? start : dayStart;
         const overlapEnd = end < dayEnd ? end : dayEnd;
-        
+
         if (overlapStart < overlapEnd) {
           count++;
         }
@@ -763,13 +775,13 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       if (pendingRecoveries.length === 0) return true;
 
       const now = new Date();
-      
+
       // Check each pending recovery to see if any have passed their deadline
       for (const leave of pendingRecoveries) {
         if (leave.recoveryNeeded === false) continue;
 
         const leaveDays = getActiveLeaveDays(leave.fromDate, leave.fromTime, leave.returnedAt);
-        
+
         // If no class days were missed, this record doesn't require recovery
         if (leaveDays === 0) continue;
 
@@ -833,7 +845,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     const canStart = now >= scheduledStart;
 
     const popupButtons = [];
-    
+
     if (!isScheduled || canStart) {
       popupButtons.push({
         label: isScheduled ? "Start Leave Now" : (isRoom ? "Return to Class" : "Mark Returned"),
@@ -923,9 +935,9 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         }
       },
       {
-        label: "PWR",  
+        label: "PWR",
         stack: true,
-        autoClose: false, 
+        autoClose: false,
         onClick: () => {
           setBypassRecovery(true);
           setAlertState(prev => ({ ...prev, isOpen: false }));
@@ -1009,23 +1021,23 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   // Helper to map DB values back to form options
   const mapDataToForm = (leave) => {
     // 1. Map Reason
-    const standardReasons = ['Medical (Home)', 'Room', 'Marriage', 'Hospital', 'Hospital bi-stander', 'Urgent (Death)', 'OGEA'];
+    const standardReasons = ['Medical (Home)', 'Room', 'Marriage', 'Hospital', 'Hospital bystander', 'Urgent (Death)', 'OGEA'];
     let matchedStandard = false;
-    
+
     for (const sr of standardReasons) {
       if (leave.reason === sr || leave.reason?.startsWith(sr + ' - ')) {
         setReason(sr);
         setCustomReason('');
         matchedStandard = true;
-        
+
         if (leave.reason !== sr) {
           const detail = leave.reason.substring(sr.length + 3);
           if (sr.includes('Medical') || sr.includes('Hospital') || sr === 'Room') {
-             setDisease(detail);
-             setProgram('');
+            setDisease(detail);
+            setProgram('');
           } else if (sr === 'OGEA') {
-             setProgram(detail);
-             setDisease('');
+            setProgram(detail);
+            setDisease('');
           }
         } else {
           setDisease('');
@@ -1075,17 +1087,17 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   };
 
   // Handle Extension Mode
-  const handleExtendMode = (leave,stdData) => {
+  const handleExtendMode = (leave, stdData) => {
     setActiveLeave(leave);
     setFormMode('extend');
     setAd(stdData.ADNO)
     setName(stdData["SHORT NAME"] || stdData["FULL NAME"] || stdData.name || "Unknown")
     setClassNum(stdData.CLASS)
-    
+
     mapDataToForm(leave);
     setOriginalToDate(leave.toDate);
     setOriginalToTime(leave.toTime);
-    
+
   };
 
   // Handle Add Reason Mode
@@ -1116,7 +1128,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       const nextDay = new Date(leave.toDate);
       nextDay.setDate(nextDay.getDate() + 1);
       const nextDayStr = nextDay.toISOString().split('T')[0];
-      
+
       const today = new Date().toISOString().split('T')[0];
       const tmw = new Date(); tmw.setDate(tmw.getDate() + 1);
       const tomorrow = tmw.toISOString().split('T')[0];
@@ -1124,7 +1136,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       if (nextDayStr === today) setFromDate('Today');
       else if (nextDayStr === tomorrow) setFromDate('Tomorrow');
       else { setFromDate('Calendar'); setFromCustomDate(nextDayStr); }
-      
+
       setFromTime('Morning');
     } else {
       setFromDate('Tomorrow');
@@ -1384,7 +1396,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
 
     if (formMode === 'extend' || formMode === 'add') {
       const updatePayload = {};
-      
+
       if (formMode === 'extend') {
         updatePayload.toDate = finalToDate;
         updatePayload.toTime = finalToTime;
@@ -1425,7 +1437,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
           showAlert("Error updating leave request. Please try again.", "Error", "error");
         })
         .finally(() => setLoading(false));
-      
+
       return;
     }
 
@@ -1594,7 +1606,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   const getAllowedClassValues = () => {
     if (!teacher) return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
     if (teacher?.role?.includes("super_admin")) return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-    
+
     let allowed = [];
     if (teacher?.role?.includes("HOD")) allowed.push(8, 9, 10);
     if (teacher?.role?.includes("HOS")) allowed.push(1, 2, 3, 4, 5, 6, 7);
@@ -1603,8 +1615,8 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         allowed.push(Number(teacher.classNum));
       }
     }
-    
-    return allowed.length > 0 ? [...new Set(allowed)].sort((a,b) => a - b) : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+    return allowed.length > 0 ? [...new Set(allowed)].sort((a, b) => a - b) : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
   };
 
   const classValues = getAllowedClassValues();
@@ -1766,11 +1778,11 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       };
 
       const promises = [axios.post(`${API_PORT}/leave`, payload)];
-      
+
       if (startImmediately) {
         promises.push(axios.patch(`${API_PORT}/students/on-leave/${studentData.ADNO}`, { onLeave: true }));
       }
-      
+
       return promises;
     });
 
@@ -1853,13 +1865,13 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         >
           <FaHome size={16} /> Leave Dashboard
         </button>
-        {(Array.isArray(teacher?.role) ? teacher.role.some(r => ["Principal","super_admin"].includes(r)) : ["Principal","super_admin"].includes(teacher?.role)) && (
+        {(Array.isArray(teacher?.role) ? teacher.role.some(r => ["Principal", "super_admin"].includes(r)) : ["Principal", "super_admin"].includes(teacher?.role)) && (
           <button
             className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold shadow-sm transition-all ${leaveType === "leave"
-              ? "bg-sky-500 text-white hover:bg-sky-600 shadow-sky-500/20" 
+              ? "bg-sky-500 text-white hover:bg-sky-600 shadow-sky-500/20"
               : "bg-amber-500 text-white hover:bg-amber-600 shadow-amber-500/20"
               }`}
-            onClick={() => setLeaveType(leaveType === "leave" ? 'short-leave' : 'leave')} 
+            onClick={() => setLeaveType(leaveType === "leave" ? 'short-leave' : 'leave')}
           >
             {leaveType === "leave" ? "Class Excused Pass" : "← Regular Leave"}
           </button>
@@ -1869,102 +1881,101 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       {leaveType === "leave" ? (
         <div className="max-w-xl mx-auto space-y-8 pb-16">
           {/* History Modal */}
-      {showHistoryModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowHistoryModal(false)}></div>
-          <div className="relative bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="bg-yellow-500 p-6 flex items-center justify-between text-white">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                  <Clock className="w-5 h-5" />
+          {showHistoryModal && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowHistoryModal(false)}></div>
+              <div className="relative bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="bg-yellow-500 p-6 flex items-center justify-between text-white">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                      <Clock className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black tracking-tight">{name}</h3>
+                      <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">Full Leave History (AD: {ad})</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowHistoryModal(false)}
+                    className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full transition-colors flex items-center justify-center"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
-                <div>
-                  <h3 className="text-xl font-black tracking-tight">{name}</h3>
-                  <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">Full Leave History (AD: {ad})</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setShowHistoryModal(false)}
-                className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full transition-colors flex items-center justify-center"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
 
-            <div className="p-6 max-h-[60vh] overflow-y-auto">
-              {studentHistory.length > 0 ? (
-                <div className="space-y-4">
-                    {studentHistory.sort((a,b) => new Date(b.fromDate) - new Date(a.fromDate)).map((leave, idx) => {
-                      const duration = calculateLeaveDuration(leave.fromDate, leave.fromTime, leave.returnedAt || leave.toDate, leave.toTime);
-                      const lateBy = calculateLateBy(leave);
-                      const isLateReturned = lateBy !== null;
+                <div className="p-6 max-h-[60vh] overflow-y-auto">
+                  {studentHistory.length > 0 ? (
+                    <div className="space-y-4">
+                      {studentHistory.sort((a, b) => new Date(b.fromDate) - new Date(a.fromDate)).map((leave, idx) => {
+                        const duration = calculateLeaveDuration(leave.fromDate, leave.fromTime, leave.returnedAt || leave.toDate, leave.toTime);
+                        const lateBy = calculateLateBy(leave);
+                        const isLateReturned = lateBy !== null;
 
-                      return (
-                        <div key={idx} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center justify-between gap-4">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-[10px] font-black text-slate-400 capitalize px-2 py-1 bg-white border border-slate-100 rounded-lg">
-                                {leave.reason || 'General Leave'}
+                        return (
+                          <div key={idx} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-[10px] font-black text-slate-400 capitalize px-2 py-1 bg-white border border-slate-100 rounded-lg">
+                                  {leave.reason || 'General Leave'}
+                                </span>
+                                <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg border shadow-sm ${isLateReturned ? 'text-rose-600 bg-rose-50 border-rose-100' :
+                                    (leave.status === 'returned' || leave.status === 'Arrived' ? 'text-emerald-600 bg-emerald-50 border-emerald-100' : 'text-amber-600 bg-amber-50 border-amber-100')
+                                  }`}>
+                                  {isLateReturned ? 'Late Returned' : leave.status}
+                                </span>
+                                <span className="text-[10px] font-black text-sky-600 px-2 py-1 bg-sky-50 border border-sky-100 rounded-lg flex items-center gap-1">
+                                  <Clock size={10} />
+                                  {duration.days > 0 ? `${duration.days}d ` : ''}{duration.hours}h
+                                </span>
+                                {isLateReturned && (
+                                  <span className="text-[9px] font-bold text-rose-500 bg-rose-50/50 px-2 py-1 rounded-lg flex items-center gap-1 border border-rose-100">
+                                    Late by: {lateBy.days > 0 ? `${lateBy.days}d ` : ''}{lateBy.hours}h
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="text-right flex flex-col items-end">
+                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                {getRelativeDate(leave.fromDate)}
+                                {leave.fromTime && <span className="text-slate-300 ml-1">• {getTimeLabel(leave.fromTime, true)}</span>}
                               </span>
-                              <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg border shadow-sm ${
-                                isLateReturned ? 'text-rose-600 bg-rose-50 border-rose-100' : 
-                                (leave.status === 'returned' || leave.status === 'Arrived' ? 'text-emerald-600 bg-emerald-50 border-emerald-100' : 'text-amber-600 bg-amber-50 border-amber-100')
-                              }`}>
-                                {isLateReturned ? 'Late Returned' : leave.status}
-                              </span>
-                              <span className="text-[10px] font-black text-sky-600 px-2 py-1 bg-sky-50 border border-sky-100 rounded-lg flex items-center gap-1">
-                                <Clock size={10} />
-                                {duration.days > 0 ? `${duration.days}d ` : ''}{duration.hours}h
-                              </span>
-                              {isLateReturned && (
-                                <span className="text-[9px] font-bold text-rose-500 bg-rose-50/50 px-2 py-1 rounded-lg flex items-center gap-1 border border-rose-100">
-                                  Late by: {lateBy.days > 0 ? `${lateBy.days}d ` : ''}{lateBy.hours}h
+                              {leave.status === 'returned' && leave.returnedAt ? (
+                                <span className="text-[8px] font-bold text-emerald-500/60 uppercase mt-0.5">
+                                  Ended {getRelativeDate(leave.returnedAt.split('T')[0])}
+                                  <span className="ml-1 opacity-70">• {getTimeLabel(new Date(leave.returnedAt).toTimeString().substring(0, 5), false)}</span>
+                                </span>
+                              ) : leave.toDate && (
+                                <span className="text-[8px] font-bold text-slate-300 uppercase mt-0.5">
+                                  Until {getRelativeDate(leave.toDate)}
+                                  {leave.toTime && <span className="ml-1">• {getTimeLabel(leave.toTime, false)}</span>}
                                 </span>
                               )}
                             </div>
                           </div>
-                        <div className="text-right flex flex-col items-end">
-                           <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                             {getRelativeDate(leave.fromDate)}
-                             {leave.fromTime && <span className="text-slate-300 ml-1">• {getTimeLabel(leave.fromTime, true)}</span>}
-                           </span>
-                           {leave.status === 'returned' && leave.returnedAt ? (
-                             <span className="text-[8px] font-bold text-emerald-500/60 uppercase mt-0.5">
-                               Ended {getRelativeDate(leave.returnedAt.split('T')[0])} 
-                               <span className="ml-1 opacity-70">• {getTimeLabel(new Date(leave.returnedAt).toTimeString().substring(0,5), false)}</span>
-                             </span>
-                           ) : leave.toDate && (
-                             <span className="text-[8px] font-bold text-slate-300 uppercase mt-0.5">
-                               Until {getRelativeDate(leave.toDate)} 
-                               {leave.toTime && <span className="ml-1">• {getTimeLabel(leave.toTime, false)}</span>}
-                             </span>
-                           )}
-                        </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="py-12 text-center">
+                      <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-dashed border-slate-200">
+                        <Database className="w-6 h-6 text-slate-300" />
                       </div>
-                    );
-                  })}
+                      <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">No Leave Records Found</p>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="py-12 text-center">
-                  <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-dashed border-slate-200">
-                    <Database className="w-6 h-6 text-slate-300" />
-                  </div>
-                  <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">No Leave Records Found</p>
-                </div>
-              )}
-            </div>
 
-            <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
-              <button
-                onClick={() => setShowHistoryModal(false)}
-                className="px-6 py-3 bg-slate-800 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 transition-colors"
-              >
-                Close Record
-              </button>
+                <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
+                  <button
+                    onClick={() => setShowHistoryModal(false)}
+                    className="px-6 py-3 bg-slate-800 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 transition-colors"
+                  >
+                    Close Record
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
           {/* Regular Leave Form */}
           {!showBulkModal && (
@@ -2008,26 +2019,26 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
                         <div
                           key={s.ADNO}
                           className="px-4 py-3 hover:bg-sky-50 cursor-pointer flex items-center justify-between"
-                            onClick={async () => {
-                              setAd(s.ADNO);
-                              setName(s["SHORT NAME"] || s["FULL NAME"]);
-                              setClassNum(s.CLASS);
-                              setStudent(s);
-                              setSuggestions([]);
-                              
-                              // Optimization: Fetch this specific student's latest leaves to check recovery
-                              try {
-                                const res = await axios.get(`${API_PORT}/leave?ad=${s.ADNO}`);
-                                // Merge with current active leaves (avoiding duplicates)
-                                setLeaveData(prev => {
-                                  const existingIds = new Set(prev.map(l => l._id));
-                                  const newItems = res.data.filter(l => !existingIds.has(l._id));
-                                  return [...prev, ...newItems];
-                                });
-                              } catch (e) {
-                                console.error("Error fetching student history on selection:", e);
-                              }
-                            }}
+                          onClick={async () => {
+                            setAd(s.ADNO);
+                            setName(s["SHORT NAME"] || s["FULL NAME"]);
+                            setClassNum(s.CLASS);
+                            setStudent(s);
+                            setSuggestions([]);
+
+                            // Optimization: Fetch this specific student's latest leaves to check recovery
+                            try {
+                              const res = await axios.get(`${API_PORT}/leave?ad=${s.ADNO}`);
+                              // Merge with current active leaves (avoiding duplicates)
+                              setLeaveData(prev => {
+                                const existingIds = new Set(prev.map(l => l._id));
+                                const newItems = res.data.filter(l => !existingIds.has(l._id));
+                                return [...prev, ...newItems];
+                              });
+                            } catch (e) {
+                              console.error("Error fetching student history on selection:", e);
+                            }
+                          }}
                         >
                           <div className="flex flex-col">
                             <span className="text-sm font-black text-slate-800">{s["SHORT NAME"] || s["FULL NAME"]}</span>
@@ -2043,26 +2054,26 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
                 </div>
 
                 <div className="col-span-1">
-                  <label 
+                  <label
                     onClick={async () => {
-                        if (ad && student) {
-                            setLoading(true);
-                            try {
-                                // Performance: Always fetch complete and fresh history when viewing modal
-                                const res = await axios.get(`${API_PORT}/leave?ad=${ad}`);
-                                setStudentHistory(res.data);
-                                setShowHistoryModal(true);
-                            } catch (e) {
-                                console.error("Error fetching student history:", e);
-                                showAlert("Failed to load history.");
-                            } finally {
-                                setLoading(false);
-                            }
+                      if (ad && student) {
+                        setLoading(true);
+                        try {
+                          // Performance: Always fetch complete and fresh history when viewing modal
+                          const res = await axios.get(`${API_PORT}/leave?ad=${ad}`);
+                          setStudentHistory(res.data);
+                          setShowHistoryModal(true);
+                        } catch (e) {
+                          console.error("Error fetching student history:", e);
+                          showAlert("Failed to load history.");
+                        } finally {
+                          setLoading(false);
                         }
+                      }
                     }}
                     className={`block text-[10px] font-black uppercase tracking-widest px-1 mb-2 cursor-pointer transition-colors ${ad ? 'text-yellow-500 hover:text-yellow-600' : 'text-slate-300'}`}
                   >
-                    History 
+                    History
                     {/* {ad && "• View"} */}
                   </label>
                   <button
@@ -2472,8 +2483,8 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
             ) : (
               <div className="bg-emerald-50/50 p-6 rounded-2xl border-2 border-dashed border-emerald-100 text-center space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
                 <div className="flex items-center justify-center gap-3 text-emerald-600">
-                   <Clock size={20} strokeWidth={2.5} />
-                   <span className="text-sm font-black uppercase tracking-widest">7:00 pm - 8:30 pm</span>
+                  <Clock size={20} strokeWidth={2.5} />
+                  <span className="text-sm font-black uppercase tracking-widest">7:00 pm - 8:30 pm</span>
                 </div>
                 <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-tight">Time set for Dars session</p>
               </div>
