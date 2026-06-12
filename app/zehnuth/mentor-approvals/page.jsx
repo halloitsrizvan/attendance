@@ -129,11 +129,42 @@ export default function MentorApprovals() {
         const storedTeacher = localStorage.getItem('teacher');
         if (storedTeacher) {
             const teacherData = JSON.parse(storedTeacher);
-            const email = (teacherData.email || teacherData.EMAIL || teacherData.mail || teacherData.MAIL || '').trim().toLowerCase();
             
-            if (email === ADMIN_EMAIL.trim().toLowerCase()) {
-                setIsAuthorized(true);
-                fetchActivities();
+            const teacherId = teacherData.id || teacherData._id;
+            if (teacherId) {
+                axios.get(`/api/teachers/${teacherId}`)
+                    .then(res => {
+                        if (res.data) {
+                            const updatedTeacher = {
+                                ...teacherData,
+                                ...res.data,
+                                id: res.data._id
+                            };
+                            localStorage.setItem('teacher', JSON.stringify(updatedTeacher));
+                            
+                            const email = (updatedTeacher.email || updatedTeacher.EMAIL || updatedTeacher.mail || updatedTeacher.MAIL || '').trim().toLowerCase();
+                            const roles = Array.isArray(updatedTeacher.role) ? updatedTeacher.role : [updatedTeacher.role];
+                            if (email === ADMIN_EMAIL.trim().toLowerCase() || roles.includes('zehnuth_admin')) {
+                                setIsAuthorized(true);
+                                fetchActivities();
+                            } else {
+                                setLoading(false);
+                            }
+                        } else {
+                            setLoading(false);
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Error fetching latest teacher details, falling back to local storage:", err);
+                        const email = (teacherData.email || teacherData.EMAIL || teacherData.mail || teacherData.MAIL || '').trim().toLowerCase();
+                        const roles = Array.isArray(teacherData.role) ? teacherData.role : [teacherData.role];
+                        if (email === ADMIN_EMAIL.trim().toLowerCase() || roles.includes('zehnuth_admin')) {
+                            setIsAuthorized(true);
+                            fetchActivities();
+                        } else {
+                            setLoading(false);
+                        }
+                    });
             } else {
                 setLoading(false);
             }

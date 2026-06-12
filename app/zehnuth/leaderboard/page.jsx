@@ -137,6 +137,11 @@ export default function Leaderboard() {
             </main>
         </div>
     );
+    
+    const isZehnuthAdmin = teacher && (
+        (teacher.email || teacher.EMAIL)?.toLowerCase() === ADMIN_EMAIL.toLowerCase() ||
+        (Array.isArray(teacher.role) ? teacher.role.includes('zehnuth_admin') : teacher.role === 'zehnuth_admin')
+    );
 
     return (
         <div className="min-h-screen bg-white">
@@ -164,7 +169,7 @@ export default function Leaderboard() {
                                 />
                             </div>
                         </div>
-                        {(teacher?.email || teacher?.EMAIL)?.toLowerCase() === ADMIN_EMAIL.toLowerCase() && (
+                        isZehnuthAdmin && (
                             <button
                                 onClick={downloadPDF}
                                 className="p-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all active:scale-95 flex items-center gap-2 group shadow-lg shadow-slate-100"

@@ -226,8 +226,39 @@ export default function ZehnuthRequests() {
         if (storedTeacher) {
             const teacherData = JSON.parse(storedTeacher);
             setTeacher(teacherData);
-            if ((teacherData.email || teacherData.EMAIL) === ADMIN_EMAIL) {
-                fetchRequests();
+            
+            const teacherId = teacherData.id || teacherData._id;
+            if (teacherId) {
+                axios.get(`/api/teachers/${teacherId}`)
+                    .then(res => {
+                        if (res.data) {
+                            const updatedTeacher = {
+                                ...teacherData,
+                                ...res.data,
+                                id: res.data._id
+                            };
+                            setTeacher(updatedTeacher);
+                            localStorage.setItem('teacher', JSON.stringify(updatedTeacher));
+                            
+                            const roles = Array.isArray(updatedTeacher.role) ? updatedTeacher.role : [updatedTeacher.role];
+                            if ((updatedTeacher.email || updatedTeacher.EMAIL) === ADMIN_EMAIL || roles.includes('zehnuth_admin')) {
+                                fetchRequests();
+                            } else {
+                                setLoading(false);
+                            }
+                        } else {
+                            setLoading(false);
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Error fetching latest teacher details, falling back to local storage:", err);
+                        const roles = Array.isArray(teacherData.role) ? teacherData.role : [teacherData.role];
+                        if ((teacherData.email || teacherData.EMAIL) === ADMIN_EMAIL || roles.includes('zehnuth_admin')) {
+                            fetchRequests();
+                        } else {
+                            setLoading(false);
+                        }
+                    });
             } else {
                 setLoading(false);
             }
@@ -284,7 +315,12 @@ export default function ZehnuthRequests() {
         </div>
     );
 
-    if (!teacher || (teacher.email || teacher.EMAIL) !== ADMIN_EMAIL) {
+    const isZehnuthAdmin = teacher && (
+        (teacher.email || teacher.EMAIL) === ADMIN_EMAIL ||
+        (Array.isArray(teacher.role) ? teacher.role.includes('zehnuth_admin') : teacher.role === 'zehnuth_admin')
+    );
+
+    if (!teacher || !isZehnuthAdmin) {
         return (
             <div className="min-h-screen bg-white">
                 <Header />

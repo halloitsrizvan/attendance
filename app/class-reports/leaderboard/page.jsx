@@ -30,7 +30,11 @@ export default function ClassLeaderboard() {
     }, []);
 
     useEffect(() => {
-        if (!authLoading && teacher && ADMIN_EMAILS.includes((teacher.email || teacher.EMAIL)?.toLowerCase())) {
+        const isBestClassAdmin = teacher && (
+            ADMIN_EMAILS.includes((teacher.email || teacher.EMAIL)?.toLowerCase()) ||
+            (Array.isArray(teacher.role) ? teacher.role.includes('best_class_admin') : teacher.role === 'best_class_admin')
+        );
+        if (!authLoading && isBestClassAdmin) {
             fetchLeaderboard();
         } else if (!authLoading) {
             setLoading(false); // finish loading if not authorized
@@ -58,7 +62,10 @@ export default function ClassLeaderboard() {
         </div>
     );
 
-    const isAuthorized = teacher && ADMIN_EMAILS.includes((teacher.email || teacher.EMAIL)?.toLowerCase());
+    const isAuthorized = teacher && (
+        ADMIN_EMAILS.includes((teacher.email || teacher.EMAIL)?.toLowerCase()) ||
+        (Array.isArray(teacher.role) ? teacher.role.includes('best_class_admin') : teacher.role === 'best_class_admin')
+    );
 
     if (!isAuthorized) {
         return (

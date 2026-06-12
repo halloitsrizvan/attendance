@@ -169,7 +169,8 @@ export default function SubmitPoint() {
 
     const fetchMentees = async (teacherData) => {
         const mentorId = teacherData.id || teacherData._id;
-        const isSpecialTeacher = (teacherData.email || teacherData.EMAIL) === ADMIN_EMAIL;
+        const roles = Array.isArray(teacherData.role) ? teacherData.role : [teacherData.role];
+        const isSpecialTeacher = (teacherData.email || teacherData.EMAIL) === ADMIN_EMAIL || roles.includes('zehnuth_admin');
         
         try { 
             if (isSpecialTeacher) {
@@ -187,7 +188,8 @@ export default function SubmitPoint() {
     };
 
     const currentEmail = (teacher?.email || teacher?.EMAIL || teacher?.mail || teacher?.MAIL || '').toString().trim();
-    const isAdmin = currentEmail.toLowerCase() === ADMIN_EMAIL.trim().toLowerCase();
+    const isAdmin = currentEmail.toLowerCase() === ADMIN_EMAIL.trim().toLowerCase() || 
+        (Array.isArray(teacher?.role) ? teacher.role.includes('zehnuth_admin') : teacher?.role === 'zehnuth_admin');
     const teacherMail = currentEmail || 'Teacher';
 
     const handleSubmit = async (e) => {

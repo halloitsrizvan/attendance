@@ -32,7 +32,8 @@ export default function AdminReviewClassReports() {
         if (storedTeacher) {
             const parsed = JSON.parse(storedTeacher);
             const email = parsed.email || parsed.EMAIL;
-            if (email && ALLOWED_EMAILS.includes(email.toLowerCase())) {
+            const roles = Array.isArray(parsed.role) ? parsed.role : [parsed.role];
+            if ((email && ALLOWED_EMAILS.includes(email.toLowerCase())) || roles.includes('best_class_admin')) {
                 setAdmin(parsed);
                 fetchReports();
             } else {

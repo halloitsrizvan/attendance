@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from 'react'
 import { useRouter } from "next/navigation";
 import { FaArrowLeft } from "react-icons/fa";
+import axios from 'axios';
+import { API_PORT } from '@/Constants';
 
 const getSafeLocalStorage = () => typeof window !== 'undefined' ? localStorage : { getItem: () => null, setItem: () => { }, removeItem: () => { } };
 
@@ -23,7 +25,25 @@ function Header() {
     const storedTeacher = getSafeLocalStorage().getItem("teacher");
     if (storedTeacher) {
       try {
-        setTeacher(JSON.parse(storedTeacher));
+        const parsedTeacher = JSON.parse(storedTeacher);
+        setTeacher(parsedTeacher);
+
+        const teacherId = parsedTeacher.id || parsedTeacher._id;
+        if (teacherId) {
+          axios.get(`${API_PORT}/teachers/${teacherId}`)
+            .then(res => {
+              if (res.data) {
+                const updatedTeacher = {
+                  ...parsedTeacher,
+                  ...res.data,
+                  id: res.data._id
+                };
+                setTeacher(updatedTeacher);
+                getSafeLocalStorage().setItem('teacher', JSON.stringify(updatedTeacher));
+              }
+            })
+            .catch(err => console.error("Error updating teacher data", err));
+        }
       } catch (e) {
         console.error("Invalid teacher data in localStorage");
       }
@@ -59,7 +79,7 @@ function Header() {
     return roles.map(r => r.replace('_', ' ')).join(', ');
   };
 
-  const isClassProgramsAllowed = teacher?.classNum || ['shahinpandikkad4@gmail.com', 'dkp17713@gmail.com', 'unaisnellikkuth@gmail.com', 'kthaseeb11@gmail.com', 'saheedchunku@gmail.com'].includes((teacher?.email || teacher?.EMAIL)?.toLowerCase());
+  const isClassProgramsAllowed = teacher?.classNum || ['shahinpandikkad4@gmail.com', 'dkp17713@gmail.com', 'unaisnellikkuth@gmail.com', 'kthaseeb11@gmail.com', 'saheedchunku@gmail.com'].includes((teacher?.email || teacher?.EMAIL)?.toLowerCase()) || hasRole('best_class_admin');
 
   return (
     <>
@@ -155,7 +175,7 @@ function Header() {
                 <div className="absolute top-full left-0 mt-0 pt-3 w-60 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-200 z-50">
                   <div className="bg-white shadow-2xl py-3 border border-slate-100 rounded-xl">
                     <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/zehnuth/submit-point') }}>Submit Point</a>
-                    {(teacher?.email || teacher?.EMAIL) === 'krehmankoolivayal13889@gmail.com' && (
+                    {((teacher?.email || teacher?.EMAIL) === 'krehmankoolivayal13889@gmail.com' || hasRole('zehnuth_admin')) && (
                       <>
                         <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base relative" onClick={() => { navigate.push('/zehnuth/requests') }}>
                           Pending Requests
@@ -195,7 +215,7 @@ function Header() {
                         <span className="ml-2 bg-amber-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-black">NEW</span>
                       </a>
                     )}
-                    {['shahinpandikkad4@gmail.com', 'dkp17713@gmail.com', 'unaisnellikkuth@gmail.com', 'kthaseeb11@gmail.com', 'saheedchunku@gmail.com'].includes((teacher?.email || teacher?.EMAIL)?.toLowerCase()) && (
+                    {(['shahinpandikkad4@gmail.com', 'dkp17713@gmail.com', 'unaisnellikkuth@gmail.com', 'kthaseeb11@gmail.com', 'saheedchunku@gmail.com'].includes((teacher?.email || teacher?.EMAIL)?.toLowerCase()) || hasRole('best_class_admin')) && (
                       <>
                         <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/class-reports/leaderboard') }}>Leaderboard</a>
                         <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base relative" onClick={() => { navigate.push('/class-reports/admin-review') }}>
@@ -399,7 +419,7 @@ function Header() {
               {openDropdown === 'mb-zehnuth' && (
                 <div className="bg-slate-50/50 pb-3">
                   <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/submit-point'); setIsMenuOpen(false) }}>Submit Point</a>
-                  {(teacher?.email || teacher?.EMAIL) === 'krehmankoolivayal13889@gmail.com' && (
+                  {((teacher?.email || teacher?.EMAIL) === 'krehmankoolivayal13889@gmail.com' || hasRole('zehnuth_admin')) && (
                     <>
                       <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/requests'); setIsMenuOpen(false) }}>Pending Requests</a>
                       <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/mentor-approvals'); setIsMenuOpen(false) }}>Mentor Approvals</a>
@@ -435,7 +455,7 @@ function Header() {
                       {/* <span className="bg-amber-500 text-white text-[9px] px-2 py-0.5 rounded-full font-black">NEW</span> */}
                     </a>
                   )}
-                  {['shahinpandikkad4@gmail.com', 'dkp17713@gmail.com', 'unaisnellikkuth@gmail.com', 'kthaseeb11@gmail.com', 'saheedchunku@gmail.com'].includes((teacher?.email || teacher?.EMAIL)?.toLowerCase()) && (
+                  {(['shahinpandikkad4@gmail.com', 'dkp17713@gmail.com', 'unaisnellikkuth@gmail.com', 'kthaseeb11@gmail.com', 'saheedchunku@gmail.com'].includes((teacher?.email || teacher?.EMAIL)?.toLowerCase()) || hasRole('best_class_admin')) && (
                     <>
                       <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/class-reports/leaderboard'); setIsMenuOpen(false) }}>Leaderboard</a>
                       <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100 flex items-center justify-between" onClick={() => { navigate.push('/class-reports/admin-review'); setIsMenuOpen(false) }}>

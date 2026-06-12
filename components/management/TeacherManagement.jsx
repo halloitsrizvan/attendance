@@ -387,6 +387,8 @@ const TeacherManagement = () => {
                       { id: 'HOD', label: 'HOD' },
                       { id: 'HOS', label: 'HOS' },
                       { id: 'Principal', label: 'Principal' },
+                      { id: 'zehnuth_admin', label: 'Zehnuth Admin' },
+                      { id: 'best_class_admin', label: 'Best Class Admin' },
                       { id: 'super_admin', label: 'Super Admin' }
                     ].map((roleObj) => {
                       const isSelected = formData.role.includes(roleObj.id);
