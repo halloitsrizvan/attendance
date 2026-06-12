@@ -334,7 +334,8 @@ function AdvancedReport() {
       ogeaLeave: documentedOgeaLeaveMinus,
       documentedLeave: documentedLeaveMinus,
       zehnuthPoints: student.totalZehnuthPoints || 0,
-      overBy
+      overBy,
+      srfAmount: overBy * 100
     };
   };
 
@@ -368,16 +369,17 @@ function AdvancedReport() {
       'AD NO': r.adno,
       'Name': r.name,
       'Class': r.class,
-      'Total Permitted Leave': formatExcelNum(r.permitted),
       [`Leave ${manHeader.sub}`.trim()]: formatExcelNum(r.leave),
       [`Absence ${pjqHeader.sub}`.trim()]: formatExcelNum(r.absence),
-      'Absent Punishment': formatExcelNum(r.punishment),
+      'Unapproved Absence Deduction': formatExcelNum(r.punishment),
       'Minus': formatExcelNum(r.minus),
-      'Total Absence': formatExcelNum(r.totalAbsence),
       'Medical Leave': formatExcelNum(r.medicalLeave),
-      'OGEA Leave': formatExcelNum(r.ogeaLeave),
+      'Other Documented Leave': formatExcelNum(r.ogeaLeave),
+      'Total Absence': formatExcelNum(r.totalAbsence),
       'Documented Leave': formatExcelNum(r.documentedLeave),
-      'Over By': formatExcelNum(r.overBy)
+      'Total Permitted Leave': formatExcelNum(r.permitted),
+      'Over By': formatExcelNum(r.overBy),
+      'SRF Amount': formatExcelNum(r.srfAmount)
     }));
 
     const ws = XLSX.utils.json_to_sheet(wsData);
@@ -402,16 +404,17 @@ function AdvancedReport() {
       'AD NO',
       'Name',
       'Class',
-      'Permitted',
       `Leave\n${manHeader.sub}`.trim(),
       `Absence\n${pjqHeader.sub}`.trim(),
-      'Punishment',
+      'Unapproved\nAbsence Ded.',
       'Minus',
-      'Total Abs.',
       'Doc. Med.',
-      'Doc. OGEA',
+      'Other Doc.',
+      'Total Abs.',
       'Total Doc.',
-      'Over By'
+      'Permitted',
+      'Over By',
+      'SRF Amt'
     ];
 
     const tableData = reportData.map((r, idx) => [
@@ -419,16 +422,17 @@ function AdvancedReport() {
       r.adno,
       r.name,
       r.class,
-      formatNum(r.permitted),
       formatNum(r.leave),
       formatNum(r.absence),
       formatNum(r.punishment),
       formatNum(r.minus),
-      formatNum(r.totalAbsence),
       formatNum(r.medicalLeave),
       formatNum(r.ogeaLeave),
+      formatNum(r.totalAbsence),
       formatNum(r.documentedLeave),
-      r.overBy > 0 ? formatNum(r.overBy) : '-'
+      formatNum(r.permitted),
+      r.overBy > 0 ? formatNum(r.overBy) : '-',
+      r.srfAmount > 0 ? formatNum(r.srfAmount) : '-'
     ]);
 
     autoTable(doc, {
@@ -639,7 +643,6 @@ function AdvancedReport() {
                     <th className="p-4 border-r border-white">AD NO</th>
                     <th className="p-4 border-r border-white min-w-[150px]">Student Name</th>
                     <th className="p-4 border-r border-white text-center">Class</th>
-                    <th className="p-4 border-r border-white text-center bg-blue-50/50 text-blue-600">Total Permitted<br />Leave</th>
                     <th className="p-4 border-r border-white text-center bg-amber-50/50 text-amber-600">
                       {manHeader.main}{manHeader.sub && <><br />{manHeader.sub}</>}
                     </th>
@@ -647,14 +650,16 @@ function AdvancedReport() {
                       {pjqHeader.main}{pjqHeader.sub && <><br />{pjqHeader.sub}</>}
                     </th>
                     <th className="p-4 border-r border-white text-center bg-purple-50/50 text-purple-600">
-                      Absent<br />Punishment
+                      Unapproved<br />Absence Deduction
                     </th>
                     <th className="p-4 border-r border-white text-center bg-rose-50/50 text-rose-600">Minus</th>
-                    <th className="p-4 border-r border-white text-center bg-slate-100 text-slate-800">Total Absence</th>
                     <th className="p-4 border-r border-white text-center bg-emerald-50/50 text-emerald-600">Documented<br />Medical Leave</th>
-                    <th className="p-4 border-r border-white text-center bg-indigo-50/50 text-indigo-600">Documented<br />OGEA Leave</th>
+                    <th className="p-4 border-r border-white text-center bg-indigo-50/50 text-indigo-600">Other<br />Documented Leave</th>
+                    <th className="p-4 border-r border-white text-center bg-slate-100 text-slate-800">Total Absence</th>
                     <th className="p-4 border-r border-white text-center bg-teal-50/50 text-teal-600">Total<br />Documented</th>
-                    <th className="p-4 text-center bg-red-100 text-red-600">Over By</th>
+                    <th className="p-4 border-r border-white text-center bg-blue-50/50 text-blue-600">Total Permitted<br />Leave</th>
+                    <th className="p-4 border-r border-white text-center bg-red-100 text-red-600">Over By</th>
+                    <th className="p-4 text-center bg-red-200 text-red-700">SRF Amount</th>
                   </tr>
                 </thead>
                 <tbody className="text-sm font-medium">
@@ -666,17 +671,20 @@ function AdvancedReport() {
                       <td className="p-3 border-r border-white text-center">
                         <span className="px-2 py-1 bg-sky-50 text-sky-600 rounded-lg text-xs font-bold">{row.class}</span>
                       </td>
-                      <td className="p-3 border-r border-white text-center font-semibold text-blue-600 bg-blue-50/20">{row.permitted}</td>
                       <td className="p-3 border-r border-white text-center font-semibold text-amber-600 bg-amber-50/20">{formatNum(row.leave)}</td>
                       <td className="p-3 border-r border-white text-center font-semibold text-orange-600 bg-orange-50/20">{formatNum(row.absence)}</td>
                       <td className="p-3 border-r border-white text-center font-semibold text-purple-600 bg-purple-50/20">{formatNum(row.punishment)}</td>
                       <td className="p-3 border-r border-white text-center font-semibold text-rose-600 bg-rose-50/20">{formatNum(row.minus)}</td>
-                      <td className="p-3 border-r border-white text-center font-semibold text-slate-800 bg-slate-50">{formatNum(row.totalAbsence)}</td>
                       <td className="p-3 border-r border-white text-center font-semibold text-emerald-600 bg-emerald-50/20">{formatNum(row.medicalLeave)}</td>
                       <td className="p-3 border-r border-white text-center font-semibold text-indigo-600 bg-indigo-50/20">{formatNum(row.ogeaLeave)}</td>
+                      <td className="p-3 border-r border-white text-center font-semibold text-slate-800 bg-slate-50">{formatNum(row.totalAbsence)}</td>
                       <td className="p-3 border-r border-white text-center font-semibold text-teal-600 bg-teal-50/20">{formatNum(row.documentedLeave)}</td>
-                      <td className={`p-3 text-center font-semibold ${row.overBy > 0 ? 'text-red-600 bg-red-50/50' : 'text-slate-300'}`}>
+                      <td className="p-3 border-r border-white text-center font-semibold text-blue-600 bg-blue-50/20">{row.permitted}</td>
+                      <td className={`p-3 border-r border-white text-center font-semibold ${row.overBy > 0 ? 'text-red-600 bg-red-50/50' : 'text-slate-300'}`}>
                         {row.overBy > 0 ? formatNum(row.overBy) : '-'}
+                      </td>
+                      <td className={`p-3 text-center font-semibold ${row.srfAmount > 0 ? 'text-red-600 bg-red-50/50' : 'text-slate-300'}`}>
+                        {row.srfAmount > 0 ? formatNum(row.srfAmount) : '-'}
                       </td>
                     </tr>
                   ))}

@@ -169,7 +169,7 @@ export default function Leaderboard() {
                                 />
                             </div>
                         </div>
-                        isZehnuthAdmin && (
+                        {isZehnuthAdmin && (
                             <button
                                 onClick={downloadPDF}
                                 className="p-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all active:scale-95 flex items-center gap-2 group shadow-lg shadow-slate-100"
@@ -179,16 +179,7 @@ export default function Leaderboard() {
                                 {/* <span className="text-[10px] font-black uppercase tracking-widest pr-1">Report</span> */}
                             </button>
                         )}
-                        {(teacher?.email || teacher?.EMAIL)?.toLowerCase() === 'test@gmail.com' && (
-                            <button
-                                onClick={downloadPDF}
-                                className="p-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all active:scale-95 flex items-center gap-2 group shadow-lg shadow-slate-100"
-                                title="Download PDF Report"
-                            >
-                                <Download size={18} />
-                                {/* <span className="text-[10px] font-black uppercase tracking-widest pr-1">Report</span> */}
-                            </button>
-                        )}
+                        
                     </div>
                 </div>
 
