@@ -379,7 +379,7 @@ function AdvancedReport() {
       'Documented Leave': formatExcelNum(r.documentedLeave),
       'Total Permitted Leave': formatExcelNum(r.permitted),
       'Over By': formatExcelNum(r.overBy),
-      'SRF Amount': formatExcelNum(r.srfAmount)
+      // 'SRF Amount': r.srfAmount > 0 ? r.srfAmount.toFixed(1) : '0'
     }));
 
     const ws = XLSX.utils.json_to_sheet(wsData);
@@ -432,7 +432,7 @@ function AdvancedReport() {
       formatNum(r.documentedLeave),
       formatNum(r.permitted),
       r.overBy > 0 ? formatNum(r.overBy) : '-',
-      r.srfAmount > 0 ? formatNum(r.srfAmount) : '-'
+      r.srfAmount > 0 ? r.srfAmount.toFixed(1) : '-'
     ]);
 
     autoTable(doc, {
@@ -659,7 +659,7 @@ function AdvancedReport() {
                     <th className="p-4 border-r border-white text-center bg-teal-50/50 text-teal-600">Total<br />Documented</th>
                     <th className="p-4 border-r border-white text-center bg-blue-50/50 text-blue-600">Total Permitted<br />Leave</th>
                     <th className="p-4 border-r border-white text-center bg-red-100 text-red-600">Over By</th>
-                    <th className="p-4 text-center bg-red-200 text-red-700">SRF Amount</th>
+                    {/* <th className="p-4 text-center bg-red-200 text-red-700">SRF Amount</th> */}
                   </tr>
                 </thead>
                 <tbody className="text-sm font-medium">
@@ -683,9 +683,9 @@ function AdvancedReport() {
                       <td className={`p-3 border-r border-white text-center font-semibold ${row.overBy > 0 ? 'text-red-600 bg-red-50/50' : 'text-slate-300'}`}>
                         {row.overBy > 0 ? formatNum(row.overBy) : '-'}
                       </td>
-                      <td className={`p-3 text-center font-semibold ${row.srfAmount > 0 ? 'text-red-600 bg-red-50/50' : 'text-slate-300'}`}>
-                        {row.srfAmount > 0 ? formatNum(row.srfAmount) : '-'}
-                      </td>
+                      {/* <td className={`p-3 text-center font-semibold ${row.srfAmount > 0 ? 'text-red-600 bg-red-50/50' : 'text-slate-300'}`}>
+                        {row.srfAmount > 0 ? row.srfAmount.toFixed(1) : '-'}
+                      </td> */}
                     </tr>
                   ))}
                 </tbody>
