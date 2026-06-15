@@ -43,7 +43,10 @@ export async function GET(req) {
       matchFilter.studentId = { $in: studentsInClass.map(s => s._id) };
     }
     if (attendanceTime) {
-      matchFilter.attendanceTime = attendanceTime;
+      const times = attendanceTime.split(',').map(t => t.trim()).filter(Boolean);
+      if (times.length > 0) {
+        matchFilter.attendanceTime = { $in: times };
+      }
     }
 
     const attendanceRecords = await Attendance.find(matchFilter)

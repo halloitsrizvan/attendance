@@ -33,6 +33,8 @@ function AdvancedReport() {
     Weekend: { true: '1/6', false: '1/6', active: true }
   });
 
+  const [savedTemplates, setSavedTemplates] = useState([]);
+
   const handleMultiplierChange = (time, type, value) => {
     setMultipliers(prev => ({
       ...prev,
@@ -43,20 +45,6 @@ function AdvancedReport() {
     }));
   };
 
-  const applyTemplate = (type) => {
-    if (type === 'normal') {
-      setMultipliers(prev => ({
-        Morning: { true: '1/3', false: '1/3', active: true },
-        Afternoon: { true: '1/3', false: '1/3', active: true },
-        Night: { true: '1/3', false: '1/3', active: true },
-        Period: { true: '0', false: '0', active: true },
-        Jamath: { true: '0', false: '0', active: true },
-        Quiraath: { true: '0', false: '0', active: true },
-        Minus: { active: prev.Minus?.active ?? true },
-        Weekend: { true: '1/6', false: '1/6', active: true }
-      }));
-    }
-  };
 
   const manHeader = useMemo(() => {
     const active = [];
@@ -89,6 +77,20 @@ function AdvancedReport() {
     const today = new Date().toISOString().split('T')[0];
     setFromDate(today);
     setToDate(today);
+  }, []);
+
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const res = await axios.get('/api/settings');
+        if (res.data && res.data.deduction_templates) {
+          setSavedTemplates(res.data.deduction_templates);
+        }
+      } catch (e) {
+        console.error("Failed to load saved templates", e);
+      }
+    };
+    fetchTemplates();
   }, []);
 
   const evaluateMultiplier = (val) => {
@@ -185,17 +187,19 @@ function AdvancedReport() {
         const d = student.groupedAttendance[t];
         if (d) {
           const mTrue = evaluateMultiplier(multipliers[t].true);
+          const mFalse = evaluateMultiplier(multipliers[t].false);
           const wkTrue = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].true) : mTrue;
+          const wkFalse = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].false) : mFalse;
 
           // Regular weekday absences
           leave_MAN += (d.absentOnLeaveTrue || 0) * mTrue;
           leave_MAN += (d.absentOnLeaveFalse || 0) * mTrue;
-          punishment += (d.absentOnLeaveFalse || 0) * mTrue;
+          punishment += (d.absentOnLeaveFalse || 0) * (mTrue + mFalse);
 
           // Weekend absences
           leave_MAN += (d.weekendAbsentOnLeaveTrue || 0) * wkTrue;
           leave_MAN += (d.weekendAbsentOnLeaveFalse || 0) * wkTrue;
-          punishment += (d.weekendAbsentOnLeaveFalse || 0) * wkTrue;
+          punishment += (d.weekendAbsentOnLeaveFalse || 0) * (wkTrue + wkFalse);
 
           // Documented Medical Leave minuses
           documentedMedicalLeaveMinus += (d.documentedMedicalAbsentOnLeaveTrue || 0) * mTrue;
@@ -217,18 +221,20 @@ function AdvancedReport() {
       const periodData = student.groupedAttendance['Period'];
       if (periodData && periodData.periods) {
         const pTrue = evaluateMultiplier(multipliers['Period'].true);
+        const pFalse = evaluateMultiplier(multipliers['Period'].false);
         const wkTrue = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].true) : pTrue;
+        const wkFalse = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].false) : pFalse;
 
         Object.values(periodData.periods).forEach(p => {
           // Regular weekday absences
           absence_PJ += (p.absentOnLeaveTrue || 0) * pTrue;
           absence_PJ += (p.absentOnLeaveFalse || 0) * pTrue;
-          punishment += (p.absentOnLeaveFalse || 0) * pTrue;
+          punishment += (p.absentOnLeaveFalse || 0) * (pTrue + pFalse);
 
           // Weekend absences
           absence_PJ += (p.weekendAbsentOnLeaveTrue || 0) * wkTrue;
           absence_PJ += (p.weekendAbsentOnLeaveFalse || 0) * wkTrue;
-          punishment += (p.weekendAbsentOnLeaveFalse || 0) * wkTrue;
+          punishment += (p.weekendAbsentOnLeaveFalse || 0) * (wkTrue + wkFalse);
 
           // Documented Medical Leave minuses
           documentedMedicalLeaveMinus += (p.documentedMedicalAbsentOnLeaveTrue || 0) * pTrue;
@@ -250,17 +256,19 @@ function AdvancedReport() {
       const jamathData = student.groupedAttendance['Jamath'];
       if (jamathData) {
         const jTrue = evaluateMultiplier(multipliers['Jamath'].true);
+        const jFalse = evaluateMultiplier(multipliers['Jamath'].false);
         const wkTrue = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].true) : jTrue;
+        const wkFalse = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].false) : jFalse;
 
         // Regular weekday absences
         absence_PJ += (jamathData.absentOnLeaveTrue || 0) * jTrue;
         absence_PJ += (jamathData.absentOnLeaveFalse || 0) * jTrue;
-        punishment += (jamathData.absentOnLeaveFalse || 0) * jTrue;
+        punishment += (jamathData.absentOnLeaveFalse || 0) * (jTrue + jFalse);
 
         // Weekend absences
         absence_PJ += (jamathData.weekendAbsentOnLeaveTrue || 0) * wkTrue;
         absence_PJ += (jamathData.weekendAbsentOnLeaveFalse || 0) * wkTrue;
-        punishment += (jamathData.weekendAbsentOnLeaveFalse || 0) * wkTrue;
+        punishment += (jamathData.weekendAbsentOnLeaveFalse || 0) * (wkTrue + wkFalse);
 
         // Documented Medical Leave minuses
         documentedMedicalLeaveMinus += (jamathData.documentedMedicalAbsentOnLeaveTrue || 0) * jTrue;
@@ -281,17 +289,19 @@ function AdvancedReport() {
       const quiraathData = student.groupedAttendance['Quiraath'];
       if (quiraathData) {
         const qTrue = evaluateMultiplier(multipliers['Quiraath'].true);
+        const qFalse = evaluateMultiplier(multipliers['Quiraath'].false);
         const wkTrue = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].true) : qTrue;
+        const wkFalse = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].false) : qFalse;
 
         // Regular weekday absences
         absence_PJ += (quiraathData.absentOnLeaveTrue || 0) * qTrue;
         absence_PJ += (quiraathData.absentOnLeaveFalse || 0) * qTrue;
-        punishment += (quiraathData.absentOnLeaveFalse || 0) * qTrue;
+        punishment += (quiraathData.absentOnLeaveFalse || 0) * (qTrue + qFalse);
 
         // Weekend absences
         absence_PJ += (quiraathData.weekendAbsentOnLeaveTrue || 0) * wkTrue;
         absence_PJ += (quiraathData.weekendAbsentOnLeaveFalse || 0) * wkTrue;
-        punishment += (quiraathData.weekendAbsentOnLeaveFalse || 0) * wkTrue;
+        punishment += (quiraathData.weekendAbsentOnLeaveFalse || 0) * (wkTrue + wkFalse);
 
         // Documented Medical Leave minuses
         documentedMedicalLeaveMinus += (quiraathData.documentedMedicalAbsentOnLeaveTrue || 0) * qTrue;
@@ -413,8 +423,7 @@ function AdvancedReport() {
       'Total Abs.',
       'Total Doc.',
       'Permitted',
-      'Over By',
-      'SRF Amt'
+      'Over By'
     ];
 
     const tableData = reportData.map((r, idx) => [
@@ -431,8 +440,7 @@ function AdvancedReport() {
       formatNum(r.totalAbsence),
       formatNum(r.documentedLeave),
       formatNum(r.permitted),
-      r.overBy > 0 ? formatNum(r.overBy) : '-',
-      r.srfAmount > 0 ? r.srfAmount.toFixed(1) : '-'
+      r.overBy > 0 ? formatNum(r.overBy) : '-'
     ]);
 
     autoTable(doc, {
@@ -515,25 +523,34 @@ function AdvancedReport() {
               </h3>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Templates:</span>
-                <button
-                  onClick={() => applyTemplate('normal')}
-                  className="px-3 py-1.5 bg-white border border-slate-200 shadow-sm text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-colors active:scale-95"
-                >
-                  Normal (1/3, 2/3)
-                </button>
+                {savedTemplates.map((tpl, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setMultipliers(prev => ({
+                        ...prev,
+                        ...tpl.multipliers
+                      }));
+                    }}
+                    className="px-3 py-1.5 bg-white border border-slate-200 shadow-sm text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 hover:text-emerald-600 transition-colors active:scale-95"
+                  >
+                    {tpl.name}
+                  </button>
+                ))}
               </div>
             </div>
             <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 overflow-x-auto">
               <div className="min-w-[600px]">
-                <div className="grid grid-cols-[180px_1fr] gap-4 mb-3 px-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-3">
+                <div className="grid grid-cols-[200px_1fr_1.5fr] gap-6 mb-3 px-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-3">
                   <div>Time / Session</div>
-                  <div>Minus Count</div>
+                  <div>Leave/Absence Minus Count</div>
+                  <div>Additional Minus for Unapproved Absence</div>
                 </div>
                 <div className="space-y-3">
                   {['Morning', 'Afternoon', 'Night', 'Period', 'Jamath', 'Quiraath', 'Minus', 'Weekend'].map(time => {
                     if (time === 'Minus') {
                       return (
-                        <div key={time} className={`grid grid-cols-[180px_1fr] gap-4 items-center transition-opacity ${!multipliers[time]?.active ? 'opacity-50 grayscale' : ''}`}>
+                        <div key={time} className={`grid grid-cols-[200px_1fr_1.5fr] gap-6 items-center transition-opacity ${!multipliers[time]?.active ? 'opacity-50 grayscale' : ''}`}>
                           <label className="flex items-center gap-2 text-xs font-black text-slate-600 uppercase tracking-wider px-2 cursor-pointer">
                             <input
                               type="checkbox"
@@ -543,14 +560,14 @@ function AdvancedReport() {
                             />
                              Minus
                           </label>
-                          <div className="text-xs text-slate-400 font-bold italic px-3 py-2 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                          <div className="col-span-2 text-xs text-slate-400 font-bold italic px-3 py-2 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
                             Include manually logged minus points.
                           </div>
                         </div>
                       );
                     }
                     return (
-                      <div key={time} className={`grid grid-cols-[180px_1fr] gap-4 items-center transition-opacity ${!multipliers[time]?.active ? 'opacity-50 grayscale' : ''}`}>
+                      <div key={time} className={`grid grid-cols-[200px_1fr_1.5fr] gap-6 items-center transition-opacity ${!multipliers[time]?.active ? 'opacity-50 grayscale' : ''}`}>
                         <label className="flex items-center gap-2 text-xs font-bold text-slate-600 uppercase tracking-wider px-2 cursor-pointer">
                           <input
                             type="checkbox"
@@ -569,6 +586,17 @@ function AdvancedReport() {
                             value={multipliers[time]?.true || ''}
                             onChange={e => handleMultiplierChange(time, 'true', e.target.value)}
                             className={`w-full border border-slate-100 rounded-xl pl-8 pr-3 py-2 text-sm font-bold text-slate-700 focus:border-emerald-400 outline-none transition-colors ${!multipliers[time]?.active ? 'bg-slate-100 text-slate-400' : 'bg-slate-50'}`}
+                          />
+                        </div>
+                        <div className="relative">
+                          <MinusIcon size={14} className={`absolute left-3 top-1/2 -translate-y-1/2 ${!multipliers[time]?.active ? 'text-slate-400' : 'text-rose-500'}`} />
+                          <input
+                            type="text"
+                            placeholder="0"
+                            disabled={!multipliers[time]?.active}
+                            value={multipliers[time]?.false || ''}
+                            onChange={e => handleMultiplierChange(time, 'false', e.target.value)}
+                            className={`w-full border border-slate-100 rounded-xl pl-8 pr-3 py-2 text-sm font-bold text-slate-700 focus:border-rose-400 outline-none transition-colors ${!multipliers[time]?.active ? 'bg-slate-100 text-slate-400' : 'bg-slate-50'}`}
                           />
                         </div>
                       </div>

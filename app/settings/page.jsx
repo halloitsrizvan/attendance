@@ -30,6 +30,23 @@ export default function SettingsPage() {
         description: ''
     });
 
+    // Templates State
+    const [templates, setTemplates] = useState([]);
+    const [templateLoading, setTemplateLoading] = useState(false);
+    const [newTemplate, setNewTemplate] = useState({
+        name: '',
+        multipliers: {
+            Morning: { true: '1/3', false: '1/3', active: true },
+            Afternoon: { true: '1/3', false: '1/3', active: true },
+            Night: { true: '1/3', false: '1/3', active: true },
+            Period: { true: '0', false: '1/6', active: true },
+            Jamath: { true: '0', false: '1/6', active: true },
+            Quiraath: { true: '0', false: '1/6', active: true },
+            Minus: { active: true },
+            Weekend: { true: '1/6', false: '1/6', active: true }
+        }
+    });
+
     const fetchAcademicYears = async () => {
         try {
             const res = await axios.get(`${API_PORT}/academic-years`);
@@ -73,6 +90,7 @@ export default function SettingsPage() {
 
         fetchAcademicYears();
         fetchOffDays();
+        fetchSettings();
     }, []);
 
     const handleCreateOffDay = async (e) => {
@@ -101,6 +119,66 @@ export default function SettingsPage() {
             setTimeout(() => setStatus(null), 3000);
         } catch (error) {
             setStatus({ type: 'error', message: 'Failed to delete' });
+        }
+    };
+
+    const fetchSettings = async () => {
+        try {
+            const res = await axios.get(`${API_PORT}/settings`);
+            if (res.data && res.data.deduction_templates) {
+                setTemplates(res.data.deduction_templates);
+            }
+        } catch (error) {
+            console.error("Failed to fetch settings:", error);
+        }
+    };
+
+    const handleSaveTemplate = async (e) => {
+        e.preventDefault();
+        if (!newTemplate.name.trim()) return;
+        setTemplateLoading(true);
+        try {
+            const updated = [...templates, newTemplate];
+            await axios.post(`${API_PORT}/settings`, {
+                key: 'deduction_templates',
+                value: updated
+            });
+            setTemplates(updated);
+            setNewTemplate({
+                name: '',
+                multipliers: {
+                    Morning: { true: '1/3', false: '1/3', active: true },
+                    Afternoon: { true: '1/3', false: '1/3', active: true },
+                    Night: { true: '1/3', false: '1/3', active: true },
+                    Period: { true: '0', false: '1/6', active: true },
+                    Jamath: { true: '0', false: '1/6', active: true },
+                    Quiraath: { true: '0', false: '1/6', active: true },
+                    Minus: { active: true },
+                    Weekend: { true: '1/6', false: '1/6', active: true }
+                }
+            });
+            setStatus({ type: 'success', message: 'Template saved successfully' });
+            setTimeout(() => setStatus(null), 3000);
+        } catch (error) {
+            setStatus({ type: 'error', message: 'Failed to save template' });
+        } finally {
+            setTemplateLoading(false);
+        }
+    };
+
+    const handleDeleteTemplate = async (indexToDelete) => {
+        if (!confirm("Are you sure you want to delete this template?")) return;
+        try {
+            const updated = templates.filter((_, i) => i !== indexToDelete);
+            await axios.post(`${API_PORT}/settings`, {
+                key: 'deduction_templates',
+                value: updated
+            });
+            setTemplates(updated);
+            setStatus({ type: 'success', message: 'Template deleted' });
+            setTimeout(() => setStatus(null), 3000);
+        } catch (error) {
+            setStatus({ type: 'error', message: 'Failed to delete template' });
         }
     };
 
@@ -554,6 +632,149 @@ export default function SettingsPage() {
                                 ))}
                                 {offDays.length === 0 && (
                                     <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest text-center py-4 italic">No off days set</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Deduction Multipliers Templates Manager */}
+                    <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-8">
+                        <div>
+                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Deduction Multipliers Templates</h3>
+                            <p className="text-[11px] font-bold text-slate-400 uppercase leading-relaxed px-1">
+                                Create and save templates for Deduction Multipliers to be loaded in the Deduction Report page.
+                            </p>
+                        </div>
+
+                        <form onSubmit={handleSaveTemplate} className="space-y-6">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Template Name</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. Ramadan, Special Exam"
+                                    value={newTemplate.name}
+                                    onChange={(e) => setNewTemplate({...newTemplate, name: e.target.value})}
+                                    className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all"
+                                    required
+                                />
+                            </div>
+
+                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 overflow-x-auto">
+                                <div className="min-w-[500px] space-y-3">
+                                    <div className="grid grid-cols-[150px_1fr_1fr_60px] gap-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">
+                                        <div>Time / Session</div>
+                                        <div>Base Minus</div>
+                                        <div>Additional Unapproved</div>
+                                        <div className="text-center">Active</div>
+                                    </div>
+                                    {['Morning', 'Afternoon', 'Night', 'Period', 'Jamath', 'Quiraath', 'Weekend'].map(time => (
+                                        <div key={time} className="grid grid-cols-[150px_1fr_1fr_60px] gap-4 items-center">
+                                            <span className="text-xs font-bold text-slate-600">{time === 'Weekend' ? 'Weekend Days' : time}</span>
+                                            <input
+                                                type="text"
+                                                value={newTemplate.multipliers[time].true}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    setNewTemplate(prev => ({
+                                                        ...prev,
+                                                        multipliers: {
+                                                            ...prev.multipliers,
+                                                            [time]: { ...prev.multipliers[time], true: val }
+                                                        }
+                                                    }));
+                                                }}
+                                                className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-sky-400"
+                                            />
+                                            <input
+                                                type="text"
+                                                value={newTemplate.multipliers[time].false}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    setNewTemplate(prev => ({
+                                                        ...prev,
+                                                        multipliers: {
+                                                            ...prev.multipliers,
+                                                            [time]: { ...prev.multipliers[time], false: val }
+                                                        }
+                                                    }));
+                                                }}
+                                                className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-sky-400"
+                                            />
+                                            <div className="flex justify-center">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={newTemplate.multipliers[time].active}
+                                                    onChange={(e) => {
+                                                        const checked = e.target.checked;
+                                                        setNewTemplate(prev => ({
+                                                            ...prev,
+                                                            multipliers: {
+                                                                ...prev.multipliers,
+                                                                [time]: { ...prev.multipliers[time], active: checked }
+                                                            }
+                                                        }));
+                                                    }}
+                                                    className="w-4 h-4 rounded border-slate-300 text-sky-500 focus:ring-sky-500 cursor-pointer"
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {/* Minus Checkbox */}
+                                    <div className="grid grid-cols-[150px_1fr_1fr_60px] gap-4 items-center pt-2 border-t border-slate-100">
+                                        <span className="text-xs font-bold text-slate-600">Manual Minus Points</span>
+                                        <div className="col-span-2 text-[10px] text-slate-400 italic">Include manually logged minus points</div>
+                                        <div className="flex justify-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={newTemplate.multipliers.Minus.active}
+                                                onChange={(e) => {
+                                                    const checked = e.target.checked;
+                                                    setNewTemplate(prev => ({
+                                                        ...prev,
+                                                        multipliers: {
+                                                            ...prev.multipliers,
+                                                            Minus: { active: checked }
+                                                        }
+                                                    }));
+                                                }}
+                                                className="w-4 h-4 rounded border-slate-300 text-sky-500 focus:ring-sky-500 cursor-pointer"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={templateLoading || !newTemplate.name.trim()}
+                                className="w-full py-4 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-slate-900/10 hover:bg-slate-800 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
+                                {templateLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus size={16} />}
+                                Save Template
+                            </button>
+                        </form>
+
+                        <div className="space-y-3 pt-4 border-t border-slate-100">
+                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Saved Templates</h4>
+                            <div className="grid grid-cols-1 gap-3">
+                                {templates.map((tpl, idx) => (
+                                    <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group">
+                                        <div>
+                                            <span className="text-sm font-black text-slate-700">{tpl.name}</span>
+                                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-1">
+                                                Active: {Object.entries(tpl.multipliers).filter(([k, v]) => v.active && k !== 'Minus').map(([k]) => k).join(', ')}
+                                            </p>
+                                        </div>
+                                        <button 
+                                            onClick={() => handleDeleteTemplate(idx)}
+                                            className="p-2 text-rose-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                ))}
+                                {templates.length === 0 && (
+                                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest text-center py-4 italic">No saved templates</p>
                                 )}
                             </div>
                         </div>

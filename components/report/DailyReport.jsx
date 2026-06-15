@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -14,8 +14,20 @@ function DailyReport() {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [classNumber, setClassNumber] = useState('');
-  const [attendanceTime, setAttendanceTime] = useState('');
+  const [attendanceTimes, setAttendanceTimes] = useState([]);
+  const [isTimeDropdownOpen, setIsTimeDropdownOpen] = useState(false);
+  const timeDropdownRef = useRef(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (timeDropdownRef.current && !timeDropdownRef.current.contains(event.target)) {
+        setIsTimeDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   const [error, setError] = useState('');
   const [data, setData] = useState([]);
   const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
@@ -56,7 +68,9 @@ function DailyReport() {
 
       const params = new URLSearchParams({ fromDate, toDate });
       if (classNumber) params.append('class', classNumber);
-      if (attendanceTime) params.append('attendanceTime', attendanceTime);
+      if (attendanceTimes.length > 0) {
+        params.append('attendanceTime', attendanceTimes.join(','));
+      }
 
       const res = await fetch(`${API_PORT}/set-attendance/report/detailed-daily?${params.toString()}`);
       if (!res.ok) {
@@ -410,23 +424,76 @@ function DailyReport() {
               />
             </div>
 
-            {/* Attendance Time (Optional) */}
-            <div className="col-span-1">
+            {/* Attendance Time (Optional, select multiple) */}
+            <div className="col-span-1 relative" ref={timeDropdownRef}>
               <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2">
-                <Clock size={14} className="text-amber-500" /> Time <span className="text-slate-300 font-normal lowercase tracking-normal">(Optional)</span>
+                <Clock size={14} className="text-amber-500" /> Time <span className="text-slate-300 font-normal lowercase tracking-normal">(Select Multiple)</span>
               </label>
-              <select
-                value={attendanceTime}
-                onChange={e => setAttendanceTime(e.target.value)}
-                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-amber-400 focus:bg-white outline-none transition-all appearance-none cursor-pointer"
+              <button
+                type="button"
+                onClick={() => setIsTimeDropdownOpen(!isTimeDropdownOpen)}
+                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-amber-400 focus:bg-white outline-none transition-all cursor-pointer flex justify-between items-center text-left"
               >
-                <option value="">All Times</option>
-                <option value="Morning">Morning</option>
-                <option value="Noon">Noon</option>
-                <option value="Night">Night</option>
-                <option value="Period">Period</option>
-                <option value="Jamath">Jamath</option>
-              </select>
+                <span className="truncate">
+                  {attendanceTimes.length === 0
+                    ? 'All Times'
+                    : attendanceTimes.join(', ')}
+                </span>
+                <svg
+                  className={`w-5 h-5 ml-2 transition-transform duration-200 ${isTimeDropdownOpen ? 'transform rotate-180 text-amber-500' : 'text-slate-400'}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {isTimeDropdownOpen && (
+                <div className="absolute z-[110] left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 p-3 max-h-60 overflow-y-auto space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-2 mb-2">
+                    <button
+                      type="button"
+                      onClick={() => setAttendanceTimes([])}
+                      className="text-[10px] font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-wider px-2 py-1 hover:bg-slate-50 rounded-lg"
+                    >
+                      Clear All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAttendanceTimes(['Morning', 'Afternoon', 'Night', 'Period', 'Jamath', 'Quiraath'])}
+                      className="text-[10px] font-bold text-slate-500 hover:text-slate-700 transition-colors uppercase tracking-wider px-2 py-1 hover:bg-slate-50 rounded-lg"
+                    >
+                      Select All
+                    </button>
+                  </div>
+                  {['Morning', 'Afternoon', 'Night', 'Period', 'Jamath', 'Quiraath'].map(time => {
+                    const isChecked = attendanceTimes.includes(time);
+                    return (
+                      <label
+                        key={time}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            if (isChecked) {
+                              setAttendanceTimes(prev => prev.filter(t => t !== time));
+                            } else {
+                              setAttendanceTimes(prev => [...prev, time]);
+                            }
+                          }}
+                          className="w-4 h-4 rounded border-slate-300 text-amber-500 focus:ring-amber-500 cursor-pointer"
+                        />
+                        <span className={`text-sm font-bold transition-colors ${isChecked ? 'text-amber-600 font-extrabold' : 'text-slate-600'}`}>
+                          {time}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 
