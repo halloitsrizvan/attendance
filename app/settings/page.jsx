@@ -4,10 +4,24 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import Header from '@/components/Header/Header';
 import { API_PORT } from '@/Constants';
-import { Plus, Loader2, CheckCircle, AlertCircle, Calendar, Trash2, Download, Database } from 'lucide-react';
+import { Plus, Loader2, CheckCircle, AlertCircle, Calendar, Trash2, Download, Database, Edit } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 const getSafeLocalStorage = () => typeof window !== 'undefined' ? localStorage : { getItem: () => null, setItem: () => {}, removeItem: () => {} };
+
+const getDefaultTemplate = () => ({
+    name: '',
+    multipliers: {
+        Morning: { true: '1/3', false: '1/3', active: true },
+        Afternoon: { true: '1/3', false: '1/3', active: true },
+        Night: { true: '1/3', false: '1/3', active: true },
+        Period: { true: '0', false: '1/6', active: true },
+        Jamath: { true: '0', false: '1/6', active: true },
+        Quiraath: { true: '0', false: '1/6', active: true },
+        Minus: { active: true },
+        Weekend: { true: '1/6', false: '1/6', active: true }
+    }
+});
 
 export default function SettingsPage() {
     const [years, setYears] = useState([]);
@@ -33,19 +47,8 @@ export default function SettingsPage() {
     // Templates State
     const [templates, setTemplates] = useState([]);
     const [templateLoading, setTemplateLoading] = useState(false);
-    const [newTemplate, setNewTemplate] = useState({
-        name: '',
-        multipliers: {
-            Morning: { true: '1/3', false: '1/3', active: true },
-            Afternoon: { true: '1/3', false: '1/3', active: true },
-            Night: { true: '1/3', false: '1/3', active: true },
-            Period: { true: '0', false: '1/6', active: true },
-            Jamath: { true: '0', false: '1/6', active: true },
-            Quiraath: { true: '0', false: '1/6', active: true },
-            Minus: { active: true },
-            Weekend: { true: '1/6', false: '1/6', active: true }
-        }
-    });
+    const [editingIndex, setEditingIndex] = useState(null);
+    const [newTemplate, setNewTemplate] = useState(getDefaultTemplate());
 
     const fetchAcademicYears = async () => {
         try {
@@ -138,29 +141,23 @@ export default function SettingsPage() {
         if (!newTemplate.name.trim()) return;
         setTemplateLoading(true);
         try {
-            const updated = [...templates, newTemplate];
+            let updated;
+            if (editingIndex !== null) {
+                updated = templates.map((tpl, i) => i === editingIndex ? newTemplate : tpl);
+            } else {
+                updated = [...templates, newTemplate];
+            }
             await axios.post(`${API_PORT}/settings`, {
                 key: 'deduction_templates',
                 value: updated
             });
             setTemplates(updated);
-            setNewTemplate({
-                name: '',
-                multipliers: {
-                    Morning: { true: '1/3', false: '1/3', active: true },
-                    Afternoon: { true: '1/3', false: '1/3', active: true },
-                    Night: { true: '1/3', false: '1/3', active: true },
-                    Period: { true: '0', false: '1/6', active: true },
-                    Jamath: { true: '0', false: '1/6', active: true },
-                    Quiraath: { true: '0', false: '1/6', active: true },
-                    Minus: { active: true },
-                    Weekend: { true: '1/6', false: '1/6', active: true }
-                }
-            });
-            setStatus({ type: 'success', message: 'Template saved successfully' });
+            setEditingIndex(null);
+            setNewTemplate(getDefaultTemplate());
+            setStatus({ type: 'success', message: editingIndex !== null ? 'Template updated successfully' : 'Template saved successfully' });
             setTimeout(() => setStatus(null), 3000);
         } catch (error) {
-            setStatus({ type: 'error', message: 'Failed to save template' });
+            setStatus({ type: 'error', message: editingIndex !== null ? 'Failed to update template' : 'Failed to save template' });
         } finally {
             setTemplateLoading(false);
         }
@@ -175,11 +172,31 @@ export default function SettingsPage() {
                 value: updated
             });
             setTemplates(updated);
+            if (editingIndex === indexToDelete) {
+                setEditingIndex(null);
+                setNewTemplate(getDefaultTemplate());
+            } else if (editingIndex !== null && editingIndex > indexToDelete) {
+                setEditingIndex(editingIndex - 1);
+            }
             setStatus({ type: 'success', message: 'Template deleted' });
             setTimeout(() => setStatus(null), 3000);
         } catch (error) {
             setStatus({ type: 'error', message: 'Failed to delete template' });
         }
+    };
+
+    const handleStartEdit = (index) => {
+        setEditingIndex(index);
+        setNewTemplate(JSON.parse(JSON.stringify(templates[index])));
+        const formEl = document.getElementById('template-form');
+        if (formEl) {
+            formEl.scrollIntoView({ behavior: 'smooth' });
+        }
+    };
+
+    const handleCancelEdit = () => {
+        setEditingIndex(null);
+        setNewTemplate(getDefaultTemplate());
     };
 
     const handleCreate = async (e) => {
@@ -638,7 +655,7 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Deduction Multipliers Templates Manager */}
-                    <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-8">
+                    <div id="template-form" className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-8">
                         <div>
                             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Deduction Multipliers Templates</h3>
                             <p className="text-[11px] font-bold text-slate-400 uppercase leading-relaxed px-1">
@@ -744,14 +761,25 @@ export default function SettingsPage() {
                                 </div>
                             </div>
 
-                            <button
-                                type="submit"
-                                disabled={templateLoading || !newTemplate.name.trim()}
-                                className="w-full py-4 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-slate-900/10 hover:bg-slate-800 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                            >
-                                {templateLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus size={16} />}
-                                Save Template
-                            </button>
+                            <div className="flex gap-4">
+                                <button
+                                    type="submit"
+                                    disabled={templateLoading || !newTemplate.name.trim()}
+                                    className="flex-1 py-4 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-slate-900/10 hover:bg-slate-800 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                >
+                                    {templateLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (editingIndex !== null ? <CheckCircle size={16} /> : <Plus size={16} />)}
+                                    {editingIndex !== null ? 'Update Template' : 'Save Template'}
+                                </button>
+                                {editingIndex !== null && (
+                                    <button
+                                        type="button"
+                                        onClick={handleCancelEdit}
+                                        className="px-6 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-2xl transition-all"
+                                    >
+                                        Cancel
+                                    </button>
+                                )}
+                            </div>
                         </form>
 
                         <div className="space-y-3 pt-4 border-t border-slate-100">
@@ -765,12 +793,22 @@ export default function SettingsPage() {
                                                 Active: {Object.entries(tpl.multipliers).filter(([k, v]) => v.active && k !== 'Minus').map(([k]) => k).join(', ')}
                                             </p>
                                         </div>
-                                        <button 
-                                            onClick={() => handleDeleteTemplate(idx)}
-                                            className="p-2 text-rose-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
+                                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button 
+                                                onClick={() => handleStartEdit(idx)}
+                                                className="p-2 text-sky-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition-all"
+                                                title="Edit Template"
+                                            >
+                                                <Edit size={16} />
+                                            </button>
+                                            <button 
+                                                onClick={() => handleDeleteTemplate(idx)}
+                                                className="p-2 text-rose-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+                                                title="Delete Template"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
                                     </div>
                                 ))}
                                 {templates.length === 0 && (
