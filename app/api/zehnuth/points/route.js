@@ -31,6 +31,11 @@ export async function GET(req) {
         const status = searchParams.get('status');
         if (status) query.status = status;
 
+        const activities = searchParams.get('activities');
+        if (activities) {
+            query.activity = { $in: activities.split(',') };
+        }
+
         if (searchParams.get('leaderboard')) {
             const leaderboard = await Points.aggregate([
                 { $match: { status: 'approved' } },

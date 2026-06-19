@@ -184,6 +184,9 @@ function Header() {
                         <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/zehnuth/mentor-approvals') }}>
                           Mentor Approvals
                         </a>
+                        <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/zehnuth/admin-achievements') }}>
+                          Admin Achievements
+                        </a>
                       </>
                     )}
                     <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/zehnuth/leaderboard') }}>Student Leaderboard</a>
@@ -423,6 +426,7 @@ function Header() {
                     <>
                       <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/requests'); setIsMenuOpen(false) }}>Pending Requests</a>
                       <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/mentor-approvals'); setIsMenuOpen(false) }}>Mentor Approvals</a>
+                      <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/admin-achievements'); setIsMenuOpen(false) }}>Admin Achievements</a>
                     </>
                   )}
                   <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/leaderboard'); setIsMenuOpen(false) }}>Student Leaderboard</a>
