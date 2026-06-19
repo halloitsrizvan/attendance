@@ -308,24 +308,43 @@ const HistoryModal = ({ isOpen, onClose, title, data, type, color, onZehnuthClic
     );
 };
 
-const MetricCard = ({ title, value, subText, color, icon: Icon, onClick }) => (
-    <div
-        className={`flex flex-col items-center justify-center p-6 rounded-[2rem] shadow-sm transition-all duration-300 hover:shadow-xl cursor-pointer border border-transparent
-      ${color === 'green' ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-600 hover:text-white' :
-                color === 'red' ? 'bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-600 hover:text-white' :
-                    color === 'amber' ? 'bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-600 hover:text-white' :
-                        color === 'indigo' ? 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-600 hover:text-white' :
-                            'bg-sky-50 text-sky-600 border-sky-100 hover:bg-sky-600 hover:text-white'}`}
-        onClick={onClick}
-    >
-        <div className={`p-3 rounded-2xl mb-4 ${color === 'green' ? 'bg-emerald-100/50' : color === 'red' ? 'bg-rose-100/50' : color === 'amber' ? 'bg-amber-100/50' : color === 'indigo' ? 'bg-indigo-100/50' : 'bg-sky-100/50'} group-hover:bg-white/20`}>
-            <Icon className="w-6 h-6" />
+const MetricCard = ({ title, value, subText, color, icon: Icon, onClick }) => {
+    const hoverBgClasses = onClick
+        ? {
+            green: 'hover:bg-emerald-600 hover:text-white hover:border-emerald-600',
+            red: 'hover:bg-rose-600 hover:text-white hover:border-rose-600',
+            amber: 'hover:bg-amber-600 hover:text-white hover:border-amber-600',
+            indigo: 'hover:bg-indigo-600 hover:text-white hover:border-indigo-600',
+            sky: 'hover:bg-sky-600 hover:text-white hover:border-sky-600'
+        }
+        : {
+            green: '',
+            red: '',
+            amber: '',
+            indigo: '',
+            sky: ''
+        };
+
+    return (
+        <div
+            className={`flex flex-col items-center justify-center p-6 rounded-[2rem] shadow-sm transition-all duration-300 border border-transparent
+          ${onClick ? 'hover:shadow-xl cursor-pointer' : 'cursor-default'}
+          ${color === 'green' ? `bg-emerald-50 text-emerald-600 border-emerald-100 ${hoverBgClasses.green}` :
+                    color === 'red' ? `bg-rose-50 text-rose-600 border-rose-100 ${hoverBgClasses.red}` :
+                        color === 'amber' ? `bg-amber-50 text-amber-600 border-amber-100 ${hoverBgClasses.amber}` :
+                            color === 'indigo' ? `bg-indigo-50 text-indigo-600 border-indigo-100 ${hoverBgClasses.indigo}` :
+                                `bg-sky-50 text-sky-600 border-sky-100 ${hoverBgClasses.sky}`}`}
+            onClick={onClick}
+        >
+            <div className={`p-3 rounded-2xl mb-4 ${color === 'green' ? 'bg-emerald-100/50' : color === 'red' ? 'bg-rose-100/50' : color === 'amber' ? 'bg-amber-100/50' : color === 'indigo' ? 'bg-indigo-100/50' : 'bg-sky-100/50'} ${onClick ? 'group-hover:bg-white/20' : ''}`}>
+                <Icon className="w-6 h-6" />
+            </div>
+            <div className="text-3xl font-black tracking-tight">{value}</div>
+            <div className="text-[10px] font-black uppercase tracking-widest mt-2 opacity-80">{title}</div>
+            {subText && <div className="text-[9px] font-bold mt-1 opacity-60 uppercase">{subText}</div>}
         </div>
-        <div className="text-3xl font-black tracking-tight">{value}</div>
-        <div className="text-[10px] font-black uppercase tracking-widest mt-2 opacity-80">{title}</div>
-        {subText && <div className="text-[9px] font-bold mt-1 opacity-60 uppercase">{subText}</div>}
-    </div>
-);
+    );
+};
 
 const SelectionButton = ({ label, isSelected, onClick, color = "blue" }) => (
     <button
@@ -857,11 +876,11 @@ const DocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
         setUploading(true);
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('upload_preset', 'leave_docs');
+        formData.append('upload_preset', 'college_db');
 
         try {
             const res = await axios.post(
-                'https://api.cloudinary.com/v1_1/dfetresky/image/upload',
+                'https://api.cloudinary.com/v1_1/dqgspgrul/image/upload',
                 formData
             );
             setFileUrl(res.data.secure_url);
@@ -1016,11 +1035,11 @@ const ProgramDocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
         setUploading(true);
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('upload_preset', 'leave_docs');
+        formData.append('upload_preset', 'college_db');
 
         try {
             const res = await axios.post(
-                'https://api.cloudinary.com/v1_1/dfetresky/image/upload',
+                'https://api.cloudinary.com/v1_1/dqgspgrul/image/upload',
                 formData
             );
             setFileUrl(res.data.secure_url);
@@ -1180,11 +1199,11 @@ const ZehnuthEvidenceModal = ({ isOpen, onClose, request, onUpdate }) => {
         setUploading(true);
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('upload_preset', 'leave_docs');
+        formData.append('upload_preset', 'college_db');
 
         try {
             const res = await axios.post(
-                'https://api.cloudinary.com/v1_1/dfetresky/image/upload',
+                'https://api.cloudinary.com/v1_1/dqgspgrul/image/upload',
                 formData
             );
             const imageUrl = res.data.secure_url;
@@ -1367,11 +1386,11 @@ const ApplyZehnuthModal = ({ isOpen, onClose, student, mentor, onComplete }) => 
         setUploading(true);
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('upload_preset', 'leave_docs');
+        formData.append('upload_preset', 'college_db');
 
         try {
             const res = await axios.post(
-                'https://api.cloudinary.com/v1_1/dfetresky/image/upload',
+                'https://api.cloudinary.com/v1_1/dqgspgrul/image/upload',
                 formData
             );
             setFileUrl(res.data.secure_url);
@@ -2047,7 +2066,6 @@ const StudentsPortal = () => {
                             }
                             color="indigo"
                             icon={Trophy}
-                            onClick={() => setHistoryModal({ isOpen: true, title: 'Achievement History', data: zehnuthPoints, type: 'zehnuth', color: 'indigo' })}
                         />
                     </section>
 

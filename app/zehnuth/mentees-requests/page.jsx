@@ -36,7 +36,7 @@ const ReviewModal = ({ request, isOpen, onClose, onAction, onUpload, uploading, 
                                 </span>
                             </div>
                             <p className="text-sm font-bold text-slate-700 italic leading-relaxed">"{request.activity}"</p>
-                            
+
                             {request.remarks && (
                                 <div className="mt-4 pt-4 border-t border-slate-200/60">
                                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1">
@@ -57,7 +57,7 @@ const ReviewModal = ({ request, isOpen, onClose, onAction, onUpload, uploading, 
                                         <a href={request.imageUrl} target="_blank" rel="noopener noreferrer" className="p-3 bg-white text-slate-900 rounded-2xl shadow-xl hover:scale-110 transition-transform">
                                             <ExternalLink size={20} />
                                         </a>
-                                        <button 
+                                        <button
                                             onClick={() => {
                                                 const input = document.createElement('input');
                                                 input.type = 'file';
@@ -180,16 +180,16 @@ export default function MenteeRequests() {
         setUploadingId(requestId);
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('upload_preset', 'leave_docs'); 
+        formData.append('upload_preset', 'college_db');
 
         try {
             const res = await axios.post(
-                'https://api.cloudinary.com/v1_1/dfetresky/image/upload',
+                'https://api.cloudinary.com/v1_1/dqgspgrul/image/upload',
                 formData
             );
             const imageUrl = res.data.secure_url;
             await axios.put('/api/zehnuth/points', { id: requestId, imageUrl });
-            
+
             setRequests(prev => prev.map(r => r._id === requestId ? { ...r, imageUrl } : r));
             if (selectedRequest && selectedRequest._id === requestId) {
                 setSelectedRequest(prev => ({ ...prev, imageUrl }));
@@ -204,7 +204,7 @@ export default function MenteeRequests() {
 
     const handleAction = async (requestId, action) => {
         if (!confirm(`Are you sure you want to ${action === 'approve' ? 'verify' : 'reject'} this request?`)) return;
-        
+
         setProcessingId(requestId);
         try {
             if (action === 'approve') {
@@ -244,7 +244,7 @@ export default function MenteeRequests() {
         <div className="min-h-screen bg-slate-50">
             <Header />
 
-            <ReviewModal 
+            <ReviewModal
                 request={selectedRequest}
                 isOpen={!!selectedRequest}
                 onClose={() => setSelectedRequest(null)}
@@ -281,7 +281,7 @@ export default function MenteeRequests() {
                                         </div>
                                         <div>
                                             <h3 className="text-sm font-black text-slate-800 uppercase italic mb-0.5">{request.studentId?.["SHORT NAME"] || request.studentId?.["FULL NAME"]} ({request.studentId?.CLASS})</h3>
-                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest"> 
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
                                                 {request.category} • {request.activity}
                                             </p>
                                         </div>

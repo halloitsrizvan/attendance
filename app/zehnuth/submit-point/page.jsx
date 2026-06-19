@@ -23,7 +23,7 @@ const SuccessModal = ({ isOpen, onClose, points, isAdmin, teacherMail }) => {
                     <p className="text-slate-500 font-bold uppercase text-[10px] tracking-[0.2em] mb-8">
                         {isAdmin ? 'Points Awarded Instantly' : 'Points Submitted Successfully'}
                     </p>
-                    
+
                     <div className={`rounded-3xl p-6 mb-8 border ${isAdmin ? 'bg-amber-50 border-amber-100' : 'bg-slate-50 border-slate-100'}`}>
                         <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isAdmin ? 'text-amber-500' : 'text-slate-400'}`}>
                             {isAdmin ? 'Achievement Unlocked' : 'Request Sent'}
@@ -41,7 +41,7 @@ const SuccessModal = ({ isOpen, onClose, points, isAdmin, teacherMail }) => {
                         )}
                     </div>
 
-                    <button 
+                    <button
                         onClick={onClose}
                         className={`w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] active:scale-95 transition-all shadow-xl ${isAdmin ? 'bg-amber-500 text-white hover:bg-amber-600 shadow-amber-100' : 'bg-slate-900 text-white hover:bg-slate-800 shadow-slate-200'}`}
                     >
@@ -60,7 +60,7 @@ const CATEGORY_DATA = [
     { id: 'Writings', label: 'Writings', icon: '✍️', points: [20, 10, 5] },
     { id: 'Achievements', label: 'Achievements', icon: '🏆', points: [20, 10] },
     { id: 'Presentation', label: 'Presentations', icon: '🎤', points: [40, 30, 20, 10, 5] },
-    { id: 'Exam', label: 'Exam', icon: '🎓', points: [50, 35, 25, 20, 10] }, 
+    { id: 'Exam', label: 'Exam', icon: '🎓', points: [50, 35, 25, 20, 10] },
     { id: 'Mentor', label: 'Mentor', icon: '🤝', points: [5, 4, 3, 2, 1] },
     { id: 'Competitions', label: 'Competitions', icon: '🏅', points: [25, 20, 15, 10, 5, 3] },
     { id: 'Works', label: 'Works', icon: '🎨', points: [4] },
@@ -121,11 +121,11 @@ export default function SubmitPoint() {
         setUploading(true);
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('upload_preset', 'leave_docs'); 
+        formData.append('upload_preset', 'college_db');
 
         try {
             const res = await axios.post(
-                'https://api.cloudinary.com/v1_1/dfetresky/image/upload',
+                'https://api.cloudinary.com/v1_1/dqgspgrul/image/upload',
                 formData
             );
             setFileUrl(res.data.secure_url);
@@ -171,8 +171,8 @@ export default function SubmitPoint() {
         const mentorId = teacherData.id || teacherData._id;
         const roles = Array.isArray(teacherData.role) ? teacherData.role : [teacherData.role];
         const isSpecialTeacher = (teacherData.email || teacherData.EMAIL) === ADMIN_EMAIL || roles.includes('zehnuth_admin');
-        
-        try { 
+
+        try {
             if (isSpecialTeacher) {
                 const res = await axios.get('/api/students');
                 setMentees(res.data.map(s => ({ menteeId: s })));
@@ -188,13 +188,13 @@ export default function SubmitPoint() {
     };
 
     const currentEmail = (teacher?.email || teacher?.EMAIL || teacher?.mail || teacher?.MAIL || '').toString().trim();
-    const isAdmin = currentEmail.toLowerCase() === ADMIN_EMAIL.trim().toLowerCase() || 
+    const isAdmin = currentEmail.toLowerCase() === ADMIN_EMAIL.trim().toLowerCase() ||
         (Array.isArray(teacher?.role) ? teacher.role.includes('zehnuth_admin') : teacher?.role === 'zehnuth_admin');
     const teacherMail = currentEmail || 'Teacher';
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!selectedMentee || !selectedAchievement || (isAdmin && !points)) {
             alert("Please fill all fields and select an achievement");
             return;
@@ -246,8 +246,8 @@ export default function SubmitPoint() {
             type="button"
             onClick={() => setSelectedAchievement(prev => prev === label ? null : label)}
             className={`p-4 rounded-2xl border-2 transition-all text-left relative overflow-hidden group w-full
-                ${selectedAchievement === label 
-                    ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-100' 
+                ${selectedAchievement === label
+                    ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-100'
                     : 'bg-white border-slate-100 text-slate-800 hover:border-blue-200'}`}
         >
             <p className={`text-[10px] font-black uppercase tracking-widest ${selectedAchievement === label ? 'text-blue-200' : 'text-slate-400'}`}>{label}</p>
@@ -260,7 +260,7 @@ export default function SubmitPoint() {
     );
 
     const Row = ({ label, condition, badgeColor }) => (
-        <tr 
+        <tr
             onClick={() => setSelectedAchievement(prev => prev === label ? null : label)}
             className={`group cursor-pointer transition-all ${selectedAchievement === label ? 'bg-blue-50' : 'hover:bg-slate-50'}`}
         >
@@ -315,10 +315,10 @@ export default function SubmitPoint() {
         <div className="min-h-screen bg-white">
             <Header />
             <main className="max-w-xl mx-auto px-4 pt-20 pb-12">
-                <SuccessModal 
-                    isOpen={showSuccess} 
-                    onClose={() => setShowSuccess(false)} 
-                    points={lastAwardedPoints} 
+                <SuccessModal
+                    isOpen={showSuccess}
+                    onClose={() => setShowSuccess(false)}
+                    points={lastAwardedPoints}
                     teacherMail={teacherMail}
                     isAdmin={isAdmin}
                 />
@@ -326,7 +326,7 @@ export default function SubmitPoint() {
                     <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
                         <span className="p-2 bg-blue-600 text-white rounded-xl"><Trophy size={20} /></span>
                         {isAdmin ? 'Award' : 'Request'} <span className="bg-gradient-to-r from-amber-400 via-amber-600 to-amber-500 bg-clip-text text-transparent">Zehnuth</span>
-                    </h1>  
+                    </h1>
                     <p className="text-slate-500 text-sm font-medium mt-1">
                         {isAdmin ? 'Instantly award points to any student' : 'Submit an achievement on behalf of your mentee'}
                     </p>
@@ -401,8 +401,8 @@ export default function SubmitPoint() {
                                         if (isAdmin) setPoints(cat.points[0]);
                                     }}
                                     className={`px-4 py-2 rounded-xl border-2 transition-all flex items-center gap-2 whitespace-nowrap
-                                        ${selectedCategory === cat.id 
-                                            ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-100' 
+                                        ${selectedCategory === cat.id
+                                            ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-100'
                                             : 'bg-slate-50 border-transparent text-slate-500 hover:bg-slate-100'}`}
                                 >
                                     <span className="text-lg">{cat.icon}</span>
@@ -570,12 +570,12 @@ export default function SubmitPoint() {
                                 >
                                     <span className="text-2xl font-light leading-none mb-1">-</span>
                                 </button>
-                                
+
                                 <div className="w-24 text-center">
                                     <span className="text-4xl font-black text-slate-800 tracking-tight">{points}</span>
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Points</p>
                                 </div>
-                                
+
                                 <button
                                     type="button"
                                     onClick={() => setPoints(prev => prev + 1)}
@@ -595,7 +595,7 @@ export default function SubmitPoint() {
                                     <div className="relative group rounded-2xl overflow-hidden aspect-video bg-slate-100 border border-slate-200">
                                         <img src={fileUrl} alt="Evidence" className="w-full h-full object-cover" />
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                                            <button 
+                                            <button
                                                 type="button"
                                                 onClick={() => {
                                                     const input = document.createElement('input');

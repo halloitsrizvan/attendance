@@ -21,7 +21,7 @@ const SuccessModal = ({ isOpen, onClose }) => {
                     <p className="text-slate-500 font-bold uppercase text-[10px] tracking-[0.2em] mb-8">
                         Activity Submitted Successfully
                     </p>
-                    
+
                     <div className="rounded-3xl p-6 mb-8 border bg-slate-50 border-slate-100">
                         <p className="text-[10px] font-black uppercase tracking-widest mb-1 text-slate-400">
                             Request Sent
@@ -31,7 +31,7 @@ const SuccessModal = ({ isOpen, onClose }) => {
                         </div>
                     </div>
 
-                    <button 
+                    <button
                         onClick={onClose}
                         className="w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] active:scale-95 transition-all shadow-xl bg-slate-900 text-white hover:bg-slate-800 shadow-slate-200"
                     >
@@ -86,11 +86,11 @@ export default function MentorActivities() {
         setUploading(true);
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('upload_preset', 'leave_docs'); 
+        formData.append('upload_preset', 'college_db');
 
         try {
             const res = await axios.post(
-                'https://api.cloudinary.com/v1_1/dfetresky/image/upload',
+                'https://api.cloudinary.com/v1_1/dqgspgrul/image/upload',
                 formData
             );
             setFileUrl(res.data.secure_url);
@@ -104,7 +104,7 @@ export default function MentorActivities() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!activityTitle || !description) {
             alert("Please provide both an activity title and description");
             return;
@@ -169,12 +169,12 @@ export default function MentorActivities() {
             <SuccessModal isOpen={showSuccess} onClose={() => setShowSuccess(false)} />
 
             <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-24 space-y-6">
-                
+
                 {/* Header */}
                 <div className="bg-indigo-600 rounded-[2.5rem] p-8 sm:p-10 text-white relative overflow-hidden shadow-2xl shadow-indigo-200">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
                     <div className="absolute bottom-0 left-0 w-40 h-40 bg-indigo-500 rounded-full blur-2xl -ml-10 -mb-10 pointer-events-none"></div>
-                    
+
                     <div className="relative z-10">
                         <div className="flex items-center gap-3 mb-4">
                             <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
@@ -204,8 +204,8 @@ export default function MentorActivities() {
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Activity Title</label>
-                                <input 
-                                    type="text" 
+                                <input
+                                    type="text"
                                     value={activityTitle}
                                     onChange={(e) => setActivityTitle(e.target.value)}
                                     placeholder="e.g. Special Academic Guidance Session"
@@ -216,7 +216,7 @@ export default function MentorActivities() {
 
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Description</label>
-                                <textarea 
+                                <textarea
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
                                     placeholder="Describe the activity and its impact..."
@@ -260,7 +260,7 @@ export default function MentorActivities() {
                                 </div>
                             </div>
 
-                            <button 
+                            <button
                                 type="submit"
                                 disabled={submitting || uploading}
                                 className="w-full py-5 bg-slate-900 text-white rounded-[2rem] text-[11px] font-black uppercase tracking-[0.2em] hover:bg-indigo-600 active:scale-95 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -304,9 +304,9 @@ export default function MentorActivities() {
                                             </div>
                                             <div className="shrink-0 text-right">
                                                 <span className={`inline-block px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest
-                                                    ${act.status === 'approved' ? 'bg-emerald-100 text-emerald-600' : 
-                                                      act.status === 'rejected' ? 'bg-rose-100 text-rose-600' : 
-                                                      'bg-amber-100 text-amber-600'}`}
+                                                    ${act.status === 'approved' ? 'bg-emerald-100 text-emerald-600' :
+                                                        act.status === 'rejected' ? 'bg-rose-100 text-rose-600' :
+                                                            'bg-amber-100 text-amber-600'}`}
                                                 >
                                                     {act.status}
                                                 </span>

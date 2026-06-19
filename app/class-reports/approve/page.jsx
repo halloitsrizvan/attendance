@@ -6,6 +6,46 @@ import { BookOpen, Loader2, AlertTriangle, CheckCircle2, Clock, Calendar, Users,
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 
+const ApproveClassReportSkeleton = () => (
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans animate-fade-in">
+        <Header />
+        <div className="max-w-4xl w-full mx-auto px-4 sm:px-6 pt-24 space-y-6 animate-pulse">
+            {/* Header Section Skeleton */}
+            <div className="bg-slate-200/70 rounded-[2.5rem] p-8 sm:p-10 relative overflow-hidden">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-slate-300 rounded-2xl animate-pulse"></div>
+                    <div className="space-y-2">
+                        <div className="w-28 h-3 bg-slate-300 rounded-full animate-pulse"></div>
+                        <div className="w-48 h-6 bg-slate-300 rounded-lg animate-pulse"></div>
+                    </div>
+                </div>
+                <div className="mt-6 space-y-2.5">
+                    <div className="w-full h-3 bg-slate-300/80 rounded-full animate-pulse"></div>
+                    <div className="w-2/3 h-3 bg-slate-300/80 rounded-full animate-pulse"></div>
+                </div>
+            </div>
+
+            {/* Submissions Section Skeleton */}
+            <div className="space-y-4 mt-8">
+                {[1, 2, 3].map((i) => (
+                    <div key={i} className="bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="space-y-3 flex-1">
+                            <div className="flex gap-2">
+                                <div className="w-28 h-5 bg-slate-100 rounded-md animate-pulse"></div>
+                            </div>
+                            <div className="w-48 h-5 bg-slate-200/80 rounded-md animate-pulse"></div>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                            <div className="w-28 h-11 bg-slate-100 rounded-xl animate-pulse"></div>
+                            <div className="w-28 h-11 bg-slate-200/80 rounded-xl animate-pulse"></div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    </div>
+);
+
 export default function ApproveClassReport() {
     const router = useRouter();
     const [teacher, setTeacher] = useState(null);
@@ -102,10 +142,10 @@ export default function ApproveClassReport() {
         setUploading(true);
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('upload_preset', 'leave_docs');
+        formData.append('upload_preset', 'college_db');
 
         try {
-            const res = await axios.post('https://api.cloudinary.com/v1_1/dfetresky/image/upload', formData);
+            const res = await axios.post('https://api.cloudinary.com/v1_1/dqgspgrul/image/upload', formData);
             setEditForm({ ...editForm, poster: res.data.secure_url });
         } catch (err) {
             console.error("Upload error:", err);
@@ -124,8 +164,8 @@ export default function ApproveClassReport() {
             const uploadPromises = files.map(file => {
                 const formData = new FormData();
                 formData.append('file', file);
-                formData.append('upload_preset', 'leave_docs');
-                return axios.post('https://api.cloudinary.com/v1_1/dfetresky/image/upload', formData);
+                formData.append('upload_preset', 'college_db');
+                return axios.post('https://api.cloudinary.com/v1_1/dqgspgrul/image/upload', formData);
             });
 
             const results = await Promise.all(uploadPromises);
@@ -172,14 +212,7 @@ export default function ApproveClassReport() {
     };
 
     if (loading) {
-        return (
-            <div className="min-h-screen bg-slate-50 flex flex-col">
-                <Header />
-                <div className="flex-1 flex items-center justify-center">
-                    <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
-                </div>
-            </div>
-        );
+        return <ApproveClassReportSkeleton />;
     }
 
     if (!teacher) {

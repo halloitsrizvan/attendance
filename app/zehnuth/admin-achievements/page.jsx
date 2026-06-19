@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header/Header';
 import axios from 'axios';
-import { 
-  Trophy, Star, BookOpen, Medal, CheckCircle2, XCircle, 
-  Search, Filter, Loader2, ArrowLeft, Image as ImageIcon, 
+import {
+  Trophy, Star, BookOpen, Medal, CheckCircle2, XCircle,
+  Search, Filter, Loader2, ArrowLeft, Image as ImageIcon,
   ExternalLink, Calendar, User, ShieldAlert, Clock, RefreshCw, X
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -31,13 +31,13 @@ export default function AdminAchievements() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [pointsData, setPointsData] = useState([]);
-  
+
   // Filters state
   const [searchTerm, setSearchTerm] = useState('');
   const [classFilter, setClassFilter] = useState('all');
   const [activityFilter, setActivityFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('approved'); // default to approved achievements
-  
+
   // UI states
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedRemark, setSelectedRemark] = useState(null);
@@ -48,7 +48,7 @@ export default function AdminAchievements() {
     if (storedTeacher) {
       const teacherData = JSON.parse(storedTeacher);
       setTeacher(teacherData);
-      
+
       const teacherId = teacherData.id || teacherData._id;
       if (teacherId) {
         // Fetch latest teacher info to make sure role is up to date
@@ -62,7 +62,7 @@ export default function AdminAchievements() {
               };
               setTeacher(updatedTeacher);
               localStorage.setItem('teacher', JSON.stringify(updatedTeacher));
-              
+
               const roles = Array.isArray(updatedTeacher.role) ? updatedTeacher.role : [updatedTeacher.role];
               if ((updatedTeacher.email || updatedTeacher.EMAIL) === ADMIN_EMAIL || roles.includes('zehnuth_admin')) {
                 fetchAchievements();
@@ -150,7 +150,7 @@ export default function AdminAchievements() {
           <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-3 leading-relaxed">
             This administrative page is restricted to ZEHNUTH Admins only.
           </p>
-          <button 
+          <button
             onClick={() => router.push('/')}
             className="mt-8 px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 shadow-lg shadow-slate-200"
           >
@@ -170,11 +170,11 @@ export default function AdminAchievements() {
     const studentName = (student["SHORT NAME"] || student["FULL NAME"] || "").toLowerCase();
     const adNo = (student.ADNO || "").toString();
     const searchMatch = studentName.includes(searchTerm.toLowerCase()) || adNo.includes(searchTerm);
-    
+
     const classMatch = classFilter === 'all' || student.CLASS === classFilter;
-    
+
     const activityMatch = activityFilter === 'all' || item.activity === activityFilter;
-    
+
     const statusMatch = statusFilter === 'all' || item.status === statusFilter;
 
     return searchMatch && classMatch && activityMatch && statusMatch;
@@ -182,7 +182,7 @@ export default function AdminAchievements() {
 
   // Calculate Metrics from Approved achievements
   const approvedItems = pointsData.filter(p => p.status === 'approved');
-  
+
   const metrics = {
     totalApprovedPoints: approvedItems.reduce((sum, p) => sum + (p.points || 0), 0),
     totalAwards: approvedItems.filter(p => p.activity === 'Awards').length,
@@ -204,7 +204,7 @@ export default function AdminAchievements() {
       <Header />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16">
-        
+
         {/* Page Title & Refresh */}
         <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -212,14 +212,14 @@ export default function AdminAchievements() {
               <span className="p-2.5 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-2xl shadow-md shadow-indigo-100">
                 <Trophy size={24} />
               </span>
-              ZEHNUTH <span className="bg-gradient-to-r from-indigo-500 to-blue-600 bg-clip-text text-transparent">Admin Achievements</span>
+              ZEHNUTH <span className="bg-gradient-to-r from-indigo-500 to-blue-600 bg-clip-text text-transparent">achievements</span>
             </h1>
             <p className="text-slate-500 text-sm font-semibold mt-1">
               View and manage Awards, Publications, and External Competitions (1st/2nd/3rd Places)
             </p>
           </div>
-          
-          <button 
+
+          <button
             onClick={fetchAchievements}
             disabled={refreshing}
             className="self-start sm:self-center bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 shadow-sm flex items-center gap-2"
@@ -231,7 +231,7 @@ export default function AdminAchievements() {
 
         {/* Metrics Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          
+
           <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 p-5 rounded-[2rem] text-white shadow-xl shadow-indigo-100 relative overflow-hidden group">
             <div className="absolute right-0 bottom-0 translate-x-3 translate-y-3 opacity-10 group-hover:scale-110 transition-transform duration-300">
               <Star size={120} fill="currentColor" />
@@ -272,13 +272,13 @@ export default function AdminAchievements() {
             <Filter size={16} className="text-slate-400" />
             <h2 className="text-xs font-black text-slate-800 uppercase tracking-widest">Filter Records</h2>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            
+
             {/* Search Input */}
             <div className="relative">
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search Student or AD No..."
@@ -400,7 +400,7 @@ export default function AdminAchievements() {
                         </td>
                         <td className="py-4 px-6">
                           {item.imageUrl ? (
-                            <button 
+                            <button
                               onClick={() => setSelectedImage({ url: item.imageUrl, title: `${item.studentId?.["SHORT NAME"]} - ${item.activity}` })}
                               className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 relative group flex items-center justify-center bg-slate-50 hover:border-indigo-400 transition-all active:scale-95"
                             >
@@ -415,7 +415,7 @@ export default function AdminAchievements() {
                         </td>
                         <td className="py-4 px-6 max-w-[150px]">
                           {item.remarks ? (
-                            <button 
+                            <button
                               onClick={() => setSelectedRemark({ content: item.remarks, title: `${item.studentId?.["SHORT NAME"]}'s Remark` })}
                               className="text-left text-slate-500 hover:text-indigo-600 truncate block w-full outline-none"
                             >
@@ -445,7 +445,7 @@ export default function AdminAchievements() {
                         {statusFilter === 'pending' && (
                           <td className="py-4 px-6 whitespace-nowrap text-center">
                             <div className="flex items-center justify-center gap-2">
-                              <button 
+                              <button
                                 disabled={processingId === item._id}
                                 onClick={() => handleAction(item._id, 'reject')}
                                 className="p-2 bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white rounded-xl transition-all active:scale-95"
@@ -453,7 +453,7 @@ export default function AdminAchievements() {
                               >
                                 <XCircle size={16} />
                               </button>
-                              <button 
+                              <button
                                 disabled={processingId === item._id}
                                 onClick={() => handleAction(item._id, 'approve', item.points || 20)}
                                 className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-xl transition-all active:scale-95"
@@ -486,7 +486,7 @@ export default function AdminAchievements() {
                           AD No: {item.studentId?.ADNO} • Class {item.studentId?.CLASS || 'N/A'}
                         </p>
                       </div>
-                      
+
                       {item.status === 'pending' && (
                         <span className="bg-amber-50 text-amber-500 border border-amber-100 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider animate-pulse">
                           Pending
@@ -531,7 +531,7 @@ export default function AdminAchievements() {
 
                     <div className="flex items-center justify-between gap-3">
                       {item.imageUrl ? (
-                        <button 
+                        <button
                           onClick={() => setSelectedImage({ url: item.imageUrl, title: `${item.studentId?.["SHORT NAME"]} - ${item.activity}` })}
                           className="flex items-center gap-2 text-[10px] font-black text-indigo-600 uppercase tracking-wider hover:text-indigo-700"
                         >
@@ -584,7 +584,7 @@ export default function AdminAchievements() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setSelectedImage(null)}></div>
           <div className="relative bg-white max-w-4xl w-full rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in slide-in-from-bottom-10 duration-500 max-h-[90vh] flex flex-col">
-            
+
             <div className="p-6 md:p-8 flex items-center justify-between border-b border-slate-100 bg-white">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
@@ -605,10 +605,10 @@ export default function AdminAchievements() {
             </div>
 
             <div className="p-6 md:p-8 border-t border-slate-100 flex justify-end bg-white">
-              <a 
+              <a
                 href={selectedImage.url}
-                target="_blank" 
-                rel="noopener noreferrer" 
+                target="_blank"
+                rel="noopener noreferrer"
                 className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 shadow-md flex items-center gap-2"
               >
                 Open in New Tab <ExternalLink size={12} />
@@ -624,7 +624,7 @@ export default function AdminAchievements() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setSelectedRemark(null)}></div>
           <div className="relative bg-white max-w-md w-full rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in slide-in-from-bottom-10 duration-500">
-            
+
             <div className="p-6 md:p-8 flex items-center justify-between border-b border-slate-100 bg-white">
               <h3 className="text-sm font-black text-slate-800 uppercase italic">Remarks Details</h3>
               <button onClick={() => setSelectedRemark(null)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-all">
@@ -639,7 +639,7 @@ export default function AdminAchievements() {
             </div>
 
             <div className="p-6 md:p-8 border-t border-slate-100 flex justify-end bg-white">
-              <button 
+              <button
                 onClick={() => setSelectedRemark(null)}
                 className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 shadow-md"
               >

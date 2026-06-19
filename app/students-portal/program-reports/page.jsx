@@ -80,10 +80,10 @@ export default function ProgramReportsPage() {
     const [loading, setLoading] = useState(true);
     const [student, setStudent] = useState(null);
     const [reports, setReports] = useState([]);
-    
+
     // UI State
     const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
-    
+
     // Edit state
     const [editingProgram, setEditingProgram] = useState(null);
     const [editingReportId, setEditingReportId] = useState(null);
@@ -106,19 +106,19 @@ export default function ProgramReportsPage() {
             const res = await axios.get(`${API_PORT}/students/profile`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            
+
             const profileData = res.data;
             if (!profileData.role || profileData.role === 'student') {
                 router.push('/students-portal');
                 return;
             }
-            
+
             setStudent(profileData);
-            
+
             // Fetch reports for this class
             const reportsRes = await axios.get(`${API_PORT}/class-reports?classNumber=${profileData.CLASS}`);
             setReports(reportsRes.data || []);
-            
+
         } catch (err) {
             console.error("Error fetching data:", err);
             if (err.response?.status === 401) {
@@ -150,10 +150,10 @@ export default function ProgramReportsPage() {
         setUploading(true);
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('upload_preset', 'leave_docs');
+        formData.append('upload_preset', 'college_db');
 
         try {
-            const res = await axios.post('https://api.cloudinary.com/v1_1/dfetresky/image/upload', formData);
+            const res = await axios.post('https://api.cloudinary.com/v1_1/dqgspgrul/image/upload', formData);
             setEditForm({ ...editForm, poster: res.data.secure_url });
         } catch (err) {
             console.error("Upload error:", err);
@@ -172,13 +172,13 @@ export default function ProgramReportsPage() {
             const uploadPromises = files.map(file => {
                 const formData = new FormData();
                 formData.append('file', file);
-                formData.append('upload_preset', 'leave_docs');
-                return axios.post('https://api.cloudinary.com/v1_1/dfetresky/image/upload', formData);
+                formData.append('upload_preset', 'college_db');
+                return axios.post('https://api.cloudinary.com/v1_1/dqgspgrul/image/upload', formData);
             });
 
             const results = await Promise.all(uploadPromises);
             const uploadedUrls = results.map(res => res.data.secure_url);
-            
+
             setEditForm({ ...editForm, gallery: [...(editForm.gallery || []), ...uploadedUrls] });
         } catch (err) {
             console.error("Gallery upload error:", err);
@@ -203,7 +203,7 @@ export default function ProgramReportsPage() {
                 programId: editingProgram,
                 updatedData: payload
             });
-            
+
             setEditingProgram(null);
             setEditingReportId(null);
             fetchProfileAndReports(); // Refresh data
@@ -215,7 +215,7 @@ export default function ProgramReportsPage() {
 
     const handleDeleteProgram = async (reportId, programId) => {
         if (!window.confirm("Are you sure you want to delete this program?")) return;
-        
+
         try {
             await axios.delete(`${API_PORT}/class-reports/${reportId}?programId=${programId}`);
             fetchProfileAndReports(); // Refresh data
@@ -263,7 +263,7 @@ export default function ProgramReportsPage() {
                 </header>
 
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-32 space-y-8">
-                    
+
                     {/* Header Section */}
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                         <div>
@@ -347,16 +347,16 @@ export default function ProgramReportsPage() {
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             {report.programs.map(program => (
                                                 <div key={program._id} className="bg-slate-50 border border-slate-200 rounded-[1.5rem] p-6 flex flex-col relative group">
-                                                    
+
                                                     {report.status === 'pending' && (
                                                         <div className="absolute top-4 right-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <button 
+                                                            <button
                                                                 onClick={() => handleEditClick(report._id, program)}
                                                                 className="w-8 h-8 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-500 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm"
                                                             >
                                                                 <Edit3 size={14} />
                                                             </button>
-                                                            <button 
+                                                            <button
                                                                 onClick={() => handleDeleteProgram(report._id, program._id)}
                                                                 className="w-8 h-8 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-500 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition-all shadow-sm"
                                                             >
@@ -394,7 +394,7 @@ export default function ProgramReportsPage() {
                                                             )}
                                                             {program.gallery && program.gallery.map((img, i) => (
                                                                 <div key={i} className="relative shrink-0 group/media">
-                                                                    <img src={img} alt={`Gallery ${i+1}`} className="h-20 w-auto max-w-[120px] rounded-xl object-cover border border-slate-200" />
+                                                                    <img src={img} alt={`Gallery ${i + 1}`} className="h-20 w-auto max-w-[120px] rounded-xl object-cover border border-slate-200" />
                                                                     <a href={img} target="_blank" rel="noopener noreferrer" className="absolute inset-0 bg-black/20 opacity-0 group-hover/media:opacity-100 transition-opacity rounded-xl flex items-center justify-center text-white">
                                                                         <ImageIcon size={16} />
                                                                     </a>
@@ -402,7 +402,7 @@ export default function ProgramReportsPage() {
                                                             ))}
                                                         </div>
                                                     )}
-                                                    
+
                                                     {report.status === 'reviewed' && program.mark !== undefined && (
                                                         <div className="mt-4 flex items-center justify-end">
                                                             <span className="text-xs font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1">
@@ -434,10 +434,10 @@ export default function ProgramReportsPage() {
                             <form onSubmit={handleUpdateProgram} className="p-5 overflow-y-auto custom-scrollbar space-y-4">
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Category</label>
-                                    <select 
+                                    <select
                                         className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
                                         value={editForm.category}
-                                        onChange={(e) => setEditForm({...editForm, category: e.target.value})}
+                                        onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
                                         required
                                     >
                                         <option value="Curriculum">Curriculum</option>
@@ -447,33 +447,33 @@ export default function ProgramReportsPage() {
                                 </div>
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Program Title</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
                                         value={editForm.title}
-                                        onChange={(e) => setEditForm({...editForm, title: e.target.value})}
+                                        onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
                                         required
                                     />
                                 </div>
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Description</label>
-                                    <textarea 
+                                    <textarea
                                         className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 text-sm font-medium text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all min-h-[100px] resize-none"
                                         value={editForm.description}
-                                        onChange={(e) => setEditForm({...editForm, description: e.target.value})}
+                                        onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                                         required
                                     />
                                 </div>
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Date (Optional)</label>
-                                    <input 
-                                        type="date" 
+                                    <input
+                                        type="date"
                                         className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
                                         value={editForm.date}
-                                        onChange={(e) => setEditForm({...editForm, date: e.target.value})}
+                                        onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
                                     />
                                 </div>
-                                
+
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2 border-t border-slate-100 mt-4">
                                     <div>
                                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Program Poster</label>
@@ -489,8 +489,8 @@ export default function ProgramReportsPage() {
                                             <label
                                                 htmlFor="edit-poster-upload"
                                                 className={`w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed rounded-xl cursor-pointer transition-all text-xs font-bold ${editForm.poster
-                                                        ? 'border-emerald-200 bg-emerald-50 text-emerald-600'
-                                                        : 'border-slate-200 bg-slate-50 text-slate-400 hover:border-blue-300 hover:text-blue-500'
+                                                    ? 'border-emerald-200 bg-emerald-50 text-emerald-600'
+                                                    : 'border-slate-200 bg-slate-50 text-slate-400 hover:border-blue-300 hover:text-blue-500'
                                                     }`}
                                             >
                                                 {uploading ? (
@@ -516,7 +516,7 @@ export default function ProgramReportsPage() {
                                                             onClick={() => {
                                                                 const newGallery = [...editForm.gallery];
                                                                 newGallery.splice(idx, 1);
-                                                                setEditForm({...editForm, gallery: newGallery});
+                                                                setEditForm({ ...editForm, gallery: newGallery });
                                                             }}
                                                             className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/50 hover:bg-rose-500 text-white rounded-full flex items-center justify-center transition-colors"
                                                         >
@@ -524,13 +524,13 @@ export default function ProgramReportsPage() {
                                                         </button>
                                                     </div>
                                                 ))}
-                                                
+
                                                 <label className="w-12 h-12 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 hover:border-blue-300 hover:text-blue-500 cursor-pointer transition-colors bg-white">
-                                                    <input 
-                                                        type="file" 
+                                                    <input
+                                                        type="file"
                                                         multiple
                                                         accept="image/*"
-                                                        className="hidden" 
+                                                        className="hidden"
                                                         onChange={handleGalleryUpload}
                                                         disabled={uploadingGallery}
                                                     />
@@ -544,7 +544,7 @@ export default function ProgramReportsPage() {
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <button type="submit" disabled={uploading || uploadingGallery} className="w-full py-4 mt-6 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-[0.2em] hover:bg-blue-700 active:scale-95 transition-all shadow-xl shadow-blue-200 disabled:opacity-50 disabled:cursor-not-allowed">
                                     Save Changes
                                 </button>
@@ -569,7 +569,7 @@ export default function ProgramReportsPage() {
                                 <button onClick={() => setIsSubmitModalOpen(false)} className="p-2 hover:bg-white/20 rounded-2xl transition-all relative z-10"><X size={20} /></button>
                             </div>
                             <div className="flex-1 overflow-y-auto p-6 bg-slate-50 custom-scrollbar">
-                                <ProgramSubmitForm 
+                                <ProgramSubmitForm
                                     submitterId={student?._id || student?.id}
                                     classNumber={student?.CLASS}
                                     submitterType="student"

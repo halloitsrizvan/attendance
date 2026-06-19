@@ -88,11 +88,11 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
         setUploading(true);
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('upload_preset', 'leave_docs');
+        formData.append('upload_preset', 'college_db');
 
         try {
             const res = await axios.post(
-                'https://api.cloudinary.com/v1_1/dfetresky/image/upload',
+                'https://api.cloudinary.com/v1_1/dqgspgrul/image/upload',
                 formData
             );
             handleProgramChange('poster', res.data.secure_url);
@@ -109,18 +109,18 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
         if (!files || files.length === 0) return;
 
         setUploadingGallery(true);
-        
+
         try {
             const uploadPromises = files.map(file => {
                 const formData = new FormData();
                 formData.append('file', file);
-                formData.append('upload_preset', 'leave_docs'); 
-                return axios.post('https://api.cloudinary.com/v1_1/dfetresky/image/upload', formData);
+                formData.append('upload_preset', 'college_db');
+                return axios.post('https://api.cloudinary.com/v1_1/dqgspgrul/image/upload', formData);
             });
 
             const results = await Promise.all(uploadPromises);
             const uploadedUrls = results.map(res => res.data.secure_url);
-            
+
             const newGallery = [...(programs[activeProgramIndex].gallery || []), ...uploadedUrls];
             handleProgramChange('gallery', newGallery);
         } catch (err) {
@@ -156,7 +156,7 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                 programs: validPrograms,
                 submitterType
             };
-            
+
             if (submitterType === 'teacher') {
                 payload.teacherId = submitterId;
             } else if (submitterType === 'student') {
@@ -172,7 +172,7 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
             setShowSuccess(true);
             setPrograms([{ category: 'Curriculum', title: '', description: '', poster: '', date: '', gallery: [] }]);
             setActiveProgramIndex(0);
-            
+
             if (onSuccessCallback) {
                 // Give user a moment to see success modal
                 setTimeout(() => {
@@ -312,7 +312,7 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                                     />
                                 </div>
                             </div>
-                                <div>
+                            <div>
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Brief Description</label>
                                 <textarea
                                     value={programs[activeProgramIndex].description}
@@ -349,8 +349,8 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                                         <label
                                             htmlFor={`poster-upload-${activeProgramIndex}`}
                                             className={`w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${programs[activeProgramIndex].poster
-                                                    ? 'border-emerald-200 bg-emerald-50 text-emerald-600'
-                                                    : 'border-slate-200 bg-white text-slate-400 hover:border-indigo-300 hover:text-indigo-500'
+                                                ? 'border-emerald-200 bg-emerald-50 text-emerald-600'
+                                                : 'border-slate-200 bg-white text-slate-400 hover:border-indigo-300 hover:text-indigo-500'
                                                 }`}
                                         >
                                             {uploading ? (
@@ -385,13 +385,13 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                                                 </button>
                                             </div>
                                         ))}
-                                        
+
                                         <label className="w-20 h-20 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 hover:border-indigo-300 hover:text-indigo-500 cursor-pointer transition-colors bg-slate-50">
-                                            <input 
-                                                type="file" 
+                                            <input
+                                                type="file"
                                                 multiple
                                                 accept="image/*"
-                                                className="hidden" 
+                                                className="hidden"
                                                 onChange={handleGalleryUpload}
                                                 disabled={uploadingGallery}
                                             />
@@ -400,14 +400,14 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                                             ) : (
                                                 <>
                                                     <Images size={20} className="mb-1" />
-                                                    <span className="text-[8px] font-bold uppercase tracking-widest text-center px-1">Add<br/>Photos</span>
+                                                    <span className="text-[8px] font-bold uppercase tracking-widest text-center px-1">Add<br />Photos</span>
                                                 </>
                                             )}
                                         </label>
                                     </div>
                                 </div>
                             </div>
-                            
+
                         </div>
                     </div>
 

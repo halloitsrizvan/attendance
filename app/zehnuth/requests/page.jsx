@@ -306,7 +306,7 @@ export default function ZehnuthRequests() {
                         <div className="h-8 w-48 bg-slate-100 rounded-lg animate-pulse"></div>
                         <div className="h-3 w-64 bg-slate-50 rounded animate-pulse"></div>
                     </div>
-                    <div className="hidden md:block w-32 h-12 bg-slate-50 rounded-2xl animate-pulse"></div>
+                    <div className="w-24 sm:w-32 h-10 sm:h-12 bg-slate-50 rounded-2xl animate-pulse shrink-0"></div>
                 </div>
                 <div className="divide-y divide-slate-50 border-t border-slate-50">
                     {[1, 2, 3, 4, 5, 6].map(i => <RequestSkeleton key={i} />)}
@@ -356,11 +356,11 @@ export default function ZehnuthRequests() {
                             <span className="p-2 bg-amber-500 text-white rounded-xl shadow-lg shadow-amber-200"><Clock size={20} /></span>
                             Approval <span className="bg-gradient-to-r from-amber-400 via-amber-600 to-amber-500 bg-clip-text text-transparent">Desk</span>
                         </h1>
-                        <p className="text-slate-500 text-sm font-medium mt-1">Review and validate student achievements</p>
+                        {/* <p className="text-slate-500 text-sm font-medium mt-1">Review and validate student achievements</p> */}
                     </div>
-                    <div className="hidden md:block bg-white px-6 py-3 rounded-2xl shadow-sm border border-slate-100">
-                        <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Queue</span>
-                        <span className="text-sm font-black text-blue-600 uppercase">{requests.length} Pending</span>
+                    <div className="bg-white px-4 py-2 sm:px-6 sm:py-3 rounded-2xl shadow-sm border border-slate-100 shrink-0">
+                        <span className="block text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Queue</span>
+                        <span className="text-xs sm:text-sm font-black text-blue-600 uppercase">{requests.length} Pending</span>
                     </div>
                 </div>
 

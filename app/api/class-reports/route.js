@@ -32,6 +32,9 @@ export async function POST(req) {
 
         if (existingReport) {
             existingReport.programs.push(...programs);
+            if (submitterType === 'student' && existingReport.classTeacherApproved) {
+                existingReport.classTeacherApproved = false;
+            }
             await existingReport.save();
             return NextResponse.json({ message: 'Programs added to existing report successfully', report: existingReport }, { status: 200 });
         } else {

@@ -185,7 +185,7 @@ function Header() {
                           Mentor Approvals
                         </a>
                         <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/zehnuth/admin-achievements') }}>
-                          Admin Achievements
+                          Achievements
                         </a>
                       </>
                     )}
@@ -195,41 +195,41 @@ function Header() {
                     <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/zehnuth/points') }}>My Mentees' Points</a>
                     <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/zehnuth/mentor-activities') }}>Mentor Activities</a>
                   </div>
-                </div> 
+                </div>
               </div>
 
               {/* Class Programs Dropdown */}
               {isClassProgramsAllowed && (
-              <div className="relative group">
-                <button
-                  className="text-white hover:text-sky-100 transition-colors duration-200 font-semibold text-lg flex items-center gap-1 px-2 py-1"
-                >
-                  Class Programs
-                  <svg className="w-5 h-5 transition-transform duration-200 group-hover:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                <div className="absolute top-full left-0 mt-0 pt-3 w-60 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-200 z-50">
-                  <div className="bg-white shadow-2xl py-3 border border-slate-100 rounded-xl">
-                    <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/class-reports/submit') }}>Submit Report</a>
-                    {teacher?.classNum && (
-                      <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base relative" onClick={() => { navigate.push('/class-reports/approve') }}>
-                        Approve Reports
-                        <span className="ml-2 bg-amber-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-black">NEW</span>
-                      </a>
-                    )}
-                    {(['shahinpandikkad4@gmail.com', 'dkp17713@gmail.com', 'unaisnellikkuth@gmail.com', 'kthaseeb11@gmail.com', 'saheedchunku@gmail.com'].includes((teacher?.email || teacher?.EMAIL)?.toLowerCase()) || hasRole('best_class_admin')) && (
-                      <>
-                        <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/class-reports/leaderboard') }}>Leaderboard</a>
-                        <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base relative" onClick={() => { navigate.push('/class-reports/admin-review') }}>
-                          Evaluate Reports
+                <div className="relative group">
+                  <button
+                    className="text-white hover:text-sky-100 transition-colors duration-200 font-semibold text-lg flex items-center gap-1 px-2 py-1"
+                  >
+                    Class Programs
+                    <svg className="w-5 h-5 transition-transform duration-200 group-hover:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  <div className="absolute top-full left-0 mt-0 pt-3 w-60 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-200 z-50">
+                    <div className="bg-white shadow-2xl py-3 border border-slate-100 rounded-xl">
+                      <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/class-reports/submit') }}>Submit Report</a>
+                      {teacher?.classNum && (
+                        <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base relative" onClick={() => { navigate.push('/class-reports/approve') }}>
+                          Approve Reports
                           <span className="ml-2 bg-amber-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-black">NEW</span>
                         </a>
-                      </>
-                    )}
+                      )}
+                      {(['shahinpandikkad4@gmail.com', 'dkp17713@gmail.com', 'unaisnellikkuth@gmail.com', 'kthaseeb11@gmail.com', 'saheedchunku@gmail.com'].includes((teacher?.email || teacher?.EMAIL)?.toLowerCase()) || hasRole('best_class_admin')) && (
+                        <>
+                          <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/class-reports/leaderboard') }}>Leaderboard</a>
+                          <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base relative" onClick={() => { navigate.push('/class-reports/admin-review') }}>
+                            Evaluate Reports
+                            <span className="ml-2 bg-amber-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-black">NEW</span>
+                          </a>
+                        </>
+                      )}
+                    </div>
                   </div>
-                </div> 
-              </div>
+                </div>
               )}
 
               {/* Admin Dropdown */}
@@ -271,7 +271,7 @@ function Header() {
                     className="text-[11px] text-white/70 hover:text-white transition-colors font-black uppercase tracking-widest mt-0.5 flex items-center gap-1.5 group"
                   >
                     <FaArrowLeft className="w-2.5 h-2.5 transition-transform group-hover:-translate-x-0.5" />
-                   Back to Home
+                    Back to Home
                   </button>
                 </div>
               </div>
@@ -280,8 +280,8 @@ function Header() {
               <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                 className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold border transition-all duration-300 ${isProfileOpen
-                    ? 'bg-white shadow-lg text-sky-600 border-white scale-110'
-                    : 'bg-white/20 backdrop-blur-md border-white/30 shadow-inner hover:bg-white/30'
+                  ? 'bg-white shadow-lg text-sky-600 border-white scale-110'
+                  : 'bg-white/20 backdrop-blur-md border-white/30 shadow-inner hover:bg-white/30'
                   }`}
               >
                 {userInitial}
@@ -426,7 +426,7 @@ function Header() {
                     <>
                       <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/requests'); setIsMenuOpen(false) }}>Pending Requests</a>
                       <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/mentor-approvals'); setIsMenuOpen(false) }}>Mentor Approvals</a>
-                      <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/admin-achievements'); setIsMenuOpen(false) }}>Admin Achievements</a>
+                      <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/admin-achievements'); setIsMenuOpen(false) }}>Achievements</a>
                     </>
                   )}
                   <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/zehnuth/leaderboard'); setIsMenuOpen(false) }}>Student Leaderboard</a>
@@ -440,37 +440,37 @@ function Header() {
 
             {/* Class Programs Group */}
             {isClassProgramsAllowed && (
-            <div className="border-t border-slate-100">
-              <button
-                className="w-full flex items-center justify-between px-4 py-5 font-bold text-slate-800 hover:bg-sky-50 transition-colors"
-                onClick={() => toggleDropdown('mb-class-programs')}
-              >
-                <span className="text-lg">Class Programs</span>
-                <svg className={`w-6 h-6 transition-transform duration-200 text-slate-400 ${openDropdown === 'mb-class-programs' ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {openDropdown === 'mb-class-programs' && (
-                <div className="bg-slate-50/50 pb-3">
-                  <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/class-reports/submit'); setIsMenuOpen(false) }}>Submit Report</a>
-                  {teacher?.classNum && (
-                    <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100 flex items-center justify-between" onClick={() => { navigate.push('/class-reports/approve'); setIsMenuOpen(false) }}>
-                      <span>Approve Reports</span>
-                      {/* <span className="bg-amber-500 text-white text-[9px] px-2 py-0.5 rounded-full font-black">NEW</span> */}
-                    </a>
-                  )}
-                  {(['shahinpandikkad4@gmail.com', 'dkp17713@gmail.com', 'unaisnellikkuth@gmail.com', 'kthaseeb11@gmail.com', 'saheedchunku@gmail.com'].includes((teacher?.email || teacher?.EMAIL)?.toLowerCase()) || hasRole('best_class_admin')) && (
-                    <>
-                      <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/class-reports/leaderboard'); setIsMenuOpen(false) }}>Leaderboard</a>
-                      <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100 flex items-center justify-between" onClick={() => { navigate.push('/class-reports/admin-review'); setIsMenuOpen(false) }}>
-                        <span>Evaluate Reports</span>
+              <div className="border-t border-slate-100">
+                <button
+                  className="w-full flex items-center justify-between px-4 py-5 font-bold text-slate-800 hover:bg-sky-50 transition-colors"
+                  onClick={() => toggleDropdown('mb-class-programs')}
+                >
+                  <span className="text-lg">Class Programs</span>
+                  <svg className={`w-6 h-6 transition-transform duration-200 text-slate-400 ${openDropdown === 'mb-class-programs' ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {openDropdown === 'mb-class-programs' && (
+                  <div className="bg-slate-50/50 pb-3">
+                    <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/class-reports/submit'); setIsMenuOpen(false) }}>Submit Report</a>
+                    {teacher?.classNum && (
+                      <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100 flex items-center justify-between" onClick={() => { navigate.push('/class-reports/approve'); setIsMenuOpen(false) }}>
+                        <span>Approve Reports</span>
                         {/* <span className="bg-amber-500 text-white text-[9px] px-2 py-0.5 rounded-full font-black">NEW</span> */}
                       </a>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
+                    )}
+                    {(['shahinpandikkad4@gmail.com', 'dkp17713@gmail.com', 'unaisnellikkuth@gmail.com', 'kthaseeb11@gmail.com', 'saheedchunku@gmail.com'].includes((teacher?.email || teacher?.EMAIL)?.toLowerCase()) || hasRole('best_class_admin')) && (
+                      <>
+                        <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/class-reports/leaderboard'); setIsMenuOpen(false) }}>Leaderboard</a>
+                        <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100 flex items-center justify-between" onClick={() => { navigate.push('/class-reports/admin-review'); setIsMenuOpen(false) }}>
+                          <span>Evaluate Reports</span>
+                          {/* <span className="bg-amber-500 text-white text-[9px] px-2 py-0.5 rounded-full font-black">NEW</span> */}
+                        </a>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Admin Panel Group */}
