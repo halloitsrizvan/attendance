@@ -9,6 +9,19 @@ export async function POST(req) {
     await dbConnect();
     try {
         const body = await req.json();
+        
+        // Check for duplicate proof image submissions
+        const { imageUrl } = body;
+        if (imageUrl) {
+            const duplicateImage = await Points.findOne({ imageUrl });
+            if (duplicateImage) {
+                return NextResponse.json(
+                    { error: "This work is already submitted by you or you are copying from someone else." },
+                    { status: 400 }
+                );
+            }
+        }
+
         // body should contain studentId, mentorId, activity, category, points, academicYearId
         const newPoint = await Points.create(body);
         return NextResponse.json(newPoint);

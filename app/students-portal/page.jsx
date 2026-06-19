@@ -1376,11 +1376,11 @@ const ApplyZehnuthModal = ({ isOpen, onClose, student, mentor, onComplete }) => 
 
     const [fileUrl, setFileUrl] = useState('');
     const [uploading, setUploading] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
 
     if (!isOpen) return null;
 
-    const handleUpload = async (e) => {
-        const file = e.target.files[0];
+    const uploadFile = async (file) => {
         if (!file) return;
 
         setUploading(true);
@@ -1399,6 +1399,31 @@ const ApplyZehnuthModal = ({ isOpen, onClose, student, mentor, onComplete }) => 
             alert("Failed to upload image. Please try again.");
         } finally {
             setUploading(false);
+        }
+    };
+
+    const handleUpload = (e) => {
+        const file = e.target.files[0];
+        uploadFile(file);
+    };
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = () => {
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) {
+            uploadFile(file);
+        } else {
+            alert("Please upload an image file.");
         }
     };
 
@@ -1435,7 +1460,7 @@ const ApplyZehnuthModal = ({ isOpen, onClose, student, mentor, onComplete }) => 
             setRemarks('');
         } catch (err) {
             console.error(err);
-            alert("Failed to submit achievement request.");
+            alert(err.response?.data?.error || "Failed to submit achievement request.");
         } finally {
             setLoading(false);
         }
@@ -1702,7 +1727,15 @@ const ApplyZehnuthModal = ({ isOpen, onClose, student, mentor, onComplete }) => 
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="border-2 border-dashed border-slate-200 rounded-3xl p-6 bg-slate-50/50 flex flex-col items-center justify-center transition-all hover:bg-slate-50">
+                                    <div
+                                        onDragOver={handleDragOver}
+                                        onDragLeave={handleDragLeave}
+                                        onDrop={handleDrop}
+                                        className={`border-2 border-dashed rounded-3xl p-6 flex flex-col items-center justify-center transition-all duration-300
+                                            ${isDragging
+                                                ? 'border-indigo-500 bg-indigo-50/70 scale-[1.02] shadow-inner'
+                                                : 'border-slate-200 bg-slate-50/50 hover:bg-slate-50'}`}
+                                    >
                                         <input
                                             type="file"
                                             accept="image/*"
@@ -1716,7 +1749,7 @@ const ApplyZehnuthModal = ({ isOpen, onClose, student, mentor, onComplete }) => 
                                                 ${uploading ? 'pointer-events-none opacity-50' : ''}`}
                                         >
                                             {uploading ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />}
-                                            {uploading ? 'Uploading...' : 'Attach Proof Image (Optional)'}
+                                            {uploading ? 'Uploading...' : 'Drag & Drop or Click to Upload (Optional)'}
                                         </label>
                                     </div>
                                 )}
