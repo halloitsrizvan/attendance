@@ -68,9 +68,9 @@ const CATEGORY_DATA = [
 
 const ACTIVITY_POINTS = {
     // Writings
-    'Essay': [20], 'Story': [20], 'Poem': [20], 'Translation': [20], 'Feature': [20],
+    'Essay': [20], 'Story': [20], 'Poem': [20], 'Translation': [20], 'Feature': [20], 'Full paper': [20],
     'Short story': [10], 'Short poem': [10], 'Travelogue': [10],
-    'Note': [5], 'Response': [5], 'Letter': [5], 'Drawing': [5], 'Cartoon': [5],
+    'Note': [5], 'Response': [5], 'Letter': [5], 'Drawing': [5], 'Cartoon': [5], 'Abstract': [5],
     'Class magazine': [5],
 
     // Exam
@@ -437,7 +437,7 @@ export default function SubmitPoint() {
                                 <div>
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Full-length works</p>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                        {['Essay', 'Story', 'Poem', 'Translation', 'Feature'].map(item => (
+                                        {['Essay', 'Story', 'Poem', 'Translation', 'Feature', 'Full paper'].map(item => (
                                             <Card key={item} label={item} />
                                         ))}
                                     </div>
@@ -453,7 +453,7 @@ export default function SubmitPoint() {
                                 <div>
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Brief writings</p>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                        {['Note', 'Response', 'Letter', 'Drawing', 'Cartoon'].map(item => (
+                                        {['Note', 'Response', 'Letter', 'Drawing', 'Cartoon', 'Abstract'].map(item => (
                                             <Card key={item} label={item} />
                                         ))}
                                     </div>

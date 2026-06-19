@@ -36,7 +36,6 @@ export default function AdminAchievements() {
   const [searchTerm, setSearchTerm] = useState('');
   const [classFilter, setClassFilter] = useState('all');
   const [activityFilter, setActivityFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('approved'); // default to approved achievements
 
   // UI states
   const [selectedImage, setSelectedImage] = useState(null);
@@ -166,6 +165,7 @@ export default function AdminAchievements() {
 
   // Filter implementation
   const filteredData = pointsData.filter(item => {
+    if (item.status !== 'approved') return false; // only show approved achievements
     const student = item.studentId || {};
     const studentName = (student["SHORT NAME"] || student["FULL NAME"] || "").toLowerCase();
     const adNo = (student.ADNO || "").toString();
@@ -175,9 +175,7 @@ export default function AdminAchievements() {
 
     const activityMatch = activityFilter === 'all' || item.activity === activityFilter;
 
-    const statusMatch = statusFilter === 'all' || item.status === statusFilter;
-
-    return searchMatch && classMatch && activityMatch && statusMatch;
+    return searchMatch && classMatch && activityMatch;
   });
 
   // Calculate Metrics from Approved achievements
@@ -229,42 +227,7 @@ export default function AdminAchievements() {
           </button>
         </div>
 
-        {/* Metrics Row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
 
-          <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 p-5 rounded-[2rem] text-white shadow-xl shadow-indigo-100 relative overflow-hidden group">
-            <div className="absolute right-0 bottom-0 translate-x-3 translate-y-3 opacity-10 group-hover:scale-110 transition-transform duration-300">
-              <Star size={120} fill="currentColor" />
-            </div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-indigo-200 mb-1">Approved Points</p>
-            <p className="text-3xl font-black">{metrics.totalApprovedPoints} <span className="text-xs font-bold uppercase text-indigo-200">PTS</span></p>
-          </div>
-
-          <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm relative overflow-hidden group">
-            <div className="absolute right-0 bottom-0 translate-x-3 translate-y-3 opacity-5 group-hover:scale-110 transition-transform duration-300 text-amber-500">
-              <Trophy size={100} fill="currentColor" />
-            </div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Awards</p>
-            <p className="text-3xl font-black text-slate-800">{metrics.totalAwards}</p>
-          </div>
-
-          <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm relative overflow-hidden group">
-            <div className="absolute right-0 bottom-0 translate-x-3 translate-y-3 opacity-5 group-hover:scale-110 transition-transform duration-300 text-indigo-500">
-              <BookOpen size={100} fill="currentColor" />
-            </div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Publications</p>
-            <p className="text-3xl font-black text-slate-800">{metrics.totalPublications}</p>
-          </div>
-
-          <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm relative overflow-hidden group">
-            <div className="absolute right-0 bottom-0 translate-x-3 translate-y-3 opacity-5 group-hover:scale-110 transition-transform duration-300 text-rose-500">
-              <Medal size={100} fill="currentColor" />
-            </div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Competitions (Out)</p>
-            <p className="text-3xl font-black text-slate-800">{metrics.totalCompetitions}</p>
-          </div>
-
-        </div>
 
         {/* Filters Card */}
         <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm mb-8 space-y-4">
@@ -273,7 +236,7 @@ export default function AdminAchievements() {
             <h2 className="text-xs font-black text-slate-800 uppercase tracking-widest">Filter Records</h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
             {/* Search Input */}
             <div className="relative">
@@ -317,20 +280,6 @@ export default function AdminAchievements() {
               </select>
             </div>
 
-            {/* Status Filter */}
-            <div>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-100 hover:border-slate-200 focus:border-indigo-500 focus:bg-white rounded-2xl p-4 text-xs font-bold text-slate-600 outline-none cursor-pointer appearance-none transition-all"
-              >
-                <option value="all">⚡ All Statuses</option>
-                <option value="approved">Approved Only</option>
-                <option value="pending">Pending Admin</option>
-                <option value="rejected">Rejected Only</option>
-              </select>
-            </div>
-
           </div>
         </div>
 
@@ -354,11 +303,8 @@ export default function AdminAchievements() {
                       <th className="py-4 px-6">Class</th>
                       <th className="py-4 px-6">Activity</th>
                       <th className="py-4 px-6">Points</th>
-                      <th className="py-4 px-6">Mentor</th>
                       <th className="py-4 px-6">Proof</th>
                       <th className="py-4 px-6">Remarks</th>
-                      <th className="py-4 px-6">Status</th>
-                      {statusFilter === 'pending' && <th className="py-4 px-6 text-center">Actions</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-xs font-bold text-slate-700">
@@ -385,18 +331,12 @@ export default function AdminAchievements() {
                               {item.activity}
                             </span>
                           </div>
-                          <span className={`inline-block mt-1 px-1.5 py-0.5 rounded text-[8px] font-black uppercase border ${CATEGORY_COLORS[item.category] || 'bg-slate-50 text-slate-500'}`}>
-                            {item.category}
-                          </span>
                         </td>
                         <td className="py-4 px-6 whitespace-nowrap">
                           <div className="flex items-center gap-1 font-black text-amber-500 text-sm">
                             <Star size={14} fill="currentColor" />
                             <span>+{item.points}</span>
                           </div>
-                        </td>
-                        <td className="py-4 px-6 text-slate-500 uppercase tracking-tight font-extrabold">
-                          {item.mentorId?.name || 'N/A'}
                         </td>
                         <td className="py-4 px-6">
                           {item.imageUrl ? (
@@ -410,7 +350,7 @@ export default function AdminAchievements() {
                               </div>
                             </button>
                           ) : (
-                            <span className="text-[10px] text-slate-300 font-bold italic uppercase">No Proof</span>
+                            <span className="text-[10px] text-slate-300 font-bold italic uppercase">-</span>
                           )}
                         </td>
                         <td className="py-4 px-6 max-w-[150px]">
@@ -425,45 +365,6 @@ export default function AdminAchievements() {
                             <span className="text-[10px] text-slate-300 font-bold italic uppercase">-</span>
                           )}
                         </td>
-                        <td className="py-4 px-6 whitespace-nowrap">
-                          {item.status === 'pending' && (
-                            <span className="bg-amber-50 text-amber-500 border border-amber-100 px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-wider animate-pulse">
-                              Pending Review
-                            </span>
-                          )}
-                          {item.status === 'approved' && (
-                            <span className="bg-emerald-50 text-emerald-600 border border-emerald-100 px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-wider">
-                              Approved
-                            </span>
-                          )}
-                          {item.status === 'rejected' && (
-                            <span className="bg-rose-50 text-rose-500 border border-rose-100 px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-wider">
-                              Rejected
-                            </span>
-                          )}
-                        </td>
-                        {statusFilter === 'pending' && (
-                          <td className="py-4 px-6 whitespace-nowrap text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              <button
-                                disabled={processingId === item._id}
-                                onClick={() => handleAction(item._id, 'reject')}
-                                className="p-2 bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white rounded-xl transition-all active:scale-95"
-                                title="Reject"
-                              >
-                                <XCircle size={16} />
-                              </button>
-                              <button
-                                disabled={processingId === item._id}
-                                onClick={() => handleAction(item._id, 'approve', item.points || 20)}
-                                className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-xl transition-all active:scale-95"
-                                title="Approve & Award"
-                              >
-                                <CheckCircle2 size={16} />
-                              </button>
-                            </div>
-                          </td>
-                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -471,37 +372,21 @@ export default function AdminAchievements() {
               </div>
 
               {/* Mobile Card View */}
-              <div className="lg:hidden divide-y divide-slate-100">
+              <div className="lg:hidden p-4 space-y-4 bg-slate-50/50">
                 {filteredData.map((item) => (
-                  <div key={item._id} className="p-5 space-y-4">
+                  <div key={item._id} className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm space-y-4">
                     <div className="flex items-start justify-between">
                       <div>
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                           <Calendar size={10} /> {formatDate(item.createdAt)}
                         </span>
-                        <h3 className="font-black text-slate-800 text-sm uppercase italic mt-1 leading-tight">
+                        <h3 className="font-black text-slate-800 text-base uppercase italic mt-1.5 leading-tight">
                           {item.studentId?.["SHORT NAME"] || item.studentId?.["FULL NAME"]}
                         </h3>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
                           AD No: {item.studentId?.ADNO} • Class {item.studentId?.CLASS || 'N/A'}
                         </p>
                       </div>
-
-                      {item.status === 'pending' && (
-                        <span className="bg-amber-50 text-amber-500 border border-amber-100 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider animate-pulse">
-                          Pending
-                        </span>
-                      )}
-                      {item.status === 'approved' && (
-                        <span className="bg-emerald-50 text-emerald-600 border border-emerald-100 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider">
-                          Approved
-                        </span>
-                      )}
-                      {item.status === 'rejected' && (
-                        <span className="bg-rose-50 text-rose-500 border border-rose-100 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider">
-                          Rejected
-                        </span>
-                      )}
                     </div>
 
                     <div className="bg-slate-50 rounded-2xl p-4 space-y-3">
@@ -514,50 +399,27 @@ export default function AdminAchievements() {
                         </div>
                         <div className="flex items-center gap-1 font-black text-amber-500">
                           <Star size={14} fill="currentColor" />
-                          <span className="text-sm">+{item.points} PTS</span>
+                          <span className="text-xs font-black">+{item.points} PTS</span>
                         </div>
                       </div>
 
-                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                        Submitted by: <span className="text-slate-600">{item.mentorId?.name || 'N/A'}</span>
-                      </div>
-
                       {item.remarks && (
-                        <p className="text-xs text-slate-500 font-medium italic border-t border-slate-100 pt-2 leading-relaxed">
+                        <p className="text-xs text-slate-500 font-medium italic border-t border-slate-100/50 pt-2 leading-relaxed">
                           "{item.remarks}"
                         </p>
                       )}
                     </div>
 
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center justify-between gap-3 pt-1">
                       {item.imageUrl ? (
                         <button
                           onClick={() => setSelectedImage({ url: item.imageUrl, title: `${item.studentId?.["SHORT NAME"]} - ${item.activity}` })}
-                          className="flex items-center gap-2 text-[10px] font-black text-indigo-600 uppercase tracking-wider hover:text-indigo-700"
+                          className="flex items-center gap-2 text-[10px] font-black text-indigo-600 uppercase tracking-wider hover:text-indigo-700 active:scale-95 transition-all"
                         >
                           <ImageIcon size={14} /> View Evidence Proof
                         </button>
                       ) : (
                         <span className="text-[10px] text-slate-300 font-bold italic uppercase">No Proof Attached</span>
-                      )}
-
-                      {item.status === 'pending' && (
-                        <div className="flex items-center gap-2">
-                          <button
-                            disabled={processingId === item._id}
-                            onClick={() => handleAction(item._id, 'reject')}
-                            className="px-3 py-1.5 bg-rose-50 text-rose-500 rounded-lg text-[9px] font-black uppercase tracking-widest border border-rose-100 hover:bg-rose-500 hover:text-white"
-                          >
-                            Reject
-                          </button>
-                          <button
-                            disabled={processingId === item._id}
-                            onClick={() => handleAction(item._id, 'approve', item.points || 20)}
-                            className="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600"
-                          >
-                            Approve
-                          </button>
-                        </div>
                       )}
                     </div>
                   </div>

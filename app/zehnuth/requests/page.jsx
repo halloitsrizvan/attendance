@@ -19,9 +19,9 @@ const CATEGORIES = [
 
 const ACTIVITY_POINTS = {
     // Writings
-    'Essay': [20], 'Story': [20], 'Poem': [20], 'Translation': [20], 'Feature': [20],
+    'Essay': [20], 'Story': [20], 'Poem': [20], 'Translation': [20], 'Feature': [20], 'Full paper': [20],
     'Short story': [10], 'Short poem': [10], 'Travelogue': [10],
-    'Note': [5], 'Response': [5], 'Letter': [5], 'Drawing': [5], 'Cartoon': [5],
+    'Note': [5], 'Response': [5], 'Letter': [5], 'Drawing': [5], 'Cartoon': [5], 'Abstract': [5],
     'Class magazine': [5],
 
     // Exam

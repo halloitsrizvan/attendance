@@ -1554,7 +1554,7 @@ const ApplyZehnuthModal = ({ isOpen, onClose, student, mentor, onComplete }) => 
                                 <div>
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Full-length works</p>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                        {['Essay', 'Story', 'Poem', 'Translation', 'Feature'].map(item => (
+                                        {['Essay', 'Story', 'Poem', 'Translation', 'Feature', 'Full paper'].map(item => (
                                             <Card key={item} label={item} />
                                         ))}
                                     </div>
@@ -1570,7 +1570,7 @@ const ApplyZehnuthModal = ({ isOpen, onClose, student, mentor, onComplete }) => 
                                 <div>
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Brief writings</p>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                        {['Note', 'Response', 'Letter', 'Drawing', 'Cartoon'].map(item => (
+                                        {['Note', 'Response', 'Letter', 'Drawing', 'Cartoon', 'Abstract'].map(item => (
                                             <Card key={item} label={item} />
                                         ))}
                                     </div>
