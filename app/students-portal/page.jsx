@@ -865,12 +865,31 @@ const DocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
     const [loading, setLoading] = useState(false);
     const [fileUrl, setFileUrl] = useState('');
     const [uploading, setUploading] = useState(false);
-    const fileInputRef = useRef(null);
+    const [isDragging, setIsDragging] = useState(false);
 
     if (!isOpen || !leave) return null;
 
-    const handleUpload = async (e) => {
-        const file = e.target.files[0];
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = () => {
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const file = e.dataTransfer.files[0];
+        if (file && (file.type.startsWith('image/') || file.type === 'application/pdf')) {
+            uploadFile(file);
+        } else {
+            alert("Please upload an image or PDF file.");
+        }
+    };
+
+    const uploadFile = async (file) => {
         if (!file) return;
 
         setUploading(true);
@@ -890,6 +909,11 @@ const DocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
         } finally {
             setUploading(false);
         }
+    };
+
+    const handleUpload = (e) => {
+        const file = e.target.files[0];
+        uploadFile(file);
     };
 
     const handleSubmit = async (e) => {
@@ -935,37 +959,44 @@ const DocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
                     </div>
 
                     <div className="space-y-4">
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            onChange={handleUpload}
-                            className="hidden"
-                            accept="image/*,.pdf"
-                        />
-
                         {!fileUrl || uploading ? (
-                            <div
-                                onClick={() => !uploading && fileInputRef.current?.click()}
+                            <label
+                                htmlFor="document-upload"
+                                onDragOver={handleDragOver}
+                                onDragLeave={handleDragLeave}
+                                onDrop={handleDrop}
                                 className={`w-full h-48 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center p-6 text-center transition-all cursor-pointer group
-                                    ${uploading ? 'border-blue-200 bg-blue-50/30' : 'border-slate-200 hover:border-blue-400 hover:bg-blue-50'}`}
+                                    ${isDragging
+                                        ? 'border-blue-500 bg-blue-50/70 scale-[1.02] shadow-inner'
+                                        : uploading 
+                                            ? 'border-blue-200 bg-blue-50/30' 
+                                            : 'border-slate-200 hover:border-blue-400 hover:bg-blue-50'}`}
                             >
+                                <input
+                                    type="file"
+                                    id="document-upload"
+                                    onChange={handleUpload}
+                                    className="hidden"
+                                    accept="image/*,.pdf"
+                                    disabled={uploading}
+                                />
                                 {uploading ? (
-                                    <>
+                                    <div className="pointer-events-none flex flex-col items-center justify-center">
                                         <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-3" />
                                         <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Uploading document...</p>
-                                    </>
+                                    </div>
                                 ) : (
-                                    <>
+                                    <div className="pointer-events-none flex flex-col items-center justify-center">
                                         <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 mb-3 group-hover:bg-blue-600 group-hover:text-white transition-all">
                                             <Upload size={24} />
                                         </div>
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">
-                                            Click to select <br /> medical documents
+                                            Drag & Drop or Click to select <br /> medical documents
                                         </p>
                                         <p className="text-[8px] font-bold text-slate-300 uppercase mt-2">(Optional)</p>
-                                    </>
+                                    </div>
                                 )}
-                            </div>
+                            </label>
                         ) : (
                             <div className="relative group rounded-[2rem] overflow-hidden border-2 border-emerald-400 shadow-xl bg-slate-50 animate-in zoom-in duration-300">
                                 {fileUrl.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i) ? (
@@ -1024,12 +1055,31 @@ const ProgramDocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
     const [loading, setLoading] = useState(false);
     const [fileUrl, setFileUrl] = useState('');
     const [uploading, setUploading] = useState(false);
-    const fileInputRef = useRef(null);
+    const [isDragging, setIsDragging] = useState(false);
 
     if (!isOpen || !leave) return null;
 
-    const handleUpload = async (e) => {
-        const file = e.target.files[0];
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = () => {
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const file = e.dataTransfer.files[0];
+        if (file && (file.type.startsWith('image/') || file.type === 'application/pdf')) {
+            uploadFile(file);
+        } else {
+            alert("Please upload an image or PDF file.");
+        }
+    };
+
+    const uploadFile = async (file) => {
         if (!file) return;
 
         setUploading(true);
@@ -1049,6 +1099,11 @@ const ProgramDocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
         } finally {
             setUploading(false);
         }
+    };
+
+    const handleUpload = (e) => {
+        const file = e.target.files[0];
+        uploadFile(file);
     };
 
     const handleSubmit = async (e) => {
@@ -1094,37 +1149,44 @@ const ProgramDocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
                     </div>
 
                     <div className="space-y-4">
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            onChange={handleUpload}
-                            className="hidden"
-                            accept="image/*,.pdf"
-                        />
-
                         {!fileUrl || uploading ? (
-                            <div
-                                onClick={() => !uploading && fileInputRef.current?.click()}
+                            <label
+                                htmlFor="program-upload"
+                                onDragOver={handleDragOver}
+                                onDragLeave={handleDragLeave}
+                                onDrop={handleDrop}
                                 className={`w-full h-48 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center p-6 text-center transition-all cursor-pointer group
-                                    ${uploading ? 'border-purple-200 bg-purple-50/30' : 'border-slate-200 hover:border-purple-400 hover:bg-purple-50'}`}
+                                    ${isDragging
+                                        ? 'border-purple-500 bg-purple-50/70 scale-[1.02] shadow-inner'
+                                        : uploading 
+                                            ? 'border-purple-200 bg-purple-50/30' 
+                                            : 'border-slate-200 hover:border-purple-400 hover:bg-purple-50'}`}
                             >
+                                <input
+                                    type="file"
+                                    id="program-upload"
+                                    onChange={handleUpload}
+                                    className="hidden"
+                                    accept="image/*,.pdf"
+                                    disabled={uploading}
+                                />
                                 {uploading ? (
-                                    <>
+                                    <div className="pointer-events-none flex flex-col items-center justify-center">
                                         <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-3" />
                                         <p className="text-[10px] font-black text-purple-600 uppercase tracking-widest">Uploading document...</p>
-                                    </>
+                                    </div>
                                 ) : (
-                                    <>
+                                    <div className="pointer-events-none flex flex-col items-center justify-center">
                                         <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 mb-3 group-hover:bg-purple-600 group-hover:text-white transition-all">
                                             <Upload size={24} />
                                         </div>
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">
-                                            Click to select <br /> program documents
+                                            Drag & Drop or Click to select <br /> program documents
                                         </p>
                                         <p className="text-[8px] font-bold text-slate-300 uppercase mt-2">(Optional)</p>
-                                    </>
+                                    </div>
                                 )}
-                            </div>
+                            </label>
                         ) : (
                             <div className="relative group rounded-[2rem] overflow-hidden border-2 border-emerald-400 shadow-xl bg-slate-50 animate-in zoom-in duration-300">
                                 {fileUrl.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i) ? (
@@ -1182,7 +1244,7 @@ const ProgramDocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
 const ZehnuthEvidenceModal = ({ isOpen, onClose, request, onUpdate }) => {
     const [uploading, setUploading] = useState(false);
     const [fileUrl, setFileUrl] = useState('');
-    const fileInputRef = useRef(null);
+    const [isDragging, setIsDragging] = useState(false);
 
     useEffect(() => {
         if (isOpen && request) {
@@ -1192,8 +1254,27 @@ const ZehnuthEvidenceModal = ({ isOpen, onClose, request, onUpdate }) => {
 
     if (!isOpen || !request) return null;
 
-    const handleUpload = async (e) => {
-        const file = e.target.files[0];
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = () => {
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) {
+            uploadFile(file);
+        } else {
+            alert("Please upload an image file.");
+        }
+    };
+
+    const uploadFile = async (file) => {
         if (!file) return;
 
         setUploading(true);
@@ -1220,6 +1301,11 @@ const ZehnuthEvidenceModal = ({ isOpen, onClose, request, onUpdate }) => {
         } finally {
             setUploading(false);
         }
+    };
+
+    const handleUpload = (e) => {
+        const file = e.target.files[0];
+        uploadFile(file);
     };
 
     return (
@@ -1253,14 +1339,6 @@ const ZehnuthEvidenceModal = ({ isOpen, onClose, request, onUpdate }) => {
                     </div>
 
                     <div className="space-y-4">
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            onChange={handleUpload}
-                            className="hidden"
-                            accept="image/*"
-                        />
-
                         {fileUrl ? (
                             <div className="relative group rounded-[2rem] overflow-hidden border-2 border-indigo-100 shadow-xl bg-slate-50">
                                 <img src={fileUrl} alt="Proof" className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-105" />
@@ -1269,38 +1347,61 @@ const ZehnuthEvidenceModal = ({ isOpen, onClose, request, onUpdate }) => {
                                         <LayoutGrid size={16} /> View Full Size
                                     </a>
                                     {request.status === 'pending' && !request.mentorApproved && (
-                                        <button
-                                            onClick={() => fileInputRef.current?.click()}
-                                            className="px-6 py-3 bg-indigo-600 text-white rounded-2xl shadow-xl flex items-center gap-2 font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all"
+                                        <label
+                                            htmlFor="replace-evidence-upload"
+                                            className="px-6 py-3 bg-indigo-600 text-white rounded-2xl shadow-xl flex items-center gap-2 font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all cursor-pointer"
                                         >
+                                            <input
+                                                type="file"
+                                                id="replace-evidence-upload"
+                                                onChange={handleUpload}
+                                                className="hidden"
+                                                accept="image/*"
+                                                disabled={uploading}
+                                            />
                                             <Upload size={16} /> Replace Image
-                                        </button>
+                                        </label>
                                     )}
                                 </div>
                             </div>
                         ) : (
-                            <div
-                                onClick={() => !uploading && fileInputRef.current?.click()}
+                            <label
+                                htmlFor="evidence-upload"
+                                onDragOver={handleDragOver}
+                                onDragLeave={handleDragLeave}
+                                onDrop={handleDrop}
                                 className={`w-full h-64 border-2 border-dashed rounded-[2.5rem] flex flex-col items-center justify-center p-8 text-center transition-all cursor-pointer group
-                                    ${uploading ? 'border-indigo-200 bg-indigo-50/30' : 'border-slate-200 hover:border-indigo-400 hover:bg-indigo-50'}`}
+                                    ${isDragging
+                                        ? 'border-indigo-500 bg-indigo-50/70 scale-[1.02] shadow-inner'
+                                        : uploading 
+                                            ? 'border-indigo-200 bg-indigo-50/30' 
+                                            : 'border-slate-200 hover:border-indigo-400 hover:bg-indigo-50'}`}
                             >
+                                <input
+                                    type="file"
+                                    id="evidence-upload"
+                                    onChange={handleUpload}
+                                    className="hidden"
+                                    accept="image/*"
+                                    disabled={uploading}
+                                />
                                 {uploading ? (
-                                    <>
+                                    <div className="pointer-events-none flex flex-col items-center justify-center">
                                         <Loader2 className="w-12 h-12 text-indigo-600 animate-spin mb-3" />
                                         <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Uploading proof...</p>
-                                    </>
+                                    </div>
                                 ) : (
-                                    <>
+                                    <div className="pointer-events-none flex flex-col items-center justify-center">
                                         <div className="w-16 h-16 bg-slate-50 rounded-[1.5rem] flex items-center justify-center text-slate-300 mb-4 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm">
                                             <Upload size={28} />
                                         </div>
                                         <p className="text-xs font-black text-slate-400 uppercase tracking-[0.1em] leading-relaxed">
-                                            Click to upload <br /> achievement evidence
+                                            Drag & Drop or Click to upload <br /> achievement evidence
                                         </p>
                                         <p className="text-[9px] font-bold text-slate-300 uppercase mt-3 italic">Max size: 5MB • JPG, PNG</p>
-                                    </>
+                                    </div>
                                 )}
-                            </div>
+                            </label>
                         )}
                     </div>
 
@@ -1727,14 +1828,15 @@ const ApplyZehnuthModal = ({ isOpen, onClose, student, mentor, onComplete }) => 
                                         </div>
                                     </div>
                                 ) : (
-                                    <div
+                                    <label
+                                        htmlFor="zehnuth-upload"
                                         onDragOver={handleDragOver}
                                         onDragLeave={handleDragLeave}
                                         onDrop={handleDrop}
-                                        className={`border-2 border-dashed rounded-3xl p-6 flex flex-col items-center justify-center transition-all duration-300
+                                        className={`border-2 border-dashed rounded-3xl p-6 flex flex-col items-center justify-center transition-all duration-300 cursor-pointer
                                             ${isDragging
                                                 ? 'border-indigo-500 bg-indigo-50/70 scale-[1.02] shadow-inner'
-                                                : 'border-slate-200 bg-slate-50/50 hover:bg-slate-50'}`}
+                                                : 'border-slate-200 bg-slate-50/50 hover:bg-indigo-50 hover:border-indigo-300'}`}
                                     >
                                         <input
                                             type="file"
@@ -1742,16 +1844,22 @@ const ApplyZehnuthModal = ({ isOpen, onClose, student, mentor, onComplete }) => 
                                             onChange={handleUpload}
                                             className="hidden"
                                             id="zehnuth-upload"
+                                            disabled={uploading}
                                         />
-                                        <label
-                                            htmlFor="zehnuth-upload"
-                                            className={`cursor-pointer px-6 py-3 bg-white border border-slate-200 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:border-indigo-600 hover:text-indigo-600 transition-all flex items-center gap-2
-                                                ${uploading ? 'pointer-events-none opacity-50' : ''}`}
-                                        >
-                                            {uploading ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />}
-                                            {uploading ? 'Uploading...' : 'Drag & Drop or Click to Upload (Optional)'}
-                                        </label>
-                                    </div>
+                                        <div className="pointer-events-none flex flex-col items-center justify-center text-center">
+                                            {uploading ? (
+                                                <Loader2 size={24} className="animate-spin text-indigo-600 mb-2" />
+                                            ) : (
+                                                <Upload size={24} className={`mb-2 transition-transform duration-300 ${isDragging ? 'scale-110 text-indigo-600' : 'text-slate-400'}`} />
+                                            )}
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                                {uploading ? 'Uploading...' : 'Drag & Drop or Click to Upload (Optional)'}
+                                            </p>
+                                            <p className="text-[8px] font-bold text-slate-300 uppercase mt-1">
+                                                JPG, PNG, WEBP (Max 5MB)
+                                            </p>
+                                        </div>
+                                    </label>
                                 )}
                             </div>
                         </div>

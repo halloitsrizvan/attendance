@@ -15,6 +15,7 @@ const ADMIN_EMAIL = 'krehmankoolivayal13889@gmail.com';
 const CATEGORY_COLORS = {
   Achievements: 'bg-amber-50 text-amber-600 border-amber-100',
   Competitions: 'bg-rose-50 text-rose-600 border-rose-100',
+  Presentation: 'bg-emerald-50 text-emerald-600 border-emerald-100',
 };
 
 const ACTIVITY_ICONS = {
@@ -22,7 +23,10 @@ const ACTIVITY_ICONS = {
   'Publications': <BookOpen className="w-4 h-4 text-indigo-500" />,
   '1st Place (Out)': <Medal className="w-4 h-4 text-yellow-500" />,
   '2nd Place (Out)': <Medal className="w-4 h-4 text-slate-400" />,
-  '3rd Place (Out)': <Medal className="w-4 h-4 text-amber-600" />
+  '3rd Place (Out)': <Medal className="w-4 h-4 text-amber-600" />,
+  'Paper presentation (State)': <Medal className="w-4 h-4 text-teal-500" />,
+  'Paper presentation (National)': <Medal className="w-4 h-4 text-blue-500" />,
+  'Paper presentation (International)': <Medal className="w-4 h-4 text-purple-500" />
 };
 
 export default function AdminAchievements() {
@@ -92,8 +96,17 @@ export default function AdminAchievements() {
   const fetchAchievements = async () => {
     setRefreshing(true);
     try {
-      // Query achievements and competitions of specific types
-      const activities = ['Awards', 'Publications', '1st Place (Out)', '2nd Place (Out)', '3rd Place (Out)'].join(',');
+      // Query achievements, competitions, and presentations of specific types
+      const activities = [
+        'Awards', 
+        'Publications', 
+        '1st Place (Out)', 
+        '2nd Place (Out)', 
+        '3rd Place (Out)',
+        'Paper presentation (State)',
+        'Paper presentation (National)',
+        'Paper presentation (International)'
+      ].join(',');
       const res = await axios.get(`/api/zehnuth/points?activities=${activities}`);
       setPointsData(res.data);
     } catch (err) {
@@ -213,7 +226,7 @@ export default function AdminAchievements() {
               ZEHNUTH <span className="bg-gradient-to-r from-indigo-500 to-blue-600 bg-clip-text text-transparent">achievements</span>
             </h1>
             <p className="text-slate-500 text-sm font-semibold mt-1">
-              View and manage Awards, Publications, and External Competitions (1st/2nd/3rd Places)
+              View and manage Awards, Publications, Presentations, and External Competitions (1st/2nd/3rd Places)
             </p>
           </div>
 
@@ -260,6 +273,9 @@ export default function AdminAchievements() {
                 <option value="all">🏆 All Activities</option>
                 <option value="Awards">Awards</option>
                 <option value="Publications">Publications</option>
+                <option value="Paper presentation (State)">Paper presentation (State)</option>
+                <option value="Paper presentation (National)">Paper presentation (National)</option>
+                <option value="Paper presentation (International)">Paper presentation (International)</option>
                 <option value="1st Place (Out)">1st Place (Out)</option>
                 <option value="2nd Place (Out)">2nd Place (Out)</option>
                 <option value="3rd Place (Out)">3rd Place (Out)</option>

@@ -639,14 +639,15 @@ export default function SubmitPoint() {
                                         </div>
                                     </div>
                                 ) : (
-                                    <div
+                                    <label
+                                        htmlFor="zehnuth-submit-upload"
                                         onDragOver={handleDragOver}
                                         onDragLeave={handleDragLeave}
                                         onDrop={handleDrop}
-                                        className={`border-2 border-dashed rounded-3xl p-6 flex flex-col items-center justify-center transition-all duration-300
+                                        className={`border-2 border-dashed rounded-3xl p-6 flex flex-col items-center justify-center transition-all duration-300 cursor-pointer
                                             ${isDragging
                                                 ? 'border-indigo-500 bg-indigo-50/70 scale-[1.02] shadow-inner'
-                                                : 'border-slate-200 bg-slate-50/50 hover:bg-slate-50'}`}
+                                                : 'border-slate-200 bg-slate-50/50 hover:bg-indigo-50 hover:border-indigo-300'}`}
                                     >
                                         <input
                                             type="file"
@@ -654,16 +655,22 @@ export default function SubmitPoint() {
                                             onChange={handleUpload}
                                             className="hidden"
                                             id="zehnuth-submit-upload"
+                                            disabled={uploading}
                                         />
-                                        <label
-                                            htmlFor="zehnuth-submit-upload"
-                                            className={`cursor-pointer px-6 py-3 bg-white border border-slate-200 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:border-indigo-600 hover:text-indigo-600 transition-all flex items-center gap-2
-                                                ${uploading ? 'pointer-events-none opacity-50' : ''}`}
-                                        >
-                                            {uploading ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />}
-                                            {uploading ? 'Uploading...' : 'Drag & Drop or Click to Upload (Optional)'}
-                                        </label>
-                                    </div>
+                                        <div className="pointer-events-none flex flex-col items-center justify-center text-center">
+                                            {uploading ? (
+                                                <Loader2 size={24} className="animate-spin text-indigo-600 mb-2" />
+                                            ) : (
+                                                <Upload size={24} className={`mb-2 transition-transform duration-300 ${isDragging ? 'scale-110 text-indigo-600' : 'text-slate-400'}`} />
+                                            )}
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                                {uploading ? 'Uploading...' : 'Drag & Drop or Click to Upload (Optional)'}
+                                            </p>
+                                            <p className="text-[8px] font-bold text-slate-300 uppercase mt-1">
+                                                JPG, PNG, WEBP (Max 5MB)
+                                            </p>
+                                        </div>
+                                    </label>
                                 )}
                             </div>
                         </div>

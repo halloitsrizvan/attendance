@@ -6,7 +6,29 @@ import axios from 'axios';
 import { Trophy, CheckCircle2, XCircle, Loader2, User, Activity, Clock, ChevronRight, AlertTriangle, Inbox, Check, X, Image as ImageIcon, Upload, ExternalLink, MoreVertical } from 'lucide-react';
 
 const ReviewModal = ({ request, isOpen, onClose, onAction, onUpload, uploading, processing }) => {
+    const [isDragging, setIsDragging] = useState(false);
+
     if (!isOpen || !request) return null;
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = () => {
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) {
+            onUpload(request._id, { target: { files: [file] } });
+        } else {
+            alert("Please upload an image file.");
+        }
+    };
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -72,26 +94,38 @@ const ReviewModal = ({ request, isOpen, onClose, onAction, onUpload, uploading, 
                                     </div>
                                 </div>
                             ) : (
-                                <div className="border-2 border-dashed border-slate-200 rounded-3xl p-8 bg-slate-50/50 flex flex-col items-center justify-center transition-all hover:bg-slate-50">
-                                    <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-slate-300 shadow-sm mb-4">
-                                        <ImageIcon size={24} />
-                                    </div>
+                                <label
+                                    htmlFor="modal-upload"
+                                    onDragOver={handleDragOver}
+                                    onDragLeave={handleDragLeave}
+                                    onDrop={handleDrop}
+                                    className={`border-2 border-dashed rounded-3xl p-8 flex flex-col items-center justify-center transition-all cursor-pointer
+                                        ${isDragging
+                                            ? 'border-indigo-500 bg-indigo-50/70 scale-[1.02] shadow-inner'
+                                            : 'border-slate-200 bg-slate-50/50 hover:bg-indigo-50 hover:border-indigo-300'}`}
+                                >
                                     <input
                                         type="file"
                                         accept="image/*"
                                         onChange={(e) => onUpload(request._id, e)}
                                         className="hidden"
                                         id="modal-upload"
+                                        disabled={uploading}
                                     />
-                                    <label
-                                        htmlFor="modal-upload"
-                                        className={`cursor-pointer px-6 py-3 bg-white border border-slate-200 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:border-indigo-600 hover:text-indigo-600 transition-all flex items-center gap-2
-                                            ${uploading ? 'pointer-events-none opacity-50' : ''}`}
-                                    >
-                                        {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-                                        {uploading ? 'Uploading...' : 'Upload Evidence Image'}
-                                    </label>
-                                </div>
+                                    <div className="pointer-events-none flex flex-col items-center justify-center text-center">
+                                        {uploading ? (
+                                            <Loader2 size={24} className="animate-spin text-indigo-600 mb-2" />
+                                        ) : (
+                                            <Upload size={24} className={`mb-2 transition-transform duration-300 ${isDragging ? 'scale-110 text-indigo-600' : 'text-slate-400'}`} />
+                                        )}
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                            {uploading ? 'Uploading...' : 'Drag & Drop or Click to Upload Evidence'}
+                                        </p>
+                                        <p className="text-[8px] font-bold text-slate-300 uppercase mt-1">
+                                            JPG, PNG, WEBP (Max 5MB)
+                                        </p>
+                                    </div>
+                                </label>
                             )}
                         </div>
                     </div>
