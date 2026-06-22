@@ -354,10 +354,10 @@ export default function ApplyZehnuthModal({ isOpen, onClose, student, mentor, on
                                 </div>
                                 <div>
                                     <p className="text-[8px] font-black text-indigo-400 uppercase tracking-widest leading-none mb-1">Your Mentor</p>
-                                    <p className="text-[9px] font-bold text-slate-700 uppercase">Mentor ID: {mentor.name || mentor}</p>
+                                    <p className="text-[9px] font-bold text-slate-700 uppercase">Mentor: {mentor.name || mentor}</p>
                                 </div>
                             </div>
-                        )}
+                        )} 
 
                         <button
                             onClick={handleSubmit}

@@ -309,15 +309,15 @@ export default function LeavePage() {
                                         <div>
                                             <div className="text-[10px] font-bold text-slate-500">
                                                 {/* <span className="font-black text-slate-400 mr-1">FROM:</span> */}
-                                                {item.fromDate ? new Date(item.fromDate).toLocaleDateString('en-GB') : ''}, {formatTimeTo12h(item.fromTime)}
+                                                {item.fromDate ? new Date(item.fromDate).toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }) : ''}, {formatTimeTo12h(item.fromTime)}
                                             </div>
                                             <div className="text-[10px] font-bold text-slate-500 mt-0.5">
                                                 {/* <span className="font-black text-slate-400 mr-1">RETURN:</span> */}
                                                 {item.returnedAt ? (
-                                                    `${new Date(item.returnedAt).toLocaleDateString('en-GB')}, ${new Date(item.returnedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                                                    `${new Date(item.returnedAt).toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}, ${new Date(item.returnedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
                                                 ) : (
                                                     item.toDate ? (
-                                                        `${new Date(item.toDate).toLocaleDateString('en-GB')} ${formatTimeTo12h(item.toTime)}`
+                                                        `${new Date(item.toDate).toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}, ${formatTimeTo12h(item.toTime)}`
                                                     ) : (
                                                         <span className="text-amber-500 font-black">PENDING</span>
                                                     )
@@ -384,7 +384,7 @@ export default function LeavePage() {
                                         <div className="flex items-center gap-4">
                                             <span className="px-2 py-1 border border-slate-800 rounded-lg text-[10px] font-black">Scheduled</span>
                                             <div>
-                                                <div className="text-[12px] font-bold text-slate-800">{new Date(item.fromDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}, {formatTimeTo12h(item.fromTime) || '12:00 PM'}</div>
+                                                <div className="text-[12px] font-bold text-slate-800">{new Date(item.fromDate).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, {formatTimeTo12h(item.fromTime) || '12:00 PM'}</div>
                                                 <div className="text-[10px] font-semibold text-slate-500">
                                                     USTHAD {item.teacherId?.name || item.teacher || 'Teacher'}
                                                 </div>
@@ -396,7 +396,7 @@ export default function LeavePage() {
                                         <div className="flex items-center gap-4">
                                             <span className="px-2 py-1 border border-slate-800 rounded-lg text-[10px] font-black">Started</span>
                                             <div>
-                                                <div className="text-[12px] font-bold text-slate-800">{new Date(item.fromDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}, {formatTimeTo12h(item.fromTime) || '12:00 PM'}</div>
+                                                <div className="text-[12px] font-bold text-slate-800">{new Date(item.fromDate).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, {formatTimeTo12h(item.fromTime) || '12:00 PM'}</div>
                                                 <div className="text-[10px] font-semibold text-slate-500">
                                                     USTHAD {item.teacherId?.name || item.teacher || 'Teacher'}
                                                 </div>
@@ -409,7 +409,7 @@ export default function LeavePage() {
                                             <div className="flex items-center gap-4">
                                                 <span className="px-2 py-1 border border-slate-800 rounded-lg text-[10px] font-black">Returned</span>
                                                 <div>
-                                                    <div className="text-[12px] font-bold text-slate-800">{new Date(item.returnedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}, {new Date(item.returnedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                                    <div className="text-[12px] font-bold text-slate-800">{new Date(item.returnedAt).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, {new Date(item.returnedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                                                     <div className="text-[10px] font-semibold text-slate-500">
                                                         USTHAD {item.teacherId?.name || item.teacher || 'Teacher'} 
                                                     </div>
@@ -447,7 +447,7 @@ export default function LeavePage() {
                             <option value="">Select Leave...</option>
                             {leaveData.map(item => (
                                 <option key={item._id} value={item._id}>
-                                    {new Date(item.fromDate).toLocaleDateString()} - {item.reason}
+                                    {new Date(item.fromDate).toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })} - {item.reason}
                                 </option>
                             ))}
                         </select>

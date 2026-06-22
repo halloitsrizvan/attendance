@@ -36,6 +36,29 @@ export async function GET(req) {
     const studentId = searchParams.get('studentId');
     const mentorId = searchParams.get('mentorId');
 
+    const rankStudentId = searchParams.get('rankStudentId');
+    if (rankStudentId) {
+        try {
+            const rankings = await Points.aggregate([
+                { $match: { status: 'approved' } },
+                {
+                    $group: {
+                        _id: '$studentId',
+                        totalPoints: { $sum: '$points' }
+                    }
+                },
+                { $sort: { totalPoints: -1 } }
+            ]);
+            
+            const index = rankings.findIndex(r => r._id.toString() === rankStudentId);
+            const rank = index === -1 ? '-' : index + 1;
+            
+            return NextResponse.json({ rank });
+        } catch (error) {
+            return NextResponse.json({ error: error.message }, { status: 500 });
+        }
+    }
+
     try {
         let query = {};
         if (studentId) query.studentId = studentId;

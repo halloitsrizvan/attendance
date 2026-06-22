@@ -2,7 +2,7 @@ import React from 'react';
 
 export default function WelcomeBanner({ studentName, dateStr }) {
     return (
-        <div className="relative bg-[#0A84C6] rounded-[2rem] p-8 md:p-12 text-white overflow-hidden shadow-lg mb-8">
+        <div className="relative bg-[#0A84C6] rounded-[1rem] p-8 md:p-12 text-white overflow-hidden shadow-lg mb-8">
             <div className="relative z-10">
                 <div className="text-sm font-semibold opacity-90 mb-4">{dateStr}</div> 
                 <h1 className="text-3xl md:text-5xl font-black tracking-tight mb-2">

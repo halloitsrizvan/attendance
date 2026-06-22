@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
-import { Star, Loader2, PlusCircle, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { Star, Loader2, PlusCircle, CheckCircle, Clock, XCircle, Trophy } from 'lucide-react';
 import { API_PORT } from '@/Constants';
 import PortalSkeleton from '@/components/StudentPortal/PortalSkeleton';
 
@@ -15,6 +15,7 @@ export default function ZehnuthPage() {
     const [student, setStudent] = useState(null);
     const [zehnuthPoints, setZehnuthPoints] = useState([]);
     const [mentor, setMentor] = useState(null);
+    const [rank, setRank] = useState('-');
     const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
 
     useEffect(() => {
@@ -37,14 +38,18 @@ export default function ZehnuthPage() {
 
             const sid = profileData._id || profileData.id;
             if (sid) {
-                const [pointsRes, mentorRes] = await Promise.all([
+                const [pointsRes, mentorRes, rankRes] = await Promise.all([
                     axios.get(`${API_PORT}/zehnuth/points?studentId=${sid}`),
-                    axios.get(`${API_PORT}/zehnuth/mentor-mentee?studentId=${sid}`)
+                    axios.get(`${API_PORT}/zehnuth/mentor-mentee?studentId=${sid}`),
+                    axios.get(`${API_PORT}/zehnuth/points?rankStudentId=${sid}`)
                 ]);
                 
                 setZehnuthPoints(pointsRes.data || []);
                 if (mentorRes.data && mentorRes.data.length > 0) {
                     setMentor(mentorRes.data[0].mentorId);
+                }
+                if (rankRes.data && rankRes.data.rank) {
+                    setRank(rankRes.data.rank === '-' ? '-' : `#${rankRes.data.rank}`);
                 }
             }
         } catch (err) {
@@ -83,7 +88,7 @@ export default function ZehnuthPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
                 {/* Analytics */}
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-3">
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-2xl font-black text-slate-800">My Zehnuth Points</h2>
                         <button 
@@ -93,12 +98,18 @@ export default function ZehnuthPage() {
                             <PlusCircle size={18} /> Apply for Points
                         </button>
                     </div>
-                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                         <MetricCard 
                             title="Total Points"
                             value={stats.total}
                             color="blue"
                             icon={Star}
+                        />
+                        <MetricCard 
+                            title="My Rank"
+                            value={rank}
+                            color="amber"
+                            icon={Trophy}
                         />
                         <MetricCard 
                             title="Approved Requests"
@@ -142,6 +153,15 @@ export default function ZehnuthPage() {
                                     <div className="text-[10px] font-bold text-slate-400 flex items-center gap-2 mt-1">
                                         <span className="uppercase tracking-widest text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-md">{item.category}</span>
                                         • {new Date(item.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                        {item.status === 'pending' && (
+                                            <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest shrink-0 ${
+                                                item.mentorApproved 
+                                                    ? 'bg-blue-50 text-blue-600 border border-blue-100' 
+                                                    : 'bg-amber-50 text-amber-600 border border-amber-100'
+                                            }`}>
+                                                {item.mentorApproved ? 'Pending Admin Approval' : 'Pending Mentor Approval'}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -149,12 +169,12 @@ export default function ZehnuthPage() {
                                 {item.imageUrl && (
                                     <a href={item.imageUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] font-black text-blue-500 hover:text-blue-700 underline uppercase">View Evidence</a>
                                 )}
-                                <div className="text-center">
+                                {/* <div className="text-center">
                                     <div className={`text-xl font-black ${item.status === 'approved' ? 'text-emerald-500' : 'text-slate-400'}`}>
                                         +{item.points || 0}
                                     </div>
                                     <div className="text-[8px] font-black uppercase tracking-widest text-slate-400">Pts</div>
-                                </div>
+                                </div> */}
                             </div>
                         </div>
                     )) : (

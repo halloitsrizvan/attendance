@@ -19,6 +19,7 @@ export default function AttendancePage() {
     const [selectedId, setSelectedId] = useState('');
     const [actualStatus, setActualStatus] = useState('Present');
     const [message, setMessage] = useState('');
+    const [complaints, setComplaints] = useState([]);
 
     const [absentMonth, setAbsentMonth] = useState('All');
     const [logMonth, setLogMonth] = useState('All');
@@ -62,9 +63,15 @@ export default function AttendancePage() {
             const profileData = profileRes.data;
             setStudent(profileData);
 
+            const sid = profileData._id || profileData.id;
+
             if (profileData.ADNO) {
-                const attRes = await axios.get(`${API_PORT}/set-attendance?ad=${profileData.ADNO}`);
+                const [attRes, complaintsRes] = await Promise.all([
+                    axios.get(`${API_PORT}/set-attendance?ad=${profileData.ADNO}`),
+                    axios.get(`${API_PORT}/complaints?studentId=${sid}`)
+                ]);
                 setAttendanceData(attRes.data || []);
+                setComplaints(complaintsRes.data || []);
             }
         } catch (err) {
             console.error("Error fetching attendance data:", err);
@@ -116,6 +123,13 @@ export default function AttendancePage() {
             setSelectedId('');
             setMessage('');
             setActualStatus('Present');
+
+            // Refetch complaints list
+            const sid = student._id || student.id;
+            if (sid) {
+                const compRes = await axios.get(`${API_PORT}/complaints?studentId=${sid}`);
+                setComplaints(compRes.data || []);
+            }
         } catch (err) {
             console.error(err);
             alert("Failed to submit complaint.");
@@ -234,14 +248,30 @@ export default function AttendancePage() {
                                     <div className="text-[10px] font-bold text-slate-600  max-w-[200px]">
                                         {item.teacherId ? "USTHAD  " : ""} {item.teacherId?.name || 'Teacher'}
                                     </div>
-                                    {isToday(item.createdAt) && (
-                                        <button 
-                                            onClick={() => handleComplaintClick(item._id)}
-                                            className="text-[10px] font-black text-rose-600 bg-rose-100 hover:bg-rose-200 hover:text-rose-700 px-3 py-1 rounded-lg uppercase mt-2 inline-block transition-colors cursor-pointer shadow-sm active:scale-95"
-                                        >
-                                            Complaint
-                                        </button>
-                                    )}
+                                    {(() => {
+                                        const existingComplaint = complaints.find(c => (c.attendanceId?._id || c.attendanceId) === item._id);
+                                        if (existingComplaint) {
+                                            const statusColors = {
+                                                Pending: 'bg-amber-50 text-amber-600 border-amber-100',
+                                                Resolved: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+                                                Rejected: 'bg-rose-50 text-rose-600 border-rose-100'
+                                            };
+                                            const currentStatusColor = statusColors[existingComplaint.status] || 'bg-slate-50 text-slate-600 border-slate-100';
+                                            return (
+                                                <span className={`text-[10px] font-black px-3 py-1 rounded-lg uppercase mt-2 inline-block border ${currentStatusColor}`}>
+                                                    Complained ({existingComplaint.status || 'Pending'})
+                                                </span>
+                                            );
+                                        }
+                                        return isToday(item.createdAt) && (
+                                            <button 
+                                                onClick={() => handleComplaintClick(item._id)}
+                                                className="text-[10px] font-black text-rose-600 bg-rose-100 hover:bg-rose-200 hover:text-rose-700 px-3 py-1 rounded-lg uppercase mt-2 inline-block transition-colors cursor-pointer shadow-sm active:scale-95"
+                                            >
+                                                Complaint
+                                            </button>
+                                        );
+                                    })()}
                                 </div>
                             </div>
                         )) : (
@@ -269,7 +299,7 @@ export default function AttendancePage() {
                             ))}
                         </select>
                     </div>
-                    <div className="bg-slate-50 rounded-[2rem] p-4 space-y-3 border border-slate-100 max-h-[500px] overflow-y-auto custom-scrollbar">
+                    <div className="bg-slate-50 rounded-[2rem] p-4 space-y-3 border border-slate-100 max-h-[600px] overflow-y-auto custom-scrollbar">
                         {filteredLogData.slice(0, 20).map(item => (
                             <div key={item._id} className="flex items-center justify-between p-4 bg-slate-100/50 rounded-2xl border border-slate-200/50">
                                 <div className="flex items-center gap-4">
@@ -351,6 +381,56 @@ export default function AttendancePage() {
                             {complaintLoading ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
                             Submit
                         </button>
+                    </div>
+
+                    {/* My Complaints Section */}
+                    <div className="mt-8">
+                        <h2 className="text-xl font-black text-slate-800 mb-4">My Complaints</h2>
+                        <div className="bg-slate-50 rounded-[2rem] p-4 max-h-[250px] overflow-y-auto custom-scrollbar border border-slate-100 space-y-3">
+                            {complaints.length > 0 ? complaints.map(item => {
+                                const statusColors = {
+                                    Pending: 'bg-amber-50 text-amber-600 border-amber-100',
+                                    Resolved: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+                                    Rejected: 'bg-rose-50 text-rose-600 border-rose-100'
+                                };
+                                const currentStatusColor = statusColors[item.status] || 'bg-slate-50 text-slate-600 border-slate-100';
+                                
+                                return (
+                                    <div key={item._id} className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border ${currentStatusColor}`}>
+                                                {item.status || 'Pending'}
+                                            </span>
+                                            <span className="text-[9px] font-bold text-slate-400">
+                                                {new Date(item.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <div className="text-[11px] font-black text-slate-800 uppercase italic">
+                                                Was Actually: <span className="text-blue-600">{item.actualStatus}</span>
+                                            </div>
+                                            {item.message && (
+                                                <p className="text-[11px] font-medium text-slate-500 line-clamp-2 mt-1 leading-relaxed">
+                                                    "{item.message}"
+                                                </p>
+                                            )}
+                                            {item.adminRemark && (
+                                                <div className="mt-2 pt-2 border-t border-slate-100">
+                                                    <span className="text-[8px] font-black text-indigo-500 uppercase tracking-wider block">Admin Remark</span>
+                                                    <p className="text-[10px] font-bold text-slate-600 italic">
+                                                        "{item.adminRemark}"
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            }) : (
+                                <div className="py-8 text-center text-xs font-bold text-slate-400">
+                                    No complaints filed yet.
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
