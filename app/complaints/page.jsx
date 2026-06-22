@@ -108,11 +108,18 @@ const ComplaintsPage = () => {
   });
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    });
+    if (!dateString) return '—';
+    try {
+      const d = new Date(dateString);
+      if (isNaN(d.getTime())) return '—';
+      return d.toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      });
+    } catch (e) {
+      return '—';
+    }
   };
 
   const formatTime = (dateString) => {
@@ -248,29 +255,39 @@ const ComplaintsPage = () => {
                     </div>
                   </div>
 
-                 
+                  {complaint.attendanceId ? (
+                    <div className="flex flex-wrap items-center gap-2 md:gap-4 text-[9px] md:text-[10px] font-black uppercase tracking-widest">
+                      <div className="flex items-center gap-1.5 bg-slate-50 px-2 md:px-3 py-1.5 rounded-lg border border-slate-100 text-slate-400">
+                        <Calendar size={12} />
+                        {formatDate(complaint.attendanceId?.attendanceDate)}
+                      </div>
+                      <div className="flex items-center gap-1.5 bg-slate-50 px-2 md:px-3 py-1.5 rounded-lg border border-slate-100 text-slate-400">
+                        <Clock3 size={12} />
+                        {complaint.attendanceId?.attendanceTime}
+                        {complaint.attendanceId?.period && (
+                          <span className="ml-1 bg-sky-100 text-sky-600 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter">
+                            P{complaint.attendanceId.period}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5 text-rose-500 bg-rose-50 px-2 md:px-3 py-1.5 rounded-lg border border-rose-100">
+                        Was: {complaint.attendanceId?.status}
+                      </div>
+                      <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-2 md:px-3 py-1.5 rounded-lg border border-emerald-100">
+                        Student claimed as: {complaint.actualStatus}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap items-center gap-2 md:gap-4 text-[9px] md:text-[10px] font-black uppercase tracking-widest">
+                      <div className="flex items-center gap-1.5 text-purple-600 bg-purple-50 px-2 md:px-3 py-1.5 rounded-lg border border-purple-100">
+                        Type: Leave Recovery / Issue
+                      </div>
+                      <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-2 md:px-3 py-1.5 rounded-lg border border-emerald-100">
+                        Student claimed as: {complaint.actualStatus}
+                      </div>
+                    </div>
+                  )}
 
-                  <div className="flex flex-wrap items-center gap-2 md:gap-4 text-[9px] md:text-[10px] font-black uppercase tracking-widest">
-                    <div className="flex items-center gap-1.5 bg-slate-50 px-2 md:px-3 py-1.5 rounded-lg border border-slate-100 text-slate-400">
-                      <Calendar size={12} />
-                      {formatDate(complaint.attendanceId?.attendanceDate)}
-                    </div>
-                    <div className="flex items-center gap-1.5 bg-slate-50 px-2 md:px-3 py-1.5 rounded-lg border border-slate-100 text-slate-400">
-                      <Clock3 size={12} />
-                      {complaint.attendanceId?.attendanceTime}
-                      {complaint.attendanceId?.period && (
-                        <span className="ml-1 bg-sky-100 text-sky-600 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter">
-                          P{complaint.attendanceId.period}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1.5 text-rose-500 bg-rose-50 px-2 md:px-3 py-1.5 rounded-lg border border-rose-100">
-                      Was: {complaint.attendanceId?.status}
-                    </div>
-                    <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-2 md:px-3 py-1.5 rounded-lg border border-emerald-100">
-                    Student claimed as: {complaint.actualStatus}
-                    </div>
-                  </div>
                    <div className="p-4 md:p-5 bg-slate-50 rounded-2xl border border-slate-100 mt-4">
                     <p className="text-xs md:text-sm font-bold text-slate-700 italic">“{complaint.message}”</p>
                   </div>

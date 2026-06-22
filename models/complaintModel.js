@@ -9,7 +9,7 @@ const complaintSchema = new mongoose.Schema({
     attendanceId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Attendance',
-        required: true
+        required: false
     },
     teacherId: {
         type: mongoose.Schema.Types.ObjectId,
