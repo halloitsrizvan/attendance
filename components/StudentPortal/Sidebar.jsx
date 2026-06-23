@@ -3,10 +3,51 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { LogOut, CalendarCheck, CalendarDays, Award, Star, Trophy, LayoutDashboard } from 'lucide-react';
+import axios from 'axios';
+import { API_PORT } from '@/Constants';
 
 export default function Sidebar() {
     const pathname = usePathname();
     const router = useRouter();
+    const [role, setRole] = React.useState('student');
+
+    React.useEffect(() => {
+        const fetchStudentRole = async () => {
+            const token = localStorage.getItem('studentToken');
+            if (token) {
+                try {
+                    const res = await axios.get(`${API_PORT}/students/profile`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    if (res.data && res.data.role) {
+                        setRole(res.data.role);
+                        // Sync back to local storage
+                        const storedData = localStorage.getItem('studentData');
+                        if (storedData) {
+                            const parsed = JSON.parse(storedData);
+                            parsed.role = res.data.role;
+                            localStorage.setItem('studentData', JSON.stringify(parsed));
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error fetching student profile in sidebar:", err);
+                }
+            }
+        };
+
+        const storedData = localStorage.getItem('studentData');
+        if (storedData) {
+            try {
+                const parsed = JSON.parse(storedData);
+                if (parsed && parsed.role) {
+                    setRole(parsed.role);
+                }
+            } catch (e) {
+                console.error("Error parsing student data in sidebar:", e);
+            }
+        }
+        fetchStudentRole();
+    }, []);
 
     const navItems = [
         { name: 'Dashboard', path: '/students-portal', icon: LayoutDashboard },
@@ -16,6 +57,13 @@ export default function Sidebar() {
         { name: 'Zehnuth', path: '/students-portal/zehnuth', icon: Star },
         { name: 'Best Class', path: '/students-portal/best-class', icon: Trophy },
     ];
+
+    const filteredNavItems = navItems.filter(item => {
+        if (item.name === 'Best Class') {
+            return role && role !== 'student';
+        }
+        return true;
+    });
 
     const handleLogout = () => {
         localStorage.removeItem('studentToken');
@@ -36,7 +84,7 @@ export default function Sidebar() {
             </div>
 
             <nav className="flex-1 mt-8 px-4 flex flex-col gap-2">
-                {navItems.map((item) => {
+                {filteredNavItems.map((item) => {
                     const isActive = item.path === '/students-portal' 
                         ? pathname === item.path 
                         : pathname.startsWith(item.path);

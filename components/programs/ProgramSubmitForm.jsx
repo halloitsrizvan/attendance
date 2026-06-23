@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import axios from 'axios';
-import { BookOpen, Send, Plus, X, Loader2, AlertTriangle, CheckCircle2, Calendar, LayoutGrid, ImagePlus, Images } from 'lucide-react';
+import { BookOpen, Send, Plus, X, Loader2, AlertTriangle, CheckCircle2, Calendar, LayoutGrid, ImagePlus, Images, ChevronDown } from 'lucide-react';
 
 const MONTHS = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -50,6 +50,18 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
     const [uploading, setUploading] = useState(false);
     const [uploadingGallery, setUploadingGallery] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
+
+    const getMinMaxDates = () => {
+        const monthIndex = MONTHS.indexOf(month);
+        if (monthIndex === -1) return { min: '', max: '' };
+        const mm = String(monthIndex + 1).padStart(2, '0');
+        const min = `${year}-${mm}-01`;
+        const lastDay = new Date(year, monthIndex + 1, 0).getDate();
+        const max = `${year}-${mm}-${String(lastDay).padStart(2, '0')}`;
+        return { min, max };
+    };
+
+    const { min: minDate, max: maxDate } = getMinMaxDates();
 
     const handleAddProgram = () => {
         setPrograms([...programs, { category: 'Curriculum', title: '', description: '', poster: '', date: '', gallery: [] }]);
@@ -161,11 +173,8 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                 payload.teacherId = submitterId;
             } else if (submitterType === 'student') {
                 payload.studentId = submitterId;
-                // Currently backend expects teacherId for authorization in some places. 
-                // We will pass studentId but maybe fallback or update backend API.
-                // We'll update the backend API to handle student submissions.
             } else {
-                payload.teacherId = submitterId; // Fallback
+                payload.teacherId = submitterId;
             }
 
             await axios.post('/api/class-reports', payload);
@@ -174,7 +183,6 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
             setActiveProgramIndex(0);
 
             if (onSuccessCallback) {
-                // Give user a moment to see success modal
                 setTimeout(() => {
                     onSuccessCallback();
                 }, 1500);
@@ -196,102 +204,110 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
     };
 
     return (
-        <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-xl shadow-slate-100/50 border border-slate-100">
+        <div className="bg-white rounded-[2.5rem] p-2 sm:p-4">
             <SuccessModal isOpen={showSuccess} onClose={() => {
                 setShowSuccess(false);
                 if (onSuccessCallback) onSuccessCallback();
             }} />
             <form onSubmit={handleSubmit} className="space-y-8">
-                {/* Class Info & Month */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
-                    <div>
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 flex items-center gap-1.5 mb-2">
-                            <LayoutGrid size={12} /> Your Class
+                {/* Class Info & Month & Year Row */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+                    {/* Class Box */}
+                    <div className="md:col-span-6">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block pl-1">
+                            Your Class
                         </label>
-                        {classNumber ? (
-                            <div className="bg-white border-2 border-indigo-100 rounded-2xl p-4 flex items-center justify-between shadow-sm">
-                                <div className="text-lg font-black text-slate-800">Class {classNumber}</div>
-                                <div className="text-[9px] font-black bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-xl uppercase tracking-widest">
+                        {classNumber || classNumber === 0 ? (
+                            <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between shadow-sm min-h-[56px]">
+                                <span className="text-sm font-black text-slate-800">Class {classNumber}</span>
+                                <span className="text-[9px] font-black bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg uppercase tracking-widest">
                                     {getSectionLabel(classNumber)}
-                                </div>
+                                </span>
                             </div>
                         ) : (
-                            <div className="bg-rose-50 border-2 border-rose-100 text-rose-600 rounded-2xl p-4 flex items-center gap-3 shadow-sm text-sm font-bold">
+                            <div className="bg-rose-50 border border-rose-100 text-rose-600 rounded-2xl p-4 flex items-center gap-3 shadow-sm text-sm font-bold min-h-[56px]">
                                 <AlertTriangle size={18} /> No Class Assigned
                             </div>
                         )}
                     </div>
 
-                    <div className="flex gap-4">
-                        <div className="flex-1">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 flex items-center gap-1.5 mb-2">
-                                <Calendar size={12} /> Select Month
-                            </label>
+                    {/* Month Box */}
+                    <div className="md:col-span-3">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block pl-1">
+                            Select Month
+                        </label>
+                        <div className="relative">
                             <select
                                 value={month}
                                 onChange={(e) => setMonth(e.target.value)}
-                                className="w-full bg-white border-2 border-indigo-100 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-indigo-400 outline-none transition-all shadow-sm appearance-none cursor-pointer"
+                                className="w-full bg-white border border-slate-200 rounded-2xl p-4 pr-10 text-sm font-black text-slate-800 outline-none focus:border-blue-500 transition-all shadow-sm cursor-pointer appearance-none"
                             >
                                 {MONTHS.map(m => (
                                     <option key={m} value={m}>{m}</option>
                                 ))}
                             </select>
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                <ChevronDown size={16} />
+                            </div>
                         </div>
-                        <div className="w-1/3">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 flex items-center gap-1.5 mb-2">
-                                Year
-                            </label>
-                            <input
-                                type="number"
-                                value={year}
-                                onChange={(e) => setYear(parseInt(e.target.value) || new Date().getFullYear())}
-                                className="w-full bg-white border-2 border-indigo-100 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-indigo-400 outline-none transition-all shadow-sm"
-                                min="2020"
-                                max="2050"
-                            />
-                        </div>
+                    </div>
+
+                    {/* Year Box */}
+                    <div className="md:col-span-3">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block pl-1">
+                            Year
+                        </label>
+                        <input
+                            type="number"
+                            value={year}
+                            onChange={(e) => setYear(parseInt(e.target.value) || new Date().getFullYear())}
+                            className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-black text-slate-800 focus:border-blue-500 outline-none transition-all shadow-sm"
+                            min="2020"
+                            max="2050"
+                        />
                     </div>
                 </div>
 
-                {/* Programs */}
-                <div className="space-y-6">
-                    <div className="flex items-center justify-between px-2">
+                {/* Programs Section */}
+                <div className="space-y-6 pt-4 border-t border-slate-100">
+                    <div className="flex items-center justify-between px-1">
                         <div>
                             <h3 className="text-lg font-black text-slate-800 uppercase italic">Programs Performed</h3>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Add activities for this month</p>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Add activities for this month</p>
                         </div>
                         <button
                             type="button"
                             onClick={handleAddProgram}
-                            className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100 hover:scale-105 active:scale-95 transition-all shadow-sm"
+                            className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 hover:scale-105 active:scale-95 transition-all shadow-sm"
                             title="Add Program"
                         >
-                            <Plus size={20} />
+                            <Plus size={18} />
                         </button>
                     </div>
 
-                    {/* Active Program Form */}
-                    <div className="relative bg-slate-50 border border-slate-100 rounded-[2rem] p-6 pt-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                    {/* Active Program Card Container */}
+                    <div className="relative bg-slate-50/50 border border-slate-200/50 rounded-[2.5rem] p-6 pt-10 animate-in fade-in slide-in-from-bottom-4 duration-300">
                         <div className="absolute top-4 left-6">
-                            <span className="text-[10px] font-black text-indigo-400 bg-indigo-50 px-2.5 py-1 rounded-lg uppercase tracking-widest">
+                            <span className="text-[9px] font-black text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-lg uppercase tracking-widest">
                                 Program {activeProgramIndex + 1}
                             </span>
                         </div>
 
-                        <div className="space-y-5 mt-4">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                                <div className="md:col-span-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Category</label>
-                                    <div className="flex flex-wrap gap-2 mt-2">
+                        <div className="space-y-6 mt-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Category Selection */}
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2.5 pl-1">Category</label>
+                                    <div className="flex flex-wrap gap-2">
                                         {CATEGORIES.map(cat => (
                                             <button
                                                 key={cat}
                                                 type="button"
                                                 onClick={() => handleProgramChange('category', cat)}
-                                                className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all
+                                                className={`px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all border
                                                     ${programs[activeProgramIndex].category === cat
-                                                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
-                                                        : 'bg-white text-slate-500 border border-slate-200 hover:border-indigo-300 hover:text-indigo-600'}`}
+                                                        ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-100'
+                                                        : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600'}`}
                                             >
                                                 {cat}
                                             </button>
@@ -299,45 +315,50 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                                     </div>
                                 </div>
 
-
+                                {/* Program Title */}
                                 <div>
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Program Title</label>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2 pl-1">Program Title</label>
                                     <input
                                         type="text"
                                         value={programs[activeProgramIndex].title}
                                         onChange={(e) => handleProgramChange('title', e.target.value)}
                                         placeholder="e.g. Science Exhibition, Annual Debate..."
-                                        className="w-full mt-2 bg-white border-2 border-slate-100 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-indigo-400 outline-none transition-all shadow-sm"
+                                        className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-700 placeholder:text-slate-400 focus:border-blue-500 outline-none transition-all shadow-sm"
                                         required
                                     />
                                 </div>
                             </div>
+
+                            {/* Description */}
                             <div>
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Brief Description</label>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2 pl-1">Brief Description</label>
                                 <textarea
                                     value={programs[activeProgramIndex].description}
                                     onChange={(e) => handleProgramChange('description', e.target.value)}
                                     placeholder="Describe the activity, participation, and outcome..."
-                                    className="w-full mt-2 bg-white border-2 border-slate-100 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-indigo-400 outline-none transition-all shadow-sm h-28 resize-none"
+                                    className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-semibold text-slate-700 placeholder:text-slate-400 focus:border-blue-500 outline-none transition-all shadow-sm h-28 resize-none"
                                     required
                                 />
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            {/* Date & Poster Upload */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Date of Program</label>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2 pl-1">Date of Program</label>
                                     <input
                                         type="date"
                                         value={programs[activeProgramIndex].date}
                                         onChange={(e) => handleProgramChange('date', e.target.value)}
-                                        className="w-full mt-2 bg-white border-2 border-slate-100 rounded-2xl p-3.5 text-sm font-bold text-slate-700 focus:border-indigo-400 outline-none transition-all shadow-sm"
+                                        className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-blue-500 outline-none transition-all shadow-sm cursor-pointer"
+                                        min={minDate}
+                                        max={maxDate}
                                         required
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Program Poster</label>
-                                    <div className="mt-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2 pl-1">Program Poster</label>
+                                    <div>
                                         <input
                                             type="file"
                                             id={`poster-upload-${activeProgramIndex}`}
@@ -348,9 +369,9 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                                         />
                                         <label
                                             htmlFor={`poster-upload-${activeProgramIndex}`}
-                                            className={`w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${programs[activeProgramIndex].poster
-                                                ? 'border-emerald-200 bg-emerald-50 text-emerald-600'
-                                                : 'border-slate-200 bg-white text-slate-400 hover:border-indigo-300 hover:text-indigo-500'
+                                            className={`w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-2xl cursor-pointer transition-all min-h-[56px] text-xs font-bold ${programs[activeProgramIndex].poster
+                                                ? 'border-emerald-200 bg-emerald-50 text-emerald-600 shadow-sm'
+                                                : 'border-slate-200 bg-white text-slate-400 hover:border-blue-300 hover:text-blue-500 shadow-sm'
                                                 }`}
                                         >
                                             {uploading ? (
@@ -365,12 +386,13 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                                 </div>
                             </div>
 
+                            {/* Photo Gallery Upload */}
                             <div>
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Program Photo Gallery (Optional)</label>
-                                <div className="mt-2 bg-white border-2 border-slate-100 rounded-2xl p-4 shadow-sm">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2 pl-1">Program Photo Gallery (Optional)</label>
+                                <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
                                     <div className="flex flex-wrap gap-3">
                                         {(programs[activeProgramIndex].gallery || []).map((url, idx) => (
-                                            <div key={idx} className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-200">
+                                            <div key={idx} className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-100 shadow-sm shrink-0">
                                                 <img src={url} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
                                                 <button
                                                     type="button"
@@ -386,7 +408,7 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                                             </div>
                                         ))}
 
-                                        <label className="w-20 h-20 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 hover:border-indigo-300 hover:text-indigo-500 cursor-pointer transition-colors bg-slate-50">
+                                        <label className="w-20 h-20 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 hover:border-blue-300 hover:text-blue-500 cursor-pointer transition-colors bg-slate-50 shrink-0">
                                             <input
                                                 type="file"
                                                 multiple
@@ -399,7 +421,7 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                                                 <Loader2 className="w-6 h-6 animate-spin" />
                                             ) : (
                                                 <>
-                                                    <Images size={20} className="mb-1" />
+                                                    <Images size={20} className="mb-1 text-slate-400" />
                                                     <span className="text-[8px] font-bold uppercase tracking-widest text-center px-1">Add<br />Photos</span>
                                                 </>
                                             )}
@@ -413,7 +435,7 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
 
                     {/* Programs List (Pills) */}
                     <div className="mt-6 pt-6 border-t border-slate-100">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-3 block">All Added Programs</label>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block pl-1">All Added Programs</label>
                         <div className="flex flex-wrap gap-3">
                             {programs.map((p, idx) => (
                                 <div
@@ -421,8 +443,8 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                                     onClick={() => setActiveProgramIndex(idx)}
                                     className={`relative px-4 py-3 rounded-2xl border-2 cursor-pointer transition-all flex items-center gap-3
                                         ${activeProgramIndex === idx
-                                            ? 'bg-indigo-50 border-indigo-500 text-indigo-700 shadow-sm scale-105'
-                                            : 'bg-white border-slate-100 text-slate-500 hover:border-indigo-200 hover:bg-slate-50'
+                                            ? 'bg-blue-50/50 border-blue-500 text-blue-700 shadow-sm scale-105'
+                                            : 'bg-white border-slate-100 text-slate-500 hover:border-blue-200 hover:bg-slate-50'
                                         }`}
                                 >
                                     <div className="flex flex-col">
@@ -437,13 +459,9 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                                         <button
                                             type="button"
                                             onClick={(e) => handleRemoveProgram(idx, e)}
-                                            className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors
-                                                ${activeProgramIndex === idx
-                                                    ? 'bg-white text-indigo-400 hover:text-rose-500 hover:bg-rose-50'
-                                                    : 'bg-slate-50 text-slate-400 border border-slate-200 hover:bg-rose-50 hover:text-rose-500 hover:border-rose-200'
-                                                }`}
+                                            className="w-5 h-5 rounded-full flex items-center justify-center bg-slate-100 hover:bg-rose-100 hover:text-rose-600 text-slate-400 transition-colors"
                                         >
-                                            <X size={12} />
+                                            <X size={10} />
                                         </button>
                                     )}
                                 </div>
@@ -452,11 +470,12 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                     </div>
                 </div>
 
+                {/* Submit Action */}
                 <div className="pt-4 border-t border-slate-100">
                     <button
                         type="submit"
                         disabled={submitting || !classNumber}
-                        className="w-full py-5 bg-slate-900 text-white rounded-[2rem] text-[11px] font-black uppercase tracking-[0.2em] hover:bg-indigo-600 active:scale-95 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full py-5 bg-[#0F172A] hover:bg-slate-800 text-white rounded-[2rem] text-[11px] font-black uppercase tracking-[0.2em] active:scale-95 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                         {submitting ? 'Submitting Report...' : 'Submit Monthly Report'}
