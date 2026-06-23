@@ -234,9 +234,9 @@ export default function AttendancePage() {
                     </div>
                     <div className="bg-slate-50 rounded-[2rem] p-4 h-64 overflow-y-auto custom-scrollbar space-y-3 border border-slate-100">
                         {absentsData.length > 0 ? absentsData.map(item => (
-                            <div key={item._id} className="flex items-center justify-between p-3 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                            <div key={item._id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-white rounded-2xl border border-slate-100 shadow-sm gap-3 sm:gap-2">
                                 <div className="flex items-center gap-3">
-                                    <span className="px-3 py-1 rounded-lg text-[10px] font-black text-white bg-blue-500">
+                                    <span className="px-3 py-1 rounded-lg text-[10px] font-black text-white bg-blue-500 shrink-0">
                                         {item.attendanceTime || 'General'}
                                     </span>
                                     <div>
@@ -244,8 +244,8 @@ export default function AttendancePage() {
                                         <div className="text-[10px] font-black text-slate-400">{new Date(item.createdAt).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}</div>
                                     </div>
                                 </div>
-                                <div className="text-right">
-                                    <div className="text-[10px] font-bold text-slate-600  max-w-[200px]">
+                                <div className="text-left sm:text-right">
+                                    <div className="text-[10px] font-bold text-slate-600 sm:max-w-[200px]">
                                         {item.teacherId ? "USTHAD  " : ""} {item.teacherId?.name || 'Teacher'}
                                     </div>
                                     {(() => {
@@ -301,20 +301,20 @@ export default function AttendancePage() {
                     </div>
                     <div className="bg-slate-50 rounded-[2rem] p-4 space-y-3 border border-slate-100 max-h-[600px] overflow-y-auto custom-scrollbar">
                         {filteredLogData.slice(0, 20).map(item => (
-                            <div key={item._id} className="flex items-center justify-between p-4 bg-slate-100/50 rounded-2xl border border-slate-200/50">
+                            <div key={item._id} className="flex flex-col md:flex-row md:items-center md:justify-between p-4 bg-slate-100/50 rounded-2xl border border-slate-200/50 gap-4">
                                 <div className="flex items-center gap-4">
-                                    <span className={`w-20 text-center px-4 py-2 rounded-xl text-[12px] font-black text-white ${item.status === 'Present' ? 'bg-emerald-500' : 'bg-rose-500'}`}>
+                                    <span className={`w-20 text-center px-4 py-2 rounded-xl text-[12px] font-black text-white shrink-0 ${item.status === 'Present' ? 'bg-emerald-500' : 'bg-rose-500'}`}>
                                         {item.status}
                                     </span>
-                                    <span className="px-4 py-2 rounded-xl border border-slate-800 text-[12px] font-black text-slate-800">
+                                    <span className="px-4 py-2 rounded-xl border border-slate-800 text-[12px] font-black text-slate-800 shrink-0">
                                         {item.attendanceTime || 'General'}
                                     </span>
                                 </div>
-                                <div className="text-center text-sm">
+                                <div className="text-left md:text-center text-sm">
                                     <div className="font-black text-slate-800">{new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                                     <div className="font-bold text-slate-500">{new Date(item.createdAt).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
                                 </div>
-                                <div className="text-right text-xs font-bold text-slate-600 max-w-[150px] ">
+                                <div className="text-left md:text-right text-xs font-bold text-slate-600 md:max-w-[150px]">
                                     USTHAD {item.teacherId?.name || 'Teacher'}
                                 </div>
                             </div>

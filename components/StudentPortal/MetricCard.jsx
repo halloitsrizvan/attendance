@@ -14,21 +14,21 @@ export default function MetricCard({ title, value, subText, color, icon: Icon, i
 
     return (
         <div
-            className={`flex flex-col items-center justify-center p-6 rounded-[2rem] shadow-sm transition-all duration-300 border 
+            className={`flex flex-col items-center justify-center p-3 sm:p-6 rounded-2xl sm:rounded-[2rem] shadow-sm transition-all duration-300 border 
             ${onClick ? 'cursor-pointer hover:shadow-xl' : 'cursor-default'}
             ${currentClass} group`}
             onClick={onClick}
         >
-            <div className={`p-2 rounded-2xl mb-4 bg-white shadow-sm group-hover:bg-white/20 transition-all`}>
+            <div className="p-1.5 sm:p-2 rounded-xl sm:rounded-2xl mb-2 sm:mb-4 bg-white shadow-sm group-hover:bg-white/20 transition-all shrink-0">
                 {imageSrc ? (
-                    <img src={imageSrc} alt={title} className="w-28 h-28 object-contain drop-shadow-md" />
+                    <img src={imageSrc} alt={title} className="w-16 h-16 sm:w-28 sm:h-28 object-contain drop-shadow-md" />
                 ) : (
-                    Icon && <Icon className="w-10 h-10 drop-shadow-md" />
+                    Icon && <Icon className="w-5 h-5 sm:w-10 sm:h-10 drop-shadow-md" />
                 )}
             </div>
-            <div className="text-4xl font-black tracking-tight">{value}</div>
-            <div className="text-[12px] font-black uppercase tracking-widest mt-2 opacity-90 text-center">{title}</div>
-            {subText && <div className="text-[10px] font-bold mt-1 opacity-70 uppercase">{subText}</div>}
+            <div className="text-2xl sm:text-4xl font-black tracking-tight">{value}</div>
+            <div className="text-[9px] sm:text-[12px] font-black uppercase tracking-normal sm:tracking-widest mt-1 sm:mt-2 opacity-90 text-center leading-tight">{title}</div>
+            {subText && <div className="text-[8px] sm:text-[10px] font-bold mt-0.5 sm:mt-1 opacity-70 uppercase text-center">{subText}</div>}
         </div>
     );
 }

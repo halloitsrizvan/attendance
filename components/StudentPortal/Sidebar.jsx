@@ -6,10 +6,14 @@ import { LogOut, CalendarCheck, CalendarDays, Award, Star, Trophy, LayoutDashboa
 import axios from 'axios';
 import { API_PORT } from '@/Constants';
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onClose }) {
     const pathname = usePathname();
     const router = useRouter();
     const [role, setRole] = React.useState('student');
+
+    React.useEffect(() => {
+        if (onClose) onClose();
+    }, [pathname]);
 
     React.useEffect(() => {
         const fetchStudentRole = async () => {
@@ -71,7 +75,9 @@ export default function Sidebar() {
     };
 
     return (
-        <div className="w-64 bg-[#0A84C6] min-h-screen text-white flex flex-col fixed left-0 top-0 bottom-0 z-50">
+        <div className={`w-64 bg-[#0A84C6] min-h-screen text-white flex flex-col fixed left-0 top-0 bottom-0 z-50 transition-transform duration-300 transform md:translate-x-0 ${
+            isOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}>
             <div className="p-6 flex items-center gap-3">
                 <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
                     <img src="/logo.png" alt="Darul Irfan" className="w-8 h-8 object-contain" onError={(e) => { e.target.style.display='none'; }} />

@@ -14,7 +14,7 @@ export default function WelcomeBanner({ studentName, dateStr }) {
             </div>
             
             {/* 3D Image on the right */}
-            <div className="absolute right-0 bottom-0 h-[120%] md:h-[120%] flex items-end pointer-events-none -mb-4 md:-mb-8 pr-4 md:pr-2">
+            <div className="absolute right-0 bottom-0 h-[120%] md:h-[120%] flex items-end pointer-events-none -mb-4 md:-mb-8 pr-4 md:pr-2 opacity-20 sm:opacity-100 transition-opacity">
                 <img 
                     src="/stud_portal_redesign/image-removebg-preview (11) 1.png" 
                     alt="Welcome Banner Image"  

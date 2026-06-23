@@ -179,8 +179,8 @@ export default function CEPPage() {
                             const statusClass = getCEPStatusStyles(status);
 
                             return (
-                                <div key={item._id} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-300">
-                                    <div className="flex items-center gap-4">
+                                <div key={item._id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-300 gap-4 sm:gap-2">
+                                    <div className="flex items-start sm:items-center gap-4">
                                         <span className={`w-24 text-center py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider shrink-0 ${statusClass}`}>
                                             {status}
                                         </span>
@@ -202,7 +202,7 @@ export default function CEPPage() {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="text-right border-l border-slate-100 pl-4 shrink-0">
+                                    <div className="text-left sm:text-right border-t sm:border-t-0 sm:border-l border-slate-100 pt-3 sm:pt-0 sm:pl-4 shrink-0">
                                         <div className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] mb-0.5">Issued By</div>
                                         <div className="text-[10px] font-black text-slate-700 uppercase">USTHAD {item.teacherId?.name || item.teacher || 'Teacher'}</div>
                                     </div>
