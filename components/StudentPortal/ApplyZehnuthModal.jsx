@@ -250,18 +250,101 @@ export default function ApplyZehnuthModal({ isOpen, onClose, student, mentor, on
                                         ))}
                                     </div>
                                 </div>
+                                <table className="w-full text-[13px] border-t border-slate-100 pt-4">
+                                    <tbody className="divide-y divide-slate-100">
+                                        <Row label="Class magazine" condition="Published in secondary class magazine" badgeColor="coral" />
+                                    </tbody>
+                                </table>
                             </div>
                         )}
 
-                        {/* Additional categories omitted for brevity but they function similarly */}
-                        {['Presentation', 'Achievements', 'Competitions', 'Mentor', 'Works'].includes(selectedCategory) && (
-                             <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                                <p className="text-xs text-slate-500 p-4">Please select achievements related to {selectedCategory}</p>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <Card label={`General ${selectedCategory} 1`} />
-                                    <Card label={`General ${selectedCategory} 2`} />
+                        {selectedCategory === 'Presentation' && (
+                            <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-8">
+                                <div>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Out of campus</p>
+                                    <table className="w-full text-[13px]">
+                                        <thead><tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100"><th className="pb-2 text-left px-2">Type</th><th className="pb-2 text-left px-2">Level</th></tr></thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            <Row label="Paper presentation (State)" condition="State" badgeColor="teal" />
+                                            <Row label="Paper presentation (National)" condition="National" badgeColor="blue" />
+                                            <Row label="Paper presentation (International)" condition="International" badgeColor="purple" />
+                                            <Row label="Keynote address" condition="Guest Speaker" badgeColor="blue" />
+                                            <Row label="Khutba" condition="Public Address" badgeColor="teal" />
+                                            <Row label="Other presentations (Out)" condition="External" badgeColor="amber" />
+                                        </tbody>
+                                    </table>
                                 </div>
-                             </div>
+                                <div>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Inside campus</p>
+                                    <table className="w-full text-[13px]">
+                                        <tbody className="divide-y divide-slate-100">
+                                            <Row label="Speech" condition="Campus Event" badgeColor="blue" />
+                                            <Row label="Other presentations (In)" condition="Campus internal" badgeColor="teal" />
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedCategory === 'Achievements' && (
+                            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                <div className="grid grid-cols-2 gap-3 mb-6">
+                                    <Card label="Courses" />
+                                    <Card label="Innovations" />
+                                    <Card label="Awards" />
+                                    <Card label="Publications" />
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedCategory === 'Competitions' && (
+                            <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-8">
+                                <div>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Out of campus</p>
+                                    <table className="w-full text-[13px]">
+                                        <tbody className="divide-y divide-slate-100">
+                                            <Row label="1st Place (Out)" condition="Out of Campus" badgeColor="amber" />
+                                            <Row label="2nd Place (Out)" condition="Out of Campus" badgeColor="teal" />
+                                            <Row label="3rd Place (Out)" condition="Out of Campus" badgeColor="blue" />
+                                            <Row label="Participation (Out)" condition="Out of Campus" badgeColor="purple" />
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Inside campus</p>
+                                    <table className="w-full text-[13px]">
+                                        <tbody className="divide-y divide-slate-100">
+                                            <Row label="1st Place (In)" condition="Inside Campus" badgeColor="amber" />
+                                            <Row label="2nd Place (In)" condition="Inside Campus" badgeColor="teal" />
+                                            <Row label="3rd Place (In)" condition="Inside Campus" badgeColor="blue" />
+                                            <Row label="Participation (In)" condition="Inside Campus" badgeColor="purple" />
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedCategory === 'Works' && (
+                            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+                                    <Card label="Social works" />
+                                    <Card label="Poster design" />
+                                    <Card label="video edit" />
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedCategory === 'Mentor' && (
+                            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                <table className="w-full text-[13px]">
+                                    <thead><tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100"><th className="pb-2 text-left px-2">Activity</th><th className="pb-2 text-left px-2">Details</th></tr></thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        <Row label="Language conversation" condition="Min. 20 minutes" badgeColor="teal" />
+                                        <Row label="Personal creative work" condition="Poem / Story / Essay / Translation" badgeColor="purple" />
+                                        <Row label="Active student bonus" condition="Lesson plans listed" badgeColor="amber" />
+                                    </tbody>
+                                </table>
+                            </div>
                         )}
                     </div>
 
