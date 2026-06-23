@@ -849,6 +849,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     if (!isScheduled || canStart) {
       popupButtons.push({
         label: isScheduled ? "Start Leave Now" : (isRoom ? "Return to Class" : "Mark Returned"),
+        autoClose: false,
         onClick: () => {
           isScheduled ? handleStartLeave(activeRecord) : handleMarkReturned(activeRecord);
           closeCtx();
@@ -860,6 +861,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     if (isRoom) {
       popupButtons.push({
         label: "Move to Medical Home",
+        autoClose: false,
         onClick: () => { handleRoomToMedical(activeRecord); closeCtx(); },
         className: "bg-amber-500 hover:bg-amber-600 shadow-amber-500/20 text-white"
       });
@@ -868,17 +870,32 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     popupButtons.push(
       {
         label: isScheduled ? "Modify Scheduled" : "Extend Leave",
-        onClick: () => { handleExtendMode(activeRecord, found); closeCtx(); },
+        autoClose: false,
+        onClick: () => {
+          handleExtendMode(activeRecord, found);
+          setAlertState(prev => ({ ...prev, isOpen: false }));
+          closeCtx();
+        },
         className: "bg-sky-500 hover:bg-sky-600 shadow-sky-500/20"
       },
       {
         label: "Add Another Reason",
-        onClick: () => { handleAddReasonMode(activeRecord, found); closeCtx(); },
+        autoClose: false,
+        onClick: () => {
+          handleAddReasonMode(activeRecord, found);
+          setAlertState(prev => ({ ...prev, isOpen: false }));
+          closeCtx();
+        },
         className: "bg-indigo-500 hover:bg-indigo-600 shadow-indigo-500/20"
       },
       {
         label: "Schedule Future Leave",
-        onClick: () => { handleScheduleNextMode(activeRecord, found); closeCtx(); },
+        autoClose: false,
+        onClick: () => {
+          handleScheduleNextMode(activeRecord, found);
+          setAlertState(prev => ({ ...prev, isOpen: false }));
+          closeCtx();
+        },
         className: "bg-violet-500 hover:bg-violet-600 shadow-violet-500/20"
       }
     );
@@ -1090,14 +1107,14 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   const handleExtendMode = (leave, stdData) => {
     setActiveLeave(leave);
     setFormMode('extend');
-    setAd(stdData.ADNO)
-    setName(stdData["SHORT NAME"] || stdData["FULL NAME"] || stdData.name || "Unknown")
-    setClassNum(stdData.CLASS)
+    setAd(stdData.ADNO);
+    setName(stdData["SHORT NAME"] || stdData["FULL NAME"] || stdData.name || "Unknown");
+    setClassNum(stdData.CLASS);
+    setSuggestions([]);
 
     mapDataToForm(leave);
     setOriginalToDate(leave.toDate);
     setOriginalToTime(leave.toTime);
-
   };
 
   // Handle Add Reason Mode
@@ -1105,10 +1122,11 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     setActiveLeave(leave);
     setFormMode('add');
     if (stdData) {
-      setAd(stdData.ADNO)
-      setName(stdData["SHORT NAME"] || stdData["FULL NAME"] || stdData.name || "Unknown")
-      setClassNum(stdData.CLASS)
+      setAd(stdData.ADNO);
+      setName(stdData["SHORT NAME"] || stdData["FULL NAME"] || stdData.name || "Unknown");
+      setClassNum(stdData.CLASS);
     }
+    setSuggestions([]);
     mapDataToForm(leave);
     // Overwrite reason for "add" mode to let them pick something else
     setReason('Custom');
@@ -1119,10 +1137,11 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   const handleScheduleNextMode = (leave, stdData) => {
     setFormMode('schedule');
     if (stdData) {
-      setAd(stdData.ADNO)
-      setName(stdData["SHORT NAME"] || stdData["FULL NAME"] || stdData.name || "Unknown")
-      setClassNum(stdData.CLASS)
+      setAd(stdData.ADNO);
+      setName(stdData["SHORT NAME"] || stdData["FULL NAME"] || stdData.name || "Unknown");
+      setClassNum(stdData.CLASS);
     }
+    setSuggestions([]);
     // Set from date to the day after existing toDate
     if (leave.toDate && leave.toDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
       const nextDay = new Date(leave.toDate);
