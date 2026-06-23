@@ -756,6 +756,51 @@ function LeaveStatus({ myClassOnly = false }) {
     });
   };
 
+  const handleCopyClassWiseAbsentees = () => {
+    if (filteredData.length === 0) {
+      alert("No students are currently on leave.");
+      return;
+    }
+
+    const grouped = {};
+    for (let i = 1; i <= 10; i++) {
+      grouped[i] = [];
+    }
+
+    filteredData.forEach(student => {
+      const classNum = student.studentId?.CLASS || student.classNum;
+      if (classNum) {
+        if (!grouped[classNum]) {
+          grouped[classNum] = [];
+        }
+        grouped[classNum].push(student);
+      }
+    });
+
+    let text = "*On Leave Students (Class-wise)*\n\n";
+    let totalCount = 0;
+    
+    Object.entries(grouped)
+      .sort((a, b) => Number(a[0]) - Number(b[0]))
+      .forEach(([classNum, list]) => {
+        if (list.length > 0) {
+          text += `*Class ${classNum}* (${list.length}):\n`;
+          list.forEach((l, i) => {
+            const name = l.studentId?.['SHORT NAME'] || l.studentId?.['FULL NAME'] || l.name;
+            const ad = l.studentId?.ADNO || l.ad;
+            const reason = l.reason ? ` - ${l.reason}` : '';
+            text += `  ${i + 1}. ${name} (${ad})${reason}\n`;
+            totalCount++;
+          });
+          text += "\n";
+        }
+      });
+
+    navigator.clipboard.writeText(text).then(() => {
+      alert(`Copied ${totalCount} on-leave student names class-wise to clipboard!`);
+    });
+  };
+
   const handleCustomCopy = () => {
     if (!copyFromDate || !copyToDate) {
       alert("Please select both From and To dates first.");
@@ -1103,8 +1148,16 @@ function LeaveStatus({ myClassOnly = false }) {
                 {activeTab === 'onLeave' &&
                   <div className="mb-4 col-span-full">
                     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                      <div className="flex items-center gap-2 mb-3">
+                      <div className="flex items-center justify-between mb-3 gap-2">
                         <h2 className="text-lg font-semibold text-gray-900">Class-wise Absentees</h2>
+                        <button
+                          onClick={handleCopyClassWiseAbsentees}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-[10px] font-black rounded-lg transition-all shadow-md active:scale-95 border border-slate-700 uppercase tracking-wider"
+                          title="Copy all on-leave students class-wise"
+                        >
+                          <Clipboard size={12} />
+                          <span>Copy All</span>
+                        </button>
                       </div>
 
                       <div className="grid grid-cols-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
