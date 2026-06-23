@@ -1,6 +1,5 @@
 "use client";
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Header from '@/components/Header/Header';
 import axios from 'axios';
 import { Trophy, CheckCircle2, XCircle, Loader2, User, Activity, Clock, ChevronRight, AlertTriangle, Inbox, Check, X, Image as ImageIcon, Upload, ExternalLink, MoreVertical } from 'lucide-react';
@@ -175,6 +174,117 @@ const RequestSkeleton = () => (
     </div>
 );
 
+// Group review popup modal component
+const GroupReviewModal = ({ group, onClose, decisions, toggleDecision, onSave, saving }) => {
+    const student = group.student;
+    const items = group.items;
+    const studentId = student?._id || student?.id;
+    const studentName = student?.["SHORT NAME"] || student?.["FULL NAME"] || 'Unknown';
+    const studentClass = student?.CLASS || '-';
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={onClose}></div>
+            <div className="relative bg-white w-full max-w-2xl rounded-[1rem] shadow-2xl overflow-hidden animate-in zoom-in slide-in-from-bottom-10 duration-500 flex flex-col max-h-[85vh]">
+                 
+                {/* Header */}
+                <div className="p-8 bg-slate-900 text-white flex items-center justify-between shrink-0">
+                    <div>
+                        <h2 className="text-xl font-black uppercase italic leading-tight">Mentees Requests</h2>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                            Student: {studentName} (Class {studentClass}) • {items.length} Pending
+                        </p>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors text-slate-300 hover:text-white">
+                        <X size={24} />
+                    </button>
+                </div>
+
+                {/* List Container */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/50 custom-scrollbar">
+                    <div className="divide-y divide-slate-100 bg-white rounded-xl border border-slate-100 overflow-hidden shadow-sm">
+                        {items.map((item) => {
+                            const decision = decisions[item._id] || 'approve';
+                            return (
+                                <div key={item._id} className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                    <div className="flex items-start gap-3">
+                                        {/* Image proof or icon */}
+                                        {item.imageUrl ? (
+                                            <a 
+                                                href={item.imageUrl} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer" 
+                                                className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-slate-200 block hover:opacity-85 transition-opacity"
+                                            >
+                                                <img src={item.imageUrl} className="w-full h-full object-cover" />
+                                            </a>
+                                        ) : (
+                                            <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 shrink-0">
+                                                <ImageIcon size={22} />
+                                            </div>
+                                        )}
+                                        <div>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[8px] font-black uppercase rounded-md tracking-wider">
+                                                    {item.category}
+                                                </span>
+                                                <span className="text-[11px] font-bold text-slate-700">
+                                                    {item.activity}
+                                                </span>
+                                            </div>
+                                            {item.remarks && (
+                                                <p className="text-[10px] text-slate-400 italic mt-1 leading-relaxed">
+                                                    "{item.remarks}"
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Action Toggle buttons */}
+                                    <div className="flex items-center justify-end gap-3 shrink-0 w-full sm:w-auto">
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleDecision(item._id)}
+                                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1 active:scale-95 border
+                                                ${decision === 'reject'
+                                                    ? 'bg-emerald-500 text-white border-emerald-500 hover:bg-emerald-600'
+                                                    : 'bg-white text-rose-500 border-rose-200 hover:bg-rose-50'}`}
+                                        >
+                                            {decision === 'reject' ? (
+                                                <><CheckCircle2 size={12} /> Approve</>
+                                            ) : (
+                                                <><XCircle size={12} /> Reject</>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Footer Batch Save Action */}
+                <div className="p-6 bg-white border-t border-slate-100 flex justify-end shrink-0">
+                    <button
+                        type="button"
+                        onClick={() => onSave(studentId, items)}
+                        disabled={saving}
+                        className="px-6 py-4 bg-slate-900 text-white hover:bg-indigo-600 disabled:bg-slate-300 rounded-2xl text-[11px] font-black uppercase tracking-widest flex items-center gap-2 shadow-xl shadow-slate-200 active:scale-95 transition-all w-full sm:w-auto justify-center"
+                    >
+                        {saving ? (
+                            <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                            <CheckCircle2 size={14} className="text-emerald-400" />
+                        )}
+                        {saving ? 'Saving Decisions...' : 'Verify & Save Decisions'}
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    );
+};
+
 export default function MenteeRequests() {
     const [teacher, setTeacher] = useState(null);
     const [requests, setRequests] = useState([]);
@@ -182,6 +292,11 @@ export default function MenteeRequests() {
     const [processingId, setProcessingId] = useState(null);
     const [uploadingId, setUploadingId] = useState(null);
     const [selectedRequest, setSelectedRequest] = useState(null);
+
+    // Grouping & Batching states
+    const [selectedGroupForModal, setSelectedGroupForModal] = useState(null);
+    const [decisions, setDecisions] = useState({});
+    const [savingStudentId, setSavingStudentId] = useState(null);
 
     useEffect(() => {
         const storedTeacher = localStorage.getItem('teacher');
@@ -256,6 +371,54 @@ export default function MenteeRequests() {
         }
     };
 
+    const toggleDecision = (requestId) => {
+        setDecisions(prev => ({
+            ...prev,
+            [requestId]: (prev[requestId] || 'approve') === 'approve' ? 'reject' : 'approve'
+        }));
+    };
+
+    const handleSaveGroup = async (studentId, items) => {
+        if (!confirm(`Are you sure you want to verify these decisions?`)) return;
+        setSavingStudentId(studentId);
+        try {
+            const promises = items.map(item => {
+                const decision = decisions[item._id] || 'approve';
+                if (decision === 'approve') {
+                    return axios.put('/api/zehnuth/points', { id: item._id, mentorApproved: true });
+                } else {
+                    return axios.put('/api/zehnuth/points', { id: item._id, status: 'rejected' });
+                }
+            });
+            await Promise.all(promises);
+            // Remove the completed ones from the state list
+            const itemIds = items.map(item => item._id);
+            setRequests(prev => prev.filter(r => !itemIds.includes(r._id)));
+            setSelectedGroupForModal(null);
+            alert("Group decisions saved successfully.");
+        } catch (err) {
+            console.error("Error saving batch decisions:", err);
+            alert("Failed to save some decisions.");
+        } finally {
+            setSavingStudentId(null);
+        }
+    };
+
+    const groupedRequests = useMemo(() => {
+        const groups = {};
+        requests.forEach(r => {
+            const studentId = r.studentId?._id || r.studentId?.id || 'unknown';
+            if (!groups[studentId]) {
+                groups[studentId] = {
+                    student: r.studentId,
+                    items: []
+                };
+            }
+            groups[studentId].items.push(r);
+        });
+        return Object.values(groups);
+    }, [requests]);
+
     if (loading) return (
         <div className="min-h-screen bg-slate-50">
             <Header />
@@ -288,6 +451,17 @@ export default function MenteeRequests() {
                 processing={!!processingId}
             />
 
+            {selectedGroupForModal && (
+                <GroupReviewModal
+                    group={selectedGroupForModal}
+                    decisions={decisions}
+                    toggleDecision={toggleDecision}
+                    onClose={() => setSelectedGroupForModal(null)}
+                    onSave={handleSaveGroup}
+                    saving={savingStudentId === (selectedGroupForModal.student?._id || selectedGroupForModal.student?.id)}
+                />
+            )}
+
             <main className="max-w-2xl mx-auto px-4 pt-24 pb-20">
                 <div className="mb-10 px-2 flex items-center justify-between">
                     <div>
@@ -300,40 +474,44 @@ export default function MenteeRequests() {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/60 overflow-hidden border border-slate-100">
-                    {requests.length > 0 ? (
-                        <div className="divide-y divide-slate-50">
-                            {requests.map((request) => (
-                                <button
-                                    key={request._id}
-                                    onClick={() => setSelectedRequest(request)}
-                                    className="w-full flex items-center justify-between p-6 hover:bg-slate-50 transition-all duration-300 group text-left"
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
-                                            {request.imageUrl ? <div className="w-8 h-8 rounded-lg overflow-hidden"><img src={request.imageUrl} className="w-full h-full object-cover" /></div> : <User size={24} />}
+                <div className="space-y-6">
+                    {groupedRequests.length > 0 ? (
+                        groupedRequests.map((group) => {
+                            const studentId = group.student?._id || group.student?.id || 'unknown';
+                            const studentName = group.student?.["SHORT NAME"] || group.student?.["FULL NAME"] || 'Unknown';
+                            const studentClass = group.student?.CLASS || '-';
+                            const requestCount = group.items.length;
+                            
+                            return (
+                                <div key={studentId} className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/60 border border-slate-100 overflow-hidden transition-all duration-300 hover:shadow-2xl">
+                                    {/* Student Header Card */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedGroupForModal(group)}
+                                        className="w-full flex items-center justify-between p-6 hover:bg-slate-50/50 transition-all text-left outline-none"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
+                                                <User size={24} />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-sm font-black text-slate-800 uppercase italic mb-0.5">{studentName}</h3>
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                                                    Class {studentClass} • {requestCount} Pending {requestCount === 1 ? 'Request' : 'Requests'}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h3 className="text-sm font-black text-slate-800 uppercase italic mb-0.5">{request.studentId?.["SHORT NAME"] || request.studentId?.["FULL NAME"]} ({request.studentId?.CLASS})</h3>
-                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                                                {request.category} • {request.activity}
-                                            </p>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-xl flex items-center gap-1 hover:bg-indigo-600 hover:text-white transition-all">
+                                                View list <ChevronRight size={12} />
+                                            </span>
                                         </div>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <div className="hidden sm:flex flex-col items-end">
-                                            <span className="text-[8px] font-black text-slate-300 uppercase tracking-[0.2em] mb-1">Click to Review</span>
-                                            <span className="text-[10px] font-black text-indigo-500 uppercase flex items-center gap-1">Open <ChevronRight size={12} /></span>
-                                        </div>
-                                        <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-300 group-hover:text-indigo-600 group-hover:bg-indigo-50 transition-all">
-                                            <MoreVertical size={18} />
-                                        </div>
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
+                                    </button>
+                                </div>
+                            );
+                        })
                     ) : (
-                        <div className="p-20 text-center">
+                        <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 p-20 text-center">
                             <div className="w-20 h-20 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-6">
                                 <Inbox size={40} />
                             </div>
