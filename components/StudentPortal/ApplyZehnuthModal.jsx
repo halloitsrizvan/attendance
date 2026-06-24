@@ -1,14 +1,23 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import axios from 'axios';
 import { X, Trophy, Upload, Loader2, CheckCircle, Send, User } from 'lucide-react';
 import { API_PORT } from '@/Constants';
 
-export default function ApplyZehnuthModal({ isOpen, onClose, student, mentor, onComplete }) {
+export default function ApplyZehnuthModal({ isOpen, onClose, student, mentor, onComplete, zehnuthPoints = [] }) {
     const [loading, setLoading] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState('Exam');
     const [selectedAchievement, setSelectedAchievement] = useState(null);
     const [remarks, setRemarks] = useState('');
+
+    const worksCount = useMemo(() => {
+        if (!zehnuthPoints || !selectedAchievement || selectedCategory !== 'Works') return 0;
+        return zehnuthPoints.filter(p => 
+            p.category === 'Works' && 
+            p.activity === selectedAchievement && 
+            p.status !== 'rejected'
+        ).length;
+    }, [zehnuthPoints, selectedAchievement, selectedCategory]);
 
     const CATEGORIES = [
         { id: 'Exam', label: 'Exam', icon: '🎓' },
@@ -86,6 +95,11 @@ export default function ApplyZehnuthModal({ isOpen, onClose, student, mentor, on
 
         if (!mentor) {
             alert("No mentor assigned to you yet. Please contact your HOD or admin.");
+            return;
+        }
+
+        if (selectedCategory === 'Works' && worksCount >= 20) {
+            alert(`You have already applied ${worksCount} times for "${selectedAchievement}". You cannot submit any more applications for this activity.`);
             return;
         }
 
@@ -325,11 +339,28 @@ export default function ApplyZehnuthModal({ isOpen, onClose, student, mentor, on
                         )}
 
                         {selectedCategory === 'Works' && (
-                            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+                            <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-4">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                     <Card label="Social works" />
                                     <Card label="Poster design" />
                                     <Card label="video edit" />
+                                </div>
+                                <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 text-amber-800 text-[11px] font-bold space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-[9px] uppercase tracking-wider font-black">NB</span>
+                                        <span>For the <strong className="uppercase">Works</strong> category, you can apply for a maximum of 20 times per activity.</span>
+                                    </div>
+                                    {selectedAchievement && (
+                                        <div className="text-slate-500 font-semibold pl-8 mt-1">
+                                            Status for "<span className="uppercase text-amber-700 font-bold">{selectedAchievement}</span>": 
+                                            <span className={`ml-1.5 font-bold ${worksCount >= 20 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                                {worksCount} / 20 Applications
+                                            </span>
+                                            {worksCount >= 20 && (
+                                                <span className="ml-2 text-rose-500 font-black uppercase text-[9px] tracking-wide">(Limit Reached)</span>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -444,12 +475,12 @@ export default function ApplyZehnuthModal({ isOpen, onClose, student, mentor, on
 
                         <button
                             onClick={handleSubmit}
-                            disabled={loading || !selectedAchievement || uploading}
+                            disabled={loading || !selectedAchievement || uploading || (selectedCategory === 'Works' && worksCount >= 20)}
                             className={`w-full py-4 rounded-2xl text-xs font-black uppercase tracking-[0.2em] transition-all shadow-xl flex items-center justify-center gap-3
-                                ${(!selectedAchievement || uploading) ? 'bg-slate-100 text-slate-300 cursor-not-allowed shadow-none' : 'bg-slate-900 text-white hover:bg-indigo-600 active:scale-95 shadow-slate-200'}`}
+                                ${(!selectedAchievement || uploading || (selectedCategory === 'Works' && worksCount >= 20)) ? 'bg-slate-100 text-slate-300 cursor-not-allowed shadow-none' : 'bg-slate-900 text-white hover:bg-indigo-600 active:scale-95 shadow-slate-200'}`}
                         >
                             {loading ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
-                            {loading ? 'Submitting...' : 'Apply for Points'}
+                            {loading ? 'Submitting...' : (selectedCategory === 'Works' && worksCount >= 20) ? 'Limit Reached for Activity' : 'Apply for Points'}
                         </button>
                     </div>
                 </div>

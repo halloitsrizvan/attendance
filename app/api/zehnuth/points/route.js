@@ -22,6 +22,23 @@ export async function POST(req) {
             }
         }
 
+        // Limit for Works category: max 20 times for a single activity
+        const { studentId, category, activity } = body;
+        if (category === 'Works') {
+            const count = await Points.countDocuments({
+                studentId,
+                category: 'Works',
+                activity,
+                status: { $ne: 'rejected' }
+            });
+            if (count >= 20) {
+                return NextResponse.json(
+                    { error: `You have reached the limit of 20 applications for the activity "${activity}" in the Works category.` },
+                    { status: 400 }
+                );
+            }
+        }
+
         // body should contain studentId, mentorId, activity, category, points, academicYearId
         const newPoint = await Points.create(body);
         return NextResponse.json(newPoint);

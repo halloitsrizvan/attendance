@@ -193,6 +193,7 @@ export default function ZehnuthPage() {
                 student={student}
                 mentor={mentor}
                 onComplete={fetchZehnuthData}
+                zehnuthPoints={zehnuthPoints}
             />
         </div>
     );
