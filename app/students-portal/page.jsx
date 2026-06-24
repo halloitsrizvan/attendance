@@ -95,6 +95,10 @@ export default function DashboardPage() {
             return sum + (Number(item.minusNum) || 0);
         }, 0);
 
+        Object.keys(minusBreakdown).forEach(key => {
+            minusBreakdown[key] = minusBreakdown[key].toFixed(1);
+        });
+
         const zehnuthBreakdown = { Approved: 0, Pending: 0 };
         const totalZehnuth = zehnuthPoints.reduce((sum, point) => {
             if (point.status === 'approved') {
@@ -109,7 +113,7 @@ export default function DashboardPage() {
         return {
             attendanceRate,
             totalLeave,
-            totalMinus,
+            totalMinus: totalMinus.toFixed(1),
             totalZehnuth,
             attendanceBreakdown,
             leaveBreakdown,

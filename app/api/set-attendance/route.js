@@ -41,7 +41,7 @@ export async function GET(req) {
     let mongoQuery = Attendance.find(query)
       .populate('studentId')
       .populate('teacherId')
-      .sort({ createdAt: -1 });
+      .sort({ attendanceDate: -1, createdAt: -1 });
 
     if (!all && !date && !classNumber) {
       mongoQuery = mongoQuery.limit(500);

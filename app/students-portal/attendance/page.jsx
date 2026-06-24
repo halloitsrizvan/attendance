@@ -141,8 +141,9 @@ export default function AttendancePage() {
     const availableMonths = useMemo(() => {
         const months = new Set();
         attendanceData.forEach(item => {
-            if (item.createdAt) {
-                const date = new Date(item.createdAt);
+            const dateVal = item.createdAt || item.attendanceDate;
+            if (dateVal) {
+                const date = new Date(dateVal);
                 months.add(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`);
             }
         });
@@ -159,7 +160,7 @@ export default function AttendancePage() {
         return attendanceData.filter(log => {
             if (log.status === 'Present') return false;
             if (absentMonth !== 'All') {
-                const date = new Date(log.createdAt);
+                const date = new Date(log.createdAt || log.attendanceDate);
                 const itemMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
                 if (itemMonth !== absentMonth) return false;
             }
@@ -170,7 +171,7 @@ export default function AttendancePage() {
     const filteredLogData = useMemo(() => {
         return attendanceData.filter(log => {
             if (logMonth !== 'All') {
-                const date = new Date(log.createdAt);
+                const date = new Date(log.createdAt || log.attendanceDate);
                 const itemMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
                 if (itemMonth !== logMonth) return false;
             }
@@ -185,7 +186,7 @@ export default function AttendancePage() {
     };
 
     const eligibleAbsentsData = useMemo(() => {
-        return attendanceData.filter(log => log.status !== 'Present' && isWithin24Hours(log.createdAt));
+        return attendanceData.filter(log => log.status !== 'Present' && isWithin24Hours(log.createdAt || log.attendanceDate));
     }, [attendanceData]);
 
     if (loading) {
@@ -244,8 +245,8 @@ export default function AttendancePage() {
                                         </span>
                                     </div>
                                     <div>
-                                        <div className="text-[10px] font-black text-slate-500">{new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                                        <div className="text-[10px] font-black text-slate-400">{new Date(item.createdAt).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}</div>
+                                        <div className="text-[10px] font-black text-slate-500">{new Date(item.createdAt || item.attendanceDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                        <div className="text-[10px] font-black text-slate-400">{new Date(item.createdAt || item.attendanceDate).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}</div>
                                     </div>
 
                                 </div>
@@ -268,7 +269,7 @@ export default function AttendancePage() {
                                                 </span>
                                             );
                                         }
-                                        return isWithin24Hours(item.createdAt) && (
+                                        return isWithin24Hours(item.createdAt || item.attendanceDate) && (
                                             <button 
                                                 onClick={() => handleComplaintClick(item._id)}
                                                 className="text-[10px] font-black text-rose-600 bg-rose-100 hover:bg-rose-200 hover:text-rose-700 px-3 py-1 rounded-lg uppercase mt-2 inline-block transition-colors cursor-pointer shadow-sm active:scale-95"
@@ -305,7 +306,7 @@ export default function AttendancePage() {
                         </select>
                     </div>
                     <div className="bg-slate-50 rounded-[2rem] p-4 space-y-3 border border-slate-100 max-h-[600px] overflow-y-auto custom-scrollbar">
-                        {filteredLogData.slice(0, 20).map(item => (
+                        {filteredLogData.map(item => (
                             <div key={item._id} className="flex flex-col md:flex-row md:items-center md:justify-between p-4 bg-slate-100/50 rounded-2xl border border-slate-200/50 gap-4">
                                 <div className="flex items-center gap-4">
                                     <span className={`w-20 text-center px-4 py-2 rounded-xl text-[12px] font-black text-white shrink-0 ${item.status === 'Present' ? 'bg-emerald-500' : 'bg-rose-500'}`}>
@@ -319,8 +320,8 @@ export default function AttendancePage() {
                                     </span>}
                                 </div>
                                 <div className="text-left md:text-center text-sm">
-                                    <div className="font-black text-slate-800">{new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                                    <div className="font-bold text-slate-500">{new Date(item.createdAt).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                                    <div className="font-black text-slate-800">{new Date(item.createdAt || item.attendanceDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                    <div className="font-bold text-slate-500">{new Date(item.createdAt || item.attendanceDate).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
                                 </div>
                                 <div className="text-left md:text-right text-xs font-bold text-slate-600 md:max-w-[150px]">
                                     USTHAD {item.teacherId?.name || 'Teacher'}
@@ -353,7 +354,7 @@ export default function AttendancePage() {
                             <option value="">Select Attendance...</option>
                             {eligibleAbsentsData.map(item => (
                                 <option key={item._id} value={item._id}>
-                                    {new Date(item.createdAt).toLocaleDateString()} - {item.attendanceTime || 'General'}
+                                    {new Date(item.createdAt || item.attendanceDate).toLocaleDateString()} - {item.attendanceTime || 'General'}
                                 </option>
                             ))}
                         </select>
