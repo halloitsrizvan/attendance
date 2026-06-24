@@ -235,13 +235,19 @@ export default function AttendancePage() {
                         {absentsData.length > 0 ? absentsData.map(item => (
                             <div key={item._id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-white rounded-2xl border border-slate-100 shadow-sm gap-3 sm:gap-2">
                                 <div className="flex items-center gap-3">
-                                    <span className="px-3 py-1 rounded-lg text-[10px] font-black text-white bg-blue-500 shrink-0">
-                                        {item.attendanceTime || 'General'}
-                                    </span>
+                                    <div className="flex flex-col gap-1 shrink-0">
+                                        <span className="px-3 py-1 rounded-lg text-[10px] font-black text-white bg-blue-500 text-center">
+                                            {item.attendanceTime || 'General'}
+                                        </span>
+                                        <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black text-center border ${item.onLeave ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-slate-50 text-slate-500 border-slate-100'}`}>
+                                            OnLeave: {item.onLeave ? 'Yes' : 'No'}
+                                        </span>
+                                    </div>
                                     <div>
                                         <div className="text-[10px] font-black text-slate-500">{new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                                         <div className="text-[10px] font-black text-slate-400">{new Date(item.createdAt).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}</div>
                                     </div>
+
                                 </div>
                                 <div className="text-left sm:text-right">
                                     <div className="text-[10px] font-bold text-slate-600 sm:max-w-[200px]">
@@ -308,6 +314,9 @@ export default function AttendancePage() {
                                     <span className="px-4 py-2 rounded-xl border border-slate-800 text-[12px] font-black text-slate-800 shrink-0">
                                         {item.attendanceTime || 'General'}
                                     </span>
+                                    {item.status === 'Absent' && <span className={`px-4 py-2 rounded-xl border text-[10px] font-black shrink-0 ${item.onLeave ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                                        OnLeave: {item.onLeave ? 'Yes' : 'No'}
+                                    </span>}
                                 </div>
                                 <div className="text-left md:text-center text-sm">
                                     <div className="font-black text-slate-800">{new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
