@@ -178,15 +178,14 @@ export default function AttendancePage() {
         });
     }, [attendanceData, logMonth]);
 
-    const isToday = (dateString) => {
+    const isWithin24Hours = (dateString) => {
         if (!dateString) return false;
-        const d1 = new Date(dateString);
-        const d2 = new Date();
-        return d1.getDate() === d2.getDate() && d1.getMonth() === d2.getMonth() && d1.getFullYear() === d2.getFullYear();
+        const diffMs = new Date() - new Date(dateString);
+        return diffMs <= 24 * 60 * 60 * 1000; // 24 hours in milliseconds
     };
 
-    const todayAbsentsData = useMemo(() => {
-        return attendanceData.filter(log => log.status !== 'Present' && isToday(log.createdAt));
+    const eligibleAbsentsData = useMemo(() => {
+        return attendanceData.filter(log => log.status !== 'Present' && isWithin24Hours(log.createdAt));
     }, [attendanceData]);
 
     if (loading) {
@@ -263,7 +262,7 @@ export default function AttendancePage() {
                                                 </span>
                                             );
                                         }
-                                        return isToday(item.createdAt) && (
+                                        return isWithin24Hours(item.createdAt) && (
                                             <button 
                                                 onClick={() => handleComplaintClick(item._id)}
                                                 className="text-[10px] font-black text-rose-600 bg-rose-100 hover:bg-rose-200 hover:text-rose-700 px-3 py-1 rounded-lg uppercase mt-2 inline-block transition-colors cursor-pointer shadow-sm active:scale-95"
@@ -327,7 +326,7 @@ export default function AttendancePage() {
                     <h2 className="text-xl font-black text-slate-800 mb-2">Report Any Issue?</h2>
                     <div className="text-[10px] font-black text-amber-600 bg-amber-50 border border-amber-100 px-3 py-2 rounded-xl uppercase mb-6 inline-flex items-center gap-2">
                         <AlertTriangle className="w-3 h-3" />
-                        NB: You can only complain about today's absents
+                        NB: You can only complain about absents within the last 24 hours
                     </div>
                     <div 
                         ref={formRef}
@@ -343,7 +342,7 @@ export default function AttendancePage() {
                             className="w-full border border-slate-800 rounded-xl p-3 text-sm font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-500"
                         >
                             <option value="">Select Attendance...</option>
-                            {todayAbsentsData.map(item => (
+                            {eligibleAbsentsData.map(item => (
                                 <option key={item._id} value={item._id}>
                                     {new Date(item.createdAt).toLocaleDateString()} - {item.attendanceTime || 'General'}
                                 </option>
@@ -351,7 +350,7 @@ export default function AttendancePage() {
                         </select>
 
                         <div className="space-y-2">
-                            <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Was Actually</label>
+                            <label className="text-xs font-black text-slate-500 uppercase tracking-widest">I Was Actually</label>
                             <div className="flex gap-2">
                                 {['Present', 'Leave', 'CEP'].map(s => (
                                     <button 
