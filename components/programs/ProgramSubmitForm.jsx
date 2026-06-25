@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BookOpen, Send, Plus, X, Loader2, AlertTriangle, CheckCircle2, Calendar, LayoutGrid, ImagePlus, Images, ChevronDown } from 'lucide-react';
 
@@ -51,6 +51,23 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
     const [uploading, setUploading] = useState(false);
     const [uploadingGallery, setUploadingGallery] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
+
+    useEffect(() => {
+        const fetchDefaultPeriod = async () => {
+            try {
+                const res = await axios.get('/api/settings');
+                if (res.data.defaultReportMonth) {
+                    setMonth(res.data.defaultReportMonth);
+                }
+                if (res.data.defaultReportYear) {
+                    setYear(res.data.defaultReportYear);
+                }
+            } catch (error) {
+                console.error("Error fetching default period settings:", error);
+            }
+        };
+        fetchDefaultPeriod();
+    }, []);
 
     const getMinMaxDates = () => {
         const monthIndex = MONTHS.indexOf(month);

@@ -14,6 +14,11 @@ const ALLOWED_EMAILS = [
     'saheedchunku@gmail.com'
 ];
 
+const MONTHS_LIST = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+];
+
 export default function AdminReviewClassReports() {
     const router = useRouter();
     const [admin, setAdmin] = useState(null);
@@ -28,6 +33,11 @@ export default function AdminReviewClassReports() {
     const [vivaPoints, setVivaPoints] = useState({});
     const [rejectedPrograms, setRejectedPrograms] = useState({});
 
+    const [defaultMonth, setDefaultMonth] = useState('January');
+    const [defaultYear, setDefaultYear] = useState(new Date().getFullYear());
+    const [savingPeriod, setSavingPeriod] = useState(false);
+    const [selectedFilterMonth, setSelectedFilterMonth] = useState('All');
+
     useEffect(() => {
         const storedTeacher = localStorage.getItem('teacher');
         if (storedTeacher) {
@@ -37,6 +47,7 @@ export default function AdminReviewClassReports() {
             if ((email && ALLOWED_EMAILS.includes(email.toLowerCase())) || roles.includes('best_class_admin')) {
                 setAdmin(parsed);
                 fetchReports();
+                fetchDefaultPeriod();
             } else {
                 setLoading(false);
             }
@@ -44,6 +55,38 @@ export default function AdminReviewClassReports() {
             setLoading(false);
         }
     }, []);
+
+    const fetchDefaultPeriod = async () => {
+        try {
+            const res = await axios.get('/api/settings');
+            if (res.data.defaultReportMonth) {
+                setDefaultMonth(res.data.defaultReportMonth);
+            } else {
+                setDefaultMonth(MONTHS_LIST[new Date().getMonth()]);
+            }
+            if (res.data.defaultReportYear) {
+                setDefaultYear(res.data.defaultReportYear);
+            } else {
+                setDefaultYear(new Date().getFullYear());
+            }
+        } catch (error) {
+            console.error("Error loading default period settings:", error);
+        }
+    };
+
+    const handleSaveDefaultPeriod = async () => {
+        setSavingPeriod(true);
+        try {
+            await axios.post('/api/settings', { key: 'defaultReportMonth', value: defaultMonth });
+            await axios.post('/api/settings', { key: 'defaultReportYear', value: defaultYear });
+            alert("Active submission period successfully updated!");
+        } catch (error) {
+            console.error("Error saving period settings:", error);
+            alert("Failed to save submission period settings.");
+        } finally {
+            setSavingPeriod(false);
+        }
+    };
 
     const fetchReports = async () => {
         try {
@@ -192,6 +235,10 @@ export default function AdminReviewClassReports() {
         );
     }
 
+    const filteredReports = reports.filter(report =>
+        selectedFilterMonth === 'All' || report.month === selectedFilterMonth
+    );
+
     return (
         <div className="min-h-screen bg-slate-50 pb-20">
             <Header />
@@ -208,31 +255,83 @@ export default function AdminReviewClassReports() {
                                 <ShieldCheck size={24} className="text-emerald-400" />
                             </div>
                             <div>
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">Administrator Hub</p>
-                                <h1 className="text-3xl font-black uppercase italic tracking-tight text-white">Evaluate Class Reports</h1>
+                                {/* <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">Administrator Hub</p> */}
+                                <h1 className="text-2xl font-black uppercase italic tracking-tight text-white">Evaluate Class Reports</h1>
                             </div>
                         </div>
                         <p className="text-slate-400 font-medium max-w-xl text-sm leading-relaxed">
-                            Evaluate submitted monthly programs, check attachments, and assign marks to class activities.
+                            Evaluate submitted monthly programs and assign marks to class activities.
                         </p>
                     </div>
                 </div>
 
+                {/* Default Submission Period Settings Card */}
+                <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div>
+                        <h2 className="text-sm font-black text-slate-800 uppercase tracking-wider mb-1">Active Submission Period</h2>
+                        {/* <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sets the default submission month & year for student reports</p> */}
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 w-full md:w-auto">
+                        <select
+                            value={defaultMonth}
+                            onChange={(e) => setDefaultMonth(e.target.value)}
+                            className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-black text-slate-700 outline-none focus:border-indigo-500 transition-all cursor-pointer w-full text-center"
+                        >
+                            {MONTHS_LIST.map(m => (
+                                <option key={m} value={m}>{m}</option>
+                            ))}
+                        </select>
+                        <input
+                            type="number"
+                            value={defaultYear}
+                            onChange={(e) => setDefaultYear(parseInt(e.target.value) || new Date().getFullYear())}
+                            className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-black text-slate-700 outline-none focus:border-indigo-500 transition-all w-full text-center"
+                            min="2020"
+                            max="2050"
+                        />
+                        <button
+                            onClick={handleSaveDefaultPeriod}
+                            disabled={savingPeriod}
+                            className="bg-[#0F172A] hover:bg-slate-800 text-white rounded-xl px-4 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1 w-full whitespace-nowrap"
+                        >
+                            {savingPeriod ? <Loader2 size={10} className="animate-spin" /> : null}
+                            Save Period
+                        </button>
+                    </div>
+                </div>
+
+                {/* Filter and Reports List Section */}
+                <div className="flex items-center justify-between ">
+                    <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider pl-1">Program Reports</h3>
+                    <select
+                        value={selectedFilterMonth}
+                        onChange={(e) => setSelectedFilterMonth(e.target.value)}
+                        className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all cursor-pointer shadow-sm"
+                    >
+                        <option value="All">All Months</option>
+                        {MONTHS_LIST.map(m => (
+                            <option key={m} value={m}>{m}</option>
+                        ))}
+                    </select>
+                </div>
+
+
+
                 {/* Reports List */}
                 <div className="space-y-4">
-                    {reports.length === 0 ? (
+                    {filteredReports.length === 0 ? (
                         <div className="bg-white rounded-[2rem] p-10 text-center shadow-sm border border-slate-100">
                             <p className="text-slate-500 font-bold uppercase tracking-widest text-sm">No reports found</p>
                         </div>
                     ) : (
-                        reports.map((report) => (
-                            <div key={report._id} className={`bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden transition-all duration-300 hover:border-indigo-100`}>
+                        filteredReports.map((report) => (
+                            <div key={report._id} className={`bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden transition-all duration-300 hover:border-indigo-100 relative`}>
                                 {/* Card Header */}
                                 <div
-                                    className="p-6 cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4"
+                                    className="p-6 cursor-pointer"
                                     onClick={() => setSelectedReport(report)}
                                 >
-                                    <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-4 pr-28">
                                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg ${report.status === 'reviewed' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
                                             C{report.classNumber}
                                         </div>
@@ -251,7 +350,7 @@ export default function AdminReviewClassReports() {
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-6">
+                                    <div className="absolute top-6 right-6 flex items-center gap-4">
                                         <div className="text-right">
                                             {report.status === 'reviewed' ? (
                                                 <div className="flex flex-col items-end">
@@ -310,9 +409,8 @@ export default function AdminReviewClassReports() {
                                 {selectedReport.programs.map((program, idx) => {
                                     const isRejected = rejectedPrograms[selectedReport._id]?.[program._id];
                                     return (
-                                        <div key={program._id} className={`border rounded-[1.5rem] p-6 shadow-sm flex flex-col lg:flex-row gap-6 transition-all duration-300 ${
-                                            isRejected ? 'border-rose-200 bg-rose-50/20 shadow-rose-50/5' : 'bg-white border-slate-200'
-                                        }`}>
+                                        <div key={program._id} className={`border rounded-[1.5rem] p-6 shadow-sm flex flex-col lg:flex-row gap-6 transition-all duration-300 ${isRejected ? 'border-rose-200 bg-rose-50/20 shadow-rose-50/5' : 'bg-white border-slate-200'
+                                            }`}>
 
                                             {/* Program Details */}
                                             <div className="flex-1 space-y-4">
@@ -321,9 +419,9 @@ export default function AdminReviewClassReports() {
                                                         <span className="text-[9px] font-black bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md uppercase tracking-widest">
                                                             {program.category}
                                                         </span>
-                                                        <span className="text-[9px] font-black bg-amber-50 text-amber-800 px-2 py-1 rounded-md uppercase tracking-widest">
-                                                            {program.programType || 'Curriculum'}
-                                                        </span>
+                                                        {program.programType && <span className="text-[9px] font-black bg-amber-50 text-amber-800 px-2 py-1 rounded-md uppercase tracking-widest">
+                                                            {program.programType}
+                                                        </span>}
                                                         {program.collaboration && (
                                                             <span className="text-[9px] font-black bg-purple-50 text-purple-600 px-2 py-1 rounded-md uppercase tracking-widest border border-purple-100">
                                                                 Collab: {program.collaboration}
@@ -406,11 +504,10 @@ export default function AdminReviewClassReports() {
 
                                                 <button
                                                     onClick={() => handleRejectedToggle(selectedReport._id, program._id)}
-                                                    className={`w-1/2 py-2 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border mt-4 active:scale-95 self-end ${
-                                                        isRejected
+                                                    className={`w-1/2 py-2 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border mt-4 active:scale-95 self-end ${isRejected
                                                             ? 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'
                                                             : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:text-rose-600 hover:border-rose-200'
-                                                    }`}
+                                                        }`}
                                                 >
                                                     {isRejected ? 'Undo Reject' : 'Reject'}
                                                 </button>
@@ -424,7 +521,7 @@ export default function AdminReviewClassReports() {
 
                         {/* Modal Footer */}
                         <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                            
+
                             {/* Points Summary & Viva Input */}
                             <div className="flex flex-wrap items-center gap-6">
                                 <div className="space-y-1">
@@ -441,10 +538,10 @@ export default function AdminReviewClassReports() {
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Daily Viva Points</p>
-                                    <input 
+                                    <input
                                         type="number"
                                         value={vivaPoints[selectedReport._id] || 0}
-                                        onChange={(e) => setVivaPoints(prev => ({...prev, [selectedReport._id]: Number(e.target.value)}))}
+                                        onChange={(e) => setVivaPoints(prev => ({ ...prev, [selectedReport._id]: Number(e.target.value) }))}
                                         className="w-20 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xl font-black text-emerald-600 outline-none focus:border-indigo-500 transition-colors"
                                     />
                                 </div>
