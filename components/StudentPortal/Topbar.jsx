@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Menu } from 'lucide-react';
 import axios from 'axios';
 import { API_PORT } from '@/Constants';
+import Link from 'next/link';
 
 export default function Topbar({ onMenuClick }) {
     const [student, setStudent] = useState(null);
@@ -42,7 +43,7 @@ export default function Topbar({ onMenuClick }) {
             
             <div className="flex items-center gap-4 ml-auto">
                 {student && (
-                    <div className="flex items-center gap-3">
+                    <Link href="/students-portal/profile" className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
                         <div className="hidden sm:block text-right">
                             <div className="text-sm font-black text-slate-800">{student["FULL NAME"] || student["SHORT NAME"]}</div>
                             <div className="text-[10px] font-bold text-slate-400">{student.CLASS}th Class</div>
@@ -54,7 +55,7 @@ export default function Topbar({ onMenuClick }) {
                                 {(student["SHORT NAME"] || student["FULL NAME"])?.charAt(0) || 'S'}
                             </div>
                         )}
-                    </div>
+                    </Link>
                 )}
             </div>
         </div>

@@ -41,3 +41,54 @@ export async function GET(req) {
     return NextResponse.json({ error: error.message || "Failed to fetch profile" }, { status: 500 });
   }
 }
+
+export async function PUT(req) {
+  await dbConnect();
+  try {
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const token = authHeader.split(" ")[1];
+    let decoded;
+    try {
+      decoded = verifyStudentToken(token);
+    } catch (err) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
+
+    if (!decoded.adno) {
+      return NextResponse.json({ error: "Invalid token payload" }, { status: 401 });
+    }
+
+    const student = await Student.findOne({ ADNO: Number(decoded.adno) });
+    if (!student) {
+      return NextResponse.json({ error: "Student not found" }, { status: 404 });
+    }
+
+    const { currentPassword, newPassword } = await req.json();
+
+    if (currentPassword === undefined || newPassword === undefined) {
+      return NextResponse.json({ error: "Current password and new password are required" }, { status: 400 });
+    }
+
+    const numericCurrent = Number(currentPassword);
+    const numericNew = Number(newPassword);
+
+    if (isNaN(numericCurrent) || isNaN(numericNew)) {
+      return NextResponse.json({ error: "Passwords must be valid numbers" }, { status: 400 });
+    }
+
+    if (student.Password !== numericCurrent) {
+      return NextResponse.json({ error: "Incorrect current password" }, { status: 400 });
+    }
+
+    student.Password = numericNew;
+    await student.save();
+
+    return NextResponse.json({ message: "Password updated successfully" });
+  } catch (error) {
+    return NextResponse.json({ error: error.message || "Failed to update password" }, { status: 500 });
+  }
+}
