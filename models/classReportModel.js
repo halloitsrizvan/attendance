@@ -6,7 +6,12 @@ const programSchema = new Schema({
     category: {
         type: String,
         required: true,
-        enum: ['Curriculum', 'Co-Curriculum', 'Extra-Curriculum']
+        enum: ['Internal', 'External']
+    },
+    programType: {
+        type: String,
+        enum: ['Curriculum', 'Co-Curriculum', 'Extra-Curriculum'],
+        default: 'Curriculum'
     },
     title: {
         type: String,
@@ -27,6 +32,13 @@ const programSchema = new Schema({
         type: String
     }],
     date: {
+        type: String
+    },
+    rejected: {
+        type: Boolean,
+        default: false
+    },
+    collaboration: {
         type: String
     }
 });

@@ -134,12 +134,14 @@ export default function ProgramReportsPage() {
         setEditingReportId(reportId);
         setEditingProgram(program._id);
         setEditForm({
-            category: program.category || 'Curriculum',
+            category: program.category || 'Internal',
+            programType: program.programType || 'Curriculum',
             title: program.title || '',
             description: program.description || '',
             date: program.date || '',
             poster: program.poster || '',
-            gallery: program.gallery || []
+            gallery: program.gallery || [],
+            collaboration: program.collaboration || ''
         });
     };
 
@@ -193,11 +195,13 @@ export default function ProgramReportsPage() {
         try {
             const payload = {
                 category: editForm.category,
+                programType: editForm.programType,
                 title: editForm.title,
                 description: editForm.description,
                 date: editForm.date,
                 poster: editForm.poster,
-                gallery: editForm.gallery
+                gallery: editForm.gallery,
+                collaboration: editForm.collaboration
             };
             await axios.put(`${API_PORT}/class-reports/${editingReportId}`, {
                 programId: editingProgram,
@@ -365,16 +369,24 @@ export default function ProgramReportsPage() {
                                                         </div>
                                                     )}
 
-                                                    <div className="flex items-center gap-2 mb-3">
-                                                        <span className="text-[9px] font-black bg-indigo-100 text-indigo-700 px-2 py-1 rounded-md uppercase tracking-widest">
-                                                            {program.category}
-                                                        </span>
-                                                        {program.date && (
-                                                            <span className="text-[9px] font-black bg-white border border-slate-200 text-slate-500 px-2 py-1 rounded-md uppercase tracking-widest flex items-center gap-1">
-                                                                <Calendar size={10} /> {program.date}
-                                                            </span>
-                                                        )}
-                                                    </div>
+                                                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                                                         <span className="text-[9px] font-black bg-indigo-100 text-indigo-700 px-2 py-1 rounded-md uppercase tracking-widest">
+                                                             {program.category}
+                                                         </span>
+                                                         <span className="text-[9px] font-black bg-amber-100 text-amber-800 px-2 py-1 rounded-md uppercase tracking-widest">
+                                                             {program.programType || 'Curriculum'}
+                                                         </span>
+                                                         {program.collaboration && (
+                                                             <span className="text-[9px] font-black bg-purple-100 text-purple-700 px-2 py-1 rounded-md uppercase tracking-widest">
+                                                                 Collab: {program.collaboration}
+                                                             </span>
+                                                         )}
+                                                         {program.date && (
+                                                             <span className="text-[9px] font-black bg-white border border-slate-200 text-slate-500 px-2 py-1 rounded-md uppercase tracking-widest flex items-center gap-1">
+                                                                 <Calendar size={10} /> {program.date}
+                                                             </span>
+                                                         )}
+                                                     </div>
                                                     <h4 className="text-lg font-black text-slate-800 mb-2">{program.title}</h4>
                                                     <p className="text-sm text-slate-600 font-medium leading-relaxed bg-white border border-slate-100 p-4 rounded-2xl flex-1">
                                                         {program.description}
@@ -403,11 +415,17 @@ export default function ProgramReportsPage() {
                                                         </div>
                                                     )}
 
-                                                    {report.status === 'reviewed' && program.mark !== undefined && (
+                                                    {report.status === 'reviewed' && (
                                                         <div className="mt-4 flex items-center justify-end">
-                                                            <span className="text-xs font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1">
-                                                                <Trophy size={14} /> {program.mark} Points
-                                                            </span>
+                                                            {program.rejected ? (
+                                                                <span className="text-xs font-black text-rose-600 uppercase tracking-widest flex items-center gap-1 bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-100">
+                                                                    <X size={14} /> Rejected
+                                                                </span>
+                                                            ) : program.mark !== undefined && (
+                                                                <span className="text-xs font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100">
+                                                                    <Trophy size={14} /> {program.mark} Points
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     )}
                                                 </div>
@@ -432,18 +450,48 @@ export default function ProgramReportsPage() {
                                 <button onClick={() => setEditingProgram(null)} className="p-2 hover:bg-white/20 rounded-xl transition-all"><X size={20} /></button>
                             </div>
                             <form onSubmit={handleUpdateProgram} className="p-5 overflow-y-auto custom-scrollbar space-y-4">
-                                <div>
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Category</label>
-                                    <select
-                                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
-                                        value={editForm.category}
-                                        onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
-                                        required
-                                    >
-                                        <option value="Curriculum">Curriculum</option>
-                                        <option value="Co-Curriculum">Co-Curriculum</option>
-                                        <option value="Extra-Curriculum">Extra-Curriculum</option>
-                                    </select>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Category</label>
+                                        <select
+                                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                                            value={editForm.category}
+                                            onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+                                            required
+                                        >
+                                            <option value="Internal">Internal</option>
+                                            <option value="External">External</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Program Type</label>
+                                        <select
+                                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                                            value={editForm.programType || 'Curriculum'}
+                                            onChange={(e) => setEditForm({ ...editForm, programType: e.target.value })}
+                                            required
+                                        >
+                                            <option value="Curriculum">Curriculum</option>
+                                            <option value="Co-Curriculum">Co-Curriculum</option>
+                                            <option value="Extra-Curriculum">Extra-Curriculum</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Collaboration (Optional)</label>
+                                        <select
+                                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                                            value={editForm.collaboration || ''}
+                                            onChange={(e) => setEditForm({ ...editForm, collaboration: e.target.value })}
+                                        >
+                                            <option value="">None / Solo</option>
+                                            <option value="LISAN">LISAN</option>
+                                            <option value="Dept.">Dept.</option>
+                                            <option value="Other Class Union">Other Class Union</option>
+                                            <option value="OGEA">OGEA</option>
+                                            <option value="Welfare">Welfare</option>
+                                            <option value="Staff Council">Staff Council</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Program Title</label>

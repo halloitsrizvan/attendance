@@ -88,12 +88,14 @@ export default function BestClassPage() {
         setEditingReportId(reportId);
         setEditingProgram(program._id);
         setEditForm({
-            category: program.category || 'Curriculum',
+            category: program.category || 'Internal',
+            programType: program.programType || 'Curriculum',
             title: program.title || '',
             description: program.description || '',
             date: program.date || '',
             poster: program.poster || '',
-            gallery: program.gallery || []
+            gallery: program.gallery || [],
+            collaboration: program.collaboration || ''
         });
     };
 
@@ -147,11 +149,13 @@ export default function BestClassPage() {
         try {
             const payload = {
                 category: editForm.category,
+                programType: editForm.programType,
                 title: editForm.title,
                 description: editForm.description,
                 date: editForm.date,
                 poster: editForm.poster,
-                gallery: editForm.gallery
+                gallery: editForm.gallery,
+                collaboration: editForm.collaboration
             };
             await axios.put(`${API_PORT}/class-reports/${editingReportId}`, {
                 programId: editingProgram,
@@ -327,10 +331,18 @@ export default function BestClassPage() {
                                         )}
 
                                         {/* Badges */}
-                                        <div className="flex items-center gap-2 mb-3">
+                                        <div className="flex flex-wrap items-center gap-2 mb-3">
                                             <span className="text-[9px] font-black bg-indigo-50 border border-indigo-100 text-indigo-700 px-2.5 py-1 rounded uppercase tracking-widest">
                                                 {program.category}
                                             </span>
+                                            {program.programType && <span className="text-[9px] font-black bg-amber-50 border border-amber-100 text-amber-800 px-2.5 py-1 rounded uppercase tracking-widest">
+                                                {program.programType}
+                                            </span>}
+                                            {program.collaboration && (
+                                                <span className="text-[9px] font-black bg-purple-50 border border-purple-100 text-purple-700 px-2.5 py-1 rounded uppercase tracking-widest">
+                                                    Collab: {program.collaboration}
+                                                </span>
+                                            )}
                                             {program.date && (
                                                 <span className="text-[9px] font-black bg-white border border-slate-200 text-slate-500 px-2 py-1 rounded uppercase tracking-wider flex items-center gap-1">
                                                     <Calendar size={10} /> {program.date}
@@ -400,21 +412,61 @@ export default function BestClassPage() {
                         </div>
                         {/* Edit Form */}
                         <form onSubmit={handleUpdateProgram} className="p-6 overflow-y-auto custom-scrollbar space-y-4 bg-white">
-                            <div>
-                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Category</label>
-                                <div className="relative">
-                                    <select
-                                        className="w-full bg-white border border-slate-200 rounded-2xl p-4 pr-10 text-sm font-black text-slate-800 focus:border-blue-500 outline-none transition-all shadow-sm cursor-pointer appearance-none"
-                                        value={editForm.category}
-                                        onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
-                                        required
-                                    >
-                                        <option value="Curriculum">Curriculum</option>
-                                        <option value="Co-Curriculum">Co-Curriculum</option>
-                                        <option value="Extra-Curriculum">Extra-Curriculum</option>
-                                    </select>
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                        <ChevronDown size={16} />
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div>
+                                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Category</label>
+                                    <div className="relative">
+                                        <select
+                                            className="w-full bg-white border border-slate-200 rounded-2xl p-4 pr-10 text-sm font-black text-slate-800 focus:border-blue-500 outline-none transition-all shadow-sm cursor-pointer appearance-none"
+                                            value={editForm.category}
+                                            onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+                                            required
+                                        >
+                                            <option value="Internal">Internal</option>
+                                            <option value="External">External</option>
+                                        </select>
+                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                            <ChevronDown size={16} />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Program Type</label>
+                                    <div className="relative">
+                                        <select
+                                            className="w-full bg-white border border-slate-200 rounded-2xl p-4 pr-10 text-sm font-black text-slate-800 focus:border-blue-500 outline-none transition-all shadow-sm cursor-pointer appearance-none"
+                                            value={editForm.programType || 'Curriculum'}
+                                            onChange={(e) => setEditForm({ ...editForm, programType: e.target.value })}
+                                            required
+                                        >
+                                            <option value="Curriculum">Curriculum</option>
+                                            <option value="Co-Curriculum">Co-Curriculum</option>
+                                            <option value="Extra-Curriculum">Extra-Curriculum</option>
+                                        </select>
+                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                            <ChevronDown size={16} />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Collaboration (Optional)</label>
+                                    <div className="relative">
+                                        <select
+                                            className="w-full bg-white border border-slate-200 rounded-2xl p-4 pr-10 text-sm font-black text-slate-800 focus:border-blue-500 outline-none transition-all shadow-sm cursor-pointer appearance-none"
+                                            value={editForm.collaboration || ''}
+                                            onChange={(e) => setEditForm({ ...editForm, collaboration: e.target.value })}
+                                        >
+                                            <option value="">None / Solo</option>
+                                            <option value="LISAN">LISAN</option>
+                                            <option value="Dept.">Dept.</option>
+                                            <option value="Other Class Union">Other Class Union</option>
+                                            <option value="OGEA">OGEA</option>
+                                            <option value="Welfare">Welfare</option>
+                                            <option value="Staff Council">Staff Council</option>
+                                        </select>
+                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                            <ChevronDown size={16} />
+                                        </div>
                                     </div>
                                 </div>
                             </div>

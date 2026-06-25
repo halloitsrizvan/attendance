@@ -25,8 +25,10 @@ export async function PATCH(req) {
         programs.forEach(updatedProgram => {
             const programToUpdate = report.programs.id(updatedProgram._id);
             if (programToUpdate) {
-                // Ensure mark is a valid number, default to 0
-                const markValue = Number(updatedProgram.mark) || 0;
+                // Ensure rejected status is persisted
+                programToUpdate.rejected = !!updatedProgram.rejected;
+                // If rejected, force mark to 0
+                const markValue = programToUpdate.rejected ? 0 : (Number(updatedProgram.mark) || 0);
                 programToUpdate.mark = markValue;
                 programPoints += markValue;
             }

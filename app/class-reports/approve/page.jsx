@@ -126,12 +126,14 @@ export default function ApproveClassReport() {
     const handleEditClick = (program) => {
         setEditingProgramId(program._id);
         setEditForm({
-            category: program.category || 'Curriculum',
+            category: program.category || 'Internal',
+            programType: program.programType || 'Curriculum',
             title: program.title || '',
             description: program.description || '',
             date: program.date || '',
             poster: program.poster || '',
-            gallery: program.gallery || []
+            gallery: program.gallery || [],
+            collaboration: program.collaboration || ''
         });
     };
 
@@ -185,11 +187,13 @@ export default function ApproveClassReport() {
         try {
             const payload = {
                 category: editForm.category,
+                programType: editForm.programType,
                 title: editForm.title,
                 description: editForm.description,
                 date: editForm.date,
                 poster: editForm.poster,
-                gallery: editForm.gallery
+                gallery: editForm.gallery,
+                collaboration: editForm.collaboration
             };
             const res = await axios.put(`/api/class-reports/${reportId}`, {
                 programId: editingProgramId,
@@ -364,9 +368,36 @@ export default function ApproveClassReport() {
                                                             value={editForm.category}
                                                             onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
                                                         >
+                                                            <option value="Internal">Internal</option>
+                                                            <option value="External">External</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Program Type</label>
+                                                        <select
+                                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:border-blue-500"
+                                                            value={editForm.programType || 'Curriculum'}
+                                                            onChange={(e) => setEditForm({ ...editForm, programType: e.target.value })}
+                                                        >
                                                             <option value="Curriculum">Curriculum</option>
                                                             <option value="Co-Curriculum">Co-Curriculum</option>
                                                             <option value="Extra-Curriculum">Extra-Curriculum</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Collaboration (Optional)</label>
+                                                        <select
+                                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:border-blue-500"
+                                                            value={editForm.collaboration || ''}
+                                                            onChange={(e) => setEditForm({ ...editForm, collaboration: e.target.value })}
+                                                        >
+                                                            <option value="">None / Solo</option>
+                                                            <option value="LISAN">LISAN</option>
+                                                            <option value="Dept.">Dept.</option>
+                                                            <option value="Other Class Union">Other Class Union</option>
+                                                            <option value="OGEA">OGEA</option>
+                                                            <option value="Welfare">Welfare</option>
+                                                            <option value="Staff Council">Staff Council</option>
                                                         </select>
                                                     </div>
                                                     <div>
@@ -442,6 +473,14 @@ export default function ApproveClassReport() {
                                                     <span className="text-[9px] font-black bg-indigo-100 text-indigo-700 px-2 py-1 rounded-md uppercase tracking-widest">
                                                         {program.category}
                                                     </span>
+                                                    <span className="text-[9px] font-black bg-amber-50 text-amber-850 px-2 py-1 rounded-md uppercase tracking-widest">
+                                                        {program.programType || 'Curriculum'}
+                                                    </span>
+                                                    {program.collaboration && (
+                                                        <span className="text-[9px] font-black bg-purple-50 text-purple-600 px-2 py-1 rounded-md uppercase tracking-widest border border-purple-100">
+                                                            Collab: {program.collaboration}
+                                                        </span>
+                                                    )}
                                                     {program.date && (
                                                         <span className="text-[9px] font-black bg-slate-100 text-slate-600 px-2 py-1 rounded-md uppercase tracking-widest flex items-center gap-1">
                                                             <Calendar size={10} /> {program.date}

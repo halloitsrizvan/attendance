@@ -9,7 +9,8 @@ const MONTHS = [
     'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
-const CATEGORIES = ['Curriculum', 'Co-Curriculum', 'Extra-Curriculum'];
+const CATEGORIES = ['Internal', 'External'];
+const PROGRAM_TYPES = ['Curriculum', 'Co-Curriculum', 'Extra-Curriculum'];
 
 const SuccessModal = ({ isOpen, onClose }) => {
     if (!isOpen) return null;
@@ -44,7 +45,7 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
     const [year, setYear] = useState(new Date().getFullYear());
     const [activeProgramIndex, setActiveProgramIndex] = useState(0);
     const [programs, setPrograms] = useState([
-        { category: 'Curriculum', title: '', description: '', poster: '', date: '', gallery: [] }
+        { category: 'Internal', programType: 'Curriculum', title: '', description: '', poster: '', date: '', gallery: [], collaboration: '' }
     ]);
     const [submitting, setSubmitting] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -64,7 +65,7 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
     const { min: minDate, max: maxDate } = getMinMaxDates();
 
     const handleAddProgram = () => {
-        setPrograms([...programs, { category: 'Curriculum', title: '', description: '', poster: '', date: '', gallery: [] }]);
+        setPrograms([...programs, { category: 'Internal', programType: 'Curriculum', title: '', description: '', poster: '', date: '', gallery: [], collaboration: '' }]);
         setActiveProgramIndex(programs.length);
     };
 
@@ -74,7 +75,7 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
         newPrograms.splice(index, 1);
 
         if (newPrograms.length === 0) {
-            newPrograms.push({ category: 'Curriculum', title: '', description: '', poster: '', date: '', gallery: [] });
+            newPrograms.push({ category: 'Internal', programType: 'Curriculum', title: '', description: '', poster: '', date: '', gallery: [], collaboration: '' });
             setPrograms(newPrograms);
             setActiveProgramIndex(0);
         } else {
@@ -179,7 +180,7 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
 
             await axios.post('/api/class-reports', payload);
             setShowSuccess(true);
-            setPrograms([{ category: 'Curriculum', title: '', description: '', poster: '', date: '', gallery: [] }]);
+            setPrograms([{ category: 'Internal', programType: 'Curriculum', title: '', description: '', poster: '', date: '', gallery: [], collaboration: '' }]);
             setActiveProgramIndex(0);
 
             if (onSuccessCallback) {
@@ -239,8 +240,9 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                         <div className="relative">
                             <select
                                 value={month}
+                                disabled={submitterType === 'student'}
                                 onChange={(e) => setMonth(e.target.value)}
-                                className="w-full bg-white border border-slate-200 rounded-2xl p-4 pr-10 text-sm font-black text-slate-800 outline-none focus:border-blue-500 transition-all shadow-sm cursor-pointer appearance-none"
+                                className="w-full bg-white border border-slate-200 rounded-2xl p-4 pr-10 text-sm font-black text-slate-800 outline-none focus:border-blue-500 transition-all shadow-sm cursor-pointer appearance-none disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                                 {MONTHS.map(m => (
                                     <option key={m} value={m}>{m}</option>
@@ -260,8 +262,9 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                         <input
                             type="number"
                             value={year}
+                            disabled={submitterType === 'student'}
                             onChange={(e) => setYear(parseInt(e.target.value) || new Date().getFullYear())}
-                            className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-black text-slate-800 focus:border-blue-500 outline-none transition-all shadow-sm"
+                            className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-black text-slate-800 focus:border-blue-500 outline-none transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
                             min="2020"
                             max="2050"
                         />
@@ -294,7 +297,7 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                         </div>
 
                         <div className="space-y-6 mt-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 {/* Category Selection */}
                                 <div>
                                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2.5 pl-1">Category</label>
@@ -315,7 +318,52 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                                     </div>
                                 </div>
 
-                                {/* Program Title */}
+                             
+
+                                {/* Collaboration (Optional) */}
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2 pl-1">Collaboration</label>
+                                    <div className="relative">
+                                        <select
+                                            value={programs[activeProgramIndex].collaboration || ''}
+                                            onChange={(e) => handleProgramChange('collaboration', e.target.value)}
+                                            className="w-full bg-white border border-slate-200 rounded-2xl p-4 pr-10 text-sm font-bold text-slate-700 outline-none focus:border-blue-500 transition-all shadow-sm cursor-pointer appearance-none"
+                                        >
+                                            <option value="">None / Solo</option>
+                                            <option value="LISAN">LISAN</option>
+                                            <option value="Dept.">Dept.</option>
+                                            <option value="Other Class Union">Other Class Union</option>
+                                            <option value="OGEA">OGEA</option>
+                                            <option value="Welfare">Welfare</option>
+                                            <option value="Staff Council">Staff Council</option>
+                                        </select>
+                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                            <ChevronDown size={16} />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                               {/* Program Type */}
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2 pl-1">Program Type</label>
+                                    <div className="relative">
+                                        <select
+                                            value={programs[activeProgramIndex].programType || 'Curriculum'}
+                                            onChange={(e) => handleProgramChange('programType', e.target.value)}
+                                            className="w-full bg-white border border-slate-200 rounded-2xl p-4 pr-10 text-sm font-bold text-slate-700 outline-none focus:border-blue-500 transition-all shadow-sm cursor-pointer appearance-none"
+                                        >
+                                            {PROGRAM_TYPES.map(type => (
+                                                <option key={type} value={type}>{type}</option>
+                                            ))}
+                                        </select>
+                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                            <ChevronDown size={16} />
+                                        </div>
+                                    </div>
+                                </div>
+
+                             {/* Program Title */}
                                 <div>
                                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2 pl-1">Program Title</label>
                                     <input
@@ -327,7 +375,6 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                                         required
                                     />
                                 </div>
-                            </div>
 
                             {/* Description */}
                             <div>

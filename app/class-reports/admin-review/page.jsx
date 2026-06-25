@@ -26,6 +26,7 @@ export default function AdminReviewClassReports() {
     // Structure: { [reportId]: { [programId]: number } }
     const [marks, setMarks] = useState({});
     const [vivaPoints, setVivaPoints] = useState({});
+    const [rejectedPrograms, setRejectedPrograms] = useState({});
 
     useEffect(() => {
         const storedTeacher = localStorage.getItem('teacher');
@@ -49,18 +50,22 @@ export default function AdminReviewClassReports() {
             const res = await axios.get('/api/class-reports?adminView=true');
             setReports(res.data);
 
-            // Initialize marks and viva state for reports
+            // Initialize marks, viva, and rejected state for reports
             const initialMarks = {};
             const initialViva = {};
+            const initialRejected = {};
             res.data.forEach(report => {
                 initialMarks[report._id] = {};
                 initialViva[report._id] = report.vivaPoints || 0;
+                initialRejected[report._id] = {};
                 report.programs.forEach(program => {
                     initialMarks[report._id][program._id] = program.mark || 0;
+                    initialRejected[report._id][program._id] = program.rejected || false;
                 });
             });
             setMarks(initialMarks);
             setVivaPoints(initialViva);
+            setRejectedPrograms(initialRejected);
         } catch (error) {
             console.error("Error fetching reports:", error);
         } finally {
@@ -69,13 +74,37 @@ export default function AdminReviewClassReports() {
     };
 
     const handleMarkChange = (reportId, programId, value) => {
+        const numericVal = Number(value);
         setMarks(prev => ({
             ...prev,
             [reportId]: {
                 ...prev[reportId],
-                [programId]: Number(value)
+                [programId]: numericVal < 1 ? 1 : numericVal
             }
         }));
+    };
+
+    const handleRejectedToggle = (reportId, programId) => {
+        setRejectedPrograms(prev => {
+            const currentVal = !prev[reportId]?.[programId];
+            if (currentVal) {
+                // If rejecting, force mark to 0
+                setMarks(prevMarks => ({
+                    ...prevMarks,
+                    [reportId]: {
+                        ...prevMarks[reportId],
+                        [programId]: 0
+                    }
+                }));
+            }
+            return {
+                ...prev,
+                [reportId]: {
+                    ...prev[reportId],
+                    [programId]: currentVal
+                }
+            };
+        });
     };
 
     const handleSaveMarks = async (report) => {
@@ -83,10 +112,11 @@ export default function AdminReviewClassReports() {
 
         setSubmittingId(report._id);
 
-        // Prepare the programs array with updated marks
+        // Prepare the programs array with updated marks and rejected status
         const updatedPrograms = report.programs.map(p => ({
             _id: p._id,
-            mark: marks[report._id]?.[p._id] || 0
+            mark: marks[report._id]?.[p._id] || 0,
+            rejected: rejectedPrograms[report._id]?.[p._id] || false
         }));
 
         const adminId = admin._id || admin.id;
@@ -277,85 +307,118 @@ export default function AdminReviewClassReports() {
                         {/* Modal Body */}
                         <div className="flex-1 overflow-y-auto p-6 sm:p-8 bg-slate-50/50">
                             <div className="space-y-6">
-                                {selectedReport.programs.map((program, idx) => (
-                                    <div key={program._id} className="bg-white border border-slate-200 rounded-[1.5rem] p-6 shadow-sm flex flex-col lg:flex-row gap-6">
+                                {selectedReport.programs.map((program, idx) => {
+                                    const isRejected = rejectedPrograms[selectedReport._id]?.[program._id];
+                                    return (
+                                        <div key={program._id} className={`border rounded-[1.5rem] p-6 shadow-sm flex flex-col lg:flex-row gap-6 transition-all duration-300 ${
+                                            isRejected ? 'border-rose-200 bg-rose-50/20 shadow-rose-50/5' : 'bg-white border-slate-200'
+                                        }`}>
 
-                                        {/* Program Details */}
-                                        <div className="flex-1 space-y-4">
-                                            <div>
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className="text-[9px] font-black bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md uppercase tracking-widest">
-                                                        {program.category}
-                                                    </span>
-                                                    {program.date && (
-                                                        <span className="text-[9px] font-black bg-slate-100 text-slate-500 px-2 py-1 rounded-md uppercase tracking-widest flex items-center gap-1">
-                                                            <Calendar size={10} /> {program.date}
+                                            {/* Program Details */}
+                                            <div className="flex-1 space-y-4">
+                                                <div>
+                                                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                                                        <span className="text-[9px] font-black bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md uppercase tracking-widest">
+                                                            {program.category}
                                                         </span>
-                                                    )}
-                                                </div>
-                                                <h4 className="text-lg font-bold text-slate-800">{program.title}</h4>
-                                            </div>
-                                            <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-2xl">
-                                                {program.description}
-                                            </p>
-
-                                            {/* Media Section */}
-                                            {(program.poster || (program.gallery && program.gallery.length > 0)) && (
-                                                <div className="pt-2">
-                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1">
-                                                        <ImageIcon size={12} /> Attached Media
-                                                    </p>
-                                                    <div className="flex flex-wrap gap-3">
-                                                        {program.poster && (
-                                                            <a href={program.poster} target="_blank" rel="noopener noreferrer" className="relative w-20 h-20 rounded-xl overflow-hidden border-2 border-indigo-100 hover:border-indigo-400 transition-colors group">
-                                                                <img src={program.poster} alt="Poster" className="w-full h-full object-cover" />
-                                                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                    <span className="text-[8px] font-bold text-white uppercase tracking-widest">Poster</span>
-                                                                </div>
-                                                            </a>
+                                                        <span className="text-[9px] font-black bg-amber-50 text-amber-800 px-2 py-1 rounded-md uppercase tracking-widest">
+                                                            {program.programType || 'Curriculum'}
+                                                        </span>
+                                                        {program.collaboration && (
+                                                            <span className="text-[9px] font-black bg-purple-50 text-purple-600 px-2 py-1 rounded-md uppercase tracking-widest border border-purple-100">
+                                                                Collab: {program.collaboration}
+                                                            </span>
                                                         )}
-                                                        {(program.gallery || []).map((url, gIdx) => (
-                                                            <a key={gIdx} href={url} target="_blank" rel="noopener noreferrer" className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors group">
-                                                                <img src={url} alt={`Gallery ${gIdx}`} className="w-full h-full object-cover" />
-                                                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                    <span className="text-[8px] font-bold text-white uppercase tracking-widest">Gallery</span>
-                                                                </div>
-                                                            </a>
-                                                        ))}
+                                                        {program.date && (
+                                                            <span className="text-[9px] font-black bg-slate-100 text-slate-500 px-2 py-1 rounded-md uppercase tracking-widest flex items-center gap-1">
+                                                                <Calendar size={10} /> {program.date}
+                                                            </span>
+                                                        )}
+                                                        {isRejected && (
+                                                            <span className="text-[9px] font-black bg-rose-50 text-rose-600 px-2 py-1 rounded-md uppercase tracking-widest flex items-center gap-1 border border-rose-100 animate-pulse">
+                                                                Rejected
+                                                            </span>
+                                                        )}
                                                     </div>
+                                                    <h4 className="text-lg font-bold text-slate-800">{program.title}</h4>
                                                 </div>
-                                            )}
-                                        </div>
+                                                <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-2xl">
+                                                    {program.description}
+                                                </p>
 
-                                        {/* Mark Input */}
-                                        <div className="lg:w-48 bg-slate-50 rounded-[1.5rem] p-5 flex flex-col justify-center border border-slate-100 shrink-0">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center mb-3">
-                                                Assign Points
-                                            </label>
-                                            <div className="flex items-center justify-center gap-2">
+                                                {/* Media Section */}
+                                                {(program.poster || (program.gallery && program.gallery.length > 0)) && (
+                                                    <div className="pt-2">
+                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+                                                            <ImageIcon size={12} /> Attached Media
+                                                        </p>
+                                                        <div className="flex flex-wrap gap-3">
+                                                            {program.poster && (
+                                                                <a href={program.poster} target="_blank" rel="noopener noreferrer" className="relative w-20 h-20 rounded-xl overflow-hidden border-2 border-indigo-100 hover:border-indigo-400 transition-colors group">
+                                                                    <img src={program.poster} alt="Poster" className="w-full h-full object-cover" />
+                                                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                        <span className="text-[8px] font-bold text-white uppercase tracking-widest">Poster</span>
+                                                                    </div>
+                                                                </a>
+                                                            )}
+                                                            {(program.gallery || []).map((url, gIdx) => (
+                                                                <a key={gIdx} href={url} target="_blank" rel="noopener noreferrer" className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors group">
+                                                                    <img src={url} alt={`Gallery ${gIdx}`} className="w-full h-full object-cover" />
+                                                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                        <span className="text-[8px] font-bold text-white uppercase tracking-widest">Gallery</span>
+                                                                    </div>
+                                                                </a>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Mark Input */}
+                                            <div className="lg:w-48 bg-slate-50 rounded-[1.5rem] p-5 flex flex-col justify-center border border-slate-100 shrink-0">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center mb-3">
+                                                    Assign Points
+                                                </label>
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <button
+                                                        onClick={() => handleMarkChange(selectedReport._id, program._id, (marks[selectedReport._id]?.[program._id] || 0) - 1)}
+                                                        disabled={isRejected}
+                                                        className="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-500 flex items-center justify-center font-black hover:bg-slate-100 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    >
+                                                        -
+                                                    </button>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        value={marks[selectedReport._id]?.[program._id] || 0}
+                                                        disabled={isRejected}
+                                                        onChange={(e) => handleMarkChange(selectedReport._id, program._id, e.target.value)}
+                                                        className="w-16 text-center font-black text-xl text-slate-800 bg-transparent border-b-2 border-slate-300 focus:border-indigo-500 outline-none p-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    />
+                                                    <button
+                                                        onClick={() => handleMarkChange(selectedReport._id, program._id, (marks[selectedReport._id]?.[program._id] || 0) + 1)}
+                                                        disabled={isRejected}
+                                                        className="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-500 flex items-center justify-center font-black hover:bg-slate-100 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    >
+                                                        +
+                                                    </button>
+                                                </div>
+
                                                 <button
-                                                    onClick={() => handleMarkChange(selectedReport._id, program._id, (marks[selectedReport._id]?.[program._id] || 0) - 1)}
-                                                    className="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-500 flex items-center justify-center font-black hover:bg-slate-100 active:scale-95 transition-all"
+                                                    onClick={() => handleRejectedToggle(selectedReport._id, program._id)}
+                                                    className={`w-1/2 py-2 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border mt-4 active:scale-95 self-end ${
+                                                        isRejected
+                                                            ? 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'
+                                                            : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:text-rose-600 hover:border-rose-200'
+                                                    }`}
                                                 >
-                                                    -
-                                                </button>
-                                                <input
-                                                    type="number"
-                                                    value={marks[selectedReport._id]?.[program._id] || 0}
-                                                    onChange={(e) => handleMarkChange(selectedReport._id, program._id, e.target.value)}
-                                                    className="w-16 text-center font-black text-xl text-slate-800 bg-transparent border-b-2 border-slate-300 focus:border-indigo-500 outline-none p-1"
-                                                />
-                                                <button
-                                                    onClick={() => handleMarkChange(selectedReport._id, program._id, (marks[selectedReport._id]?.[program._id] || 0) + 1)}
-                                                    className="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-500 flex items-center justify-center font-black hover:bg-slate-100 active:scale-95 transition-all"
-                                                >
-                                                    +
+                                                    {isRejected ? 'Undo Reject' : 'Reject'}
                                                 </button>
                                             </div>
-                                        </div>
 
-                                    </div>
-                                ))}
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
 
