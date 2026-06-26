@@ -193,7 +193,7 @@ export default function LeavePage() {
     };
 
     const filteredRecoveryData = useMemo(() => {
-        return leaveData.filter(l => l.recovery || l.recoveryNeeded || l.recoveryNeeded === false).filter(item => {
+        return leaveData.filter(l => (l.status === 'returned' || l.returnedAt) && l.recoveryNeeded !== false).filter(item => {
             if (recoveryMonth !== 'All') {
                 const date = new Date(item.fromDate);
                 const itemMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -374,9 +374,11 @@ export default function LeavePage() {
                                         </span>
                                         <span className="px-3 py-1 bg-blue-500 text-white text-[12px] font-black rounded-lg">{item.reason}</span>
                                     </div>
-                                    <span className={`px-3 py-1 text-[10px] font-black uppercase rounded-lg ${getRecoveryStatusStyles(getRecoveryStatusLabel(item))}`}>
-                                        {getRecoveryStatusLabel(item)}
-                                    </span>
+                                    {(item.status === 'returned' || item.returnedAt) && (
+                                        <span className={`px-3 py-1 text-[10px] font-black uppercase rounded-lg ${getRecoveryStatusStyles(getRecoveryStatusLabel(item))}`}>
+                                            {getRecoveryStatusLabel(item)}
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="pl-4 border-l-2 border-slate-200 space-y-4 ml-2">
                                     <div className="relative">
@@ -391,18 +393,20 @@ export default function LeavePage() {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="relative">
-                                        <div className="absolute -left-[21px] top-1 w-3 h-3 rounded-full bg-slate-300 border-2 border-white"></div>
-                                        <div className="flex items-center gap-4">
-                                            <span className="px-2 py-1 border border-slate-800 rounded-lg text-[10px] font-black">Started</span>
-                                            <div>
-                                                <div className="text-[12px] font-bold text-slate-800">{new Date(item.fromDate).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, {formatTimeTo12h(item.fromTime) || '12:00 PM'}</div>
-                                                <div className="text-[10px] font-semibold text-slate-500">
-                                                    USTHAD {item.teacherId?.name || item.teacher || 'Teacher'}
+                                    {getDetailedStatus(item) !== 'Scheduled' && (
+                                        <div className="relative">
+                                            <div className="absolute -left-[21px] top-1 w-3 h-3 rounded-full bg-slate-300 border-2 border-white"></div>
+                                            <div className="flex items-center gap-4">
+                                                <span className="px-2 py-1 border border-slate-800 rounded-lg text-[10px] font-black">Started</span>
+                                                <div>
+                                                    <div className="text-[12px] font-bold text-slate-800">{new Date(item.fromDate).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, {formatTimeTo12h(item.fromTime) || '12:00 PM'}</div>
+                                                    <div className="text-[10px] font-semibold text-slate-500">
+                                                        USTHAD {item.teacherId?.name || item.teacher || 'Teacher'}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    )}
                                     {item.returnedAt && (
                                         <div className="relative">
                                             <div className="absolute -left-[21px] top-1 w-3 h-3 rounded-full bg-slate-300 border-2 border-white"></div>
