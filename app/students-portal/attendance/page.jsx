@@ -251,9 +251,9 @@ export default function AttendancePage() {
 
                                 </div>
                                 <div className="text-left sm:text-right">
-                                    <div className="text-[10px] font-bold text-slate-600 sm:max-w-[200px]">
+                                    {isWithin24Hours(item.createdAt) && <div className="text-[10px] font-bold text-slate-600 sm:max-w-[200px]">
                                         {item.teacherId ? "USTHAD  " : ""} {item.teacherId?.name || 'Teacher'}
-                                    </div>
+                                    </div>} 
                                     {(() => {
                                         const existingComplaint = complaints.find(c => (c.attendanceId?._id || c.attendanceId) === item._id);
                                         if (existingComplaint) {
@@ -319,13 +319,13 @@ export default function AttendancePage() {
                                         OnLeave: {item.onLeave ? 'Yes' : 'No'}
                                     </span>}
                                 </div>
-                                <div className="text-left md:text-center text-sm">
+                                <div className={`text-left  text-sm ${isWithin24Hours(item.createdAt) ? 'md:text-center' : 'md:text-right'}`}>
                                     <div className="font-black text-slate-800">{new Date(item.createdAt || item.attendanceDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                                     <div className="font-bold text-slate-500">{new Date(item.createdAt || item.attendanceDate).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
                                 </div>
-                                <div className="text-left md:text-right text-xs font-bold text-slate-600 md:max-w-[150px]">
+                                {isWithin24Hours(item.createdAt) && <div className="text-left md:text-right text-xs font-bold text-slate-600 md:max-w-[150px]">
                                     USTHAD {item.teacherId?.name || 'Teacher'}
-                                </div>
+                                </div>}
                             </div>
                         ))}
                     </div>
