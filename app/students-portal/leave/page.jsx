@@ -425,7 +425,7 @@ export default function LeavePage() {
                                                 <div>
                                                     <div className="text-[12px] font-bold text-slate-800">{new Date(item.returnedAt).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, {new Date(item.returnedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                                                     <div className="text-[10px] font-semibold text-slate-500">
-                                                        USTHAD {item.teacherId?.name || item.teacher || 'Teacher'} 
+                                                        USTHAD {item.markReturnedTeacher || item.teacherId?.name || item.teacher || 'Teacher'}
                                                     </div>
                                                 </div>
                                             </div>
@@ -434,7 +434,7 @@ export default function LeavePage() {
                                 </div>
                                 
                                 {/* UPLOAD & DOCUMENT STATUS BUTTONS */}
-                                {!item.documented && !item.isMedicalSubmitted && !item.documentUrl && ['Room', 'Medical (Home)', 'Hospital'].some(r => item.reason?.includes(r)) && (
+                                {!item.documented && !item.isMedicalSubmitted && !item.documentUrl && ['room', 'medical', 'hospital'].some(r => item.reason?.toLowerCase().includes(r)) && (
                                     <button
                                         onClick={() => { setSelectedLeave(item); setIsDocumentOpen(true); }}
                                         className="mt-6 w-full py-3 bg-blue-50 border border-blue-100 rounded-2xl text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-blue-600 hover:text-white transition-all shadow-sm cursor-pointer"
