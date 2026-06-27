@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
-import { CalendarDays, AlertTriangle, Send, Loader2 } from 'lucide-react';
+import { CalendarDays, AlertTriangle, Send, Loader2, Upload, X, Clock, FileText, CheckCircle, LayoutGrid } from 'lucide-react';
 import { API_PORT } from '@/Constants';
 import PortalSkeleton from '@/components/StudentPortal/PortalSkeleton';
 
@@ -26,6 +26,16 @@ export default function LeavePage() {
 
     const [recoveryMonth, setRecoveryMonth] = useState('All');
     const [logMonth, setLogMonth] = useState('All');
+
+    const [selectedLeave, setSelectedLeave] = useState(null);
+    const [isDocumentOpen, setIsDocumentOpen] = useState(false);
+    const [isProgramDocumentOpen, setIsProgramDocumentOpen] = useState(false);
+    const [showSuccessCode, setShowSuccessCode] = useState(null);
+
+    const handleDocumentUpdate = (code) => {
+        fetchLeaveData();
+        setShowSuccessCode(code);
+    };
 
     const handleComplaintClick = (id) => {
         setSelectedId(id);
@@ -422,6 +432,66 @@ export default function LeavePage() {
                                         </div>
                                     )}
                                 </div>
+                                
+                                {/* UPLOAD & DOCUMENT STATUS BUTTONS */}
+                                {!item.documented && !item.isMedicalSubmitted && !item.documentUrl && ['Room', 'Medical (Home)', 'Hospital'].some(r => item.reason?.includes(r)) && (
+                                    <button
+                                        onClick={() => { setSelectedLeave(item); setIsDocumentOpen(true); }}
+                                        className="mt-6 w-full py-3 bg-blue-50 border border-blue-100 rounded-2xl text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-blue-600 hover:text-white transition-all shadow-sm cursor-pointer"
+                                    >
+                                        <Upload size={14} /> Upload Medical Documents
+                                    </button>
+                                )}
+                                {!item.programDocumented && !item.isProgramSubmitted && !item.programDocumentUrl && item.reason?.includes('OGEA') && (
+                                    <button
+                                        onClick={() => { setSelectedLeave(item); setIsProgramDocumentOpen(true); }}
+                                        className="mt-6 w-full py-3 bg-purple-50 border border-purple-100 rounded-2xl text-[10px] font-black text-purple-600 uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-purple-600 hover:text-white transition-all shadow-sm cursor-pointer"
+                                    >
+                                        <Upload size={14} /> Upload Program Documents
+                                    </button>
+                                )}
+                                {!item.documented && (item.isMedicalSubmitted || item.documentUrl) && (
+                                    <div className="mt-6 flex flex-col sm:flex-row gap-2">
+                                        <div className="flex-1 p-3 bg-amber-50 rounded-2xl flex items-center justify-center gap-2 border border-amber-100">
+                                            <Clock size={14} className="text-amber-500 animate-pulse" />
+                                            <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Medical Doc Waiting for Approval</span>
+                                        </div>
+                                        {item.documentUrl && (
+                                            <a
+                                                href={item.documentUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="p-3 bg-white border border-slate-200 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black text-slate-600 uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm"
+                                            >
+                                                <FileText size={14} /> View Doc
+                                            </a>
+                                        )}
+                                    </div>
+                                )}
+                                {!item.programDocumented && (item.isProgramSubmitted || item.programDocumentUrl) && (
+                                    <div className="mt-6 flex flex-col sm:flex-row gap-2">
+                                        <div className="flex-1 p-3 bg-amber-50 rounded-2xl flex items-center justify-center gap-2 border border-amber-100">
+                                            <Clock size={14} className="text-amber-500 animate-pulse" />
+                                            <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Program Doc Waiting for Approval</span>
+                                        </div>
+                                        {item.programDocumentUrl && (
+                                            <a
+                                                href={item.programDocumentUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="p-3 bg-white border border-slate-200 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black text-slate-600 uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm"
+                                            >
+                                                <FileText size={14} /> View Doc
+                                            </a>
+                                        )}
+                                    </div>
+                                )}
+                                {(item.documented || item.programDocumented) && (
+                                    <div className="mt-6 p-3 bg-emerald-50 rounded-2xl flex items-center justify-center gap-2 border border-emerald-100">
+                                        <CheckCircle size={14} className="text-emerald-500" />
+                                        <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Documents Verified</span>
+                                    </div>
+                                )}
                             </div>
                         )) : (
                             <div className="text-center py-10 text-sm font-bold text-slate-400">
@@ -487,6 +557,444 @@ export default function LeavePage() {
                     </div>
                 </div>
             </div>
+
+            <DocumentModal
+                isOpen={isDocumentOpen}
+                onClose={() => setIsDocumentOpen(false)}
+                leave={selectedLeave}
+                onUpdate={handleDocumentUpdate}
+            />
+
+            <ProgramDocumentModal
+                isOpen={isProgramDocumentOpen}
+                onClose={() => setIsProgramDocumentOpen(false)}
+                leave={selectedLeave}
+                onUpdate={handleDocumentUpdate}
+            />
+
+            <SuccessModal
+                isOpen={!!showSuccessCode}
+                onClose={() => setShowSuccessCode(null)}
+                code={showSuccessCode}
+            />
         </div>
     );
 }
+
+/**
+ * Document Modal
+ */
+const DocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
+    const [loading, setLoading] = useState(false);
+    const [fileUrl, setFileUrl] = useState('');
+    const [uploading, setUploading] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
+
+    if (!isOpen || !leave) return null;
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = () => {
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const file = e.dataTransfer.files[0];
+        if (file && (file.type.startsWith('image/') || file.type === 'application/pdf')) {
+            uploadFile(file);
+        } else {
+            alert("Please upload an image or PDF file.");
+        }
+    };
+
+    const uploadFile = async (file) => {
+        if (!file) return;
+
+        setUploading(true);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', 'college_db');
+
+        try {
+            const res = await axios.post(
+                'https://api.cloudinary.com/v1_1/dqgspgrul/image/upload',
+                formData
+            );
+            setFileUrl(res.data.secure_url);
+        } catch (err) {
+            console.error("Upload error:", err);
+            alert("Failed to upload file. Please ensure you have a valid internet connection.");
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleUpload = (e) => {
+        const file = e.target.files[0];
+        uploadFile(file);
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        // Generate a unique 5-letter code
+        const code = Math.random().toString(36).substring(2, 7).toUpperCase();
+
+        setLoading(true);
+        try {
+            await axios.patch(`${API_PORT}/leave/${leave._id}`, {
+                documented: false, // Remains false until admin approves
+                documentUrl: fileUrl || null,
+                medicalCode: code,
+                isMedicalSubmitted: true
+            });
+            onUpdate(code);
+            onClose();
+        } catch (err) {
+            console.error(err);
+            alert("Failed to submit documentation.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose}></div>
+            <div className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+                <div className="p-6 bg-blue-600 text-white flex items-center justify-between">
+                    <div>
+                        <h2 className="text-xl font-black uppercase italic">Document Leave</h2>
+                        <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest">Attach medical documents (Optional)</p>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-xl transition-all"><X size={20} /></button>
+                </div>
+                <div className="p-6 space-y-6">
+                    <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl">
+                        <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Leave Reason</p>
+                        <p className="text-sm font-black text-blue-800 italic">"{leave.reason}"</p>
+                        <p className="text-[10px] font-bold text-blue-400 mt-2 uppercase">{new Date(leave.fromDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })} → {leave.toDate ? new Date(leave.toDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'End of Day'}</p>
+                    </div>
+
+                    <div className="space-y-4">
+                        {!fileUrl || uploading ? (
+                            <label
+                                htmlFor="document-upload"
+                                onDragOver={handleDragOver}
+                                onDragLeave={handleDragLeave}
+                                onDrop={handleDrop}
+                                className={`w-full h-48 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center p-6 text-center transition-all cursor-pointer group
+                                    ${isDragging
+                                        ? 'border-blue-500 bg-blue-50/70 scale-[1.02] shadow-inner'
+                                        : uploading 
+                                            ? 'border-blue-200 bg-blue-50/30' 
+                                            : 'border-slate-200 hover:border-blue-400 hover:bg-blue-50'}`}
+                            >
+                                <input
+                                    type="file"
+                                    id="document-upload"
+                                    onChange={handleUpload}
+                                    className="hidden"
+                                    accept="image/*,.pdf"
+                                    disabled={uploading}
+                                />
+                                {uploading ? (
+                                    <div className="pointer-events-none flex flex-col items-center justify-center">
+                                        <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-3" />
+                                        <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Uploading document...</p>
+                                    </div>
+                                ) : (
+                                    <div className="pointer-events-none flex flex-col items-center justify-center">
+                                        <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 mb-3 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                            <Upload size={24} />
+                                        </div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">
+                                            Drag & Drop or Click to select <br /> medical documents
+                                        </p>
+                                        <p className="text-[8px] font-bold text-slate-300 uppercase mt-2">(Optional)</p>
+                                    </div>
+                                )}
+                            </label>
+                        ) : (
+                            <div className="relative group rounded-[2rem] overflow-hidden border-2 border-emerald-400 shadow-xl bg-slate-50 animate-in zoom-in duration-300">
+                                {fileUrl.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i) ? (
+                                    <img src={fileUrl} alt="Preview" className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500" />
+                                ) : (
+                                    <div className="w-full h-48 flex flex-col items-center justify-center gap-3">
+                                        <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600">
+                                            <FileText size={32} />
+                                        </div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">PDF Document Attachment</p>
+                                    </div>
+                                )}
+                                <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-[2px]">
+                                    <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="p-4 bg-white rounded-2xl text-blue-600 hover:scale-110 transition-all shadow-2xl flex items-center gap-2 font-black text-[10px] uppercase tracking-widest">
+                                        <LayoutGrid size={18} /> View
+                                    </a>
+                                    <button onClick={() => setFileUrl('')} className="p-4 bg-white rounded-2xl text-rose-600 hover:scale-110 transition-all shadow-2xl flex items-center gap-2 font-black text-[10px] uppercase tracking-widest">
+                                        <X size={18} /> Remove
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {fileUrl && !uploading && (
+                            <div className="flex items-center gap-3 p-4 bg-emerald-50 rounded-2xl border border-emerald-100 overflow-hidden animate-in slide-in-from-top-2">
+                                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-emerald-600 shadow-sm shrink-0">
+                                    <CheckCircle size={20} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest leading-none mb-1">Ready to Save</p>
+                                    <p className="text-[10px] font-bold text-slate-600 truncate">{fileUrl.split('/').pop()}</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <button
+                        onClick={handleSubmit}
+                        disabled={loading || uploading}
+                        className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all shadow-xl
+                            ${loading || uploading ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-blue-200'}`}
+                    >
+                        {loading ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle size={16} />}
+                        Confirm Submission
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+/**
+ * Program Document Modal
+ */
+const ProgramDocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
+    const [loading, setLoading] = useState(false);
+    const [fileUrl, setFileUrl] = useState('');
+    const [uploading, setUploading] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
+
+    if (!isOpen || !leave) return null;
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = () => {
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const file = e.dataTransfer.files[0];
+        if (file && (file.type.startsWith('image/') || file.type === 'application/pdf')) {
+            uploadFile(file);
+        } else {
+            alert("Please upload an image or PDF file.");
+        }
+    };
+
+    const uploadFile = async (file) => {
+        if (!file) return;
+
+        setUploading(true);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', 'college_db');
+
+        try {
+            const res = await axios.post(
+                'https://api.cloudinary.com/v1_1/dqgspgrul/image/upload',
+                formData
+            );
+            setFileUrl(res.data.secure_url);
+        } catch (err) {
+            console.error("Upload error:", err);
+            alert("Failed to upload file. Please ensure you have a valid internet connection.");
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleUpload = (e) => {
+        const file = e.target.files[0];
+        uploadFile(file);
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        // Generate a unique 5-letter code
+        const code = Math.random().toString(36).substring(2, 7).toUpperCase();
+
+        setLoading(true);
+        try {
+            await axios.patch(`${API_PORT}/leave/${leave._id}`, {
+                programDocumented: false, // Remains false until admin approves
+                programDocumentUrl: fileUrl || null,
+                programCode: code,
+                isProgramSubmitted: true
+            });
+            onUpdate(code);
+            onClose();
+        } catch (err) {
+            console.error(err);
+            alert("Failed to submit documentation.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose}></div>
+            <div className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+                <div className="p-6 bg-purple-600 text-white flex items-center justify-between">
+                    <div>
+                        <h2 className="text-xl font-black uppercase italic">Program Document</h2>
+                        <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest">Attach program documents (Optional)</p>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-xl transition-all"><X size={20} /></button>
+                </div>
+                <div className="p-6 space-y-6">
+                    <div className="p-4 bg-purple-50 border border-purple-100 rounded-2xl">
+                        <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest mb-1">Leave Reason</p>
+                        <p className="text-sm font-black text-purple-800 italic">"{leave.reason}"</p>
+                        <p className="text-[10px] font-bold text-purple-400 mt-2 uppercase">{new Date(leave.fromDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })} → {leave.toDate ? new Date(leave.toDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'End of Day'}</p>
+                    </div>
+
+                    <div className="space-y-4">
+                        {!fileUrl || uploading ? (
+                            <label
+                                htmlFor="program-upload"
+                                onDragOver={handleDragOver}
+                                onDragLeave={handleDragLeave}
+                                onDrop={handleDrop}
+                                className={`w-full h-48 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center p-6 text-center transition-all cursor-pointer group
+                                    ${isDragging
+                                        ? 'border-purple-500 bg-purple-50/70 scale-[1.02] shadow-inner'
+                                        : uploading 
+                                            ? 'border-purple-200 bg-purple-50/30' 
+                                            : 'border-slate-200 hover:border-purple-400 hover:bg-purple-50'}`}
+                            >
+                                <input
+                                    type="file"
+                                    id="program-upload"
+                                    onChange={handleUpload}
+                                    className="hidden"
+                                    accept="image/*,.pdf"
+                                    disabled={uploading}
+                                />
+                                {uploading ? (
+                                    <div className="pointer-events-none flex flex-col items-center justify-center">
+                                        <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-3" />
+                                        <p className="text-[10px] font-black text-purple-600 uppercase tracking-widest">Uploading document...</p>
+                                    </div>
+                                ) : (
+                                    <div className="pointer-events-none flex flex-col items-center justify-center">
+                                        <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 mb-3 group-hover:bg-purple-600 group-hover:text-white transition-all">
+                                            <Upload size={24} />
+                                        </div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">
+                                            Drag & Drop or Click to select <br /> program documents
+                                        </p>
+                                        <p className="text-[8px] font-bold text-slate-300 uppercase mt-2">(Optional)</p>
+                                    </div>
+                                )}
+                            </label>
+                        ) : (
+                            <div className="relative group rounded-[2rem] overflow-hidden border-2 border-emerald-400 shadow-xl bg-slate-50 animate-in zoom-in duration-300">
+                                {fileUrl.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i) ? (
+                                    <img src={fileUrl} alt="Preview" className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500" />
+                                ) : (
+                                    <div className="w-full h-48 flex flex-col items-center justify-center gap-3">
+                                        <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center text-purple-600">
+                                            <FileText size={32} />
+                                        </div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">PDF Document Attachment</p>
+                                    </div>
+                                )}
+                                <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-[2px]">
+                                    <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="p-4 bg-white rounded-2xl text-purple-600 hover:scale-110 transition-all shadow-2xl flex items-center gap-2 font-black text-[10px] uppercase tracking-widest">
+                                        <LayoutGrid size={18} /> View
+                                    </a>
+                                    <button onClick={() => setFileUrl('')} className="p-4 bg-white rounded-2xl text-rose-600 hover:scale-110 transition-all shadow-2xl flex items-center gap-2 font-black text-[10px] uppercase tracking-widest">
+                                        <X size={18} /> Remove
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {fileUrl && !uploading && (
+                            <div className="flex items-center gap-3 p-4 bg-emerald-50 rounded-2xl border border-emerald-100 overflow-hidden animate-in slide-in-from-top-2">
+                                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-emerald-600 shadow-sm shrink-0">
+                                    <CheckCircle size={20} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest leading-none mb-1">Ready to Save</p>
+                                    <p className="text-[10px] font-bold text-slate-600 truncate">{fileUrl.split('/').pop()}</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <button
+                        onClick={handleSubmit}
+                        disabled={loading || uploading}
+                        className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all shadow-xl
+                            ${loading || uploading ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' : 'bg-purple-600 text-white hover:bg-purple-700 active:scale-95 shadow-purple-200'}`}
+                    >
+                        {loading ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle size={16} />}
+                        Confirm Submission
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+/**
+ * Success Modal
+ */
+const SuccessModal = ({ isOpen, onClose, code }) => {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={onClose}></div>
+            <div className="relative bg-white w-full max-w-sm rounded-[3rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 border border-slate-100 text-center p-10">
+                <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-100">
+                    <CheckCircle size={40} />
+                </div>
+                <h2 className="text-2xl font-black text-slate-800 uppercase italic tracking-tight mb-2">Submitted!</h2>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-8">Documentation processed</p>
+
+                <div className="bg-slate-50 rounded-[2rem] p-6 mb-8 border border-slate-100 relative overflow-hidden group">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500"></div>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Your Verification Code</p>
+                    <div className="text-4xl font-black text-blue-600 tracking-widest font-mono group-hover:scale-110 transition-transform duration-300">
+                        {code}
+                    </div>
+                </div>
+
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed mb-8 bg-amber-50 p-4 rounded-2xl border border-amber-100">
+                    Please write down this code on your document paper.
+                </p>
+
+                <button
+                    onClick={onClose}
+                    className="w-full py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-blue-600 active:scale-95 transition-all shadow-xl shadow-slate-200"
+                >
+                    Got it, Close
+                </button>
+            </div>
+        </div>
+    );
+};
