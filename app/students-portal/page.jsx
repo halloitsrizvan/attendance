@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
-import { CalendarCheck, CalendarDays, MinusSquare, Star, Loader2 } from 'lucide-react';
+import { CalendarCheck, CalendarDays, MinusSquare, Star, Loader2, AlertTriangle } from 'lucide-react';
 import { API_PORT } from '@/Constants';
 import WelcomeBanner from '@/components/StudentPortal/WelcomeBanner';
 import MetricCard from '@/components/StudentPortal/MetricCard';
@@ -64,6 +64,46 @@ export default function DashboardPage() {
             setLoading(false);
         }
     };
+
+    const getDetailedStatus = (item) => {
+        if (item.status === 'rejected') return 'Rejected';
+        if (item.approved === false) return 'Approval Pending';
+        const now = new Date();
+        const fromDateTime = new Date(`${item.fromDate}T${item.fromTime || '00:00'}`);
+        const toDateTime = item.toDate && item.toTime ? new Date(`${item.toDate}T${item.toTime}`) : null;
+
+        if (item.status === 'returned') {
+            if (toDateTime && item.returnedAt && new Date(item.returnedAt) > toDateTime) {
+                return 'Late Returned';
+            }
+            return 'Returned';
+        }
+
+        const dbStatus = (item.status || '').toLowerCase();
+        if (dbStatus === 'active' || dbStatus === 'late' || dbStatus === 'on leave') {
+            if (dbStatus === 'late' || (toDateTime && now > toDateTime)) return 'Late';
+            return 'On Leave';
+        }
+
+        if (now < fromDateTime) return 'Scheduled';
+
+        return 'Pending';
+    };
+
+    const pendingRecoveries = useMemo(() => {
+        return leaveData.filter(l => 
+            (l.status === 'returned' || l.returnedAt) && 
+            l.recovery !== true && 
+            l.recoveryNeeded !== false
+        );
+    }, [leaveData]);
+
+    const activeOrScheduledLeaves = useMemo(() => {
+        return leaveData.filter(l => {
+            const status = getDetailedStatus(l);
+            return status === 'On Leave' || status === 'Late' || status === 'Scheduled';
+        });
+    }, [leaveData]);
 
     const stats = useMemo(() => {
         let presents = 0;
@@ -134,6 +174,52 @@ export default function DashboardPage() {
                 studentName={(student?.['SHORT NAME'] || student?.['FULL NAME'])?.split(' ')[0] || 'Student'} 
                 dateStr={todayDateStr} 
             />
+
+            {/* Quick Info & Alerts Section */}
+            {(pendingRecoveries.length > 0 || activeOrScheduledLeaves.length > 0) && (
+                <div className="mb-6 space-y-2 animate-in fade-in duration-300">
+                    {/* Pending Recoveries */}
+                    {pendingRecoveries.map(item => (
+                        <div key={item._id} className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200/60 rounded-2xl text-slate-700 shadow-sm text-xs font-bold">
+                            <AlertTriangle size={14} className="text-amber-500 shrink-0" />
+                            <span className="px-1.5 py-0.5 bg-amber-200 text-amber-800 rounded-md text-[9px] font-black uppercase tracking-wider shrink-0">
+                                Recovery
+                            </span>
+                            <span className="truncate">
+                                Required for "{item.reason}"
+                            </span>
+                            <span className="ml-auto text-[10px] text-slate-500 font-bold shrink-0">
+                                Returned: {item.returnedAt ? new Date(item.returnedAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' }) : (item.toDate ? new Date(item.toDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' }) : 'Pending')}
+                            </span>
+                        </div>
+                    ))}
+
+                    {/* Active or Scheduled Leaves */}
+                    {activeOrScheduledLeaves.map(item => {
+                        const status = getDetailedStatus(item);
+                        const isScheduled = status === 'Scheduled';
+                        const bgColor = isScheduled ? 'bg-sky-50 border-sky-200/60 text-slate-700' : 'bg-rose-50 border-rose-200/60 text-slate-700';
+                        const badgeColor = isScheduled ? 'bg-sky-200 text-sky-800' : 'bg-rose-200 text-rose-800';
+                        const iconColor = isScheduled ? 'text-sky-500' : 'text-rose-500';
+
+                        return (
+                            <div key={item._id} className={`flex items-center gap-3 p-3 ${bgColor} border rounded-2xl shadow-sm text-xs font-bold`}>
+                                <CalendarDays size={14} className={`${iconColor} shrink-0`} />
+                                <span className={`px-1.5 py-0.5 ${badgeColor} rounded-md text-[9px] font-black uppercase tracking-wider shrink-0`}>
+                                    {status}
+                                </span>
+                                <span className="truncate">
+                                    "{item.reason}"
+                                </span>
+                                <span className="ml-auto text-[10px] text-slate-500 font-bold shrink-0">
+                                    {new Date(item.fromDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' })}
+                                    {item.toDate && ` → ${new Date(item.toDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' })}`}
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
 
             <div className="mb-8">
                 <h2 className="text-2xl font-black text-slate-800 mb-6">My Analytics</h2>
