@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { 
     BookOpen, Calendar, Image as ImageIcon, Search, 
     AlertCircle, ChevronDown, Award, Trophy, Loader2, 
-    RefreshCw, Filter, ShieldCheck, CheckCircle2, AlertTriangle, Clock
+    RefreshCw, Filter, ShieldCheck, CheckCircle2, AlertTriangle, Clock, Download
 } from 'lucide-react';
 import axios from 'axios';
 import { API_PORT } from '@/Constants';
@@ -24,6 +24,36 @@ export default function LisanPage() {
     useEffect(() => {
         fetchProfileAndReports();
     }, []);
+
+    const handleDownloadPoster = async (url, filename) => {
+        try {
+            // Transform Cloudinary URL if possible to force download headers
+            let downloadUrl = url;
+            if (url.includes('cloudinary.com') && url.includes('/image/upload/')) {
+                downloadUrl = url.replace('/image/upload/', '/image/upload/fl_attachment/');
+            }
+            
+            // Try fetching as blob (best user experience)
+            const response = await fetch(downloadUrl);
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = filename || 'poster.jpg';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(blobUrl);
+        } catch (error) {
+            console.error("CORS or network error during direct download, trying link method:", error);
+            // Fallback: open transformed download link directly or open in new tab
+            let fallbackUrl = url;
+            if (url.includes('cloudinary.com') && url.includes('/image/upload/')) {
+                fallbackUrl = url.replace('/image/upload/', '/image/upload/fl_attachment/');
+            }
+            window.open(fallbackUrl, '_blank');
+        }
+    };
 
     const fetchProfileAndReports = async () => {
         const token = localStorage.getItem('studentToken');
@@ -315,6 +345,15 @@ export default function LisanPage() {
                                                                 <Calendar size={12} className="text-slate-300" />
                                                                 <span>{program.date || 'No Date'}</span>
                                                             </div>
+                                                            {program.poster && (
+                                                                <button
+                                                                    onClick={() => handleDownloadPoster(program.poster, `${program.title || 'program'}-poster.jpg`)}
+                                                                    className="flex items-center gap-1 text-sky-600 bg-sky-50 hover:bg-sky-100 transition-colors px-2.5 py-1 rounded-xl border border-sky-100 font-black uppercase tracking-widest text-[9px] active:scale-95 transition-all"
+                                                                >
+                                                                    <Download size={10} className="text-sky-500" />
+                                                                    Download
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
