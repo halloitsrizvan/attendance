@@ -46,7 +46,7 @@ const studentsSchema = new Schema({
     },
     role: {
         type: String,
-        enum: ['student', 'treasurer', 'convenor', 'chairman', 'secretary', 'president', 'PRO', 'joint secretary'],
+        enum: ['student', 'treasurer', 'convenor', 'chairman', 'secretary', 'president', 'PRO', 'joint secretary', 'lisan'],
         default: 'student'
     }
 }, { timestamps: true });

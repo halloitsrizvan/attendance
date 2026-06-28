@@ -2,7 +2,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LogOut, CalendarCheck, CalendarDays, Award, Star, Trophy, LayoutDashboard, User } from 'lucide-react';
+import { LogOut, CalendarCheck, CalendarDays, Award, Star, Trophy, LayoutDashboard, User, BookOpen } from 'lucide-react';
 import axios from 'axios';
 import { API_PORT } from '@/Constants';
 
@@ -60,12 +60,16 @@ export default function Sidebar({ isOpen, onClose }) {
         { name: 'CEP', path: '/students-portal/cep', icon: Award },
         { name: 'Zehnuth', path: '/students-portal/zehnuth', icon: Star },
         { name: 'Best Class', path: '/students-portal/best-class', icon: Trophy },
+        { name: 'Lisan', path: '/students-portal/lisan', icon: BookOpen },
         { name: 'Profile', path: '/students-portal/profile', icon: User },
     ];
 
     const filteredNavItems = navItems.filter(item => {
         if (item.name === 'Best Class') {
             return role && role !== 'student';
+        }
+        if (item.name === 'Lisan') {
+            return role && role.toLowerCase() === 'lisan';
         }
         return true;
     });
