@@ -791,6 +791,7 @@ const StudentManagement = () => {
                     <option value="PRO">PRO</option>
                     <option value="joint secretary">Joint Secretary</option>
                     <option value="lisan">Lisan</option>
+                    <option value="StudentAdmin">StudentAdmin</option>
                   </select>
                 </div>
 

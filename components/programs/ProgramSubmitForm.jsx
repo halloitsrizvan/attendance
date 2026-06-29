@@ -257,7 +257,7 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                         <div className="relative">
                             <select
                                 value={month}
-                                disabled={submitterType === 'student'}
+                                disabled={true}
                                 onChange={(e) => setMonth(e.target.value)}
                                 className="w-full bg-white border border-slate-200 rounded-2xl p-4 pr-10 text-sm font-black text-slate-800 outline-none focus:border-blue-500 transition-all shadow-sm cursor-pointer appearance-none disabled:opacity-60 disabled:cursor-not-allowed"
                             >
@@ -279,7 +279,7 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                         <input
                             type="number"
                             value={year}
-                            disabled={submitterType === 'student'}
+                            disabled={true}
                             onChange={(e) => setYear(parseInt(e.target.value) || new Date().getFullYear())}
                             className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-black text-slate-800 focus:border-blue-500 outline-none transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
                             min="2020"

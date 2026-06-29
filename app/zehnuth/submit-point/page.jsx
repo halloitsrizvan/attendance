@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Header from '@/components/Header/Header';
 import axios from 'axios';
 import { Trophy, Star, Send, Loader2, User, Activity, Plus, CheckCircle2, X, ChevronDown, AlertTriangle, Search, CheckCircle, Image as ImageIcon, Upload } from 'lucide-react';
@@ -105,6 +105,32 @@ export default function SubmitPoint() {
     const [selectedMentee, setSelectedMentee] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('Writings');
     const [selectedAchievement, setSelectedAchievement] = useState(null);
+    const [selectedMenteePoints, setSelectedMenteePoints] = useState([]);
+
+    useEffect(() => {
+        const fetchMenteePoints = async () => {
+            if (!selectedMentee) {
+                setSelectedMenteePoints([]);
+                return;
+            }
+            try {
+                const res = await axios.get(`/api/zehnuth/points?studentId=${selectedMentee}`);
+                setSelectedMenteePoints(res.data || []);
+            } catch (err) {
+                console.error("Error fetching selected mentee points:", err);
+            }
+        };
+        fetchMenteePoints();
+    }, [selectedMentee]);
+
+    const worksCount = useMemo(() => {
+        if (!selectedMenteePoints || !selectedAchievement || selectedCategory !== 'Works') return 0;
+        return selectedMenteePoints.filter(p => 
+            p.category === 'Works' && 
+            p.activity === selectedAchievement && 
+            p.status !== 'rejected'
+        ).length;
+    }, [selectedMenteePoints, selectedAchievement, selectedCategory]);
     const [points, setPoints] = useState(0);
     const [remarks, setRemarks] = useState('');
     const [showSuccess, setShowSuccess] = useState(false);
@@ -222,6 +248,11 @@ export default function SubmitPoint() {
 
         if (!selectedMentee || !selectedAchievement || (isAdmin && !points)) {
             alert("Please fill all fields and select an achievement");
+            return;
+        }
+
+        if (selectedCategory === 'Works' && worksCount >= 20) {
+            alert(`This student has already applied ${worksCount} times for "${selectedAchievement}". You cannot submit any more applications for this activity.`);
             return;
         }
 
@@ -558,11 +589,28 @@ export default function SubmitPoint() {
                         )}
 
                         {selectedCategory === 'Works' && (
-                            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+                            <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-4">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                     <Card label="Social works" />
                                     <Card label="Poster design" />
                                     <Card label="video edit" />
+                                </div>
+                                <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 text-amber-800 text-[11px] font-bold space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-[9px] uppercase tracking-wider font-black">NB</span>
+                                        <span>For the <strong className="uppercase">Works</strong> category, you can apply for a maximum of 20 times per activity.</span>
+                                    </div>
+                                    {selectedAchievement && (
+                                        <div className="text-slate-500 font-semibold pl-8 mt-1">
+                                            Status for "<span className="uppercase text-amber-700 font-bold">{selectedAchievement}</span>": 
+                                            <span className={`ml-1.5 font-bold ${worksCount >= 20 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                                {worksCount} / 20 Applications
+                                            </span>
+                                            {worksCount >= 20 && (
+                                                <span className="ml-2 text-rose-500 font-black uppercase text-[9px] tracking-wide">(Limit Reached)</span>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}

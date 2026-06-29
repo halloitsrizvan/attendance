@@ -2,7 +2,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LogOut, CalendarCheck, CalendarDays, Award, Star, Trophy, LayoutDashboard, User, BookOpen } from 'lucide-react';
+import { LogOut, CalendarCheck, CalendarDays, Award, Star, Trophy, LayoutDashboard, User, BookOpen, Sliders } from 'lucide-react';
 import axios from 'axios';
 import { API_PORT } from '@/Constants';
 
@@ -61,6 +61,7 @@ export default function Sidebar({ isOpen, onClose }) {
         { name: 'Zehnuth', path: '/students-portal/zehnuth', icon: Star },
         { name: 'Best Class', path: '/students-portal/best-class', icon: Trophy },
         { name: 'Lisan', path: '/students-portal/lisan', icon: BookOpen },
+        { name: 'Controls', path: '/students-portal/controls', icon: Sliders },
         { name: 'Profile', path: '/students-portal/profile', icon: User },
     ];
 
@@ -70,6 +71,9 @@ export default function Sidebar({ isOpen, onClose }) {
         }
         if (item.name === 'Lisan') {
             return role && role.toLowerCase() === 'lisan';
+        }
+        if (item.name === 'Controls') {
+            return role && role.toLowerCase() === 'studentadmin';
         }
         return true;
     });
