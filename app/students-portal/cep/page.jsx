@@ -209,6 +209,8 @@ export default function CEPPage() {
         const finalToTime = cepMode === 'dars' ? '20:30' : (cepMode === 'custom' ? customToTime : getPeriodTime(toPeriod, '', false));
         const finalReason = reason.trim() || 'Class Excused Pass';
 
+        const groupId = 'CEP-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6).toUpperCase();
+
         const submitPromises = selectedStudents.map(std => {
             const payload = {
                 studentId: std._id || std.id,
@@ -216,7 +218,8 @@ export default function CEPPage() {
                 toTime: finalToTime,
                 reason: finalReason,
                 date: cepDate,
-                ApproveCEP: false
+                ApproveCEP: false,
+                groupId: groupId
             };
             return axios.post(`${API_PORT}/class-excused-pass`, payload);
         });

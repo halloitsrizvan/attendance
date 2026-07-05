@@ -37,6 +37,10 @@ const shortLeaveSchema = new Schema({
     ApproveCEP: {
         type: Boolean
     },
+    groupId: {
+        type: String,
+        default: null
+    },
     academicYearId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'AcademicYear'
