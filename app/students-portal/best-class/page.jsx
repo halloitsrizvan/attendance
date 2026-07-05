@@ -383,14 +383,7 @@ export default function BestClassPage() {
                                             </div>
                                         )}
 
-                                        {/* Reviewed mark */}
-                                        {report.status === 'reviewed' && program.mark !== undefined && (
-                                            <div className="mt-4 flex items-center justify-end">
-                                                <span className="text-xs font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1">
-                                                    <Trophy size={14} /> {program.mark} Points
-                                                </span>
-                                            </div>
-                                        )}
+                                        {/* Reviewed mark omitted as per user request */}
                                     </div>
                                 ))}
                             </div>
