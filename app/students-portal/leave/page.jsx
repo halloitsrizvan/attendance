@@ -392,12 +392,25 @@ export default function LeavePage() {
                                 </div>
                                 <div className="pl-4 border-l-2 border-slate-200 space-y-4 ml-2">
                                     <div className="relative">
-                                        <div className="absolute -left-[21px] top-1 w-3 h-3 rounded-full bg-slate-300 border-2 border-white"></div>
-                                        <div className="flex items-center gap-4">
-                                            <span className="px-2 py-1 border border-slate-800 rounded-lg text-[10px] font-black">Scheduled</span>
-                                            <div>
-                                                <div className="text-[12px] font-bold text-slate-800">{new Date(item.fromDate).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, {formatTimeTo12h(item.fromTime) || '12:00 PM'}</div>
-                                                <div className="text-[10px] font-semibold text-slate-500">
+                                        <div className="absolute -left-[21px] top-1.5 w-3 h-3 rounded-full bg-slate-300 border-2 border-white"></div>
+                                        <div className="flex items-start gap-4">
+                                            <span className="px-2 py-1 border border-slate-800 rounded-lg text-[10px] font-black w-20 text-center shrink-0 mt-0.5">Scheduled</span>
+                                            <div className="space-y-1.5">
+                                                <div className="flex items-baseline gap-2 text-[12px] text-slate-800">
+                                                    <span className="text-slate-400 font-semibold w-10 shrink-0">From:</span>
+                                                    <span className="font-bold">{new Date(item.fromDate).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, {formatTimeTo12h(item.fromTime) || '12:00 PM'}</span>
+                                                </div>
+                                                <div className="flex items-baseline gap-2 text-[12px] text-slate-800">
+                                                    <span className="text-slate-400 font-semibold w-10 shrink-0">To:</span>
+                                                    <span className="font-bold">
+                                                        {item.toDate ? (
+                                                            `${new Date(item.toDate).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, ${formatTimeTo12h(item.toTime) || '12:00 PM'}`
+                                                        ) : (
+                                                            <span className="text-amber-500 font-black">PENDING</span>
+                                                        )}
+                                                    </span>
+                                                </div>
+                                                <div className="text-[10px] font-semibold text-slate-500 pt-0.5">
                                                     USTHAD {item.teacherId?.name || item.teacher || 'Teacher'}
                                                 </div>
                                             </div>
@@ -405,12 +418,12 @@ export default function LeavePage() {
                                     </div>
                                     {getDetailedStatus(item) !== 'Scheduled' && (
                                         <div className="relative">
-                                            <div className="absolute -left-[21px] top-1 w-3 h-3 rounded-full bg-slate-300 border-2 border-white"></div>
-                                            <div className="flex items-center gap-4">
-                                                <span className="px-2 py-1 border border-slate-800 rounded-lg text-[10px] font-black">Started</span>
+                                            <div className="absolute -left-[21px] top-1.5 w-3 h-3 rounded-full bg-slate-300 border-2 border-white"></div>
+                                            <div className="flex items-start gap-4">
+                                                <span className="px-2 py-1 border border-slate-800 rounded-lg text-[10px] font-black w-20 text-center shrink-0 mt-0.5">Started</span>
                                                 <div>
                                                     <div className="text-[12px] font-bold text-slate-800">{new Date(item.fromDate).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, {formatTimeTo12h(item.fromTime) || '12:00 PM'}</div>
-                                                    <div className="text-[10px] font-semibold text-slate-500">
+                                                    <div className="text-[10px] font-semibold text-slate-500 mt-1">
                                                         USTHAD {item.teacherId?.name || item.teacher || 'Teacher'}
                                                     </div>
                                                 </div>
@@ -419,12 +432,12 @@ export default function LeavePage() {
                                     )}
                                     {item.returnedAt && (
                                         <div className="relative">
-                                            <div className="absolute -left-[21px] top-1 w-3 h-3 rounded-full bg-slate-300 border-2 border-white"></div>
-                                            <div className="flex items-center gap-4">
-                                                <span className="px-2 py-1 border border-slate-800 rounded-lg text-[10px] font-black">Returned</span>
+                                            <div className="absolute -left-[21px] top-1.5 w-3 h-3 rounded-full bg-slate-300 border-2 border-white"></div>
+                                            <div className="flex items-start gap-4">
+                                                <span className="px-2 py-1 border border-slate-800 rounded-lg text-[10px] font-black w-20 text-center shrink-0 mt-0.5">Returned</span>
                                                 <div>
                                                     <div className="text-[12px] font-bold text-slate-800">{new Date(item.returnedAt).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, {new Date(item.returnedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                                                    <div className="text-[10px] font-semibold text-slate-500">
+                                                    <div className="text-[10px] font-semibold text-slate-500 mt-1">
                                                         USTHAD {item.markReturnedTeacher || item.teacherId?.name || item.teacher || 'Teacher'}
                                                     </div>
                                                 </div>

@@ -111,7 +111,7 @@ export default function ProfilePage() {
                         {student?.['FULL NAME'] || 'Student Name'}
                     </h3>
                     <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-wider">
-                        {student?.role || 'Student'}
+                        {Array.isArray(student?.role) ? student.role.join(', ') : (student?.role || 'Student')}
                     </p>
 
                     <div className="w-full border-t border-slate-100 mt-6 pt-6 space-y-3 text-left">

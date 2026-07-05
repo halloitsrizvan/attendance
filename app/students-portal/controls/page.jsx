@@ -40,7 +40,9 @@ export default function ControlsPage() {
             const profileData = profileRes.data;
 
             // Restrict page access to StudentAdmin role
-            if (!profileData.role || profileData.role.toLowerCase() !== 'studentadmin') {
+            const roles = Array.isArray(profileData.role) ? profileData.role : [profileData.role];
+            const normalizedRoles = roles.map(r => String(r || '').toLowerCase());
+            if (!normalizedRoles.includes('studentadmin')) {
                 router.push('/students-portal');
                 return;
             }

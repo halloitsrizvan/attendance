@@ -45,14 +45,28 @@ const studentsSchema = new Schema({
         default: true
     },
     role: {
-        type: String,
-        enum: ['student', 'treasurer', 'convenor', 'chairman', 'secretary', 'president', 'PRO', 'joint secretary', 'lisan', 'StudentAdmin'],
-        default: 'student'
+        type: [String],
+        enum: ['student', 'class', 'lisan', 'StudentAdmin', 'DSC', 'Welfare', 'Sakshi', 'Sibaq', 'Cleaning', 'OGEA', 'Office'],
+        default: ['student']
     }
 }, { timestamps: true });
 
 studentsSchema.index({ CLASS: 1 });
 studentsSchema.index({ ADNO: 1 });
+
+// Ensure role is always an array of strings
+studentsSchema.post('init', function(doc) {
+    if (doc && typeof doc.role === 'string') {
+        doc.role = [doc.role];
+    }
+});
+
+studentsSchema.pre('save', function(next) {
+    if (typeof this.role === 'string') {
+        this.role = [this.role];
+    }
+    next();
+});
 
 if (mongoose.models['Student']) {
   delete mongoose.models['Student'];

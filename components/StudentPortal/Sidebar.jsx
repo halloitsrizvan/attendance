@@ -66,14 +66,17 @@ export default function Sidebar({ isOpen, onClose }) {
     ];
 
     const filteredNavItems = navItems.filter(item => {
+        const roles = Array.isArray(role) ? role : [role];
+        const normalizedRoles = roles.map(r => String(r || '').toLowerCase());
+
         if (item.name === 'Best Class') {
-            return role && role !== 'student';
+            return normalizedRoles.includes('class');
         }
         if (item.name === 'Lisan') {
-            return role && role.toLowerCase() === 'lisan';
+            return normalizedRoles.includes('lisan');
         }
         if (item.name === 'Controls') {
-            return role && role.toLowerCase() === 'studentadmin';
+            return normalizedRoles.includes('studentadmin');
         }
         return true;
     });

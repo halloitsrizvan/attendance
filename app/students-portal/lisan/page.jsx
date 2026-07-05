@@ -69,7 +69,9 @@ export default function LisanPage() {
             });
 
             const profileData = res.data;
-            if (!profileData.role || profileData.role.toLowerCase() !== 'lisan') {
+            const roles = Array.isArray(profileData.role) ? profileData.role : [profileData.role];
+            const normalizedRoles = roles.map(r => String(r || '').toLowerCase());
+            if (!normalizedRoles.includes('lisan')) {
                 router.push('/students-portal');
                 return;
             }

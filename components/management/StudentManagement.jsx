@@ -33,7 +33,7 @@ const StudentManagement = () => {
     Password: '',
     onLeave: false,
     active: true,
-    role: 'student'
+    role: ['student']
   });
 
   // Pagination states
@@ -71,7 +71,7 @@ const StudentManagement = () => {
       Password: '',
       onLeave: false,
       active: true,
-      role: 'student'
+      role: ['student']
     });
     setSelectedStudent(null);
     setIsModalOpen(true);
@@ -89,7 +89,7 @@ const StudentManagement = () => {
       Password: student.Password || '',
       onLeave: student.onLeave || false,
       active: student.active !== false,
-      role: student.role || 'student'
+      role: Array.isArray(student.role) ? student.role : [student.role || 'student']
     });
     setIsModalOpen(true);
   };
@@ -386,7 +386,7 @@ const StudentManagement = () => {
                       </td>
                       <td className="p-6 text-center">
                         <span className="inline-flex bg-sky-50 text-sky-600 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest ring-1 ring-sky-100">
-                          {student.role || 'student'}
+                          {Array.isArray(student.role) ? student.role.join(', ') : (student.role || 'student')}
                         </span>
                       </td>
                       <td className="p-6 text-center">
@@ -441,7 +441,7 @@ const StudentManagement = () => {
                       </div>
                       <div>
                         <h4 className="font-black text-slate-800 tracking-tight leading-tight">{student["FULL NAME"]}</h4>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Class {student.CLASS} • SL {student.SL} • {student.role || 'student'}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Class {student.CLASS} • SL {student.SL} • {Array.isArray(student.role) ? student.role.join(', ') : (student.role || 'student')}</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -773,26 +773,59 @@ const StudentManagement = () => {
                   />
                 </div>
 
-                <div className="sm:col-span-1">
+                <div className="sm:col-span-2">
                   <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2">
-                    <Shield size={14} className="text-rose-500" /> Program Role
+                    <Shield size={14} className="text-rose-500" /> Program Roles
                   </label>
-                  <select
-                    value={formData.role}
-                    onChange={e => setFormData({...formData, role: e.target.value})}
-                    className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-rose-400 focus:bg-white outline-none transition-all appearance-none cursor-pointer"
-                  >
-                    <option value="student">Student</option>
-                    <option value="treasurer">Treasurer</option>
-                    <option value="convenor">Convenor</option>
-                    <option value="chairman">Chairman</option>
-                    <option value="secretary">Secretary</option>
-                    <option value="president">President</option>
-                    <option value="PRO">PRO</option>
-                    <option value="joint secretary">Joint Secretary</option>
-                    <option value="lisan">Lisan</option>
-                    <option value="StudentAdmin">StudentAdmin</option>
-                  </select>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-4 bg-slate-50 rounded-2xl border border-slate-100 max-h-48 overflow-y-auto">
+                    {[
+                      { value: 'student', label: 'Student' },
+                      { value: 'class', label: 'Class' },
+                      { value: 'DSC', label: 'DSC' },
+                      { value: 'Welfare', label: 'Welfare' },
+                      { value: 'Sakshi', label: 'Sakshi' },
+                      { value: 'Sibaq', label: 'Sibaq' },
+                      { value: 'Cleaning', label: 'Cleaning' },
+                      { value: 'OGEA', label: 'OGEA' },
+                      { value: 'Office', label: 'Office' },
+                      { value: 'lisan', label: 'Lisan' },
+                      { value: 'StudentAdmin', label: 'StudentAdmin' }
+                    ].map(r => {
+                      const isSelected = Array.isArray(formData.role)
+                        ? formData.role.includes(r.value)
+                        : formData.role === r.value;
+                      
+                      const toggleRole = () => {
+                        let currentRoles = Array.isArray(formData.role)
+                          ? [...formData.role]
+                          : [formData.role || 'student'];
+                        
+                        if (isSelected) {
+                          currentRoles = currentRoles.filter(val => val !== r.value);
+                          if (currentRoles.length === 0) currentRoles = ['student'];
+                        } else {
+                          currentRoles.push(r.value);
+                        }
+                        setFormData({ ...formData, role: currentRoles });
+                      };
+
+                      return (
+                        <button
+                          key={r.value}
+                          type="button"
+                          onClick={toggleRole}
+                          className={`flex items-center justify-between px-3 py-2.5 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all select-none ${
+                            isSelected
+                              ? 'bg-rose-50 border-rose-200 text-rose-700 shadow-sm'
+                              : 'bg-white border-slate-100 text-slate-500 hover:bg-slate-50'
+                          }`}
+                        >
+                          <span>{r.label}</span>
+                          {isSelected && <span className="text-[10px] text-rose-600">✓</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <div className="sm:col-span-2 space-y-4 pt-4 border-t border-slate-100">

@@ -62,7 +62,9 @@ export default function BestClassPage() {
             });
 
             const profileData = res.data;
-            if (!profileData.role || profileData.role === 'student') {
+            const roles = Array.isArray(profileData.role) ? profileData.role : [profileData.role];
+            const normalizedRoles = roles.map(r => String(r || '').toLowerCase());
+            if (!normalizedRoles.includes('class')) {
                 router.push('/students-portal');
                 return;
             }
