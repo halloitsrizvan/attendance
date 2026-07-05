@@ -111,14 +111,31 @@ const TeacherManagement = () => {
     e.preventDefault();
     setLoading(true);
     try {
+      const payload = { ...formData };
+      
+      // Clean up password
+      if (!payload.password) {
+        delete payload.password;
+      }
+      
+      // Clean up classNum (set to null if empty, otherwise parse as Number)
+      if (payload.classNum === '') {
+        payload.classNum = null;
+      } else {
+        payload.classNum = Number(payload.classNum);
+      }
+      
+      // Clean up phone (set to null if empty, otherwise parse as Number)
+      if (payload.phone === '') {
+        payload.phone = null;
+      } else {
+        payload.phone = Number(payload.phone);
+      }
+
       if (formType === 'Add') {
-        const response = await axios.post(`${API_PORT}/teachers`, formData);
+        const response = await axios.post(`${API_PORT}/teachers`, payload);
         setTeachers([response.data, ...teachers]);
       } else {
-        // Only include password if it's set
-        const payload = { ...formData };
-        if (!payload.password) delete payload.password;
-        
         const response = await axios.patch(`${API_PORT}/teachers/${selectedTeacher._id}`, payload);
         setTeachers(teachers.map(t => t._id === selectedTeacher._id ? response.data : t));
       }

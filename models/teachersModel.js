@@ -64,4 +64,8 @@ teacherSchema.pre('save', function(next) {
     next();
 });
 
-export default mongoose.models['Teacher'] || mongoose.model('Teacher', teacherSchema);
+if (mongoose.models['Teacher']) {
+  delete mongoose.models['Teacher'];
+}
+
+export default mongoose.model('Teacher', teacherSchema);

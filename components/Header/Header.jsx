@@ -158,6 +158,9 @@ function Header() {
                     {(hasRole("class_teacher") || teacher?.classNum) && (
                       <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/leave-recovery') }}>Recovery</a>
                     )}
+                    {hasRole("CEPApproval") && (
+                      <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/cep-applications') }}>CEP Applications</a>
+                    )}
                   </div>
                 </div>
               </div>
@@ -403,6 +406,9 @@ function Header() {
                   )}
                   {(hasRole("class_teacher") || teacher?.classNum) && (
                     <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/leave-recovery'); setIsMenuOpen(false) }}>Recovery</a>
+                  )}
+                  {hasRole("CEPApproval") && (
+                    <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/cep-applications'); setIsMenuOpen(false) }}>CEP Applications</a>
                   )}
                 </div>
               )}

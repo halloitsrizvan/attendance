@@ -1294,6 +1294,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
           programDocumented: false
         }),
         date: finalDate,
+        ApproveCEP: true,
         ...(academicYearId && { academicYearId })
       };
 

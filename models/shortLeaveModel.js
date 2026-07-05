@@ -32,7 +32,10 @@ const shortLeaveSchema = new Schema({
     teacherId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Teacher',
-        required: true
+        required: false
+    },
+    ApproveCEP: {
+        type: Boolean
     },
     academicYearId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -40,4 +43,8 @@ const shortLeaveSchema = new Schema({
     }
 }, { timestamps: true });
 
-export default mongoose.models['ClassExcusedPass'] || mongoose.model('ClassExcusedPass', shortLeaveSchema);
+if (mongoose.models['ClassExcusedPass']) {
+  delete mongoose.models['ClassExcusedPass'];
+}
+
+export default mongoose.model('ClassExcusedPass', shortLeaveSchema);
