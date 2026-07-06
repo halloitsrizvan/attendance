@@ -397,7 +397,7 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                         </div>
 
                         <div className="space-y-6 mt-4">
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
 
                                 {/* Program Tier Selection */}
                                 <div>
@@ -428,27 +428,7 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                                     </div>
                                 </div>
 
-                                {/* Category Selection */}
-                                <div>
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2 pl-1">Category</label>
-                                    <div className="flex bg-slate-200/50 p-1 rounded-2xl border border-slate-300/10 w-full mt-2">
-                                        {CATEGORIES.map(cat => (
-                                            <button
-                                                key={cat}
-                                                type="button"
-                                                onClick={() => handleProgramChange('category', cat)}
-                                                className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all duration-200
-                                                     ${programs[activeProgramIndex].category === cat
-                                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-200/50'
-                                                        : 'text-slate-500 hover:text-slate-700'}`}
-                                            >
-                                                {cat}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-
+                                
 
                                 {/* Collaboration (Optional) */}
                                 <div>

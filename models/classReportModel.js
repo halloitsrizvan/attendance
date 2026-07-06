@@ -5,8 +5,8 @@ const Schema = mongoose.Schema;
 const programSchema = new Schema({
     category: {
         type: String,
-        required: true,
-        enum: ['Internal', 'External']
+        required: false,
+        default: 'Internal'
     },
     programType: {
         type: String,
