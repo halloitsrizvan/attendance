@@ -129,6 +129,12 @@ export default function ApproveClassReport() {
             category: program.category || 'Internal',
             programType: program.programType || 'Curriculum',
             title: program.title || '',
+            tier: program.tier || 'Tier 1',
+            targetAudience: program.targetAudience || '',
+            objectives: program.objectives || '',
+            participantsCount: program.participantsCount || '',
+            venue: program.venue || '',
+            guestName: program.guestName || '',
             description: program.description || '',
             date: program.date || '',
             poster: program.poster || '',
@@ -184,12 +190,26 @@ export default function ApproveClassReport() {
 
     const handleUpdateProgram = async (e, reportId) => {
         e.preventDefault();
+
+        // Make Program Photo Gallery mandatory
+        if (!editForm.gallery || editForm.gallery.length === 0) {
+            alert("Photo Gallery is mandatory: Please upload at least one image/photo to the gallery.");
+            return;
+        }
+
         try {
+            const compiledDescription = `Target Audience: ${editForm.targetAudience || 'N/A'}\nObjectives: ${editForm.objectives || 'N/A'}\nParticipants: ${editForm.participantsCount || '0'}\nVenue: ${editForm.venue || 'N/A'}\nGuest/Key Person: ${editForm.guestName || 'N/A'}`;
             const payload = {
                 category: editForm.category,
                 programType: editForm.programType,
                 title: editForm.title,
-                description: editForm.description,
+                tier: editForm.tier,
+                targetAudience: editForm.targetAudience,
+                objectives: editForm.objectives,
+                participantsCount: Number(editForm.participantsCount) || 0,
+                venue: editForm.venue,
+                guestName: editForm.guestName,
+                description: compiledDescription,
                 date: editForm.date,
                 poster: editForm.poster,
                 gallery: editForm.gallery,
@@ -362,20 +382,45 @@ export default function ApproveClassReport() {
 
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                     <div>
-                                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Category</label>
-                                                        <select
-                                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:border-blue-500"
-                                                            value={editForm.category}
-                                                            onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
-                                                        >
-                                                            <option value="Internal">Internal</option>
-                                                            <option value="External">External</option>
-                                                        </select>
+                                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 px-1">Category</label>
+                                                        <div className="flex bg-slate-200/50 p-1 rounded-xl border border-slate-350/10 w-full mt-1">
+                                                            {['Internal', 'External'].map(cat => (
+                                                                <button
+                                                                    key={cat}
+                                                                    type="button"
+                                                                    onClick={() => setEditForm({ ...editForm, category: cat })}
+                                                                    className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-200
+                                                                        ${editForm.category === cat
+                                                                            ? 'bg-blue-600 text-white shadow-md'
+                                                                            : 'text-slate-500 hover:text-slate-700'}`}
+                                                                >
+                                                                    {cat}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 px-1">Program Tier</label>
+                                                        <div className="flex bg-slate-200/50 p-1 rounded-xl border border-slate-350/10 w-full mt-1">
+                                                            {['Tier 1', 'Tier 2'].map(t => (
+                                                                <button
+                                                                    key={t}
+                                                                    type="button"
+                                                                    onClick={() => setEditForm({ ...editForm, tier: t })}
+                                                                    className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-200
+                                                                        ${(editForm.tier || 'Tier 1') === t
+                                                                            ? 'bg-blue-600 text-white shadow-md'
+                                                                            : 'text-slate-500 hover:text-slate-700'}`}
+                                                                >
+                                                                    {t}
+                                                                </button>
+                                                            ))}
+                                                        </div>
                                                     </div>
                                                     <div>
                                                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Program Type</label>
                                                         <select
-                                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:border-blue-500"
+                                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none focus:border-blue-500"
                                                             value={editForm.programType || 'Curriculum'}
                                                             onChange={(e) => setEditForm({ ...editForm, programType: e.target.value })}
                                                         >
@@ -387,7 +432,7 @@ export default function ApproveClassReport() {
                                                     <div>
                                                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Collaboration (Optional)</label>
                                                         <select
-                                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:border-blue-500"
+                                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none focus:border-blue-500"
                                                             value={editForm.collaboration || ''}
                                                             onChange={(e) => setEditForm({ ...editForm, collaboration: e.target.value })}
                                                         >
@@ -422,12 +467,56 @@ export default function ApproveClassReport() {
                                                     />
                                                 </div>
 
+                                                {/* Granular Fields instead of Brief Description */}
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Target Audience</label>
+                                                        <input
+                                                            type="text"
+                                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:border-blue-500"
+                                                            value={editForm.targetAudience || ''}
+                                                            onChange={(e) => setEditForm({ ...editForm, targetAudience: e.target.value })}
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Participants Count</label>
+                                                        <input
+                                                            type="number"
+                                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:border-blue-500"
+                                                            value={editForm.participantsCount || ''}
+                                                            onChange={(e) => setEditForm({ ...editForm, participantsCount: e.target.value })}
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Venue</label>
+                                                        <input
+                                                            type="text"
+                                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:border-blue-500"
+                                                            value={editForm.venue || ''}
+                                                            onChange={(e) => setEditForm({ ...editForm, venue: e.target.value })}
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Guest or Key Person Name</label>
+                                                        <input
+                                                            type="text"
+                                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:border-blue-500"
+                                                            value={editForm.guestName || ''}
+                                                            onChange={(e) => setEditForm({ ...editForm, guestName: e.target.value })}
+                                                            required
+                                                        />
+                                                    </div>
+                                                </div>
+
                                                 <div>
-                                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Description</label>
+                                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Objectives</label>
                                                     <textarea
                                                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:border-blue-500 min-h-[80px]"
-                                                        value={editForm.description}
-                                                        onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                                                        value={editForm.objectives || ''}
+                                                        onChange={(e) => setEditForm({ ...editForm, objectives: e.target.value })}
                                                         required
                                                     />
                                                 </div>
@@ -470,27 +559,65 @@ export default function ApproveClassReport() {
                                             /* VIEW MODE */
                                             <>
                                                 <div className="flex flex-wrap items-center gap-2 mb-3 pr-16">
-                                                    <span className="text-[9px] font-black bg-indigo-100 text-indigo-700 px-2 py-1 rounded-md uppercase tracking-widest">
+                                                    <span className="text-[9px] font-black bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-md uppercase tracking-widest">
                                                         {program.category}
                                                     </span>
-                                                    <span className="text-[9px] font-black bg-amber-50 text-amber-850 px-2 py-1 rounded-md uppercase tracking-widest">
+                                                    {program.tier && (
+                                                        <span className="text-[9px] font-black bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md uppercase tracking-widest">
+                                                            {program.tier}
+                                                        </span>
+                                                    )}
+                                                    <span className="text-[9px] font-black bg-amber-50 text-amber-850 px-2.5 py-1 rounded-md uppercase tracking-widest">
                                                         {program.programType || 'Curriculum'}
                                                     </span>
                                                     {program.collaboration && (
-                                                        <span className="text-[9px] font-black bg-purple-50 text-purple-600 px-2 py-1 rounded-md uppercase tracking-widest border border-purple-100">
+                                                        <span className="text-[9px] font-black bg-purple-50 text-purple-650 px-2.5 py-1 rounded-md uppercase tracking-widest border border-purple-100">
                                                             Collab: {program.collaboration}
                                                         </span>
                                                     )}
                                                     {program.date && (
-                                                        <span className="text-[9px] font-black bg-slate-100 text-slate-600 px-2 py-1 rounded-md uppercase tracking-widest flex items-center gap-1">
+                                                        <span className="text-[9px] font-black bg-slate-100 text-slate-650 px-2.5 py-1 rounded-md uppercase tracking-widest flex items-center gap-1">
                                                             <Calendar size={10} /> {program.date}
                                                         </span>
                                                     )}
                                                 </div>
                                                 <h5 className="text-base font-black text-slate-800 mb-2">{program.title}</h5>
-                                                <p className="text-sm text-slate-600 font-medium leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">
-                                                    {program.description}
-                                                </p>
+
+                                                {/* Description / Granular details */}
+                                                <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl mb-4 text-xs space-y-2 font-medium text-slate-600">
+                                                    {program.targetAudience && (
+                                                        <div className="flex justify-between border-b border-slate-100/50 pb-1">
+                                                            <span className="text-slate-400 font-bold uppercase tracking-tight text-[9px]">Target</span>
+                                                            <span className="text-right">{program.targetAudience}</span>
+                                                        </div>
+                                                    )}
+                                                    {program.venue && (
+                                                        <div className="flex justify-between border-b border-slate-100/50 pb-1">
+                                                            <span className="text-slate-400 font-bold uppercase tracking-tight text-[9px]">Venue</span>
+                                                            <span className="text-right">{program.venue}</span>
+                                                        </div>
+                                                    )}
+                                                    {program.guestName && (
+                                                        <div className="flex justify-between border-b border-slate-100/50 pb-1">
+                                                            <span className="text-slate-400 font-bold uppercase tracking-tight text-[9px]">Guest / Key Role</span>
+                                                            <span className="text-right">{program.guestName}</span>
+                                                        </div>
+                                                    )}
+                                                    {program.participantsCount !== undefined && program.participantsCount !== null && (
+                                                        <div className="flex justify-between border-b border-slate-100/50 pb-1">
+                                                            <span className="text-slate-400 font-bold uppercase tracking-tight text-[9px]">Participants</span>
+                                                            <span className="text-right">{program.participantsCount}</span>
+                                                        </div>
+                                                    )}
+                                                    {program.objectives ? (
+                                                        <div className="pt-1">
+                                                            <span className="text-slate-400 font-bold uppercase tracking-tight block text-[9px] mb-1">Objectives</span>
+                                                            <p className="text-xs font-semibold text-slate-700 leading-relaxed italic">“{program.objectives}”</p>
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-xs leading-relaxed whitespace-pre-line">{program.description}</p>
+                                                    )}
+                                                </div>
 
                                                 {(program.poster || (program.gallery && program.gallery.length > 0)) && (
                                                     <div className="mt-4 flex gap-3 overflow-x-auto pb-2 custom-scrollbar">

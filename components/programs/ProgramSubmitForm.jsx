@@ -44,13 +44,30 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
     const [month, setMonth] = useState(MONTHS[new Date().getMonth()]);
     const [year, setYear] = useState(new Date().getFullYear());
     const [activeProgramIndex, setActiveProgramIndex] = useState(0);
-    const [programs, setPrograms] = useState([
-        { category: 'Internal', programType: 'Curriculum', title: '', description: '', poster: '', date: '', gallery: [], collaboration: '' }
-    ]);
+
+    const createEmptyProgram = () => ({
+        category: 'Internal',
+        programType: 'Curriculum',
+        title: '',
+        tier: 'Tier 1',
+        targetAudience: '',
+        objectives: '',
+        participantsCount: '',
+        venue: '',
+        guestName: '',
+        description: '',
+        poster: '',
+        date: '',
+        gallery: [],
+        collaboration: ''
+    });
+
+    const [programs, setPrograms] = useState([createEmptyProgram()]);
     const [submitting, setSubmitting] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [uploadingGallery, setUploadingGallery] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
+    const [existingTier1Count, setExistingTier1Count] = useState(0);
 
     useEffect(() => {
         const fetchDefaultPeriod = async () => {
@@ -69,6 +86,23 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
         fetchDefaultPeriod();
     }, []);
 
+    useEffect(() => {
+        const fetchExistingTier1 = async () => {
+            if (!classNumber && classNumber !== 0) return;
+            try {
+                const res = await axios.get(`/api/class-reports?classNumber=${classNumber}`);
+                const thisMonthReports = (res.data || []).filter(r => r.month === month && r.year === Number(year));
+                const count = thisMonthReports.reduce((sum, r) => {
+                    return sum + (r.programs || []).filter(p => p.tier === 'Tier 1' && !p.rejected).length;
+                }, 0);
+                setExistingTier1Count(count);
+            } catch (err) {
+                console.error("Error fetching existing Tier 1 count:", err);
+            }
+        };
+        fetchExistingTier1();
+    }, [month, year, classNumber]);
+
     const getMinMaxDates = () => {
         const monthIndex = MONTHS.indexOf(month);
         if (monthIndex === -1) return { min: '', max: '' };
@@ -82,7 +116,16 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
     const { min: minDate, max: maxDate } = getMinMaxDates();
 
     const handleAddProgram = () => {
-        setPrograms([...programs, { category: 'Internal', programType: 'Curriculum', title: '', description: '', poster: '', date: '', gallery: [], collaboration: '' }]);
+        const currentTier1InForm = programs.filter(p => p.tier === 'Tier 1').length;
+        const isLimitReached = (existingTier1Count + currentTier1InForm) >= 10;
+
+        const newProg = createEmptyProgram();
+        if (isLimitReached) {
+            newProg.tier = 'Tier 2';
+            alert(`Limit Reached: You already have ${existingTier1Count} Tier 1 program(s) submitted this month and ${currentTier1InForm} in this form. The new program is automatically set to Tier 2 (Max 10 Tier 1 per month).`);
+        }
+
+        setPrograms([...programs, newProg]);
         setActiveProgramIndex(programs.length);
     };
 
@@ -92,7 +135,7 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
         newPrograms.splice(index, 1);
 
         if (newPrograms.length === 0) {
-            newPrograms.push({ category: 'Internal', programType: 'Curriculum', title: '', description: '', poster: '', date: '', gallery: [], collaboration: '' });
+            newPrograms.push(createEmptyProgram());
             setPrograms(newPrograms);
             setActiveProgramIndex(0);
         } else {
@@ -171,19 +214,59 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
             return;
         }
 
-        const validPrograms = programs.filter(p => p.title.trim() && p.description.trim() && p.date);
+        const validPrograms = programs.filter(p => p.title.trim() && p.date && p.objectives.trim());
         if (validPrograms.length === 0) {
-            alert("Please add at least one valid program with a title, date, and description.");
+            alert("Please add at least one valid program with a title, date, and objectives.");
             return;
+        }
+
+        // Make Program Photo Gallery mandatory
+        const missingGallery = validPrograms.find(p => !p.gallery || p.gallery.length === 0);
+        if (missingGallery) {
+            alert(`Photo Gallery is mandatory: Please upload at least one image/photo to the gallery for the program "${missingGallery.title || 'Untitled'}".`);
+            return;
+        }
+
+        // Validate Tier 1 limit (max 10 per month) - only check if we are submitting new Tier 1 programs
+        const tier1CountInForm = validPrograms.filter(p => p.tier === 'Tier 1').length;
+        if (tier1CountInForm > 0) {
+            try {
+                const existingRes = await axios.get(`/api/class-reports?classNumber=${classNumber}`);
+                const thisMonthReports = (existingRes.data || []).filter(r => r.month === month && r.year === Number(year));
+                const existingTier1Count = thisMonthReports.reduce((sum, r) => {
+                    const count = (r.programs || []).filter(p => p.tier === 'Tier 1' && !p.rejected).length;
+                    return sum + count;
+                }, 0);
+
+                if (existingTier1Count + tier1CountInForm > 10) {
+                    alert(`Limit Exceeded: You have already submitted ${existingTier1Count} Tier 1 program(s) this month. You can only submit up to ${Math.max(0, 10 - existingTier1Count)} more Tier 1 program(s) in total. (Max 10 per month)`);
+                    return;
+                }
+            } catch (err) {
+                console.error("Error validating Tier 1 limit:", err);
+                if (existingTier1Count + tier1CountInForm > 10) {
+                    alert("Limit Exceeded: You can submit a maximum of 10 Tier 1 programs in a month.");
+                    return;
+                }
+            }
         }
 
         setSubmitting(true);
         try {
+            // Process programs: compile fields into description for backward-compatibility
+            const processedPrograms = validPrograms.map(p => {
+                const compiledDescription = `Target Audience: ${p.targetAudience || 'N/A'}\nObjectives: ${p.objectives || 'N/A'}\nParticipants: ${p.participantsCount || '0'}\nVenue: ${p.venue || 'N/A'}\nGuest/Key Person: ${p.guestName || 'N/A'}`;
+                return {
+                    ...p,
+                    description: compiledDescription
+                };
+            });
+
             const payload = {
                 month,
                 year,
                 classNumber,
-                programs: validPrograms,
+                programs: processedPrograms,
                 submitterType
             };
 
@@ -197,7 +280,7 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
 
             await axios.post('/api/class-reports', payload);
             setShowSuccess(true);
-            setPrograms([{ category: 'Internal', programType: 'Curriculum', title: '', description: '', poster: '', date: '', gallery: [], collaboration: '' }]);
+            setPrograms([createEmptyProgram()]);
             setActiveProgramIndex(0);
 
             if (onSuccessCallback) {
@@ -222,7 +305,7 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
     };
 
     return (
-        <div className="bg-white rounded-[2.5rem] p-2 sm:p-4">
+        <div className="bg-white rounded-[1rem] p-2 sm:p-2">
             <SuccessModal isOpen={showSuccess} onClose={() => {
                 setShowSuccess(false);
                 if (onSuccessCallback) onSuccessCallback();
@@ -314,20 +397,50 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                         </div>
 
                         <div className="space-y-6 mt-4">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+
+                                {/* Program Tier Selection */}
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2 pl-1">Program Tier</label>
+                                    <div className="flex bg-slate-200/50 p-1 rounded-2xl border border-slate-300/10 w-full mt-2">
+                                        {['Tier 1', 'Tier 2'].map(t => (
+                                            <button
+                                                key={t}
+                                                type="button"
+                                                onClick={() => {
+                                                    if (t === 'Tier 1' && programs[activeProgramIndex].tier !== 'Tier 1') {
+                                                        const currentTier1InForm = programs.filter((p, idx) => p.tier === 'Tier 1' && idx !== activeProgramIndex).length;
+                                                        if (existingTier1Count + currentTier1InForm >= 10) {
+                                                            alert(`Limit Reached: You already have ${existingTier1Count} Tier 1 program(s) submitted this month and ${currentTier1InForm} other Tier 1 program(s) in this form. You cannot select Tier 1 (Max 10 per month).`);
+                                                            return;
+                                                        }
+                                                    }
+                                                    handleProgramChange('tier', t);
+                                                }}
+                                                className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all duration-200
+                                                     ${(programs[activeProgramIndex].tier || 'Tier 1') === t
+                                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-200/50'
+                                                        : 'text-slate-500 hover:text-slate-700'}`}
+                                            >
+                                                {t}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
                                 {/* Category Selection */}
                                 <div>
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2.5 pl-1">Category</label>
-                                    <div className="flex flex-wrap gap-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2 pl-1">Category</label>
+                                    <div className="flex bg-slate-200/50 p-1 rounded-2xl border border-slate-300/10 w-full mt-2">
                                         {CATEGORIES.map(cat => (
                                             <button
                                                 key={cat}
                                                 type="button"
                                                 onClick={() => handleProgramChange('category', cat)}
-                                                className={`px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all border
-                                                    ${programs[activeProgramIndex].category === cat
-                                                        ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-100'
-                                                        : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600'}`}
+                                                className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all duration-200
+                                                     ${programs[activeProgramIndex].category === cat
+                                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-200/50'
+                                                        : 'text-slate-500 hover:text-slate-700'}`}
                                             >
                                                 {cat}
                                             </button>
@@ -335,7 +448,7 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                                     </div>
                                 </div>
 
-                             
+
 
                                 {/* Collaboration (Optional) */}
                                 <div>
@@ -359,9 +472,8 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                                         </div>
                                     </div>
                                 </div>
-                            </div>
 
-                               {/* Program Type */}
+                                {/* Program Type */}
                                 <div>
                                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2 pl-1">Program Type</label>
                                     <div className="relative">
@@ -379,27 +491,75 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                                         </div>
                                     </div>
                                 </div>
+                            </div>
 
-                             {/* Program Title */}
+                            {/* Program Title */}
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2 pl-1">Program Title</label>
+                                <input
+                                    type="text"
+                                    value={programs[activeProgramIndex].title}
+                                    onChange={(e) => handleProgramChange('title', e.target.value)}
+                                    placeholder="e.g. Science Exhibition, Annual Debate..."
+                                    className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-700 placeholder:text-slate-400 focus:border-blue-500 outline-none transition-all shadow-sm"
+                                    required
+                                />
+                            </div>
+
+                            {/* Granular Fields instead of Brief Description */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2 pl-1">Program Title</label>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2 pl-1">Target Audience</label>
                                     <input
                                         type="text"
-                                        value={programs[activeProgramIndex].title}
-                                        onChange={(e) => handleProgramChange('title', e.target.value)}
-                                        placeholder="e.g. Science Exhibition, Annual Debate..."
+                                        value={programs[activeProgramIndex].targetAudience || ''}
+                                        onChange={(e) => handleProgramChange('targetAudience', e.target.value)}
+                                        placeholder="e.g. Class Students, Parents..."
                                         className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-700 placeholder:text-slate-400 focus:border-blue-500 outline-none transition-all shadow-sm"
                                         required
                                     />
                                 </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2 pl-1">Participants Count</label>
+                                    <input
+                                        type="number"
+                                        value={programs[activeProgramIndex].participantsCount || ''}
+                                        onChange={(e) => handleProgramChange('participantsCount', e.target.value)}
+                                        placeholder="e.g. 50, 120..."
+                                        className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-700 placeholder:text-slate-400 focus:border-blue-500 outline-none transition-all shadow-sm"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2 pl-1">Venue</label>
+                                    <input
+                                        type="text"
+                                        value={programs[activeProgramIndex].venue || ''}
+                                        onChange={(e) => handleProgramChange('venue', e.target.value)}
+                                        placeholder="e.g. College Auditorium, Class Room 5..."
+                                        className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-700 placeholder:text-slate-400 focus:border-blue-500 outline-none transition-all shadow-sm"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2 pl-1">Guest or Key Role Person Name</label>
+                                    <input
+                                        type="text"
+                                        value={programs[activeProgramIndex].guestName || ''}
+                                        onChange={(e) => handleProgramChange('guestName', e.target.value)}
+                                        placeholder="e.g. Dr. Salman (Guest Speaker)..."
+                                        className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-700 placeholder:text-slate-400 focus:border-blue-500 outline-none transition-all shadow-sm"
+                                        required
+                                    />
+                                </div>
+                            </div>
 
-                            {/* Description */}
                             <div>
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2 pl-1">Brief Description</label>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2 pl-1">Objectives</label>
                                 <textarea
-                                    value={programs[activeProgramIndex].description}
-                                    onChange={(e) => handleProgramChange('description', e.target.value)}
-                                    placeholder="Describe the activity, participation, and outcome..."
+                                    value={programs[activeProgramIndex].objectives || ''}
+                                    onChange={(e) => handleProgramChange('objectives', e.target.value)}
+                                    placeholder="Describe the main objectives and outcomes of the program..."
                                     className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-semibold text-slate-700 placeholder:text-slate-400 focus:border-blue-500 outline-none transition-all shadow-sm h-28 resize-none"
                                     required
                                 />
@@ -452,7 +612,7 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
 
                             {/* Photo Gallery Upload */}
                             <div>
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2 pl-1">Program Photo Gallery (Optional)</label>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2 pl-1">Program Photo Gallery </label>
                                 <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
                                     <div className="flex flex-wrap gap-3">
                                         {(programs[activeProgramIndex].gallery || []).map((url, idx) => (

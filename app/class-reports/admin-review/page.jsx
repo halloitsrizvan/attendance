@@ -415,34 +415,72 @@ export default function AdminReviewClassReports() {
                                             {/* Program Details */}
                                             <div className="flex-1 space-y-4">
                                                 <div>
-                                                    <div className="flex flex-wrap items-center gap-2 mb-1">
-                                                        <span className="text-[9px] font-black bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md uppercase tracking-widest">
-                                                            {program.category}
-                                                        </span>
-                                                        {program.programType && <span className="text-[9px] font-black bg-amber-50 text-amber-800 px-2 py-1 rounded-md uppercase tracking-widest">
-                                                            {program.programType}
-                                                        </span>}
-                                                        {program.collaboration && (
-                                                            <span className="text-[9px] font-black bg-purple-50 text-purple-600 px-2 py-1 rounded-md uppercase tracking-widest border border-purple-100">
-                                                                Collab: {program.collaboration}
-                                                            </span>
-                                                        )}
-                                                        {program.date && (
-                                                            <span className="text-[9px] font-black bg-slate-100 text-slate-500 px-2 py-1 rounded-md uppercase tracking-widest flex items-center gap-1">
-                                                                <Calendar size={10} /> {program.date}
-                                                            </span>
-                                                        )}
-                                                        {isRejected && (
-                                                            <span className="text-[9px] font-black bg-rose-50 text-rose-600 px-2 py-1 rounded-md uppercase tracking-widest flex items-center gap-1 border border-rose-100 animate-pulse">
-                                                                Rejected
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <h4 className="text-lg font-bold text-slate-800">{program.title}</h4>
-                                                </div>
-                                                <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-2xl">
-                                                    {program.description}
-                                                </p>
+                                                     <div className="flex flex-wrap items-center gap-2 mb-1">
+                                                         {program.tier && (
+                                                             <span className="text-[9px] font-black bg-blue-50 text-blue-700 px-2 py-1 rounded-md uppercase tracking-widest">
+                                                                 {program.tier}
+                                                             </span>
+                                                         )}
+                                                         <span className="text-[9px] font-black bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md uppercase tracking-widest">
+                                                             {program.category}
+                                                         </span>
+                                                         {program.programType && <span className="text-[9px] font-black bg-amber-50 text-amber-800 px-2 py-1 rounded-md uppercase tracking-widest">
+                                                             {program.programType}
+                                                         </span>}
+                                                         {program.collaboration && (
+                                                             <span className="text-[9px] font-black bg-purple-50 text-purple-600 px-2 py-1 rounded-md uppercase tracking-widest border border-purple-100">
+                                                                 Collab: {program.collaboration}
+                                                             </span>
+                                                         )}
+                                                         {program.date && (
+                                                             <span className="text-[9px] font-black bg-slate-100 text-slate-500 px-2 py-1 rounded-md uppercase tracking-widest flex items-center gap-1">
+                                                                 <Calendar size={10} /> {program.date}
+                                                             </span>
+                                                         )}
+                                                         {isRejected && (
+                                                             <span className="text-[9px] font-black bg-rose-50 text-rose-600 px-2 py-1 rounded-md uppercase tracking-widest flex items-center gap-1 border border-rose-100 animate-pulse">
+                                                                 Rejected
+                                                             </span>
+                                                         )}
+                                                     </div>
+                                                     <h4 className="text-lg font-bold text-slate-800">{program.title}</h4>
+                                                 </div>
+
+                                                 {/* Description / Granular details */}
+                                                 <div className="bg-slate-50 border border-slate-150 p-4 rounded-2xl text-xs space-y-2 font-medium text-slate-600">
+                                                     {program.targetAudience && (
+                                                         <div className="flex justify-between border-b border-slate-200/50 pb-1">
+                                                             <span className="text-slate-400 font-bold uppercase tracking-tight text-[9px]">Target</span>
+                                                             <span className="text-right text-slate-700">{program.targetAudience}</span>
+                                                         </div>
+                                                     )}
+                                                     {program.venue && (
+                                                         <div className="flex justify-between border-b border-slate-200/50 pb-1">
+                                                             <span className="text-slate-400 font-bold uppercase tracking-tight text-[9px]">Venue</span>
+                                                             <span className="text-right text-slate-700">{program.venue}</span>
+                                                         </div>
+                                                     )}
+                                                     {program.guestName && (
+                                                         <div className="flex justify-between border-b border-slate-200/50 pb-1">
+                                                             <span className="text-slate-400 font-bold uppercase tracking-tight text-[9px]">Guest / Key Role</span>
+                                                             <span className="text-right text-slate-700">{program.guestName}</span>
+                                                         </div>
+                                                     )}
+                                                     {program.participantsCount !== undefined && program.participantsCount !== null && (
+                                                         <div className="flex justify-between border-b border-slate-200/50 pb-1">
+                                                             <span className="text-slate-400 font-bold uppercase tracking-tight text-[9px]">Participants</span>
+                                                             <span className="text-right text-slate-700">{program.participantsCount}</span>
+                                                         </div>
+                                                     )}
+                                                     {program.objectives ? (
+                                                         <div className="pt-1">
+                                                             <span className="text-slate-400 font-bold uppercase tracking-tight block text-[9px] mb-1">Objectives</span>
+                                                             <p className="text-xs font-semibold text-slate-700 leading-relaxed italic">“{program.objectives}”</p>
+                                                         </div>
+                                                     ) : (
+                                                         <p className="text-xs leading-relaxed whitespace-pre-line">{program.description}</p>
+                                                     )}
+                                                 </div>
 
                                                 {/* Media Section */}
                                                 {(program.poster || (program.gallery && program.gallery.length > 0)) && (

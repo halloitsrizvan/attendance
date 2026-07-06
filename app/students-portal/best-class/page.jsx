@@ -93,6 +93,12 @@ export default function BestClassPage() {
             category: program.category || 'Internal',
             programType: program.programType || 'Curriculum',
             title: program.title || '',
+            tier: program.tier || 'Tier 1',
+            targetAudience: program.targetAudience || '',
+            objectives: program.objectives || '',
+            participantsCount: program.participantsCount || '',
+            venue: program.venue || '',
+            guestName: program.guestName || '',
             description: program.description || '',
             date: program.date || '',
             poster: program.poster || '',
@@ -148,12 +154,50 @@ export default function BestClassPage() {
 
     const handleUpdateProgram = async (e) => {
         e.preventDefault();
+
+        // Make Program Photo Gallery mandatory
+        if (!editForm.gallery || editForm.gallery.length === 0) {
+            alert("Photo Gallery is mandatory: Please upload at least one image/photo to the gallery.");
+            return;
+        }
+
+        // Validate Tier 1 limit during edit
+        if (editForm.tier === 'Tier 1') {
+            try {
+                const report = reports.find(r => r._id === editingReportId);
+                const programToEdit = report?.programs?.find(p => p._id === editingProgram);
+
+                if (programToEdit && programToEdit.tier !== 'Tier 1') {
+                    const existingRes = await axios.get(`${API_PORT}/class-reports?classNumber=${student.CLASS}`);
+                    const thisMonthReports = (existingRes.data || []).filter(r => r.month === report.month && r.year === Number(report.year));
+                    const existingTier1Count = thisMonthReports.reduce((sum, r) => {
+                        const count = (r.programs || []).filter(p => p.tier === 'Tier 1' && !p.rejected).length;
+                        return sum + count;
+                    }, 0);
+
+                    if (existingTier1Count >= 10) {
+                        alert("Limit Exceeded: You already have 10 Tier 1 programs this month. You cannot change this program to Tier 1.");
+                        return;
+                    }
+                }
+            } catch (err) {
+                console.error("Error validating Tier 1 limit during edit:", err);
+            }
+        }
+
         try {
+            const compiledDescription = `Target Audience: ${editForm.targetAudience || 'N/A'}\nObjectives: ${editForm.objectives || 'N/A'}\nParticipants: ${editForm.participantsCount || '0'}\nVenue: ${editForm.venue || 'N/A'}\nGuest/Key Person: ${editForm.guestName || 'N/A'}`;
             const payload = {
                 category: editForm.category,
                 programType: editForm.programType,
                 title: editForm.title,
-                description: editForm.description,
+                tier: editForm.tier,
+                targetAudience: editForm.targetAudience,
+                objectives: editForm.objectives,
+                participantsCount: Number(editForm.participantsCount) || 0,
+                venue: editForm.venue,
+                guestName: editForm.guestName,
+                description: compiledDescription,
                 date: editForm.date,
                 poster: editForm.poster,
                 gallery: editForm.gallery,
@@ -355,10 +399,47 @@ export default function BestClassPage() {
                                         {/* Program Title */}
                                         <h4 className="text-lg font-black text-slate-800 tracking-tight mb-2.5">{program.title}</h4>
                                         
-                                        {/* Description Container Block */}
-                                        <p className="text-sm text-slate-600 font-medium leading-relaxed bg-white border border-slate-100 p-4 rounded-2xl flex-1 mb-4 shadow-sm">
-                                            {program.description}
-                                        </p>
+                                        {/* Description / Granular details */}
+                                        <div className="bg-white border border-slate-100 p-4 rounded-2xl flex-1 mb-4 shadow-sm text-xs space-y-2 font-medium text-slate-600">
+                                            {program.tier && (
+                                                <div className="flex justify-between border-b border-slate-50 pb-1">
+                                                    <span className="text-slate-400 font-bold uppercase tracking-tight text-[9px]">Tier</span>
+                                                    <span className="font-extrabold text-blue-650 uppercase text-[9px] bg-blue-50 px-2 py-0.5 rounded">{program.tier}</span>
+                                                </div>
+                                            )}
+                                            {program.targetAudience && (
+                                                <div className="flex justify-between border-b border-slate-50 pb-1">
+                                                    <span className="text-slate-400 font-bold uppercase tracking-tight text-[9px]">Target</span>
+                                                    <span className="text-right">{program.targetAudience}</span>
+                                                </div>
+                                            )}
+                                            {program.venue && (
+                                                <div className="flex justify-between border-b border-slate-50 pb-1">
+                                                    <span className="text-slate-400 font-bold uppercase tracking-tight text-[9px]">Venue</span>
+                                                    <span className="text-right">{program.venue}</span>
+                                                </div>
+                                            )}
+                                            {program.guestName && (
+                                                <div className="flex justify-between border-b border-slate-50 pb-1">
+                                                    <span className="text-slate-400 font-bold uppercase tracking-tight text-[9px]">Guest / Key Role</span>
+                                                    <span className="text-right">{program.guestName}</span>
+                                                </div>
+                                            )}
+                                            {program.participantsCount !== undefined && program.participantsCount !== null && (
+                                                <div className="flex justify-between border-b border-slate-50 pb-1">
+                                                    <span className="text-slate-400 font-bold uppercase tracking-tight text-[9px]">Participants</span>
+                                                    <span className="text-right">{program.participantsCount}</span>
+                                                </div>
+                                            )}
+                                            {program.objectives ? (
+                                                <div className="pt-1">
+                                                    <span className="text-slate-400 font-bold uppercase tracking-tight block text-[9px] mb-1">Objectives</span>
+                                                    <p className="text-xs font-semibold text-slate-700 leading-relaxed italic">“{program.objectives}”</p>
+                                                </div>
+                                            ) : (
+                                                <p className="text-xs leading-relaxed whitespace-pre-line">{program.description}</p>
+                                            )}
+                                        </div>
 
                                         {/* Media & Poster */}
                                         {(program.poster || (program.gallery && program.gallery.length > 0)) && (
@@ -407,22 +488,41 @@ export default function BestClassPage() {
                         </div>
                         {/* Edit Form */}
                         <form onSubmit={handleUpdateProgram} className="p-6 overflow-y-auto custom-scrollbar space-y-4 bg-white">
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Category</label>
-                                    <div className="relative">
-                                        <select
-                                            className="w-full bg-white border border-slate-200 rounded-2xl p-4 pr-10 text-sm font-black text-slate-800 focus:border-blue-500 outline-none transition-all shadow-sm cursor-pointer appearance-none"
-                                            value={editForm.category}
-                                            onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
-                                            required
-                                        >
-                                            <option value="Internal">Internal</option>
-                                            <option value="External">External</option>
-                                        </select>
-                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                            <ChevronDown size={16} />
-                                        </div>
+                                    <div className="flex bg-slate-200/50 p-1 rounded-2xl border border-slate-300/10 w-full mt-1">
+                                        {['Internal', 'External'].map(cat => (
+                                            <button
+                                                key={cat}
+                                                type="button"
+                                                onClick={() => setEditForm({ ...editForm, category: cat })}
+                                                className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-200
+                                                    ${editForm.category === cat
+                                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-200/50'
+                                                        : 'text-slate-500 hover:text-slate-700'}`}
+                                            >
+                                                {cat}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Program Tier</label>
+                                    <div className="flex bg-slate-200/50 p-1 rounded-2xl border border-slate-300/10 w-full mt-1">
+                                        {['Tier 1', 'Tier 2'].map(t => (
+                                            <button
+                                                key={t}
+                                                type="button"
+                                                onClick={() => setEditForm({ ...editForm, tier: t })}
+                                                className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-200
+                                                    ${(editForm.tier || 'Tier 1') === t
+                                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-200/50'
+                                                        : 'text-slate-500 hover:text-slate-700'}`}
+                                            >
+                                                {t}
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
                                 <div>
@@ -475,12 +575,57 @@ export default function BestClassPage() {
                                     required
                                 />
                             </div>
+                            
+                            {/* Granular Fields instead of Brief Description */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Target Audience</label>
+                                    <input
+                                        type="text"
+                                        className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-800 focus:border-blue-500 outline-none transition-all shadow-sm"
+                                        value={editForm.targetAudience || ''}
+                                        onChange={(e) => setEditForm({ ...editForm, targetAudience: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Participants Count</label>
+                                    <input
+                                        type="number"
+                                        className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-800 focus:border-blue-500 outline-none transition-all shadow-sm"
+                                        value={editForm.participantsCount || ''}
+                                        onChange={(e) => setEditForm({ ...editForm, participantsCount: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Venue</label>
+                                    <input
+                                        type="text"
+                                        className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-800 focus:border-blue-500 outline-none transition-all shadow-sm"
+                                        value={editForm.venue || ''}
+                                        onChange={(e) => setEditForm({ ...editForm, venue: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Guest or Key Person Name</label>
+                                    <input
+                                        type="text"
+                                        className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-800 focus:border-blue-500 outline-none transition-all shadow-sm"
+                                        value={editForm.guestName || ''}
+                                        onChange={(e) => setEditForm({ ...editForm, guestName: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                            </div>
+
                             <div>
-                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Description</label>
+                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Objectives</label>
                                 <textarea
                                     className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-semibold text-slate-800 placeholder:text-slate-400 focus:border-blue-500 outline-none transition-all min-h-[100px] resize-none shadow-sm"
-                                    value={editForm.description}
-                                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                                    value={editForm.objectives || ''}
+                                    onChange={(e) => setEditForm({ ...editForm, objectives: e.target.value })}
                                     required
                                 />
                             </div>

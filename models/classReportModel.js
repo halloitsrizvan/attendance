@@ -19,7 +19,27 @@ const programSchema = new Schema({
     },
     description: {
         type: String,
-        required: true
+        required: false
+    },
+    tier: {
+        type: String,
+        enum: ['Tier 1', 'Tier 2'],
+        default: 'Tier 1'
+    },
+    targetAudience: {
+        type: String
+    },
+    objectives: {
+        type: String
+    },
+    participantsCount: {
+        type: Number
+    },
+    venue: {
+        type: String
+    },
+    guestName: {
+        type: String
     },
     mark: {
         type: Number,

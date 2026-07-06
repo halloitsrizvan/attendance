@@ -10,6 +10,34 @@ const MONTHS = [
     'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
+async function calculateZehnuthPoints(classNumber, month, year) {
+    const monthIndex = MONTHS.indexOf(month);
+    if (monthIndex === -1) return 0;
+    const startDate = new Date(year, monthIndex, 1);
+    const endDate = new Date(year, monthIndex + 1, 1);
+
+    const studentsInClass = await Student.find({ CLASS: Number(classNumber) }).select('_id');
+    const studentIds = studentsInClass.map(s => s._id);
+
+    const approvedPoints = await Points.aggregate([
+        {
+            $match: {
+                studentId: { $in: studentIds },
+                status: 'approved',
+                createdAt: { $gte: startDate, $lt: endDate }
+            }
+        },
+        {
+            $group: {
+                _id: null,
+                total: { $sum: '$points' }
+            }
+        }
+    ]);
+    
+    return approvedPoints[0]?.total || 0;
+}
+
 export async function POST(req) {
     try {
         await dbConnect();
@@ -30,11 +58,34 @@ export async function POST(req) {
 
         const existingReport = await ClassReport.findOne({ classNumber: cNum, month, year });
 
+        // Block modifications if the report is already reviewed by the admin
+        if (existingReport && existingReport.status === 'reviewed') {
+            return NextResponse.json({ error: 'This report has already been reviewed by the admin and cannot be modified.' }, { status: 403 });
+        }
+
+        // Validate Tier 1 limit (maximum 10 per month) - only check if we are submitting new Tier 1 programs
+        const incomingTier1Count = programs.filter(p => p.tier === 'Tier 1').length;
+        if (incomingTier1Count > 0) {
+            const otherReports = await ClassReport.find({ classNumber: cNum, month, year });
+            const existingTier1Count = otherReports.reduce((sum, r) => {
+                const count = (r.programs || []).filter(p => p.tier === 'Tier 1' && !p.rejected).length;
+                return sum + count;
+            }, 0);
+
+            if (existingTier1Count + incomingTier1Count > 10) {
+                return NextResponse.json({ error: `Tier 1 programs limit exceeded. You already have ${existingTier1Count} Tier 1 program(s) and cannot submit ${incomingTier1Count} more.` }, { status: 400 });
+            }
+        }
+
+        // Calculate latest month Zehnuth Points
+        const latestZehnuth = await calculateZehnuthPoints(cNum, month, year);
+
         if (existingReport) {
             existingReport.programs.push(...programs);
             if (submitterType === 'student' && existingReport.classTeacherApproved) {
                 existingReport.classTeacherApproved = false;
             }
+            existingReport.zehnuthPoints = latestZehnuth;
             await existingReport.save();
             return NextResponse.json({ message: 'Programs added to existing report successfully', report: existingReport }, { status: 200 });
         } else {
@@ -46,7 +97,8 @@ export async function POST(req) {
                 year,
                 classNumber: cNum,
                 section,
-                programs
+                programs,
+                zehnuthPoints: latestZehnuth
             });
 
             await newReport.save();
@@ -76,7 +128,37 @@ export async function GET(req) {
             
             const classMap = {};
             
-            reports.forEach(report => {
+            for (let report of reports) {
+                // Dynamically compute zehnuthPoints for this report
+                const monthIndex = MONTHS.indexOf(report.month);
+                let zpCount = 0;
+                if (monthIndex !== -1) {
+                    const startDate = new Date(report.year, monthIndex, 1);
+                    const endDate = new Date(report.year, monthIndex + 1, 1);
+
+                    const studentsInClass = await Student.find({ CLASS: report.classNumber }).select('_id');
+                    const studentIds = studentsInClass.map(s => s._id);
+
+                    const approvedPoints = await Points.aggregate([
+                        {
+                            $match: {
+                                studentId: { $in: studentIds },
+                                status: 'approved',
+                                createdAt: { $gte: startDate, $lt: endDate }
+                            }
+                        },
+                        {
+                            $group: {
+                                _id: null,
+                                total: { $sum: '$points' }
+                            }
+                        }
+                    ]);
+                    zpCount = approvedPoints[0]?.total || 0;
+                }
+                
+                const liveTotalMark = (report.programPoints || 0) + (report.vivaPoints || 0) + zpCount;
+
                 const key = `Class ${report.classNumber}`;
                 if (!classMap[key]) {
                     classMap[key] = {
@@ -87,9 +169,9 @@ export async function GET(req) {
                         reportCount: 0
                     };
                 }
-                classMap[key].totalMark += (report.totalMark || 0);
+                classMap[key].totalMark += liveTotalMark;
                 classMap[key].reportCount += 1;
-            });
+            }
 
             const leaderboard = Object.values(classMap).sort((a, b) => b.totalMark - a.totalMark);
             return NextResponse.json(leaderboard);
@@ -117,38 +199,39 @@ export async function GET(req) {
             .sort({ createdAt: -1 })
             .lean();
 
-        // Compute zehnuthPoints for pending reports
+        // Compute live monthly score and points for every report
         for (let report of reports) {
-            if (report.status === 'pending') {
-                const monthIndex = MONTHS.indexOf(report.month);
-                if (monthIndex !== -1) {
-                    const startDate = new Date(report.year, monthIndex, 1);
-                    const endDate = new Date(report.year, monthIndex + 1, 1);
+            const monthIndex = MONTHS.indexOf(report.month);
+            if (monthIndex !== -1) {
+                const startDate = new Date(report.year, monthIndex, 1);
+                const endDate = new Date(report.year, monthIndex + 1, 1);
 
-                    const studentsInClass = await Student.find({ CLASS: report.classNumber }).select('_id');
-                    const studentIds = studentsInClass.map(s => s._id);
+                const studentsInClass = await Student.find({ CLASS: report.classNumber }).select('_id');
+                const studentIds = studentsInClass.map(s => s._id);
 
-                    const approvedPoints = await Points.aggregate([
-                        {
-                            $match: {
-                                studentId: { $in: studentIds },
-                                status: 'approved',
-                                createdAt: { $gte: startDate, $lt: endDate }
-                            }
-                        },
-                        {
-                            $group: {
-                                _id: null,
-                                total: { $sum: '$points' }
-                            }
+                const approvedPoints = await Points.aggregate([
+                    {
+                        $match: {
+                            studentId: { $in: studentIds },
+                            status: 'approved',
+                            createdAt: { $gte: startDate, $lt: endDate }
                         }
-                    ]);
-                    
-                    report.zehnuthPoints = approvedPoints[0]?.total || 0;
-                } else {
-                    report.zehnuthPoints = 0;
-                }
+                    },
+                    {
+                        $group: {
+                            _id: null,
+                            total: { $sum: '$points' }
+                        }
+                    }
+                ]);
+                
+                report.zehnuthPoints = approvedPoints[0]?.total || 0;
+            } else {
+                report.zehnuthPoints = 0;
             }
+
+            // Always calculate live total mark sum
+            report.totalMark = (report.programPoints || 0) + (report.vivaPoints || 0) + report.zehnuthPoints;
         }
 
         return NextResponse.json(reports);
