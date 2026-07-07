@@ -10,7 +10,6 @@ const MONTHS = [
 ];
 
 const CATEGORIES = ['Internal', 'External'];
-const PROGRAM_TYPES = ['Curriculum', 'Co-Curriculum', 'Extra-Curriculum'];
 
 const SuccessModal = ({ isOpen, onClose }) => {
     if (!isOpen) return null;
@@ -47,7 +46,6 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
 
     const createEmptyProgram = () => ({
         category: 'Internal',
-        programType: 'Curriculum',
         title: '',
         tier: 'Tier 1',
         targetAudience: '',
@@ -397,7 +395,7 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                         </div>
 
                         <div className="space-y-6 mt-4">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
 
                                 {/* Program Tier Selection */}
                                 <div>
@@ -453,24 +451,6 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                                     </div>
                                 </div>
 
-                                {/* Program Type */}
-                                <div>
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2 pl-1">Program Type</label>
-                                    <div className="relative">
-                                        <select
-                                            value={programs[activeProgramIndex].programType || 'Curriculum'}
-                                            onChange={(e) => handleProgramChange('programType', e.target.value)}
-                                            className="w-full bg-white border border-slate-200 rounded-2xl p-4 pr-10 text-sm font-bold text-slate-700 outline-none focus:border-blue-500 transition-all shadow-sm cursor-pointer appearance-none"
-                                        >
-                                            {PROGRAM_TYPES.map(type => (
-                                                <option key={type} value={type}>{type}</option>
-                                            ))}
-                                        </select>
-                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                            <ChevronDown size={16} />
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
 
                             {/* Program Title */}
