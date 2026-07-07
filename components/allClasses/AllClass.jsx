@@ -329,104 +329,106 @@ function AllClass({ edit, id }) {
               </span>
             </div>
           )}
-          {(load || preAttendanceLoad) && <AllClassLoad />}
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-6">
-            {classes.map((cls, index) => {
-              // Check if attendance already taken
-              const alreadyTaken = preAttendance.some((record) => {
-                const recordDate = record.attendanceDate
-                  ? (typeof record.attendanceDate === 'string'
-                    ? record.attendanceDate.split('T')[0]
-                    : new Date(record.attendanceDate).toISOString().split('T')[0])
-                  : null;
+          {(load || preAttendanceLoad) ? (
+            <AllClassLoad />
+          ) : (
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-6">
+              {classes.map((cls, index) => {
+                // Check if attendance already taken
+                const alreadyTaken = preAttendance.some((record) => {
+                  const recordDate = record.attendanceDate
+                    ? (typeof record.attendanceDate === 'string'
+                      ? record.attendanceDate.split('T')[0]
+                      : new Date(record.attendanceDate).toISOString().split('T')[0])
+                    : null;
 
-                // Use classNumber from our new relational model
-                const isSameClassAndDate =
-                  (record.classNumber === cls.class || record.class === cls.class) && recordDate === date;
+                  // Use classNumber from our new relational model
+                  const isSameClassAndDate =
+                    (record.classNumber === cls.class || record.class === cls.class) && recordDate === date;
 
-                if (time === "Period") {
-                  return (
-                    isSameClassAndDate &&
-                    record.attendanceTime === "Period" &&
-                    String(record.period) === String(period)
-                  );
-                } else if (time === "Jamath") {
-                  return (
-                    isSameClassAndDate &&
-                    record.attendanceTime === "Jamath" &&
-                    record.custom === more
-                  );
-                } else {
-                  return (
-                    isSameClassAndDate &&
-                    record.attendanceTime === time
-                  );
-                }
-              });
+                  if (time === "Period") {
+                    return (
+                      isSameClassAndDate &&
+                      record.attendanceTime === "Period" &&
+                      String(record.period) === String(period)
+                    );
+                  } else if (time === "Jamath") {
+                    return (
+                      isSameClassAndDate &&
+                      record.attendanceTime === "Jamath" &&
+                      record.custom === more
+                    );
+                  } else {
+                    return (
+                      isSameClassAndDate &&
+                      record.attendanceTime === time
+                    );
+                  }
+                });
 
-              return (
-                <div
-                  key={index}
-                  onClick={() => {
-                    if (edit) {
-                      navigate.push(`/edit-attendance/${cls.class}`);
-                      return;
-                    }
-                    if (alreadyTaken) return;
-                    if (time === "Period" && !period) {
-                      setErr("Select a period");
-                    } else {
-                      const finalPeriod = time === "Period" ? period : "";
-                      const finalMore = (time === "Jamath" || time === "More") ? more : "";
-                      navigate.push(
-                        `/attendance/${cls.class}?date=${date}&time=${time}&period=${finalPeriod}&more=${finalMore}`
-                      );
-                    }
-                  }}
-                  className={`relative group cursor-pointer transition-all duration-300 ${alreadyTaken && !edit ? 'opacity-60 grayscale-[0.5]' : 'hover:-translate-y-1'}`}
-                >
-                  <div className={`relative h-full p-4 rounded-2xl border-2 transition-all duration-300 flex flex-col items-center justify-center text-center ${alreadyTaken && !edit
-                      ? 'bg-slate-50/80 border-slate-200 cursor-not-allowed shadow-none'
-                      : 'bg-white border-sky-50 shadow-sm hover:border-sky-400 hover:shadow-xl hover:shadow-sky-500/10'
-                    }`}>
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-black mb-2 transition-all ${alreadyTaken && !edit ? 'bg-slate-200 text-slate-400' : 'bg-sky-500 text-white shadow-md shadow-sky-500/20 group-hover:scale-110'
+                return (
+                  <div
+                    key={index}
+                    onClick={() => {
+                      if (edit) {
+                        navigate.push(`/edit-attendance/${cls.class}`);
+                        return;
+                      }
+                      if (alreadyTaken) return;
+                      if (time === "Period" && !period) {
+                        setErr("Select a period");
+                      } else {
+                        const finalPeriod = time === "Period" ? period : "";
+                        const finalMore = (time === "Jamath" || time === "More") ? more : "";
+                        navigate.push(
+                          `/attendance/${cls.class}?date=${date}&time=${time}&period=${finalPeriod}&more=${finalMore}`
+                        );
+                      }
+                    }}
+                    className={`relative group cursor-pointer transition-all duration-300 ${alreadyTaken && !edit ? 'opacity-60 grayscale-[0.5]' : 'hover:-translate-y-1'}`}
+                  >
+                    <div className={`relative h-full p-4 rounded-2xl border-2 transition-all duration-300 flex flex-col items-center justify-center text-center ${alreadyTaken && !edit
+                        ? 'bg-slate-50/80 border-slate-200 cursor-not-allowed shadow-none'
+                        : 'bg-white border-sky-50 shadow-sm hover:border-sky-400 hover:shadow-xl hover:shadow-sky-500/10'
                       }`}>
-                      {cls.class}
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-black mb-2 transition-all ${alreadyTaken && !edit ? 'bg-slate-200 text-slate-400' : 'bg-sky-500 text-white shadow-md shadow-sky-500/20 group-hover:scale-110'
+                        }`}>
+                        {cls.class}
+                        {alreadyTaken && !edit && (
+                          <div className="absolute -top-1 -right-1 bg-emerald-500 text-white rounded-full p-0.5 shadow-sm">
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-0.5">
+                        <h3 className={`font-extrabold text-sm ${alreadyTaken && !edit ? 'text-slate-400' : 'text-slate-900'}`}>
+                          Class {cls.class}
+                        </h3>
+                        <p className={`text-[10px] font-bold uppercase tracking-tighter ${alreadyTaken && !edit ? 'text-slate-300' : 'text-slate-400'}`}>
+                          {cls.totalStudents || cls.students_count || 0} Studs
+                        </p>
+                      </div>
+
+                      {(!alreadyTaken || edit) && (
+                        <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                      )}
+
                       {alreadyTaken && !edit && (
-                        <div className="absolute -top-1 -right-1 bg-emerald-500 text-white rounded-full p-0.5 shadow-sm">
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
-                          </svg>
+                        <div className="mt-2 w-full">
+                          <div className="bg-emerald-50 py-0.5 rounded-full border border-emerald-100 flex items-center justify-center gap-1">
+                            <span className="text-[7px] font-black text-emerald-600 uppercase tracking-widest">Completed</span>
+                          </div>
                         </div>
                       )}
                     </div>
-
-                    <div className="space-y-0.5">
-                      <h3 className={`font-extrabold text-sm ${alreadyTaken && !edit ? 'text-slate-400' : 'text-slate-900'}`}>
-                        Class {cls.class}
-                      </h3>
-                      <p className={`text-[10px] font-bold uppercase tracking-tighter ${alreadyTaken && !edit ? 'text-slate-300' : 'text-slate-400'}`}>
-                        {cls.totalStudents || cls.students_count || 0} Studs
-                      </p>
-                    </div>
-
-                    {(!alreadyTaken || edit) && (
-                      <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                    )}
-
-                    {alreadyTaken && !edit && (
-                      <div className="mt-2 w-full">
-                        <div className="bg-emerald-50 py-0.5 rounded-full border border-emerald-100 flex items-center justify-center gap-1">
-                          <span className="text-[7px] font-black text-emerald-600 uppercase tracking-widest">Completed</span>
-                        </div>
-                      </div>
-                    )}
                   </div>
-                </div>
-              );
-            })}
-
-          </div></>}
+                );
+              })}
+            </div>
+          )}</>}
     </div>
   )
 }

@@ -317,7 +317,7 @@ function Hajar() {
         filtered.forEach((student) => {
           const isOnShortLeave = isStudentOnShortLeave(student.ADNO, student._id);
           const isOnActiveLeave = isStudentOnActiveLeave(student.ADNO, student._id);
-          const isOnLeave = student.onLeave || isOnShortLeave || isOnActiveLeave;
+          const isOnLeave = isOnShortLeave || isOnActiveLeave;
 
           console.log(`Student ${student.ADNO}:`, {
             onLeave: student.onLeave,
@@ -368,7 +368,7 @@ function Hajar() {
     const student = students.find(s => s.ADNO === ad);
     const isOnShortLeave = isStudentOnShortLeave(ad, studentId);
     const isOnActiveLeave = isStudentOnActiveLeave(ad, studentId);
-    const isOnLeave = student.onLeave || isOnShortLeave || isOnActiveLeave;
+    const isOnLeave = isOnShortLeave || isOnActiveLeave;
 
     // If student is on leave, don't allow changing status
     if (student && isOnLeave) {
@@ -388,7 +388,7 @@ function Hajar() {
       const isOnShortLeave = isStudentOnShortLeave(s.ADNO, s._id);
       const isOnActiveLeave = isStudentOnActiveLeave(s.ADNO, s._id);
       const isReturned = returnedStudents.includes(s.ADNO);
-      const isOnLeave = (s.onLeave || isOnShortLeave || isOnActiveLeave) && !isReturned;
+      const isOnLeave = (isOnShortLeave || isOnActiveLeave) && !isReturned;
       // Students are absent if they're marked absent OR on leave (and not returned)
       return attendance[s.ADNO] !== "Present" || isOnLeave;
     });
@@ -446,7 +446,7 @@ function Hajar() {
       const activeShortLeave = getStudentActiveShortLeave(student.ADNO, student._id);
       const activeLeave = getStudentActiveLeave(student.ADNO, student._id);
       const isReturned = returnedStudents.includes(student.ADNO);
-      const isOnLeave = (student.onLeave || !!activeShortLeave || !!activeLeave) && !isReturned;
+      const isOnLeave = (!!activeShortLeave || !!activeLeave) && !isReturned;
       const status = isOnLeave ? "Absent" : (attendance[student.ADNO] || "Absent");
 
       return {
@@ -476,7 +476,7 @@ function Hajar() {
         const isOnShortLeave = isStudentOnShortLeave(student.ADNO, student._id);
         const isOnActiveLeave = isStudentOnActiveLeave(student.ADNO, student._id);
         const isReturned = returnedStudents.includes(student.ADNO);
-        const isOnLeave = (student.onLeave || isOnShortLeave || isOnActiveLeave) && !isReturned;
+        const isOnLeave = (isOnShortLeave || isOnActiveLeave) && !isReturned;
         const status = isOnLeave ? "Absent" : (attendance[student.ADNO] || "Absent");
         
         if (status === "Present") {
@@ -501,7 +501,7 @@ function Hajar() {
         const isOnShortLeave = isStudentOnShortLeave(student.ADNO, student._id);
         const isOnActiveLeave = isStudentOnActiveLeave(student.ADNO, student._id);
         const isReturned = returnedStudents.includes(student.ADNO);
-        const isOnLeave = (student.onLeave || isOnShortLeave || isOnActiveLeave) && !isReturned;
+        const isOnLeave = (isOnShortLeave || isOnActiveLeave) && !isReturned;
         const status = isOnLeave ? "Absent" : (attendance[student.ADNO] || "Absent");
 
         return {
@@ -560,7 +560,7 @@ function Hajar() {
           shortLeaveStudents.push(s);
         } else if (activeLeave && isMedical) {
           medicalLeaveStudents.push(s);
-        } else if (s.onLeave || activeLeave) {
+        } else if (activeLeave) {
           onLeaveStudents.push(s);
         } else {
           regularAbsentees.push(s);
@@ -638,7 +638,7 @@ function Hajar() {
         const isOnShortLeave = isStudentOnShortLeave(s.ADNO, s._id);
         const isOnActiveLeave = isStudentOnActiveLeave(s.ADNO, s._id);
         const isReturned = returnedStudents.includes(s.ADNO);
-        const isOnLeave = (s.onLeave || isOnShortLeave || isOnActiveLeave) && !isReturned;
+        const isOnLeave = (isOnShortLeave || isOnActiveLeave) && !isReturned;
         
         if (!isOnLeave) {
           updated[s.ADNO] = "Present";
@@ -805,7 +805,7 @@ function Hajar() {
                       const isOnShortLeave = isStudentOnShortLeave(student.ADNO, student._id);
                       const isOnActiveLeave = isStudentOnActiveLeave(student.ADNO, student._id);
                       const isReturned = returnedStudents.includes(student.ADNO);
-                      const isOnLeave = (student.onLeave || isOnShortLeave || isOnActiveLeave);
+                      const isOnLeave = (isOnShortLeave || isOnActiveLeave);
                       const displayOnLeave = isOnLeave && !isReturned;
 
                       let leaveType = "";
@@ -917,7 +917,7 @@ function Hajar() {
                 const isOnShortLeave = isStudentOnShortLeave(student.ADNO, student._id);
                 const isOnActiveLeave = isStudentOnActiveLeave(student.ADNO, student._id);
                 const isReturned = returnedStudents.includes(student.ADNO);
-                const isOnLeave = (student.onLeave || isOnShortLeave || isOnActiveLeave);
+                const isOnLeave = (isOnShortLeave || isOnActiveLeave);
                 const displayOnLeave = isOnLeave && !isReturned;
                 const isPresent = attendance[student.ADNO] === "Present" && !displayOnLeave;
 

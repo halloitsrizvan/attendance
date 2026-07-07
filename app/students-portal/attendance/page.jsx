@@ -91,7 +91,10 @@ export default function AttendancePage() {
         const absentsBreakdown = {};
 
         attendanceData.forEach(log => {
-            const time = log.attendanceTime || 'General';
+            let time = log.attendanceTime || 'General';
+            if (time === 'Period' && log.period) {
+                time = `Period ${log.period}`;
+            }
             if (log.status === 'Present') {
                 presents++;
                 presentsBreakdown[time] = (presentsBreakdown[time] || 0) + 1;
@@ -238,7 +241,7 @@ export default function AttendancePage() {
                                 <div className="flex items-center gap-3">
                                     <div className="flex flex-col gap-1 shrink-0">
                                         <span className="px-3 py-1 rounded-lg text-[10px] font-black text-white bg-blue-500 text-center">
-                                            {item.attendanceTime || 'General'}
+                                            {item.attendanceTime === 'Period' && item.period ? `Period ${item.period}` : (item.attendanceTime || 'General')}
                                         </span>
                                         <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black text-center border ${item.onLeave ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-slate-50 text-slate-500 border-slate-100'}`}>
                                             OnLeave: {item.onLeave ? 'Yes' : 'No'}
@@ -313,7 +316,7 @@ export default function AttendancePage() {
                                         {item.status}
                                     </span>
                                     <span className="px-4 py-2 rounded-xl border border-slate-800 text-[12px] font-black text-slate-800 shrink-0">
-                                        {item.attendanceTime || 'General'}
+                                        {item.attendanceTime === 'Period' && item.period ? `Period ${item.period}` : (item.attendanceTime || 'General')}
                                     </span>
                                     {item.status === 'Absent' && <span className={`px-4 py-2 rounded-xl border text-[10px] font-black shrink-0 ${item.onLeave ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
                                         OnLeave: {item.onLeave ? 'Yes' : 'No'}
@@ -354,7 +357,7 @@ export default function AttendancePage() {
                             <option value="">Select Attendance...</option>
                             {eligibleAbsentsData.map(item => (
                                 <option key={item._id} value={item._id}>
-                                    {new Date(item.createdAt || item.attendanceDate).toLocaleDateString()} - {item.attendanceTime || 'General'}
+                                    {new Date(item.createdAt || item.attendanceDate).toLocaleDateString()} - {item.attendanceTime === 'Period' && item.period ? `Period ${item.period}` : (item.attendanceTime || 'General')}
                                 </option>
                             ))}
                         </select>

@@ -269,13 +269,13 @@ export default function LeavePage() {
                     <h2 className="text-2xl font-black text-slate-800 mb-6">My Analytics</h2>
                     <div className="grid grid-cols-2 gap-4">
                         <MetricCard 
-                            title="Total Leave"
+                            title="Total leave count"
                             value={stats.totalLeaveCount}
                             color="blue"
                             icon={CalendarDays}
                         />
                         <MetricCard 
-                            title="Total Leave Days"
+                            title="Total leave duration"
                             value={stats.totalLeaveDays}
                             color="slate"
                             icon={CalendarDays}
