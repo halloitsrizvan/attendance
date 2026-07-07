@@ -212,18 +212,27 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
             return;
         }
 
-        const validPrograms = programs.filter(p => p.title.trim() && p.date && p.objectives.trim());
-        if (validPrograms.length === 0) {
-            alert("Please add at least one valid program with a title, date, and objectives.");
-            return;
+        for (let i = 0; i < programs.length; i++) {
+            const p = programs[i];
+            if (!p.title?.trim() || !p.date || !p.objectives?.trim() || 
+                !p.targetAudience?.trim() || p.participantsCount === '' || p.participantsCount === undefined || p.participantsCount === null || 
+                !p.venue?.trim() || !p.guestName?.trim() || !p.collaboration) {
+                alert(`Please fill out all text fields and selections for Program ${i + 1}.`);
+                setActiveProgramIndex(i);
+                return;
+            }
+            if (!p.poster) {
+                alert(`Program Poster is mandatory: Please upload a poster image for Program ${i + 1}.`);
+                setActiveProgramIndex(i);
+                return;
+            }
+            if (!p.gallery || p.gallery.length === 0) {
+                alert(`Photo Gallery is mandatory: Please upload at least one photo for Program ${i + 1}.`);
+                setActiveProgramIndex(i);
+                return;
+            }
         }
-
-        // Make Program Photo Gallery mandatory
-        const missingGallery = validPrograms.find(p => !p.gallery || p.gallery.length === 0);
-        if (missingGallery) {
-            alert(`Photo Gallery is mandatory: Please upload at least one image/photo to the gallery for the program "${missingGallery.title || 'Untitled'}".`);
-            return;
-        }
+        const validPrograms = programs;
 
         // Validate Tier 1 limit (max 10 per month) - only check if we are submitting new Tier 1 programs
         const tier1CountInForm = validPrograms.filter(p => p.tier === 'Tier 1').length;
@@ -437,7 +446,8 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                                             onChange={(e) => handleProgramChange('collaboration', e.target.value)}
                                             className="w-full bg-white border border-slate-200 rounded-2xl p-4 pr-10 text-sm font-bold text-slate-700 outline-none focus:border-blue-500 transition-all shadow-sm cursor-pointer appearance-none"
                                         >
-                                            <option value="">None / Solo</option>
+                                            <option value="" disabled>Select Collaboration...</option>
+                                            <option value="None">None / Solo</option>
                                             <option value="LISAN">LISAN</option>
                                             <option value="Dept.">Dept.</option>
                                             <option value="Other Class Union">Other Class Union</option>
