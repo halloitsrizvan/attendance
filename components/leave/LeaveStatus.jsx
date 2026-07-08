@@ -450,6 +450,7 @@ function LeaveStatus({ myClassOnly = false }) {
   const [shortLeaveStatus, setShortLeaveStatus] = useState([]);
   const [editingLeave, setEditingLeave] = useState(null);
   const [alertState, setAlertState] = useState({ isOpen: false, title: '', message: '', type: 'info', actions: null });
+  const [visibleCount, setVisibleCount] = useState(50);
   const filterRef = useRef(null);
 
   const teacher = useMemo(() => {
@@ -896,7 +897,12 @@ function LeaveStatus({ myClassOnly = false }) {
     if (activeTab !== "actions") {
       setSearchValue('');
     }
+    setVisibleCount(50);
   }, [activeTab]);
+
+  useEffect(() => {
+    setVisibleCount(50);
+  }, [activeTabMyDB, searchValue, filterClass, filterAction, filterStartReturn, filterReason]);
 
   if (error) {
     return (
@@ -1196,9 +1202,20 @@ function LeaveStatus({ myClassOnly = false }) {
                   </div>
                 }
 
-                {filteredData.map((student) => (
+                {filteredData.slice(0, activeTab === 'all' ? visibleCount : undefined).map((student) => (
                   <StudentStatusCard key={student._id} student={student} />
                 ))}
+                {activeTab === 'all' && visibleCount < filteredData.length && (
+                  <div className="col-span-full flex justify-center mt-6 mb-8">
+                    <button
+                      onClick={() => setVisibleCount(prev => prev + 50)}
+                      className="px-6 py-2.5 bg-slate-800 text-white rounded-xl font-bold text-sm shadow-lg shadow-slate-200 hover:bg-slate-900 transition-all active:scale-95 flex items-center gap-2"
+                    >
+                      <RefreshCw size={16} />
+                      Load More
+                    </button>
+                  </div>
+                )}
               </>
             ) : (
               <div className="col-span-full">
@@ -1271,7 +1288,7 @@ function LeaveStatus({ myClassOnly = false }) {
                 <div>
                   {activeTabMyDB === "History" && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {filterDB.map((student) => (
+                      {filterDB.slice(0, visibleCount).map((student) => (
                         <StudentStatusCard 
                           key={student._id} 
                           student={student} 
@@ -1279,6 +1296,17 @@ function LeaveStatus({ myClassOnly = false }) {
                           onEdit={handleEdit}
                         />
                       ))}
+                      {visibleCount < filterDB.length && (
+                        <div className="col-span-full flex justify-center mt-6 mb-8">
+                          <button
+                            onClick={() => setVisibleCount(prev => prev + 50)}
+                            className="px-6 py-2.5 bg-slate-800 text-white rounded-xl font-bold text-sm shadow-lg shadow-slate-200 hover:bg-slate-900 transition-all active:scale-95 flex items-center gap-2"
+                          >
+                            <RefreshCw size={16} />
+                            Load More
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
