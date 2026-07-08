@@ -84,6 +84,7 @@ export default function Sidebar({ isOpen, onClose }) {
 
     const handleLogout = () => {
         localStorage.removeItem('studentToken');
+        localStorage.removeItem('vivaToken');
         router.push('/students-login');
     };
 

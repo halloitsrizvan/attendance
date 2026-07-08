@@ -58,6 +58,7 @@ export default function DashboardPage() {
             console.error("Error fetching dashboard data:", err);
             if (err?.response?.status === 401) {
                 localStorage.removeItem('studentToken');
+                localStorage.removeItem('vivaToken');
                 router.push('/students-login');
             }
         } finally {
