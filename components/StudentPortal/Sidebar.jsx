@@ -57,6 +57,7 @@ export default function Sidebar({ isOpen, onClose }) {
         { name: 'Dashboard', path: '/students-portal', icon: LayoutDashboard },
         { name: 'Attendance', path: '/students-portal/attendance', icon: CalendarCheck },
         { name: 'Leave', path: '/students-portal/leave', icon: CalendarDays },
+        { name: 'Daily Viva', path: '/students-portal/daily-viva', icon: Award },
         { name: 'CEP', path: '/students-portal/cep', icon: Award },
         { name: 'Zehnuth', path: '/students-portal/zehnuth', icon: Star },
         { name: 'Best Class', path: '/students-portal/best-class', icon: Trophy },
