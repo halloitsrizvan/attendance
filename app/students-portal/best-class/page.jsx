@@ -103,7 +103,8 @@ export default function BestClassPage() {
             date: program.date || '',
             poster: program.poster || '',
             gallery: program.gallery || [],
-            collaboration: program.collaboration || ''
+            collaboration: program.collaboration || '',
+            isDraft: program.isDraft || false
         });
     };
 
@@ -152,13 +153,21 @@ export default function BestClassPage() {
         }
     };
 
-    const handleUpdateProgram = async (e) => {
-        e.preventDefault();
+    const handleUpdateProgram = async (e, finalize = false) => {
+        if (e) e.preventDefault();
 
-        // Make Program Photo Gallery mandatory
-        if (!editForm.gallery || editForm.gallery.length === 0) {
-            alert("Photo Gallery is mandatory: Please upload at least one image/photo to the gallery.");
-            return;
+        // If finalizing or editing an already final program, validate mandatory fields
+        if (finalize || !editForm.isDraft) {
+            if (!editForm.gallery || editForm.gallery.length === 0) {
+                alert("Photo Gallery is mandatory: Please upload at least one image/photo to the gallery.");
+                return;
+            }
+            if (!editForm.title?.trim() || !editForm.date || !editForm.objectives?.trim() || 
+                !editForm.targetAudience?.trim() || editForm.participantsCount === '' || 
+                !editForm.venue?.trim() || !editForm.guestName?.trim() || !editForm.poster) {
+                alert("Please fill out all mandatory fields and upload a poster before finalizing.");
+                return;
+            }
         }
 
         // Validate Tier 1 limit during edit
@@ -201,7 +210,8 @@ export default function BestClassPage() {
                 date: editForm.date,
                 poster: editForm.poster,
                 gallery: editForm.gallery,
-                collaboration: editForm.collaboration
+                collaboration: editForm.collaboration,
+                isDraft: finalize ? false : editForm.isDraft
             };
             await axios.put(`${API_PORT}/class-reports/${editingReportId}`, {
                 programId: editingProgram,
@@ -378,6 +388,11 @@ export default function BestClassPage() {
 
                                         {/* Badges */}
                                         <div className="flex flex-wrap items-center gap-2 mb-3">
+                                            {program.isDraft && (
+                                                <span className="text-[9px] font-black bg-rose-100 border border-rose-200 text-rose-700 px-2.5 py-1 rounded uppercase tracking-widest animate-pulse">
+                                                    DRAFT
+                                                </span>
+                                            )}
                                             <span className="text-[9px] font-black bg-indigo-50 border border-indigo-100 text-indigo-700 px-2.5 py-1 rounded uppercase tracking-widest">
                                                 {program.category}
                                             </span>
@@ -487,7 +502,7 @@ export default function BestClassPage() {
                             <button onClick={() => setEditingProgram(null)} className="p-2 hover:bg-white/20 rounded-xl transition-all relative z-10"><X size={20} /></button>
                         </div>
                         {/* Edit Form */}
-                        <form onSubmit={handleUpdateProgram} className="p-6 overflow-y-auto custom-scrollbar space-y-4 bg-white">
+                        <form className="p-6 overflow-y-auto custom-scrollbar space-y-4 bg-white">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Category</label>
@@ -713,9 +728,37 @@ export default function BestClassPage() {
                                 </div>
                             </div>
 
-                            <button type="submit" disabled={uploading || uploadingGallery} className="w-full py-4 mt-6 bg-[#0F172A] text-white rounded-2xl text-xs font-black uppercase tracking-[0.2em] hover:bg-slate-850 active:scale-95 transition-all shadow-xl shadow-slate-100 disabled:opacity-50 disabled:cursor-not-allowed">
-                                Save Changes
-                            </button>
+                            {/* Action Buttons */}
+                            <div className="pt-4 mt-6 flex gap-4">
+                                {editForm.isDraft ? (
+                                    <>
+                                        <button 
+                                            type="button" 
+                                            onClick={(e) => handleUpdateProgram(e, false)}
+                                            className="w-1/3 py-4 bg-slate-100 text-slate-700 rounded-2xl text-xs font-black uppercase tracking-[0.2em] hover:bg-slate-200 transition-all shadow-sm"
+                                        >
+                                            Save Draft
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            onClick={(e) => handleUpdateProgram(e, true)}
+                                            disabled={uploading || uploadingGallery}
+                                            className="w-2/3 py-4 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-[0.2em] hover:bg-blue-700 active:scale-95 transition-all shadow-xl shadow-blue-200 disabled:opacity-50"
+                                        >
+                                            Finalize & Submit
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button 
+                                        type="button" 
+                                        onClick={(e) => handleUpdateProgram(e, false)}
+                                        disabled={uploading || uploadingGallery}
+                                        className="w-full py-4 bg-[#0F172A] text-white rounded-2xl text-xs font-black uppercase tracking-[0.2em] hover:bg-slate-850 active:scale-95 transition-all shadow-xl shadow-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Save Changes
+                                    </button>
+                                )}
+                            </div>
                         </form>
                     </div>
                 </div>

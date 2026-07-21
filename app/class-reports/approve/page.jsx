@@ -78,7 +78,7 @@ export default function ApproveClassReport() {
             return;
         }
         try {
-            const res = await axios.get(`/api/class-reports?classNumber=${classNum}`);
+            const res = await axios.get(`/api/class-reports?classNumber=${classNum}&omitDrafts=true`);
             const data = res.data || [];
             // Filter reports submitted by students that are not yet approved by class teacher
             const pending = data.filter(r => r.submitterType === 'student' && !r.classTeacherApproved);

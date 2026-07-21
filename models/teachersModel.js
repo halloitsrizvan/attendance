@@ -57,11 +57,10 @@ teacherSchema.post('init', function(doc) {
     }
 });
 
-teacherSchema.pre('save', function(next) {
+teacherSchema.pre('save', function() {
     if (typeof this.role === 'string') {
         this.role = [this.role];
     }
-    next();
 });
 
 if (mongoose.models['Teacher']) {

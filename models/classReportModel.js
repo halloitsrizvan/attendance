@@ -60,6 +60,10 @@ const programSchema = new Schema({
     },
     collaboration: {
         type: String
+    },
+    isDraft: {
+        type: Boolean,
+        default: false
     }
 });
 

@@ -101,6 +101,34 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
         fetchExistingTier1();
     }, [month, year, classNumber]);
 
+    // Load drafts from the server instead of localStorage
+    useEffect(() => {
+        const fetchDrafts = async () => {
+            if (classNumber || classNumber === 0) {
+                try {
+                    const res = await axios.get(`/api/class-reports?classNumber=${classNumber}`);
+                    const thisMonthReports = (res.data || []).filter(r => r.month === month && r.year === Number(year));
+                    
+                    let draftedPrograms = [];
+                    thisMonthReports.forEach(r => {
+                        const drafts = (r.programs || []).filter(p => p.isDraft === true);
+                        draftedPrograms = [...draftedPrograms, ...drafts];
+                    });
+                    
+                    if (draftedPrograms.length > 0) {
+                        if (window.confirm("You have unfinished drafts saved in the database. Would you like to load them here to finalize?")) {
+                            setPrograms(draftedPrograms);
+                            setActiveProgramIndex(0);
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error fetching drafts", e);
+                }
+            }
+        };
+        fetchDrafts();
+    }, [classNumber, month, year]);
+
     const getMinMaxDates = () => {
         const monthIndex = MONTHS.indexOf(month);
         if (monthIndex === -1) return { min: '', max: '' };
@@ -268,7 +296,7 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                     description: compiledDescription
                 };
             });
-
+            
             const payload = {
                 month,
                 year,
@@ -665,21 +693,71 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                 </div>
 
                 {/* Submit Action */}
-                <div className="pt-4 border-t border-slate-100">
+                <div className="pt-4 border-t border-slate-100 flex gap-4">
+                    <button
+                        type="button"
+                        onClick={async () => {
+                            if (!submitterId) return;
+                            if (!classNumber && classNumber !== 0) return;
+                            
+                            setSubmitting(true);
+                            try {
+                                const processedPrograms = programs.map(p => {
+                                    const compiledDescription = `Target Audience: ${p.targetAudience || 'N/A'}\nObjectives: ${p.objectives || 'N/A'}\nParticipants: ${p.participantsCount || '0'}\nVenue: ${p.venue || 'N/A'}\nGuest/Key Person: ${p.guestName || 'N/A'}`;
+                                    return {
+                                        ...p,
+                                        title: p.title?.trim() ? p.title : "Draft Program",
+                                        description: compiledDescription,
+                                        isDraft: true
+                                    };
+                                });
+
+                                const payload = {
+                                    month,
+                                    year,
+                                    classNumber,
+                                    programs: processedPrograms,
+                                    submitterType
+                                };
+                                if (submitterType === 'teacher') payload.teacherId = submitterId;
+                                else if (submitterType === 'student') payload.studentId = submitterId;
+                                else payload.teacherId = submitterId;
+
+                                await axios.post('/api/class-reports', payload);
+                                setShowSuccess(true);
+                                setPrograms([createEmptyProgram()]);
+                                setActiveProgramIndex(0);
+                                if (onSuccessCallback) {
+                                    setTimeout(() => {
+                                        onSuccessCallback();
+                                    }, 1500);
+                                }
+                            } catch (error) {
+                                console.error("Error saving draft:", error);
+                                alert("Failed to save draft.");
+                            } finally {
+                                setSubmitting(false);
+                            }
+                        }}
+                        disabled={submitting || (!classNumber && classNumber !== 0)}
+                        className="w-1/3 py-5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-[2rem] text-[11px] font-black uppercase tracking-[0.2em] active:scale-95 transition-all shadow-sm flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Save Draft
+                    </button>
                     <button
                         type="submit"
-                        disabled={submitting || !classNumber}
-                        className="w-full py-5 bg-[#0F172A] hover:bg-slate-800 text-white rounded-[2rem] text-[11px] font-black uppercase tracking-[0.2em] active:scale-95 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={submitting || (!classNumber && classNumber !== 0)}
+                        className="w-2/3 py-5 bg-[#0F172A] hover:bg-slate-800 text-white rounded-[2rem] text-[11px] font-black uppercase tracking-[0.2em] active:scale-95 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                         {submitting ? 'Submitting Report...' : 'Submit Monthly Report'}
                     </button>
-                    {!classNumber && (
-                        <p className="text-center text-[10px] font-bold text-rose-500 uppercase tracking-widest mt-4">
-                            You cannot submit because you have no assigned class
-                        </p>
-                    )}
                 </div>
+                {(!classNumber && classNumber !== 0) && (
+                    <p className="text-center text-[10px] font-bold text-rose-500 uppercase tracking-widest mt-4">
+                        You cannot submit because you have no assigned class
+                    </p>
+                )}
             </form>
         </div>
     );

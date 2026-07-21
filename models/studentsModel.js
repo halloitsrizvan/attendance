@@ -61,11 +61,10 @@ studentsSchema.post('init', function(doc) {
     }
 });
 
-studentsSchema.pre('save', function(next) {
+studentsSchema.pre('save', function() {
     if (typeof this.role === 'string') {
         this.role = [this.role];
     }
-    next();
 });
 
 if (mongoose.models['Student']) {

@@ -178,6 +178,7 @@ export async function GET(req) {
         }
 
         const adminView = searchParams.get('adminView') === 'true';
+        const omitDrafts = searchParams.get('omitDrafts') === 'true';
         const classNumber = searchParams.get('classNumber');
         const filter = {};
         if (classNumber) {
@@ -199,8 +200,18 @@ export async function GET(req) {
             .sort({ createdAt: -1 })
             .lean();
 
+        const finalReports = [];
+
         // Compute live monthly score and points for every report
         for (let report of reports) {
+            // Filter out drafted programs for teachers and admins
+            if (omitDrafts || adminView) {
+                report.programs = (report.programs || []).filter(p => !p.isDraft);
+                if (report.programs.length === 0) continue; // Skip empty reports
+            }
+            
+            finalReports.push(report);
+            
             const monthIndex = MONTHS.indexOf(report.month);
             if (monthIndex !== -1) {
                 const startDate = new Date(report.year, monthIndex, 1);
@@ -234,7 +245,7 @@ export async function GET(req) {
             report.totalMark = (report.programPoints || 0) + (report.vivaPoints || 0) + report.zehnuthPoints;
         }
 
-        return NextResponse.json(reports);
+        return NextResponse.json(finalReports);
     } catch (error) {
         console.error("Error fetching class reports:", error);
         return NextResponse.json({ error: error.message }, { status: 500 });
