@@ -35,7 +35,24 @@ async function calculateZehnuthPoints(classNumber, month, year) {
         }
     ]);
     
-    return approvedPoints[0]?.total || 0;
+    const rawPoints = approvedPoints[0]?.total || 0;
+
+    const maxPointsAgg = await Points.aggregate([
+        { $match: { status: 'approved', createdAt: { $gte: startDate, $lt: endDate } } },
+        { $lookup: { from: 'students', localField: 'studentId', foreignField: '_id', as: 'student' } },
+        { $unwind: '$student' },
+        { $group: { _id: '$student.CLASS', total: { $sum: '$points' } } },
+        { $sort: { total: -1 } },
+        { $limit: 1 }
+    ]);
+    const maxPoints = maxPointsAgg[0]?.total || 0;
+
+    const calculatedPoints = maxPoints > 0 ? (rawPoints / maxPoints) * 100 : 0;
+    
+    return {
+        original: rawPoints,
+        calculated: parseFloat(calculatedPoints.toFixed(2))
+    };
 }
 
 export async function POST(req) {
@@ -85,7 +102,8 @@ export async function POST(req) {
             if (submitterType === 'student' && existingReport.classTeacherApproved) {
                 existingReport.classTeacherApproved = false;
             }
-            existingReport.zehnuthPoints = latestZehnuth;
+            existingReport.originalZehnuthPoints = latestZehnuth.original;
+            existingReport.zehnuthPoints = latestZehnuth.calculated;
             await existingReport.save();
             return NextResponse.json({ message: 'Programs added to existing report successfully', report: existingReport }, { status: 200 });
         } else {
@@ -98,7 +116,8 @@ export async function POST(req) {
                 classNumber: cNum,
                 section,
                 programs,
-                zehnuthPoints: latestZehnuth
+                originalZehnuthPoints: latestZehnuth.original,
+                zehnuthPoints: latestZehnuth.calculated
             });
 
             await newReport.save();
@@ -154,7 +173,19 @@ export async function GET(req) {
                             }
                         }
                     ]);
-                    zpCount = approvedPoints[0]?.total || 0;
+                    const rawZp = approvedPoints[0]?.total || 0;
+
+                    const maxPointsAgg = await Points.aggregate([
+                        { $match: { status: 'approved', createdAt: { $gte: startDate, $lt: endDate } } },
+                        { $lookup: { from: 'students', localField: 'studentId', foreignField: '_id', as: 'student' } },
+                        { $unwind: '$student' },
+                        { $group: { _id: '$student.CLASS', total: { $sum: '$points' } } },
+                        { $sort: { total: -1 } },
+                        { $limit: 1 }
+                    ]);
+                    const maxZp = maxPointsAgg[0]?.total || 0;
+
+                    zpCount = maxZp > 0 ? parseFloat(((rawZp / maxZp) * 100).toFixed(2)) : 0;
                 }
                 
                 const liveTotalMark = (report.programPoints || 0) + (report.vivaPoints || 0) + zpCount;
@@ -201,6 +232,7 @@ export async function GET(req) {
             .lean();
 
         const finalReports = [];
+        const maxZehnuthCache = {};
 
         // Compute live monthly score and points for every report
         for (let report of reports) {
@@ -236,8 +268,29 @@ export async function GET(req) {
                     }
                 ]);
                 
-                report.zehnuthPoints = approvedPoints[0]?.total || 0;
+                const rawZehnuth = approvedPoints[0]?.total || 0;
+
+                const cacheKey = `${report.month}-${report.year}`;
+                let maxZehnuth = 0;
+                if (maxZehnuthCache[cacheKey] !== undefined) {
+                    maxZehnuth = maxZehnuthCache[cacheKey];
+                } else {
+                    const maxPointsAgg = await Points.aggregate([
+                        { $match: { status: 'approved', createdAt: { $gte: startDate, $lt: endDate } } },
+                        { $lookup: { from: 'students', localField: 'studentId', foreignField: '_id', as: 'student' } },
+                        { $unwind: '$student' },
+                        { $group: { _id: '$student.CLASS', total: { $sum: '$points' } } },
+                        { $sort: { total: -1 } },
+                        { $limit: 1 }
+                    ]);
+                    maxZehnuth = maxPointsAgg[0]?.total || 0;
+                    maxZehnuthCache[cacheKey] = maxZehnuth;
+                }
+
+                report.originalZehnuthPoints = rawZehnuth;
+                report.zehnuthPoints = maxZehnuth > 0 ? parseFloat(((rawZehnuth / maxZehnuth) * 100).toFixed(2)) : 0;
             } else {
+                report.originalZehnuthPoints = 0;
                 report.zehnuthPoints = 0;
             }
 

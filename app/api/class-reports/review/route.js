@@ -7,7 +7,7 @@ export async function PATCH(req) {
         await dbConnect();
         
         const body = await req.json();
-        const { reportId, programs, adminId, vivaPoints, zehnuthPoints } = body;
+        const { reportId, programs, adminId, vivaPoints, tier2Points, zehnuthPoints, originalZehnuthPoints } = body;
 
         if (!reportId || !programs || !adminId) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -19,7 +19,7 @@ export async function PATCH(req) {
             return NextResponse.json({ error: 'Report not found' }, { status: 404 });
         }
 
-        let programPoints = 0;
+        let tier1Points = 0;
 
         // Update each program's mark
         programs.forEach(updatedProgram => {
@@ -30,17 +30,27 @@ export async function PATCH(req) {
                 // If rejected, force mark to 0
                 const markValue = programToUpdate.rejected ? 0 : (Number(updatedProgram.mark) || 0);
                 programToUpdate.mark = markValue;
-                programPoints += markValue;
+                
+                if (programToUpdate.tier !== 'Tier 2') {
+                    tier1Points += markValue;
+                }
             }
         });
+
+        const cappedTier2 = Math.min(Number(tier2Points) || 0, 10);
+        const programPoints = tier1Points + cappedTier2;
 
         // Update root report properties
         const vp = Number(vivaPoints) || 0;
         const zp = Number(zehnuthPoints) || 0;
+        const ogZp = Number(originalZehnuthPoints) || 0;
         
         report.programPoints = programPoints;
+        report.tier1Points = tier1Points;
+        report.tier2Points = cappedTier2;
         report.vivaPoints = vp;
         report.zehnuthPoints = zp;
+        report.originalZehnuthPoints = ogZp;
         report.totalMark = programPoints + vp + zp;
         report.status = 'reviewed';
         report.markedBy = adminId;

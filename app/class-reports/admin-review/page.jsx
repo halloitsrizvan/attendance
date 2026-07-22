@@ -31,6 +31,7 @@ export default function AdminReviewClassReports() {
     // Structure: { [reportId]: { [programId]: number } }
     const [marks, setMarks] = useState({});
     const [vivaPoints, setVivaPoints] = useState({});
+    const [tier2PointsGlobal, setTier2PointsGlobal] = useState({});
     const [rejectedPrograms, setRejectedPrograms] = useState({});
 
     const [defaultMonth, setDefaultMonth] = useState('January');
@@ -96,10 +97,12 @@ export default function AdminReviewClassReports() {
             // Initialize marks, viva, and rejected state for reports
             const initialMarks = {};
             const initialViva = {};
+            const initialTier2 = {};
             const initialRejected = {};
             res.data.forEach(report => {
                 initialMarks[report._id] = {};
                 initialViva[report._id] = report.vivaPoints || 0;
+                initialTier2[report._id] = report.tier2Points || 0;
                 initialRejected[report._id] = {};
                 report.programs.forEach(program => {
                     initialMarks[report._id][program._id] = program.mark || 0;
@@ -108,6 +111,7 @@ export default function AdminReviewClassReports() {
             });
             setMarks(initialMarks);
             setVivaPoints(initialViva);
+            setTier2PointsGlobal(initialTier2);
             setRejectedPrograms(initialRejected);
         } catch (error) {
             console.error("Error fetching reports:", error);
@@ -117,12 +121,14 @@ export default function AdminReviewClassReports() {
     };
 
     const handleMarkChange = (reportId, programId, value) => {
-        const numericVal = Number(value);
+        let numericVal = Number(value);
+        if (numericVal < 0) numericVal = 0;
+        if (numericVal > 10) numericVal = 10;
         setMarks(prev => ({
             ...prev,
             [reportId]: {
                 ...prev[reportId],
-                [programId]: numericVal < 1 ? 1 : numericVal
+                [programId]: numericVal
             }
         }));
     };
@@ -169,7 +175,9 @@ export default function AdminReviewClassReports() {
                 reportId: report._id,
                 programs: updatedPrograms,
                 vivaPoints: vivaPoints[report._id] || 0,
+                tier2Points: tier2PointsGlobal[report._id] || 0,
                 zehnuthPoints: report.zehnuthPoints || 0,
+                originalZehnuthPoints: report.originalZehnuthPoints || 0,
                 adminId
             });
 
@@ -511,45 +519,62 @@ export default function AdminReviewClassReports() {
                                             </div>
 
                                             {/* Mark Input */}
-                                            <div className="lg:w-48 bg-slate-50 rounded-[1.5rem] p-5 flex flex-col justify-center border border-slate-100 shrink-0">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center mb-3">
-                                                    Assign Points
-                                                </label>
-                                                <div className="flex items-center justify-center gap-2">
+                                            {program.tier === 'Tier 2' ? (
+                                                <div className="lg:w-48 bg-slate-50 rounded-[1.5rem] p-5 flex flex-col justify-center border border-slate-100 shrink-0 text-center">
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Tier 2 Program</p>
+                                                    <p className="text-xs font-semibold text-slate-500 mb-4">Marked collectively below.</p>
                                                     <button
-                                                        onClick={() => handleMarkChange(selectedReport._id, program._id, (marks[selectedReport._id]?.[program._id] || 0) - 1)}
-                                                        disabled={isRejected}
-                                                        className="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-500 flex items-center justify-center font-black hover:bg-slate-100 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        onClick={() => handleRejectedToggle(selectedReport._id, program._id)}
+                                                        className={`w-full py-2 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border active:scale-95 ${isRejected
+                                                                ? 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'
+                                                                : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:text-rose-600 hover:border-rose-200'
+                                                            }`}
                                                     >
-                                                        -
-                                                    </button>
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        value={marks[selectedReport._id]?.[program._id] || 0}
-                                                        disabled={isRejected}
-                                                        onChange={(e) => handleMarkChange(selectedReport._id, program._id, e.target.value)}
-                                                        className="w-16 text-center font-black text-xl text-slate-800 bg-transparent border-b-2 border-slate-300 focus:border-indigo-500 outline-none p-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    />
-                                                    <button
-                                                        onClick={() => handleMarkChange(selectedReport._id, program._id, (marks[selectedReport._id]?.[program._id] || 0) + 1)}
-                                                        disabled={isRejected}
-                                                        className="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-500 flex items-center justify-center font-black hover:bg-slate-100 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    >
-                                                        +
+                                                        {isRejected ? 'Undo Reject' : 'Reject'}
                                                     </button>
                                                 </div>
-
-                                                <button
-                                                    onClick={() => handleRejectedToggle(selectedReport._id, program._id)}
-                                                    className={`w-1/2 py-2 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border mt-4 active:scale-95 self-end ${isRejected
-                                                            ? 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'
-                                                            : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:text-rose-600 hover:border-rose-200'
-                                                        }`}
-                                                >
-                                                    {isRejected ? 'Undo Reject' : 'Reject'}
-                                                </button>
-                                            </div>
+                                            ) : (
+                                                <div className="lg:w-48 bg-slate-50 rounded-[1.5rem] p-5 flex flex-col justify-center border border-slate-100 shrink-0">
+                                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center mb-3">
+                                                        Assign Points
+                                                    </label>
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <button
+                                                            onClick={() => handleMarkChange(selectedReport._id, program._id, (marks[selectedReport._id]?.[program._id] || 0) - 1)}
+                                                            disabled={isRejected}
+                                                            className="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-500 flex items-center justify-center font-black hover:bg-slate-100 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        >
+                                                            -
+                                                        </button>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            max="10"
+                                                            value={marks[selectedReport._id]?.[program._id] || 0}
+                                                            disabled={isRejected}
+                                                            onChange={(e) => handleMarkChange(selectedReport._id, program._id, e.target.value)}
+                                                            className="w-16 text-center font-black text-xl text-slate-800 bg-transparent border-b-2 border-slate-300 focus:border-indigo-500 outline-none p-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        />
+                                                        <button
+                                                            onClick={() => handleMarkChange(selectedReport._id, program._id, (marks[selectedReport._id]?.[program._id] || 0) + 1)}
+                                                            disabled={isRejected}
+                                                            className="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-500 flex items-center justify-center font-black hover:bg-slate-100 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        >
+                                                            +
+                                                        </button>
+                                                    </div>
+    
+                                                    <button
+                                                        onClick={() => handleRejectedToggle(selectedReport._id, program._id)}
+                                                        className={`w-1/2 py-2 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border mt-4 active:scale-95 self-end ${isRejected
+                                                                ? 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'
+                                                                : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:text-rose-600 hover:border-rose-200'
+                                                            }`}
+                                                    >
+                                                        {isRejected ? 'Undo Reject' : 'Reject'}
+                                                    </button>
+                                                </div>
+                                            )}
 
                                         </div>
                                     );
@@ -562,16 +587,54 @@ export default function AdminReviewClassReports() {
 
                             {/* Points Summary & Viva Input */}
                             <div className="flex flex-wrap items-center gap-6">
+                                {(() => {
+                                    let t1 = 0;
+                                    selectedReport.programs.forEach(p => {
+                                        const m = marks[selectedReport._id]?.[p._id] || 0;
+                                        if (p.tier !== 'Tier 2') t1 += m;
+                                    });
+                                    const t2 = tier2PointsGlobal[selectedReport._id] || 0;
+                                    const t2Capped = Math.min(t2, 10);
+                                    const total = t1 + t2Capped;
+
+                                    return (
+                                        <div className="flex gap-4">
+                                            <div className="space-y-1 border-r border-slate-200 pr-4">
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Tier 1</p>
+                                                <p className="text-lg font-black text-blue-600">{t1}</p>
+                                            </div>
+                                            <div className="space-y-1 border-r border-slate-200 pr-4">
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Tier 2</p>
+                                                <p className="text-lg font-black text-indigo-500">{t2Capped}</p>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Total</p>
+                                                <p className="text-xl font-black text-indigo-600">{total}</p>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
                                 <div className="space-y-1">
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Program Points</p>
-                                    <p className="text-xl font-black text-indigo-600">
-                                        {selectedReport.programs.reduce((acc, p) => acc + (marks[selectedReport._id]?.[p._id] || 0), 0)}
-                                    </p>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tier 2 Points</p>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="10"
+                                        value={tier2PointsGlobal[selectedReport._id] || 0}
+                                        onChange={(e) => {
+                                            let val = Number(e.target.value);
+                                            if (val < 0) val = 0;
+                                            if (val > 10) val = 10;
+                                            setTier2PointsGlobal(prev => ({ ...prev, [selectedReport._id]: val }));
+                                        }}
+                                        className="w-20 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xl font-black text-indigo-500 outline-none focus:border-indigo-500 transition-colors"
+                                    />
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Zehnuth Points</p>
-                                    <p className="text-xl font-black text-amber-600">
+                                    <p className="text-xl font-black text-amber-600 flex items-baseline gap-1">
                                         {selectedReport.zehnuthPoints || 0}
+                                        <span className="text-[10px] font-bold text-slate-400">({selectedReport.originalZehnuthPoints || 0} M-Points)</span>
                                     </p>
                                 </div>
                                 <div className="space-y-1">

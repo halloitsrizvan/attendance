@@ -109,6 +109,18 @@ const classReportSchema = new Schema({
         type: Number,
         default: 0
     },
+    tier1Points: {
+        type: Number,
+        default: 0
+    },
+    tier2Points: {
+        type: Number,
+        default: 0
+    },
+    originalZehnuthPoints: {
+        type: Number,
+        default: 0
+    },
     zehnuthPoints: {
         type: Number,
         default: 0
