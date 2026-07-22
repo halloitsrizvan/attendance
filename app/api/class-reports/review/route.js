@@ -7,7 +7,7 @@ export async function PATCH(req) {
         await dbConnect();
         
         const body = await req.json();
-        const { reportId, programs, adminId, vivaPoints, tier2Points, zehnuthPoints, originalZehnuthPoints } = body;
+        const { reportId, programs, adminId, vivaPoints, originalVivaPoints, tier2Points, zehnuthPoints, originalZehnuthPoints } = body;
 
         if (!reportId || !programs || !adminId) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -42,6 +42,7 @@ export async function PATCH(req) {
 
         // Update root report properties
         const vp = Number(vivaPoints) || 0;
+        const ogVp = Number(originalVivaPoints) || 0;
         const zp = Number(zehnuthPoints) || 0;
         const ogZp = Number(originalZehnuthPoints) || 0;
         
@@ -49,6 +50,7 @@ export async function PATCH(req) {
         report.tier1Points = tier1Points;
         report.tier2Points = cappedTier2;
         report.vivaPoints = vp;
+        report.originalVivaPoints = ogVp;
         report.zehnuthPoints = zp;
         report.originalZehnuthPoints = ogZp;
         report.totalMark = programPoints + vp + zp;

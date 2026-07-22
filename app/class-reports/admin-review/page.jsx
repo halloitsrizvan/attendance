@@ -101,7 +101,7 @@ export default function AdminReviewClassReports() {
             const initialRejected = {};
             res.data.forEach(report => {
                 initialMarks[report._id] = {};
-                initialViva[report._id] = report.vivaPoints || 0;
+                initialViva[report._id] = report.originalVivaPoints !== undefined ? report.originalVivaPoints : (report.vivaPoints || 0);
                 initialTier2[report._id] = report.tier2Points || 0;
                 initialRejected[report._id] = {};
                 report.programs.forEach(program => {
@@ -171,10 +171,14 @@ export default function AdminReviewClassReports() {
         const adminId = admin._id || admin.id;
 
         try {
+            const currentRawViva = vivaPoints[report._id] || 0;
+            const calculatedViva = parseFloat(((currentRawViva / 650) * 100).toFixed(2));
+
             await axios.patch('/api/class-reports/review', {
                 reportId: report._id,
                 programs: updatedPrograms,
-                vivaPoints: vivaPoints[report._id] || 0,
+                vivaPoints: calculatedViva,
+                originalVivaPoints: currentRawViva,
                 tier2Points: tier2PointsGlobal[report._id] || 0,
                 zehnuthPoints: report.zehnuthPoints || 0,
                 originalZehnuthPoints: report.originalZehnuthPoints || 0,
@@ -639,12 +643,17 @@ export default function AdminReviewClassReports() {
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Daily Viva Points</p>
-                                    <input
-                                        type="number"
-                                        value={vivaPoints[selectedReport._id] || 0}
-                                        onChange={(e) => setVivaPoints(prev => ({ ...prev, [selectedReport._id]: Number(e.target.value) }))}
-                                        className="w-20 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xl font-black text-emerald-600 outline-none focus:border-indigo-500 transition-colors"
-                                    />
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="number"
+                                            value={vivaPoints[selectedReport._id] || 0}
+                                            onChange={(e) => setVivaPoints(prev => ({ ...prev, [selectedReport._id]: Number(e.target.value) }))}
+                                            className="w-20 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xl font-black text-emerald-600 outline-none focus:border-indigo-500 transition-colors"
+                                        />
+                                        <span className="text-[12px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
+                                            {((vivaPoints[selectedReport._id] || 0) / 650 * 100).toFixed(2)} pts
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
 
