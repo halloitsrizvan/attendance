@@ -21,6 +21,13 @@ const CATEGORY_COLORS = {
 const ACTIVITY_ICONS = {
   'Awards': <Trophy className="w-4 h-4 text-amber-500" />,
   'Publications': <BookOpen className="w-4 h-4 text-indigo-500" />,
+  'Innovations': <Star className="w-4 h-4 text-amber-500" />,
+  'Courses': <BookOpen className="w-4 h-4 text-blue-500" />,
+  'Essay': <BookOpen className="w-4 h-4 text-slate-500" />,
+  'Poem': <BookOpen className="w-4 h-4 text-slate-500" />,
+  'Story': <BookOpen className="w-4 h-4 text-slate-500" />,
+  'Full paper': <BookOpen className="w-4 h-4 text-slate-500" />,
+  'Abstract': <BookOpen className="w-4 h-4 text-slate-500" />,
   '1st Place (Out)': <Medal className="w-4 h-4 text-yellow-500" />,
   '2nd Place (Out)': <Medal className="w-4 h-4 text-slate-400" />,
   '3rd Place (Out)': <Medal className="w-4 h-4 text-amber-600" />,
@@ -96,16 +103,33 @@ export default function AdminAchievements() {
   const fetchAchievements = async () => {
     setRefreshing(true);
     try {
-      // Query achievements, competitions, and presentations of specific types
+      // Query achievements, competitions, presentations, and writings
       const activities = [
         'Awards', 
         'Publications', 
+        'Innovations',
+        'Courses',
         '1st Place (Out)', 
         '2nd Place (Out)', 
         '3rd Place (Out)',
+        'Participation (Out)',
+        '1st Place (In)', 
+        '2nd Place (In)', 
+        '3rd Place (In)',
+        'Participation (In)',
         'Paper presentation (State)',
         'Paper presentation (National)',
-        'Paper presentation (International)'
+        'Paper presentation (International)',
+        'Keynote address',
+        'Khutba',
+        'Other presentations (Out)',
+        'Speech',
+        'Other presentations (In)',
+        'Essay',
+        'Poem',
+        'Story',
+        'Full paper',
+        'Abstract'
       ].join(',');
       const res = await axios.get(`/api/zehnuth/points?activities=${activities}`);
       setPointsData(res.data);
@@ -271,14 +295,39 @@ export default function AdminAchievements() {
                 className="w-full bg-slate-50 border border-slate-100 hover:border-slate-200 focus:border-indigo-500 focus:bg-white rounded-2xl p-4 text-xs font-bold text-slate-600 outline-none cursor-pointer appearance-none transition-all"
               >
                 <option value="all">🏆 All Activities</option>
-                <option value="Awards">Awards</option>
-                <option value="Publications">Publications</option>
-                <option value="Paper presentation (State)">Paper presentation (State)</option>
-                <option value="Paper presentation (National)">Paper presentation (National)</option>
-                <option value="Paper presentation (International)">Paper presentation (International)</option>
-                <option value="1st Place (Out)">1st Place (Out)</option>
-                <option value="2nd Place (Out)">2nd Place (Out)</option>
-                <option value="3rd Place (Out)">3rd Place (Out)</option>
+                <optgroup label="Achievements">
+                  <option value="Awards">Awards</option>
+                  <option value="Publications">Publications</option>
+                  <option value="Innovations">Innovations</option>
+                  <option value="Courses">Courses</option>
+                </optgroup>
+                <optgroup label="Writings">
+                  <option value="Essay">Essay</option>
+                  <option value="Poem">Poem</option>
+                  <option value="Story">Story</option>
+                  <option value="Full paper">Full paper</option>
+                  <option value="Abstract">Abstract</option>
+                </optgroup>
+                <optgroup label="Presentations">
+                  <option value="Paper presentation (State)">Paper presentation (State)</option>
+                  <option value="Paper presentation (National)">Paper presentation (National)</option>
+                  <option value="Paper presentation (International)">Paper presentation (International)</option>
+                  <option value="Keynote address">Keynote address</option>
+                  <option value="Khutba">Khutba</option>
+                  <option value="Other presentations (Out)">Other presentations (Out)</option>
+                  <option value="Speech">Speech</option>
+                  <option value="Other presentations (In)">Other presentations (In)</option>
+                </optgroup>
+                <optgroup label="Competitions">
+                  <option value="1st Place (Out)">1st Place (Out)</option>
+                  <option value="2nd Place (Out)">2nd Place (Out)</option>
+                  <option value="3rd Place (Out)">3rd Place (Out)</option>
+                  <option value="Participation (Out)">Participation (Out)</option>
+                  <option value="1st Place (In)">1st Place (In)</option>
+                  <option value="2nd Place (In)">2nd Place (In)</option>
+                  <option value="3rd Place (In)">3rd Place (In)</option>
+                  <option value="Participation (In)">Participation (In)</option>
+                </optgroup>
               </select>
             </div>
 
