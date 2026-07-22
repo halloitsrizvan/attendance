@@ -345,6 +345,7 @@ function AdvancedReport() {
       medicalLeave: documentedMedicalLeaveMinus,
       ogeaLeave: documentedOgeaLeaveMinus,
       documentedLeave: documentedLeaveMinus,
+      netAbsence: totalAbsence - documentedLeaveMinus,
       zehnuthPoints: student.totalZehnuthPoints || 0,
       overBy,
       srfAmount: overBy * 100
@@ -381,15 +382,16 @@ function AdvancedReport() {
       'AD NO': r.adno,
       'Name': r.name,
       'Class': r.class,
-      [`Absence ${manHeader.sub}`.trim()]: formatExcelNum(r.leave),
+      [`Absence ${manHeader.sub}`.trim() + '*']: formatExcelNum(r.leave),
       [`Absence ${pjqHeader.sub}`.trim()]: formatExcelNum(r.absence),
-      [`Unapproved Absence Deduction ${manHeader.sub}`.trim()]: formatExcelNum(r.punishment_MAN),
-      [`Unapproved Absence Deduction ${pjqHeader.sub}`.trim()]: formatExcelNum(r.punishment_PJQ),
-      'Minus': formatExcelNum(r.minus),
+      [`Unapproved Absence Deduction ${manHeader.sub}`.trim() + '*']: formatExcelNum(r.punishment_MAN),
+      [`Unapproved Absence Deduction ${pjqHeader.sub}`.trim() + '*']: formatExcelNum(r.punishment_PJQ),
+      'Minus*': formatExcelNum(r.minus),
       'Total Absence': formatExcelNum(r.totalAbsence),
       'Medical Leave': formatExcelNum(r.medicalLeave),
       'Other Documented Leave': formatExcelNum(r.ogeaLeave),
       'Documented Leave': formatExcelNum(r.documentedLeave),
+      'Total Absence - Documented Leave': formatExcelNum(r.netAbsence),
       'Total Permitted Leave': formatExcelNum(r.permitted),
       'Over By': formatExcelNum(r.overBy),
       // 'SRF Amount': r.srfAmount > 0 ? r.srfAmount.toFixed(1) : '0'
@@ -417,15 +419,16 @@ function AdvancedReport() {
       'AD NO',
       'Name',
       'Class',
-      `Absence\n${manHeader.sub}`.trim(),
+      `Absence\n${manHeader.sub}`.trim() + '*',
       `Absence\n${pjqHeader.sub}`.trim(),
-      `Unapproved Ded.\n${manHeader.sub}`.trim(),
-      `Unapproved Ded.\n${pjqHeader.sub}`.trim(),
-      'Minus',
+      `Unapproved Ded.\n${manHeader.sub}`.trim() + '*',
+      `Unapproved Ded.\n${pjqHeader.sub}`.trim() + '*',
+      'Minus*',
       'Total Abs.',
       'Doc. Med.',
       'Other Doc.',
       'Total Doc.',
+      'Net Abs.',
       'Permitted',
       'Over By'
     ];
@@ -444,6 +447,7 @@ function AdvancedReport() {
       formatNum(r.medicalLeave),
       formatNum(r.ogeaLeave),
       formatNum(r.documentedLeave),
+      formatNum(r.netAbsence),
       formatNum(r.permitted),
       r.overBy > 0 ? formatNum(r.overBy) : '-'
     ]);
@@ -677,22 +681,23 @@ function AdvancedReport() {
                     <th className="p-4 border-r border-white min-w-[150px]">Student Name</th>
                     <th className="p-4 border-r border-white text-center">Class</th>
                     <th className="p-4 border-r border-white text-center bg-amber-50/50 text-amber-600">
-                      {manHeader.main}{manHeader.sub && <><br />{manHeader.sub}</>}
+                      {manHeader.main}{manHeader.sub ? <><br />{manHeader.sub}*</> : '*'}
                     </th>
                     <th className="p-4 border-r border-white text-center bg-orange-50/50 text-orange-600">
                       {pjqHeader.main}{pjqHeader.sub && <><br />{pjqHeader.sub}</>}
                     </th>
                     <th className="p-4 border-r border-white text-center bg-purple-50/50 text-purple-600">
-                      Unapproved Absence<br />Deduction{manHeader.sub && <><br />{manHeader.sub}</>}
+                      Unapproved Absence<br />Deduction{manHeader.sub ? <><br />{manHeader.sub}*</> : '*'}
                     </th>
                     <th className="p-4 border-r border-white text-center bg-purple-50/50 text-purple-600">
-                      Unapproved Absence<br />Deduction{pjqHeader.sub && <><br />{pjqHeader.sub}</>}
+                      Unapproved Absence<br />Deduction{pjqHeader.sub ? <><br />{pjqHeader.sub}*</> : '*'}
                     </th>
-                    <th className="p-4 border-r border-white text-center bg-rose-50/50 text-rose-600">Minus</th>
+                    <th className="p-4 border-r border-white text-center bg-rose-50/50 text-rose-600">Minus*</th>
                     <th className="p-4 border-r border-white text-center bg-slate-100 text-slate-800">Total Absence</th>
                     <th className="p-4 border-r border-white text-center bg-emerald-50/50 text-emerald-600">Documented<br />Medical Leave</th>
                     <th className="p-4 border-r border-white text-center bg-indigo-50/50 text-indigo-600">Other<br />Documented Leave</th>
                     <th className="p-4 border-r border-white text-center bg-teal-50/50 text-teal-600">Total<br />Documented</th>
+                    <th className="p-4 border-r border-white text-center bg-slate-100 text-slate-800">Total Absence -<br />Documented Leave</th>
                     <th className="p-4 border-r border-white text-center bg-blue-50/50 text-blue-600">Total Permitted<br />Leave</th>
                     <th className="p-4 border-r border-white text-center bg-red-100 text-red-600">Over By</th>
                     {/* <th className="p-4 text-center bg-red-200 text-red-700">SRF Amount</th> */}
@@ -716,6 +721,7 @@ function AdvancedReport() {
                       <td className="p-3 border-r border-white text-center font-semibold text-emerald-600 bg-emerald-50/20">{formatNum(row.medicalLeave)}</td>
                       <td className="p-3 border-r border-white text-center font-semibold text-indigo-600 bg-indigo-50/20">{formatNum(row.ogeaLeave)}</td>
                       <td className="p-3 border-r border-white text-center font-semibold text-teal-600 bg-teal-50/20">{formatNum(row.documentedLeave)}</td>
+                      <td className="p-3 border-r border-white text-center font-semibold text-slate-800 bg-slate-50">{formatNum(row.netAbsence)}</td>
                       <td className="p-3 border-r border-white text-center font-semibold text-blue-600 bg-blue-50/20">{row.permitted}</td>
                       <td className={`p-3 border-r border-white text-center font-semibold ${row.overBy > 0 ? 'text-red-600 bg-red-50/50' : 'text-slate-300'}`}>
                         {row.overBy > 0 ? formatNum(row.overBy) : '-'}
