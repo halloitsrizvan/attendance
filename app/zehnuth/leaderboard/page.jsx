@@ -80,6 +80,7 @@ export default function Leaderboard() {
             index + 1,
             item.student["SHORT NAME"] || item.student["FULL NAME"],
             item.student.ADNO,
+            item.student.CLASS || '-',
             getLeague(item.totalPoints).name,
             item.mentorName || '-',
             item.totalPoints
@@ -87,7 +88,7 @@ export default function Leaderboard() {
 
         autoTable(doc, {
             startY: 38,
-            head: [['Rank', 'Student Name', 'ADNO', 'League', 'Mentor', 'Points']],
+            head: [['Rank', 'Student Name', 'ADNO', 'Class', 'League', 'Mentor', 'Points']],
             body: tableData,
             theme: 'grid',
             headStyles: { fillColor: [31, 41, 55], textColor: [255, 255, 255], fontStyle: 'bold' },
@@ -105,6 +106,7 @@ export default function Leaderboard() {
             'Rank': index + 1,
             'Student Name': item.student["SHORT NAME"] || item.student["FULL NAME"],
             'ADNO': item.student.ADNO,
+            'Class': item.student.CLASS || '-',
             'League': getLeague(item.totalPoints).name,
             'Mentor': item.mentorName || '-',
             'Points': item.totalPoints
