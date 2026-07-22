@@ -53,7 +53,11 @@ export async function PATCH(req) {
         report.originalVivaPoints = ogVp;
         report.zehnuthPoints = zp;
         report.originalZehnuthPoints = ogZp;
-        report.totalMark = programPoints + vp + zp;
+        
+        const scaledProgramPoints = (programPoints / 110) * 50;
+        const scaledZehnuthPoints = zp * 0.25;
+        const scaledVivaPoints = vp * 0.25;
+        report.totalMark = parseFloat((scaledProgramPoints + scaledZehnuthPoints + scaledVivaPoints).toFixed(2));
         report.status = 'reviewed';
         report.markedBy = adminId;
         report.reviewedAt = new Date();

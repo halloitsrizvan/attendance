@@ -25,6 +25,7 @@ export default function AdminReviewClassReports() {
     const [loading, setLoading] = useState(true);
     const [reports, setReports] = useState([]);
     const [selectedReport, setSelectedReport] = useState(null);
+    const [showPrograms, setShowPrograms] = useState(false);
     const [submittingId, setSubmittingId] = useState(null);
 
     // State to keep track of marks being entered before saving
@@ -341,7 +342,10 @@ export default function AdminReviewClassReports() {
                                 {/* Card Header */}
                                 <div
                                     className="p-6 cursor-pointer"
-                                    onClick={() => setSelectedReport(report)}
+                                    onClick={() => {
+                                        setSelectedReport(report);
+                                        setShowPrograms(report.status !== 'reviewed');
+                                    }}
                                 >
                                     <div className="flex items-center gap-4 pr-28">
                                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg ${report.status === 'reviewed' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
@@ -356,7 +360,7 @@ export default function AdminReviewClassReports() {
                                                     {report.section}
                                                 </span>
                                                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                                                    Class: {report.classNumber}
+                                                    C: {report.classNumber}
                                                 </span>
                                             </div>
                                         </div>
@@ -417,8 +421,19 @@ export default function AdminReviewClassReports() {
 
                         {/* Modal Body */}
                         <div className="flex-1 overflow-y-auto p-6 sm:p-8 bg-slate-50/50">
-                            <div className="space-y-6">
-                                {selectedReport.programs.map((program, idx) => {
+                            
+                            <div className="flex justify-center mb-6">
+                                <button
+                                    onClick={() => setShowPrograms(!showPrograms)}
+                                    className="px-6 py-3 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-100 transition-colors border border-indigo-200"
+                                >
+                                    {showPrograms ? 'Hide Programs' : 'Show All Programs'}
+                                </button>
+                            </div>
+
+                            {showPrograms && (
+                                <div className="space-y-6">
+                                    {selectedReport.programs.map((program, idx) => {
                                     const isRejected = rejectedPrograms[selectedReport._id]?.[program._id];
                                     return (
                                         <div key={program._id} className={`border rounded-[1.5rem] p-6 shadow-sm flex flex-col lg:flex-row gap-6 transition-all duration-300 ${isRejected ? 'border-rose-200 bg-rose-50/20 shadow-rose-50/5' : 'bg-white border-slate-200'
@@ -583,11 +598,11 @@ export default function AdminReviewClassReports() {
                                         </div>
                                     );
                                 })}
-                            </div>
-                        </div>
+                                </div>
+                            )}
 
-                        {/* Modal Footer */}
-                        <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                            {/* Modal Footer */}
+                            <div className={`${showPrograms ? 'mt-8' : ''} p-6 border border-slate-200 bg-white rounded-[2rem] shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6`}>
 
                             {/* Points Summary & Viva Input */}
                             <div className="flex flex-wrap items-center gap-6">
@@ -599,68 +614,95 @@ export default function AdminReviewClassReports() {
                                     });
                                     const t2 = tier2PointsGlobal[selectedReport._id] || 0;
                                     const t2Capped = Math.min(t2, 10);
-                                    const total = t1 + t2Capped;
+                                    const programTotal = t1 + t2Capped;
+
+                                    const scaledProgram = (programTotal / 110) * 50;
+                                    const scaledZehnuth = (selectedReport.zehnuthPoints || 0) * 0.25;
+                                    
+                                    const currentRawViva = vivaPoints[selectedReport._id] || 0;
+                                    const calcViva = (currentRawViva / 650) * 100;
+                                    const scaledViva = calcViva * 0.25;
+
+                                    const grandTotal = (scaledProgram + scaledZehnuth + scaledViva).toFixed(2);
 
                                     return (
-                                        <div className="flex gap-4">
-                                            <div className="space-y-1 border-r border-slate-200 pr-4">
-                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Tier 1</p>
-                                                <p className="text-lg font-black text-blue-600">{t1}</p>
+                                        <>
+                                            <div className="flex gap-4">
+                                                <div className="space-y-1 border-r border-slate-200 pr-4">
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Tier 1</p>
+                                                    <p className="text-lg font-black text-blue-600">{t1}</p>
+                                                </div>
+                                                <div className="space-y-1 border-r border-slate-200 pr-4">
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Tier 2</p>
+                                                    <p className="text-lg font-black text-indigo-500">{t2Capped}</p>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Total</p>
+                                                    <p className="text-xl font-black text-indigo-600">{programTotal}</p>
+                                                </div>
                                             </div>
-                                            <div className="space-y-1 border-r border-slate-200 pr-4">
-                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Tier 2</p>
-                                                <p className="text-lg font-black text-indigo-500">{t2Capped}</p>
-                                            </div>
+                                            
                                             <div className="space-y-1">
-                                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Total</p>
-                                                <p className="text-xl font-black text-indigo-600">{total}</p>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tier 2 Points</p>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    max="10"
+                                                    value={tier2PointsGlobal[selectedReport._id] || 0}
+                                                    onChange={(e) => {
+                                                        let val = Number(e.target.value);
+                                                        if (val < 0) val = 0;
+                                                        if (val > 10) val = 10;
+                                                        setTier2PointsGlobal(prev => ({ ...prev, [selectedReport._id]: val }));
+                                                    }}
+                                                    className="w-20 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xl font-black text-indigo-500 outline-none focus:border-indigo-500 transition-colors"
+                                                />
                                             </div>
-                                        </div>
+                                            
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Zehnuth Points</p>
+                                                <p className="text-xl font-black text-amber-600 flex items-baseline gap-1">
+                                                    {selectedReport.zehnuthPoints || 0}
+                                                    <span className="text-[10px] font-bold text-slate-400">({selectedReport.originalZehnuthPoints || 0} M-Points)</span>
+                                                </p>
+                                            </div>
+                                            
+                                            <div className="space-y-1 border-r border-slate-200 pr-4">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Daily Viva Points</p>
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        type="number"
+                                                        value={currentRawViva}
+                                                        onChange={(e) => setVivaPoints(prev => ({ ...prev, [selectedReport._id]: Number(e.target.value) }))}
+                                                        className="w-20 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xl font-black text-emerald-600 outline-none focus:border-indigo-500 transition-colors"
+                                                    />
+                                                    <span className="text-[12px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
+                                                        {calcViva.toFixed(2)} pts
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-1 bg-slate-900 px-6 py-2.5 rounded-2xl shadow-lg border border-slate-800">
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Grand Total</p>
+                                                <p className="text-2xl font-black text-white flex items-baseline gap-1 justify-center">
+                                                    {grandTotal}
+                                                    <span className="text-xs font-bold text-slate-400">/ 100</span>
+                                                </p>
+                                            </div>
+                                        </>
                                     );
                                 })()}
-                                <div className="space-y-1">
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tier 2 Points</p>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        max="10"
-                                        value={tier2PointsGlobal[selectedReport._id] || 0}
-                                        onChange={(e) => {
-                                            let val = Number(e.target.value);
-                                            if (val < 0) val = 0;
-                                            if (val > 10) val = 10;
-                                            setTier2PointsGlobal(prev => ({ ...prev, [selectedReport._id]: val }));
-                                        }}
-                                        className="w-20 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xl font-black text-indigo-500 outline-none focus:border-indigo-500 transition-colors"
-                                    />
-                                </div>
-                                <div className="space-y-1">
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Zehnuth Points</p>
-                                    <p className="text-xl font-black text-amber-600 flex items-baseline gap-1">
-                                        {selectedReport.zehnuthPoints || 0}
-                                        <span className="text-[10px] font-bold text-slate-400">({selectedReport.originalZehnuthPoints || 0} M-Points)</span>
-                                    </p>
-                                </div>
-                                <div className="space-y-1">
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Daily Viva Points</p>
-                                    <div className="flex items-center gap-2">
-                                        <input
-                                            type="number"
-                                            value={vivaPoints[selectedReport._id] || 0}
-                                            onChange={(e) => setVivaPoints(prev => ({ ...prev, [selectedReport._id]: Number(e.target.value) }))}
-                                            className="w-20 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xl font-black text-emerald-600 outline-none focus:border-indigo-500 transition-colors"
-                                        />
-                                        <span className="text-[12px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
-                                            {((vivaPoints[selectedReport._id] || 0) / 650 * 100).toFixed(2)} pts
-                                        </span>
-                                    </div>
-                                </div>
                             </div>
 
+                            </div>
+                        </div>
+                        
+                        {/* Fixed Actions Footer */}
+                        <div className="p-4 sm:p-6 border-t border-slate-100 bg-white flex justify-center shrink-0">
                             <button
                                 onClick={() => handleSaveMarks(selectedReport)}
                                 disabled={submittingId === selectedReport._id}
-                                className="px-8 py-4 bg-slate-900 text-white rounded-[1.5rem] text-[11px] font-black uppercase tracking-[0.2em] hover:bg-emerald-600 active:scale-95 transition-all shadow-xl shadow-slate-200 flex items-center gap-2 disabled:opacity-50 shrink-0"
+                                className="px-8 py-4 bg-slate-900 text-white rounded-[1.5rem] text-[11px] font-black uppercase tracking-[0.2em] hover:bg-emerald-600 active:scale-95 transition-all shadow-xl shadow-slate-200 flex items-center gap-2 disabled:opacity-50"
                             >
                                 {submittingId === selectedReport._id ? (
                                     <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>

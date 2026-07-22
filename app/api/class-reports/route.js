@@ -188,7 +188,10 @@ export async function GET(req) {
                     zpCount = maxZp > 0 ? parseFloat(((rawZp / maxZp) * 100).toFixed(2)) : 0;
                 }
                 
-                const liveTotalMark = (report.programPoints || 0) + (report.vivaPoints || 0) + zpCount;
+                const scaledProgramPoints = ((report.programPoints || 0) / 110) * 50;
+                const scaledZehnuthPoints = (zpCount || 0) * 0.25;
+                const scaledVivaPoints = (report.vivaPoints || 0) * 0.25;
+                const liveTotalMark = scaledProgramPoints + scaledZehnuthPoints + scaledVivaPoints;
 
                 const key = `Class ${report.classNumber}`;
                 if (!classMap[key]) {
@@ -295,7 +298,14 @@ export async function GET(req) {
             }
 
             // Always calculate live total mark sum
-            report.totalMark = (report.programPoints || 0) + (report.vivaPoints || 0) + report.zehnuthPoints;
+            const pPoints = report.programPoints || 0;
+            const zPoints = report.zehnuthPoints || 0;
+            const vPoints = report.vivaPoints || 0;
+            const scaledProgramPoints = (pPoints / 110) * 50;
+            const scaledZehnuthPoints = zPoints * 0.25;
+            const scaledVivaPoints = vPoints * 0.25;
+
+            report.totalMark = parseFloat((scaledProgramPoints + scaledZehnuthPoints + scaledVivaPoints).toFixed(2));
         }
 
         return NextResponse.json(finalReports);
