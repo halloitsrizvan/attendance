@@ -9,7 +9,7 @@ export async function POST(req) {
     await dbConnect();
     try {
         const body = await req.json();
-        
+
         // Check for duplicate proof image submissions
         const { imageUrl } = body;
         if (imageUrl) {
@@ -66,10 +66,10 @@ export async function GET(req) {
                 },
                 { $sort: { totalPoints: -1 } }
             ]);
-            
+
             const index = rankings.findIndex(r => r._id.toString() === rankStudentId);
             const rank = index === -1 ? '-' : index + 1;
-            
+
             return NextResponse.json({ rank });
         } catch (error) {
             return NextResponse.json({ error: error.message }, { status: 500 });

@@ -30,27 +30,46 @@ function AllClass({ edit, id }) {
   const isSuperAdmin = teacher?.role === 'super_admin' || (Array.isArray(teacher?.role) && teacher.role.includes('super_admin'));
 
   useEffect(() => {
-    setLoad(true)
-    axios.get(`${API_PORT}/classes`)
+    const classesCache = sessionStorage.getItem('classes_cache');
+    if (classesCache) {
+      setClass(JSON.parse(classesCache));
+      setLoad(false);
+    } else {
+      setLoad(true);
+    }
 
+    axios.get(`${API_PORT}/classes`)
       .then((res) => {
         const filter = res.data.sort((a, b) => a.class - b.class);
-        setClass(filter)
-
-        setLoad(false)
+        const freshData = JSON.stringify(filter);
+        if (classesCache !== freshData) {
+          setClass(filter);
+          sessionStorage.setItem('classes_cache', freshData);
+        }
+        setLoad(false);
       })
       .catch((err) => {
         console.error(err);
-        setLoad(false)
+        setLoad(false);
+      });
+
+    const studentsCache = sessionStorage.getItem('students_cache');
+    if (studentsCache) {
+      setStudents(JSON.parse(studentsCache));
+    }
+
+    axios.get(`${API_PORT}/students`)
+      .then((res) => {
+        const freshData = JSON.stringify(res.data);
+        if (studentsCache !== freshData) {
+          setStudents(res.data);
+          sessionStorage.setItem('students_cache', freshData);
+        }
       })
-
-    axios.get(`${API_PORT}/students`).then((res) => {
-      setStudents(res.data)
-    }).catch((err) => {
-      console.log(err);
-
-    })
-  }, [])
+      .catch((err) => {
+        console.log(err);
+      });
+  }, []);
 
 
   const today = new Date().toISOString().split("T")[0];
@@ -63,7 +82,6 @@ function AllClass({ edit, id }) {
   const [time, setTime] = useState('Period');
 
   useEffect(() => {
-    setPreAttendanceLoad(true);
     const queryParams = {
       date: date,
       time: time,
@@ -71,9 +89,23 @@ function AllClass({ edit, id }) {
     if (time === "Period" && period) queryParams.period = period;
     if ((time === "Jamath" || time === "More") && more) queryParams.custom = more;
 
+    const cacheKey = `attendance_${JSON.stringify(queryParams)}`;
+    const cachedData = sessionStorage.getItem(cacheKey);
+
+    if (cachedData) {
+      setPreAttendance(JSON.parse(cachedData));
+      setPreAttendanceLoad(false);
+    } else {
+      setPreAttendanceLoad(true);
+    }
+
     axios.get(`${API_PORT}/set-attendance`, { params: queryParams })
       .then((res) => {
-        setPreAttendance(res.data);
+        const freshData = JSON.stringify(res.data);
+        if (cachedData !== freshData) {
+          setPreAttendance(res.data);
+          sessionStorage.setItem(cacheKey, freshData);
+        }
         setPreAttendanceLoad(false);
       })
       .catch((err) => {
