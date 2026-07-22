@@ -141,8 +141,7 @@ export async function GET(req) {
                         mentorName: '$mentor.name'
                     }
                 },
-                { $sort: { totalPoints: -1 } },
-                { $limit: 100 }
+                { $sort: { totalPoints: -1 } }
             ]);
             return NextResponse.json(leaderboard);
         }
