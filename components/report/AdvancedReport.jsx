@@ -52,7 +52,7 @@ function AdvancedReport() {
     if (multipliers['Afternoon']?.active) active.push('A');
     if (multipliers['Night']?.active) active.push('N');
     return {
-      main: 'Leave',
+      main: 'Absence',
       sub: active.length > 0 ? `(${active.join('+')})` : ''
     };
   }, [multipliers]);
@@ -176,7 +176,8 @@ function AdvancedReport() {
   const calculateStudentRow = (student) => {
     let leave_MAN = 0;
     let absence_PJ = 0;
-    let punishment = 0;
+    let punishment_MAN = 0;
+    let punishment_PJQ = 0;
     let documentedMedicalLeaveMinus = 0;
     let documentedOgeaLeaveMinus = 0;
     let documentedLeaveMinus = 0;
@@ -194,12 +195,12 @@ function AdvancedReport() {
           // Regular weekday absences
           leave_MAN += (d.absentOnLeaveTrue || 0) * mTrue;
           leave_MAN += (d.absentOnLeaveFalse || 0) * mTrue;
-          punishment += (d.absentOnLeaveFalse || 0) * (mTrue + mFalse);
+          punishment_MAN += (d.absentOnLeaveFalse || 0) * mFalse;
 
           // Weekend absences
           leave_MAN += (d.weekendAbsentOnLeaveTrue || 0) * wkTrue;
           leave_MAN += (d.weekendAbsentOnLeaveFalse || 0) * wkTrue;
-          punishment += (d.weekendAbsentOnLeaveFalse || 0) * (wkTrue + wkFalse);
+          punishment_MAN += (d.weekendAbsentOnLeaveFalse || 0) * wkFalse;
 
           // Documented Medical Leave minuses
           documentedMedicalLeaveMinus += (d.documentedMedicalAbsentOnLeaveTrue || 0) * mTrue;
@@ -229,12 +230,12 @@ function AdvancedReport() {
           // Regular weekday absences
           absence_PJ += (p.absentOnLeaveTrue || 0) * pTrue;
           absence_PJ += (p.absentOnLeaveFalse || 0) * pTrue;
-          punishment += (p.absentOnLeaveFalse || 0) * (pTrue + pFalse);
+          punishment_PJQ += (p.absentOnLeaveFalse || 0) * pFalse;
 
           // Weekend absences
           absence_PJ += (p.weekendAbsentOnLeaveTrue || 0) * wkTrue;
           absence_PJ += (p.weekendAbsentOnLeaveFalse || 0) * wkTrue;
-          punishment += (p.weekendAbsentOnLeaveFalse || 0) * (wkTrue + wkFalse);
+          punishment_PJQ += (p.weekendAbsentOnLeaveFalse || 0) * wkFalse;
 
           // Documented Medical Leave minuses
           documentedMedicalLeaveMinus += (p.documentedMedicalAbsentOnLeaveTrue || 0) * pTrue;
@@ -263,12 +264,12 @@ function AdvancedReport() {
         // Regular weekday absences
         absence_PJ += (jamathData.absentOnLeaveTrue || 0) * jTrue;
         absence_PJ += (jamathData.absentOnLeaveFalse || 0) * jTrue;
-        punishment += (jamathData.absentOnLeaveFalse || 0) * (jTrue + jFalse);
+        punishment_PJQ += (jamathData.absentOnLeaveFalse || 0) * jFalse;
 
         // Weekend absences
         absence_PJ += (jamathData.weekendAbsentOnLeaveTrue || 0) * wkTrue;
         absence_PJ += (jamathData.weekendAbsentOnLeaveFalse || 0) * wkTrue;
-        punishment += (jamathData.weekendAbsentOnLeaveFalse || 0) * (wkTrue + wkFalse);
+        punishment_PJQ += (jamathData.weekendAbsentOnLeaveFalse || 0) * wkFalse;
 
         // Documented Medical Leave minuses
         documentedMedicalLeaveMinus += (jamathData.documentedMedicalAbsentOnLeaveTrue || 0) * jTrue;
@@ -296,12 +297,12 @@ function AdvancedReport() {
         // Regular weekday absences
         absence_PJ += (quiraathData.absentOnLeaveTrue || 0) * qTrue;
         absence_PJ += (quiraathData.absentOnLeaveFalse || 0) * qTrue;
-        punishment += (quiraathData.absentOnLeaveFalse || 0) * (qTrue + qFalse);
+        punishment_PJQ += (quiraathData.absentOnLeaveFalse || 0) * qFalse;
 
         // Weekend absences
         absence_PJ += (quiraathData.weekendAbsentOnLeaveTrue || 0) * wkTrue;
         absence_PJ += (quiraathData.weekendAbsentOnLeaveFalse || 0) * wkTrue;
-        punishment += (quiraathData.weekendAbsentOnLeaveFalse || 0) * (wkTrue + wkFalse);
+        punishment_PJQ += (quiraathData.weekendAbsentOnLeaveFalse || 0) * wkFalse;
 
         // Documented Medical Leave minuses
         documentedMedicalLeaveMinus += (quiraathData.documentedMedicalAbsentOnLeaveTrue || 0) * qTrue;
@@ -326,7 +327,7 @@ function AdvancedReport() {
     }
 
     const minus = multipliers['Minus']?.active ? (student.totalManualMinus || 0) : 0;
-    const totalAbsence = leave_MAN + absence_PJ + punishment + minus;
+    const totalAbsence = leave_MAN + punishment_MAN + punishment_PJQ + minus;
     const overBy = Math.max(0, totalAbsence - permitted);
 
     return {
@@ -337,7 +338,8 @@ function AdvancedReport() {
       permitted,
       leave: leave_MAN,
       absence: absence_PJ,
-      punishment,
+      punishment_MAN,
+      punishment_PJQ,
       minus,
       totalAbsence,
       medicalLeave: documentedMedicalLeaveMinus,
@@ -379,13 +381,14 @@ function AdvancedReport() {
       'AD NO': r.adno,
       'Name': r.name,
       'Class': r.class,
-      [`Leave ${manHeader.sub}`.trim()]: formatExcelNum(r.leave),
+      [`Absence ${manHeader.sub}`.trim()]: formatExcelNum(r.leave),
       [`Absence ${pjqHeader.sub}`.trim()]: formatExcelNum(r.absence),
-      'Unapproved Absence Deduction': formatExcelNum(r.punishment),
+      [`Unapproved Absence Deduction ${manHeader.sub}`.trim()]: formatExcelNum(r.punishment_MAN),
+      [`Unapproved Absence Deduction ${pjqHeader.sub}`.trim()]: formatExcelNum(r.punishment_PJQ),
       'Minus': formatExcelNum(r.minus),
+      'Total Absence': formatExcelNum(r.totalAbsence),
       'Medical Leave': formatExcelNum(r.medicalLeave),
       'Other Documented Leave': formatExcelNum(r.ogeaLeave),
-      'Total Absence': formatExcelNum(r.totalAbsence),
       'Documented Leave': formatExcelNum(r.documentedLeave),
       'Total Permitted Leave': formatExcelNum(r.permitted),
       'Over By': formatExcelNum(r.overBy),
@@ -414,13 +417,14 @@ function AdvancedReport() {
       'AD NO',
       'Name',
       'Class',
-      `Leave\n${manHeader.sub}`.trim(),
+      `Absence\n${manHeader.sub}`.trim(),
       `Absence\n${pjqHeader.sub}`.trim(),
-      'Unapproved\nAbsence Ded.',
+      `Unapproved Ded.\n${manHeader.sub}`.trim(),
+      `Unapproved Ded.\n${pjqHeader.sub}`.trim(),
       'Minus',
+      'Total Abs.',
       'Doc. Med.',
       'Other Doc.',
-      'Total Abs.',
       'Total Doc.',
       'Permitted',
       'Over By'
@@ -433,11 +437,12 @@ function AdvancedReport() {
       r.class,
       formatNum(r.leave),
       formatNum(r.absence),
-      formatNum(r.punishment),
+      formatNum(r.punishment_MAN),
+      formatNum(r.punishment_PJQ),
       formatNum(r.minus),
+      formatNum(r.totalAbsence),
       formatNum(r.medicalLeave),
       formatNum(r.ogeaLeave),
-      formatNum(r.totalAbsence),
       formatNum(r.documentedLeave),
       formatNum(r.permitted),
       r.overBy > 0 ? formatNum(r.overBy) : '-'
@@ -543,7 +548,7 @@ function AdvancedReport() {
               <div className="min-w-[600px]">
                 <div className="grid grid-cols-[200px_1fr_1.5fr] gap-6 mb-3 px-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-3">
                   <div>Time / Session</div>
-                  <div>Leave/Absence Minus Count</div>
+                  <div>Absence Minus Count</div>
                   <div>Additional Minus for Unapproved Absence</div>
                 </div>
                 <div className="space-y-3">
@@ -678,12 +683,15 @@ function AdvancedReport() {
                       {pjqHeader.main}{pjqHeader.sub && <><br />{pjqHeader.sub}</>}
                     </th>
                     <th className="p-4 border-r border-white text-center bg-purple-50/50 text-purple-600">
-                      Unapproved<br />Absence Deduction
+                      Unapproved Absence<br />Deduction{manHeader.sub && <><br />{manHeader.sub}</>}
+                    </th>
+                    <th className="p-4 border-r border-white text-center bg-purple-50/50 text-purple-600">
+                      Unapproved Absence<br />Deduction{pjqHeader.sub && <><br />{pjqHeader.sub}</>}
                     </th>
                     <th className="p-4 border-r border-white text-center bg-rose-50/50 text-rose-600">Minus</th>
+                    <th className="p-4 border-r border-white text-center bg-slate-100 text-slate-800">Total Absence</th>
                     <th className="p-4 border-r border-white text-center bg-emerald-50/50 text-emerald-600">Documented<br />Medical Leave</th>
                     <th className="p-4 border-r border-white text-center bg-indigo-50/50 text-indigo-600">Other<br />Documented Leave</th>
-                    <th className="p-4 border-r border-white text-center bg-slate-100 text-slate-800">Total Absence</th>
                     <th className="p-4 border-r border-white text-center bg-teal-50/50 text-teal-600">Total<br />Documented</th>
                     <th className="p-4 border-r border-white text-center bg-blue-50/50 text-blue-600">Total Permitted<br />Leave</th>
                     <th className="p-4 border-r border-white text-center bg-red-100 text-red-600">Over By</th>
@@ -701,11 +709,12 @@ function AdvancedReport() {
                       </td>
                       <td className="p-3 border-r border-white text-center font-semibold text-amber-600 bg-amber-50/20">{formatNum(row.leave)}</td>
                       <td className="p-3 border-r border-white text-center font-semibold text-orange-600 bg-orange-50/20">{formatNum(row.absence)}</td>
-                      <td className="p-3 border-r border-white text-center font-semibold text-purple-600 bg-purple-50/20">{formatNum(row.punishment)}</td>
+                      <td className="p-3 border-r border-white text-center font-semibold text-purple-600 bg-purple-50/20">{formatNum(row.punishment_MAN)}</td>
+                      <td className="p-3 border-r border-white text-center font-semibold text-purple-600 bg-purple-50/20">{formatNum(row.punishment_PJQ)}</td>
                       <td className="p-3 border-r border-white text-center font-semibold text-rose-600 bg-rose-50/20">{formatNum(row.minus)}</td>
+                      <td className="p-3 border-r border-white text-center font-semibold text-slate-800 bg-slate-50">{formatNum(row.totalAbsence)}</td>
                       <td className="p-3 border-r border-white text-center font-semibold text-emerald-600 bg-emerald-50/20">{formatNum(row.medicalLeave)}</td>
                       <td className="p-3 border-r border-white text-center font-semibold text-indigo-600 bg-indigo-50/20">{formatNum(row.ogeaLeave)}</td>
-                      <td className="p-3 border-r border-white text-center font-semibold text-slate-800 bg-slate-50">{formatNum(row.totalAbsence)}</td>
                       <td className="p-3 border-r border-white text-center font-semibold text-teal-600 bg-teal-50/20">{formatNum(row.documentedLeave)}</td>
                       <td className="p-3 border-r border-white text-center font-semibold text-blue-600 bg-blue-50/20">{row.permitted}</td>
                       <td className={`p-3 border-r border-white text-center font-semibold ${row.overBy > 0 ? 'text-red-600 bg-red-50/50' : 'text-slate-300'}`}>
