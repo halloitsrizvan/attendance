@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header/Header';
 import axios from 'axios';
-import { Trophy, Medal, Crown, TrendingUp, Loader2, Search, Download, X } from 'lucide-react';
+import { Trophy, Medal, Crown, TrendingUp, Loader2, Search, Download, X, FileText, FileSpreadsheet } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 const ADMIN_EMAIL = 'krehmankoolivayal13889@gmail.com';
 
@@ -26,6 +27,7 @@ export default function Leaderboard() {
     const [studentPoints, setStudentPoints] = useState([]);
     const [loadingPoints, setLoadingPoints] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
+    const [downloadModalOpen, setDownloadModalOpen] = useState(false);
 
     useEffect(() => {
         fetchLeaderboard();
@@ -95,6 +97,25 @@ export default function Leaderboard() {
         });
 
         doc.save(`Zehnuth_Leaderboard_${new Date().toISOString().split('T')[0]}.pdf`);
+        setDownloadModalOpen(false);
+    };
+
+    const downloadExcel = () => {
+        const tableData = filteredData.map((item, index) => ({
+            'Rank': index + 1,
+            'Student Name': item.student["SHORT NAME"] || item.student["FULL NAME"],
+            'ADNO': item.student.ADNO,
+            'League': getLeague(item.totalPoints).name,
+            'Mentor': item.mentorName || '-',
+            'Points': item.totalPoints
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(tableData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Leaderboard");
+        
+        XLSX.writeFile(workbook, `Zehnuth_Leaderboard_${new Date().toISOString().split('T')[0]}.xlsx`);
+        setDownloadModalOpen(false);
     };
 
     const filteredData = leaderboard.filter(item =>
@@ -171,9 +192,9 @@ export default function Leaderboard() {
                         </div>
                         {isZehnuthAdmin && (
                             <button
-                                onClick={downloadPDF}
+                                onClick={() => setDownloadModalOpen(true)}
                                 className="p-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all active:scale-95 flex items-center gap-2 group shadow-lg shadow-slate-100"
-                                title="Download PDF Report"
+                                title="Download Report"
                             >
                                 <Download size={18} />
                                 {/* <span className="text-[10px] font-black uppercase tracking-widest pr-1">Report</span> */}
@@ -313,6 +334,47 @@ export default function Leaderboard() {
                                 <span className="text-sm font-black text-indigo-600">{selectedStudent.totalPoints} PTS</span>
                             </div>
                             <button onClick={() => setModalOpen(false)} className="px-6 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 active:scale-95 transition-all">Close</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {downloadModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setDownloadModalOpen(false)}></div>
+                    <div className="relative bg-white w-full max-w-sm rounded-[2rem] shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
+                        <div className="p-5 bg-slate-900 text-white flex items-center justify-between">
+                            <div>
+                                <h2 className="text-lg font-black uppercase italic leading-none">Download Report</h2>
+                                <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest mt-1">Select Format</p>
+                            </div>
+                            <button onClick={() => setDownloadModalOpen(false)} className="p-2 hover:bg-white/20 rounded-xl transition-all"><X size={18} /></button>
+                        </div>
+                        <div className="p-6 flex flex-col gap-3">
+                            <button
+                                onClick={downloadPDF}
+                                className="w-full p-4 bg-red-50 hover:bg-red-100 text-red-600 rounded-2xl flex items-center gap-4 transition-all active:scale-[0.98] border border-red-100"
+                            >
+                                <div className="p-2.5 bg-white rounded-xl shadow-sm text-red-500">
+                                    <FileText size={24} />
+                                </div>
+                                <div className="text-left">
+                                    <h3 className="font-black text-sm uppercase tracking-tight">PDF Document</h3>
+                                    {/* <p className="text-[10px] font-bold opacity-70 uppercase tracking-widest mt-0.5">Best for printing</p> */}
+                                </div>
+                            </button>
+                            <button
+                                onClick={downloadExcel}
+                                className="w-full p-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-2xl flex items-center gap-4 transition-all active:scale-[0.98] border border-emerald-100"
+                            >
+                                <div className="p-2.5 bg-white rounded-xl shadow-sm text-emerald-500">
+                                    <FileSpreadsheet size={24} />
+                                </div>
+                                <div className="text-left">
+                                    <h3 className="font-black text-sm uppercase tracking-tight">Excel Spreadsheet</h3>
+                                    {/* <p className="text-[10px] font-bold opacity-70 uppercase tracking-widest mt-0.5">Best for analysis</p> */}
+                                </div>
+                            </button>
                         </div>
                     </div>
                 </div>
