@@ -102,6 +102,31 @@ const ReviewModal = ({ request, isOpen, onClose, onAction, processingId }) => {
                             </p>
                             <p className="text-sm font-bold text-slate-700 italic leading-relaxed">"{request.activity}"</p>
                             
+                            {request.activity === 'Innovations' && request.websiteLink && (
+                                <div className="mt-3 pt-3 border-t border-blue-100/30">
+                                    <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-2">
+                                        Innovation Details
+                                    </p>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] font-bold text-slate-500">Type:</span>
+                                            <span className="text-[10px] font-black text-slate-700 uppercase bg-white px-2 py-1 rounded-md border border-slate-200">{request.innovationType || 'Not specified'}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] font-bold text-slate-500">Link:</span>
+                                            <a href={request.websiteLink.startsWith('http') ? request.websiteLink : `https://${request.websiteLink}`} target="_blank" rel="noopener noreferrer" className="text-[11px] font-bold text-blue-600 hover:underline break-all">
+                                                {request.websiteLink}
+                                            </a>
+                                        </div>
+                                        {request.isAiGenerated && (
+                                            <div className="mt-2 flex items-center gap-1.5 p-2 bg-amber-50 rounded-lg border border-amber-200 text-[10px] font-black text-amber-600 uppercase tracking-widest">
+                                                <AlertTriangle size={12} /> AI GENERATED WEBSITE DETECTED
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
                             {request.remarks && (
                                 <div className="mt-3 pt-3 border-t border-blue-100/30">
                                     <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-1">

@@ -36,6 +36,8 @@ export default function ApplyZehnuthModal({ isOpen, onClose, student, mentor, on
     const [fileUrl, setFileUrl] = useState('');
     const [uploading, setUploading] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
+    const [innovationType, setInnovationType] = useState('');
+    const [websiteLink, setWebsiteLink] = useState('');
 
     if (!isOpen) return null;
 
@@ -103,6 +105,20 @@ export default function ApplyZehnuthModal({ isOpen, onClose, student, mentor, on
             return;
         }
 
+        if (selectedAchievement === 'Innovations') {
+            if (!innovationType) {
+                alert("Please select the website type (Academic or Non-academic).");
+                return;
+            }
+            if (!websiteLink) {
+                alert("Please provide the website link.");
+                return;
+            }
+        }
+
+        const aiBuilders = ['v0.dev', 'framer.app', 'bolt.new', 'webflow.io', '10web.io', 'durable.co', 'teleporthq.io', 'wixstudio.io', 'lovable.dev', 'lovable.app', 'bubble.io'];
+        const isAiGenerated = aiBuilders.some(builder => websiteLink.toLowerCase().includes(builder));
+
         setLoading(true);
         try {
             await axios.post(`${API_PORT}/zehnuth/points`, {
@@ -115,13 +131,18 @@ export default function ApplyZehnuthModal({ isOpen, onClose, student, mentor, on
                 mentorApproved: false,
                 status: 'pending',
                 imageUrl: fileUrl || null,
-                remarks: remarks || null
+                remarks: remarks || null,
+                innovationType: selectedAchievement === 'Innovations' ? innovationType : null,
+                websiteLink: selectedAchievement === 'Innovations' ? websiteLink : null,
+                isAiGenerated: selectedAchievement === 'Innovations' ? isAiGenerated : false
             });
             onComplete();
             onClose();
             setSelectedAchievement(null);
             setFileUrl('');
             setRemarks('');
+            setInnovationType('');
+            setWebsiteLink('');
         } catch (err) {
             console.error(err);
             alert(err.response?.data?.error || "Failed to submit achievement request.");
@@ -445,6 +466,45 @@ export default function ApplyZehnuthModal({ isOpen, onClose, student, mentor, on
                                 )}
                             </div>
                         </div>
+
+                        {selectedAchievement === 'Innovations' && (
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2 px-1">
+                                    <div className="w-1.5 h-4 bg-indigo-600 rounded-full"></div>
+                                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Website Details</h3>
+                                </div>
+                                <div className="px-1 space-y-3">
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button 
+                                            type="button"
+                                            onClick={() => setInnovationType('Academic website')}
+                                            className={`p-3 rounded-xl border-2 transition-all text-xs font-bold flex items-center justify-center gap-2 ${innovationType === 'Academic website' ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-slate-50 border-transparent text-slate-500 hover:bg-slate-100'}`}
+                                        >
+                                            {innovationType === 'Academic website' && <CheckCircle size={14} />} Academic
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            onClick={() => setInnovationType('Non-academic website')}
+                                            className={`p-3 rounded-xl border-2 transition-all text-xs font-bold flex items-center justify-center gap-2 ${innovationType === 'Non-academic website' ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-slate-50 border-transparent text-slate-500 hover:bg-slate-100'}`}
+                                        >
+                                            {innovationType === 'Non-academic website' && <CheckCircle size={14} />} Non-academic
+                                        </button>
+                                    </div>
+                                    <input 
+                                        type="url"
+                                        placeholder="https://your-website-link.com"
+                                        value={websiteLink}
+                                        onChange={(e) => setWebsiteLink(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-bold text-slate-700 focus:border-indigo-400 focus:bg-white outline-none transition-all"
+                                    />
+                                    {websiteLink && ['v0.dev', 'framer.app', 'bolt.new', 'webflow.io', '10web.io', 'durable.co', 'teleporthq.io', 'wixstudio.io', 'lovable.dev', 'lovable.app', 'bubble.io'].some(b => websiteLink.toLowerCase().includes(b)) && (
+                                        <div className="p-3 bg-amber-50 rounded-xl border border-amber-100 flex items-center gap-2 text-amber-700 text-[10px] font-black uppercase tracking-widest">
+                                            <span>⚠️</span> AI generated website detected
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
 
                         <div className="space-y-3">
                             <div className="flex items-center gap-2 px-1">

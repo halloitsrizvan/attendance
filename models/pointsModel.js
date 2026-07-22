@@ -47,6 +47,18 @@ const pointsSchema = new mongoose.Schema({
     remarks: {
         type: String,
         default: null
+    },
+    innovationType: {
+        type: String,
+        default: null
+    },
+    websiteLink: {
+        type: String,
+        default: null
+    },
+    isAiGenerated: {
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true });
 
