@@ -236,7 +236,7 @@ export default function AdminAchievements() {
     });
   };
 
-  const generatePDFReport = () => {
+  const generatePDFReport = async () => {
     if (!pointsData || pointsData.length === 0) {
       alert("No data available to generate report.");
       return;
@@ -444,29 +444,33 @@ export default function AdminAchievements() {
     
     const studentPoints = {};
     const studentDetails = {};
+    let fullLeaderboard = [];
+
+    try {
+        // Fetch the full leaderboard to ensure all points (not just the filtered achievements) are counted
+        const lbRes = await axios.get('/api/zehnuth/points?leaderboard=true');
+        fullLeaderboard = lbRes.data;
+    } catch (err) {
+        console.error("Failed to fetch full leaderboard for PDF", err);
+        // Fallback to the local calculation if API fails
+        approvedItems.forEach(item => {
+            const sId = item.studentId?._id;
+            if (!sId) return;
+            
+            studentPoints[sId] = (studentPoints[sId] || 0) + (item.points || 0);
+            if (!studentDetails[sId]) {
+                studentDetails[sId] = item.studentId;
+            }
+        });
+        fullLeaderboard = Object.keys(studentPoints).map(sId => ({
+            student: studentDetails[sId],
+            totalPoints: studentPoints[sId]
+        })).sort((a, b) => b.totalPoints - a.totalPoints);
+    }
     
-    approvedItems.forEach(item => {
-        const sId = item.studentId?._id;
-        if (!sId) return;
-        
-        studentPoints[sId] = (studentPoints[sId] || 0) + (item.points || 0);
-        if (!studentDetails[sId]) {
-            studentDetails[sId] = item.studentId;
-        }
-    });
-    
-    const topStudentsData = Object.keys(studentPoints).map(sId => ({
-        id: sId,
-        name: studentDetails[sId]["SHORT NAME"] || studentDetails[sId]["FULL NAME"],
-        adno: studentDetails[sId].ADNO,
-        cls: studentDetails[sId].CLASS,
-        points: studentPoints[sId],
-        league: getLeague(studentPoints[sId]).name
-    })).sort((a, b) => b.points - a.points);
-    
-    const top5ForChart = topStudentsData.slice(0, 5).map(s => ({
-        label: s.name.split(' ')[0] || s.name, 
-        value: s.points
+    const top5ForChart = fullLeaderboard.slice(0, 5).map(s => ({
+        label: s.student["SHORT NAME"]?.split(' ')[0] || s.student["FULL NAME"]?.split(' ')[0] || 'Unknown', 
+        value: s.totalPoints
     }));
     
     if (top5ForChart.length > 0) {
@@ -479,13 +483,13 @@ export default function AdminAchievements() {
     doc.text("Top 20 Leaderboard", 14, 135);
 
     // AutoTable for top students with League
-    const tableData = topStudentsData.slice(0, 20).map((student, index) => [
+    const tableData = fullLeaderboard.slice(0, 20).map((item, index) => [
         index + 1,
-        student.name,
-        student.adno,
-        student.cls || '-',
-        student.league,
-        student.points
+        item.student["SHORT NAME"] || item.student["FULL NAME"] || 'Unknown',
+        item.student.ADNO || '-',
+        item.student.CLASS || '-',
+        getLeague(item.totalPoints).name,
+        item.totalPoints
     ]);
 
     autoTable(doc, {

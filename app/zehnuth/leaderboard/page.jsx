@@ -115,7 +115,7 @@ export default function Leaderboard() {
         const worksheet = XLSX.utils.json_to_sheet(tableData);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Leaderboard");
-        
+
         XLSX.writeFile(workbook, `Zehnuth_Leaderboard_${new Date().toISOString().split('T')[0]}.xlsx`);
         setDownloadModalOpen(false);
     };
@@ -160,7 +160,7 @@ export default function Leaderboard() {
             </main>
         </div>
     );
-    
+
     const isZehnuthAdmin = teacher && (
         (teacher.email || teacher.EMAIL)?.toLowerCase() === ADMIN_EMAIL.toLowerCase() ||
         (Array.isArray(teacher.role) ? teacher.role.includes('zehnuth_admin') : teacher.role === 'zehnuth_admin')
@@ -202,7 +202,7 @@ export default function Leaderboard() {
                                 {/* <span className="text-[10px] font-black uppercase tracking-widest pr-1">Report</span> */}
                             </button>
                         )}
-                        
+
                     </div>
                 </div>
 
