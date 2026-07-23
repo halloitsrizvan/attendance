@@ -6,9 +6,11 @@ import axios from 'axios';
 import {
   Trophy, Star, BookOpen, Medal, CheckCircle2, XCircle,
   Search, Filter, Loader2, ArrowLeft, Image as ImageIcon,
-  ExternalLink, Calendar, User, ShieldAlert, Clock, RefreshCw, X
+  ExternalLink, Calendar, User, ShieldAlert, Clock, RefreshCw, X, Download
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const ADMIN_EMAIL = 'krehmankoolivayal13889@gmail.com';
 
@@ -234,6 +236,271 @@ export default function AdminAchievements() {
     });
   };
 
+  const generatePDFReport = () => {
+    if (!pointsData || pointsData.length === 0) {
+      alert("No data available to generate report.");
+      return;
+    }
+
+    const approvedItems = pointsData.filter(p => p.status === 'approved');
+    if (approvedItems.length === 0) {
+       alert("No approved data available to generate report.");
+       return;
+    }
+
+    const doc = new jsPDF();
+    const primaryColor = [79, 70, 229]; // Indigo-600
+    const secondaryColor = [241, 245, 249]; // Slate-100
+    const textColor = [30, 41, 59]; // Slate-800
+    const lightText = [100, 116, 139]; // Slate-500
+    
+    const LEAGUES = [
+        { name: 'Diamond', min: 750 },
+        { name: 'Platinum', min: 500 },
+        { name: 'Emerald', min: 250 },
+        { name: 'Gold', min: 100 },
+        { name: 'Bronze', min: 0 },
+    ];
+    const getLeague = (points) => {
+        return LEAGUES.find(l => points >= l.min) || LEAGUES[LEAGUES.length - 1];
+    };
+
+    // Helper to draw a nice header
+    const drawPageHeader = (title, subtitle) => {
+        doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.rect(0, 0, 210, 30, 'F');
+        
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(22);
+        doc.setFont("helvetica", "bold");
+        doc.text(title, 14, 18);
+        
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.text(subtitle || `Generated: ${new Date().toLocaleString()}`, 14, 25);
+    };
+
+    // Helper function to draw bar chart natively
+    const drawBarChart = (doc, title, data, x, y, width, height, color = primaryColor) => {
+      if (!data || data.length === 0) return;
+      
+      const maxVal = Math.max(...data.map(d => d.value));
+      const chartTitleY = y;
+      
+      doc.setFontSize(14);
+      doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+      doc.setFont("helvetica", "bold");
+      doc.text(title, x, chartTitleY);
+      
+      const chartTop = chartTitleY + 10;
+      const chartBottom = chartTop + height;
+      const chartLeft = x + 25; 
+      const chartRight = chartLeft + width;
+      const chartHeight = height;
+      const chartWidth = width;
+      
+      // Draw axes
+      doc.setDrawColor(226, 232, 240); // slate-200
+      doc.setLineWidth(0.5);
+      doc.line(chartLeft, chartBottom, chartRight, chartBottom); // X axis
+      doc.line(chartLeft, chartBottom, chartLeft, chartTop); // Y axis
+      
+      // Draw Y-axis labels and grid lines
+      doc.setFontSize(8);
+      doc.setTextColor(lightText[0], lightText[1], lightText[2]);
+      doc.setFont("helvetica", "normal");
+      
+      const numTicks = 5;
+      for (let i = 0; i <= numTicks; i++) {
+        const tickVal = maxVal === 0 ? 0 : (maxVal / numTicks) * i;
+        const tickY = chartBottom - (chartHeight / numTicks) * i;
+        
+        doc.text(Math.round(tickVal).toString(), chartLeft - 5, tickY + 3, { align: "right" });
+        if (i > 0) {
+            doc.setDrawColor(241, 245, 249); // slate-100
+            doc.line(chartLeft, tickY, chartRight, tickY);
+        }
+      }
+      
+      // Draw bars
+      const barPadding = 8;
+      const totalBarSpace = chartWidth / data.length;
+      const barWidth = Math.min(totalBarSpace - barPadding, 25);
+      
+      data.forEach((d, i) => {
+        const barHeight = maxVal === 0 ? 0 : (d.value / maxVal) * chartHeight;
+        const barX = chartLeft + (totalBarSpace * i) + (totalBarSpace - barWidth) / 2;
+        const barY = chartBottom - barHeight;
+        
+        // Draw bar shadow
+        doc.setFillColor(226, 232, 240);
+        doc.rect(barX + 1, barY + 1, barWidth, barHeight, 'F');
+        
+        // Draw bar
+        doc.setFillColor(color[0], color[1], color[2]);
+        doc.rect(barX, barY, barWidth, barHeight, 'F');
+        
+        // Draw value on top of bar
+        doc.setFontSize(8);
+        doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+        doc.setFont("helvetica", "bold");
+        doc.text(d.value.toString() + (d.suffix || ""), barX + barWidth / 2, barY - 2, { align: "center" });
+        
+        // Draw X-axis label
+        doc.setFontSize(7);
+        doc.setTextColor(lightText[0], lightText[1], lightText[2]);
+        doc.setFont("helvetica", "bold");
+        const splitLabel = doc.splitTextToSize(d.label, totalBarSpace);
+        doc.text(splitLabel, barX + barWidth / 2, chartBottom + 5, { align: "center" });
+      });
+    };
+    
+    // --- PAGE 1: Class Participation ---
+    drawPageHeader("ZEHNUTH Analytical Report", `Comprehensive Analysis | ${new Date().toLocaleDateString()}`);
+    
+    // Calculate Class Participation
+    const classStats = {};
+    let totalSubmissions = 0;
+    approvedItems.forEach(item => {
+        const cls = item.studentId?.CLASS || 'Unknown';
+        if (!classStats[cls]) classStats[cls] = { count: 0, points: 0 };
+        classStats[cls].count += 1;
+        classStats[cls].points += (item.points || 0);
+        totalSubmissions++;
+    });
+    
+    const classData = Object.keys(classStats).map(cls => ({
+        label: `Class ${cls}`,
+        value: Number(((classStats[cls].count / totalSubmissions) * 100).toFixed(1)),
+        suffix: '%'
+    })).sort((a, b) => b.value - a.value).slice(0, 8); // Top 8 classes
+    
+    drawBarChart(doc, "Class Participation", classData, 14, 45, 150, 60, [14, 165, 233]);
+
+    // Class Stats Table
+    const classTableData = Object.keys(classStats)
+        .sort((a,b) => classStats[b].points - classStats[a].points)
+        .map(cls => [
+        `Class ${cls}`,
+        classStats[cls].count,
+        `${((classStats[cls].count / totalSubmissions) * 100).toFixed(1)}%`,
+        classStats[cls].points
+    ]);
+
+    doc.setFontSize(14);
+    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+    doc.setFont("helvetica", "bold");
+    doc.text("Class Performance Overview", 14, 135);
+
+    autoTable(doc, {
+        startY: 140,
+        head: [['Class', 'Total Submissions', 'Participation %', 'Total Points Earned']],
+        body: classTableData,
+        theme: 'grid',
+        headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: secondaryColor },
+        styles: { fontSize: 9, cellPadding: 4 }
+    });
+
+    // --- PAGE 2: Category & Sub-Category ---
+    doc.addPage();
+    drawPageHeader("Activity Categories Analysis", "Distribution across domains");
+    
+    const getCategory = (activity) => {
+        if (['Awards', 'Publications', 'Innovations', 'Courses'].includes(activity)) return 'Achievements';
+        if (['Essay', 'Poem', 'Story', 'Full paper', 'Abstract'].includes(activity)) return 'Writings';
+        if (['Paper presentation (State)', 'Paper presentation (National)', 'Paper presentation (International)', 'Keynote address', 'Khutba', 'Other presentations (Out)', 'Speech', 'Other presentations (In)'].includes(activity)) return 'Presentations';
+        return 'Competitions';
+    };
+    
+    const categoryCounts = {};
+    const subCategoryCounts = {};
+    
+    approvedItems.forEach(item => {
+        const act = item.activity || 'Unknown';
+        const cat = getCategory(act);
+        
+        categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+        subCategoryCounts[act] = (subCategoryCounts[act] || 0) + 1;
+    });
+    
+    const catData = Object.keys(categoryCounts).map(cat => ({
+        label: cat,
+        value: categoryCounts[cat]
+    })).sort((a, b) => b.value - a.value);
+    
+    drawBarChart(doc, "Top Broad Categories", catData, 14, 45, 150, 60, [16, 185, 129]); 
+    
+    const subCatData = Object.keys(subCategoryCounts).map(sub => ({
+        label: sub,
+        value: subCategoryCounts[sub]
+    })).sort((a, b) => b.value - a.value).slice(0, 6); 
+    
+    drawBarChart(doc, "Top Sub-Categories (Activities)", subCatData, 14, 145, 150, 60, [245, 158, 11]); 
+
+    // --- PAGE 3: Top Students ---
+    doc.addPage();
+    drawPageHeader("Top Performing Students", "Leaderboard & Rankings");
+    
+    const studentPoints = {};
+    const studentDetails = {};
+    
+    approvedItems.forEach(item => {
+        const sId = item.studentId?._id;
+        if (!sId) return;
+        
+        studentPoints[sId] = (studentPoints[sId] || 0) + (item.points || 0);
+        if (!studentDetails[sId]) {
+            studentDetails[sId] = item.studentId;
+        }
+    });
+    
+    const topStudentsData = Object.keys(studentPoints).map(sId => ({
+        id: sId,
+        name: studentDetails[sId]["SHORT NAME"] || studentDetails[sId]["FULL NAME"],
+        adno: studentDetails[sId].ADNO,
+        cls: studentDetails[sId].CLASS,
+        points: studentPoints[sId],
+        league: getLeague(studentPoints[sId]).name
+    })).sort((a, b) => b.points - a.points);
+    
+    const top5ForChart = topStudentsData.slice(0, 5).map(s => ({
+        label: s.name.split(' ')[0] || s.name, 
+        value: s.points
+    }));
+    
+    if (top5ForChart.length > 0) {
+        drawBarChart(doc, "Top 5 Students by Points", top5ForChart, 14, 45, 150, 60, [236, 72, 153]); 
+    }
+    
+    doc.setFontSize(14);
+    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+    doc.setFont("helvetica", "bold");
+    doc.text("Top 20 Leaderboard", 14, 135);
+
+    // AutoTable for top students with League
+    const tableData = topStudentsData.slice(0, 20).map((student, index) => [
+        index + 1,
+        student.name,
+        student.adno,
+        student.cls || '-',
+        student.league,
+        student.points
+    ]);
+
+    autoTable(doc, {
+        startY: 140,
+        head: [['Rank', 'Student Name', 'ADNO', 'Class', 'League', 'Total Points']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: secondaryColor },
+        styles: { fontSize: 9, cellPadding: 4 }
+    });
+
+    doc.save(`Zehnuth_Analysis_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       <Header />
@@ -254,14 +521,23 @@ export default function AdminAchievements() {
             </p>
           </div>
 
-          <button
-            onClick={fetchAchievements}
-            disabled={refreshing}
-            className="self-start sm:self-center bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 shadow-sm flex items-center gap-2"
-          >
-            <RefreshCw size={14} className={`${refreshing ? 'animate-spin' : ''}`} />
-            {refreshing ? 'Refreshing...' : 'Refresh Data'}
-          </button>
+          <div className="flex items-center gap-2 self-start sm:self-center">
+            <button
+              onClick={generatePDFReport}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 shadow-md shadow-indigo-200 flex items-center gap-2"
+            >
+              <Download size={14} />
+              Download Report
+            </button>
+            <button
+              onClick={fetchAchievements}
+              disabled={refreshing}
+              className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 shadow-sm flex items-center gap-2"
+            >
+              <RefreshCw size={14} className={`${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Refreshing...' : 'Refresh Data'}
+            </button>
+          </div>
         </div>
 
 
