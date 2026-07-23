@@ -147,11 +147,11 @@ function Hajar() {
   };
 
   // Get active short leave object
-  const getStudentActiveShortLeave = (studentAdno, studentInternalId) => {
+  const getStudentActiveShortLeave = (studentAdno, studentInternalId, data = shortLeaveData) => {
     const today = getNormalizedToday();
     const ctx = getContextTimeRange();
 
-    return shortLeaveData.find(leave => {
+    return data.find(leave => {
       // Check ADNO or ID match
       const leaveAdno = leave.ad || leave.studentId?.ADNO;
       const leaveStudentId = leave.studentId?._id || leave.studentId;
@@ -198,14 +198,14 @@ function Hajar() {
   };
 
   // Check if student is currently on short leave
-  const isStudentOnShortLeave = (studentAdno, studentInternalId) => !!getStudentActiveShortLeave(studentAdno, studentInternalId);
+  const isStudentOnShortLeave = (studentAdno, studentInternalId, data = shortLeaveData) => !!getStudentActiveShortLeave(studentAdno, studentInternalId, data);
 
   // Get active medical leave object
-  const getStudentActiveLeave = (studentAdno, studentInternalId) => {
+  const getStudentActiveLeave = (studentAdno, studentInternalId, data = leaveData) => {
     const today = getNormalizedToday();
     const ctx = getContextTimeRange();
 
-    return leaveData.find(leave => {
+    return data.find(leave => {
       // Check ADNO or ID match
       const leaveAdno = leave.ad || leave.studentId?.ADNO;
       const leaveStudentId = leave.studentId?._id || leave.studentId;
@@ -279,7 +279,7 @@ function Hajar() {
   };
 
   // Check if student is on active leave (any reason)
-  const isStudentOnActiveLeave = (studentAdno, studentInternalId) => !!getStudentActiveLeave(studentAdno, studentInternalId);
+  const isStudentOnActiveLeave = (studentAdno, studentInternalId, data = leaveData) => !!getStudentActiveLeave(studentAdno, studentInternalId, data);
 
   // Alias for backward compatibility/typo fix
   const isStudentOnMedicalLeave = isStudentOnActiveLeave;
@@ -292,55 +292,67 @@ function Hajar() {
 
   useEffect(() => {
     console.log(period);
-    setDataLoad(true);
 
-    //  axios.get(`${API_PORT}/class-excused-pass`),
-    // Fetch short leave data first, then medical leaves, then students
+    const processData = (shortLeaveDataList, leaveDataList, studentsDataList) => {
+      setShortLeaveData(shortLeaveDataList);
+      setLeaveData(leaveDataList);
+
+      const filtered = studentsDataList
+        .filter((student) => student.CLASS === Number(id))
+        .sort((a, b) => a.SL - b.SL);
+
+      const initialAttendance = {};
+
+      filtered.forEach((student) => {
+        const isOnShortLeave = isStudentOnShortLeave(student.ADNO, student._id, shortLeaveDataList);
+        const isOnActiveLeave = isStudentOnActiveLeave(student.ADNO, student._id, leaveDataList);
+        const isOnLeave = isOnShortLeave || isOnActiveLeave;
+
+        if (isOnLeave) {
+          initialAttendance[student.ADNO] = "Absent";
+        } else {
+          initialAttendance[student.ADNO] = "Present";
+        }
+      });
+
+      setStudents(filtered);
+      setAttendance(initialAttendance);
+    };
+
+    const cacheKey = 'hajar_data';
+    const cachedData = sessionStorage.getItem(cacheKey);
+
+    if (cachedData) {
+      const parsed = JSON.parse(cachedData);
+      processData(parsed.shortLeave, parsed.leave, parsed.students);
+      setDataLoad(false);
+    } else {
+      setDataLoad(true);
+    }
+
     Promise.all([
       axios.get(`${API_PORT}/class-excused-pass`),
       axios.get(`${API_PORT}/leave`), // medical leaves
       axios.get(`${API_PORT}/students`) // remove trailing slash
     ])
       .then(([shortLeaveRes, leaveRes, studentsRes]) => {
-        setShortLeaveData(shortLeaveRes.data);
-        setLeaveData(leaveRes.data);
-        console.log("Short leave data:", shortLeaveRes.data);
-        console.log("Medical leave data:", leaveRes.data);
-
-        const filtered = studentsRes.data
-          .filter((student) => student.CLASS === Number(id))
-          .sort((a, b) => a.SL - b.SL);
-
-        const initialAttendance = {};
-
-        // Set initial attendance based on short leave and medical leave status
-        filtered.forEach((student) => {
-          const isOnShortLeave = isStudentOnShortLeave(student.ADNO, student._id);
-          const isOnActiveLeave = isStudentOnActiveLeave(student.ADNO, student._id);
-          const isOnLeave = isOnShortLeave || isOnActiveLeave;
-
-          console.log(`Student ${student.ADNO}:`, {
-            onLeave: student.onLeave,
-            shortLeave: isOnShortLeave,
-            activeLeave: isOnActiveLeave,
-            total: isOnLeave
-          });
-
-          if (isOnLeave) {
-            initialAttendance[student.ADNO] = "Absent";
-          } else {
-            initialAttendance[student.ADNO] = "Present";
-          }
+        const freshData = JSON.stringify({
+          shortLeave: shortLeaveRes.data,
+          leave: leaveRes.data,
+          students: studentsRes.data
         });
 
-        setStudents(filtered);
-        setAttendance(initialAttendance);
+        if (cachedData !== freshData) {
+          processData(shortLeaveRes.data, leaveRes.data, studentsRes.data);
+          sessionStorage.setItem(cacheKey, freshData);
+        }
         setDataLoad(false);
       })
       .catch((err) => {
         console.error(err);
         setDataLoad(false);
       });
+
     const checkAttendanceTaken = async () => {
       try {
         const queryParams = {
@@ -350,11 +362,19 @@ function Hajar() {
         };
         if (period) queryParams.period = period;
 
+        const takenCacheKey = `attendance_taken_${JSON.stringify(queryParams)}`;
+        const cachedTaken = sessionStorage.getItem(takenCacheKey);
+
+        if (cachedTaken) {
+          setIsAlreadyTaken(JSON.parse(cachedTaken));
+        }
+
         const res = await axios.get(`${API_PORT}/set-attendance`, { params: queryParams });
-        if (res.data && res.data.length > 0) {
-          setIsAlreadyTaken(true);
-        } else {
-          setIsAlreadyTaken(false);
+        const isTaken = res.data && res.data.length > 0;
+        
+        if (cachedTaken !== JSON.stringify(isTaken)) {
+          setIsAlreadyTaken(isTaken);
+          sessionStorage.setItem(takenCacheKey, JSON.stringify(isTaken));
         }
       } catch (err) {
         console.error("Error checking existing attendance:", err);
