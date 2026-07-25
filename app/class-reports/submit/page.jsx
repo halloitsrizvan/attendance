@@ -118,22 +118,29 @@ export default function SubmitClassReport() {
         if (!files || files.length === 0) return;
 
         setUploadingGallery(true);
+        let uploadedUrls = [];
+        let hasError = false;
+        let errorMsg = "";
+
         try {
-            const uploadPromises = files.map(file => {
+            for (const file of files) {
                 const formData = new FormData();
                 formData.append('file', file);
                 formData.append('upload_preset', 'college_db');
-                return axios.post('https://api.cloudinary.com/v1_1/dqgspgrul/image/upload', formData);
-            });
-
-            const results = await Promise.all(uploadPromises);
-            const uploadedUrls = results.map(res => res.data.secure_url);
-
-            setEditForm({ ...editForm, gallery: [...(editForm.gallery || []), ...uploadedUrls] });
+                const res = await axios.post('https://api.cloudinary.com/v1_1/dqgspgrul/image/upload', formData);
+                uploadedUrls.push(res.data.secure_url);
+            }
         } catch (err) {
             console.error("Gallery upload error:", err);
-            alert("Failed to upload gallery images.");
+            hasError = true;
+            errorMsg = err.response?.data?.error?.message || err.message;
         } finally {
+            if (uploadedUrls.length > 0) {
+                setEditForm(prev => ({ ...prev, gallery: [...(prev.gallery || []), ...uploadedUrls] }));
+            }
+            if (hasError) {
+                alert("Failed to upload some gallery images. Error: " + errorMsg);
+            }
             setUploadingGallery(false);
         }
     };
