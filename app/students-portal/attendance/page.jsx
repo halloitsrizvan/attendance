@@ -13,7 +13,7 @@ export default function AttendancePage() {
     const [loading, setLoading] = useState(true);
     const [student, setStudent] = useState(null);
     const [attendanceData, setAttendanceData] = useState([]);
-    
+
     // Complaint Form State
     const [complaintLoading, setComplaintLoading] = useState(false);
     const [selectedId, setSelectedId] = useState('');
@@ -32,7 +32,7 @@ export default function AttendancePage() {
 
     const handleComplaintClick = (id) => {
         setSelectedId(id);
-        
+
         // Scroll to form smoothly
         if (formRef.current) {
             formRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -203,14 +203,14 @@ export default function AttendancePage() {
                 <div className="lg:col-span-2">
                     <h2 className="text-2xl font-black text-slate-800 mb-6">My Analytics</h2>
                     <div className="grid grid-cols-2 gap-4">
-                        <MetricCard 
+                        <MetricCard
                             title="Total Presents"
                             value={stats.presents}
                             color="blue"
                             icon={CalendarCheck}
                             onClick={() => setBreakdownType('presents')}
                         />
-                        <MetricCard 
+                        <MetricCard
                             title="Total Absents"
                             value={stats.absents}
                             color="slate"
@@ -224,7 +224,7 @@ export default function AttendancePage() {
                 <div className="lg:col-span-2">
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-lg font-black text-slate-800">All Absents</h2>
-                        <select 
+                        <select
                             value={absentMonth}
                             onChange={(e) => setAbsentMonth(e.target.value)}
                             className="bg-transparent text-sm font-bold text-slate-500 outline-none cursor-pointer border-none"
@@ -256,7 +256,7 @@ export default function AttendancePage() {
                                 <div className="text-left sm:text-right">
                                     {isWithin24Hours(item.createdAt) && <div className="text-[10px] font-bold text-slate-600 sm:max-w-[200px]">
                                         {item.teacherId ? "USTHAD  " : ""} {item.teacherId?.name || 'Teacher'}
-                                    </div>} 
+                                    </div>}
                                     {(() => {
                                         const existingComplaint = complaints.find(c => (c.attendanceId?._id || c.attendanceId) === item._id);
                                         if (existingComplaint) {
@@ -273,7 +273,7 @@ export default function AttendancePage() {
                                             );
                                         }
                                         return isWithin24Hours(item.createdAt || item.attendanceDate) && (
-                                            <button 
+                                            <button
                                                 onClick={() => handleComplaintClick(item._id)}
                                                 className="text-[10px] font-black text-rose-600 bg-rose-100 hover:bg-rose-200 hover:text-rose-700 px-3 py-1 rounded-lg uppercase mt-2 inline-block transition-colors cursor-pointer shadow-sm active:scale-95"
                                             >
@@ -297,7 +297,7 @@ export default function AttendancePage() {
                 <div className="lg:col-span-2">
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-2xl font-black text-slate-800">Attendance log</h2>
-                        <select 
+                        <select
                             value={logMonth}
                             onChange={(e) => setLogMonth(e.target.value)}
                             className="bg-transparent text-sm font-bold text-slate-500 outline-none cursor-pointer border-none"
@@ -341,15 +341,14 @@ export default function AttendancePage() {
                         <AlertTriangle className="w-3 h-3" />
                         NB: You can only complain about absents within the last 24 hours
                     </div>
-                    <div 
+                    <div
                         ref={formRef}
-                        className={`bg-white rounded-[2rem] p-6 border transition-all duration-500 space-y-4 ${
-                            highlightForm 
-                                ? 'border-rose-500 ring-4 ring-rose-500/20 scale-[1.02] shadow-xl shadow-rose-500/10' 
+                        className={`bg-white rounded-[2rem] p-6 border transition-all duration-500 space-y-4 ${highlightForm
+                                ? 'border-rose-500 ring-4 ring-rose-500/20 scale-[1.02] shadow-xl shadow-rose-500/10'
                                 : 'border-slate-800 shadow-none'
-                        }`}
+                            }`}
                     >
-                        <select 
+                        <select
                             value={selectedId}
                             onChange={e => setSelectedId(e.target.value)}
                             className="w-full border border-slate-800 rounded-xl p-3 text-sm font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-500"
@@ -366,7 +365,7 @@ export default function AttendancePage() {
                             <label className="text-xs font-black text-slate-500 uppercase tracking-widest">I Was Actually</label>
                             <div className="flex gap-2">
                                 {['Present', 'Leave', 'CEP'].map(s => (
-                                    <button 
+                                    <button
                                         key={s}
                                         onClick={() => setActualStatus(s)}
                                         className={`flex-1 py-2 rounded-xl border border-slate-800 text-xs font-black uppercase transition-all
@@ -378,14 +377,14 @@ export default function AttendancePage() {
                             </div>
                         </div>
 
-                        <textarea 
-                            placeholder="Description..." 
+                        <textarea
+                            placeholder="Description..."
                             value={message}
                             onChange={e => setMessage(e.target.value)}
                             className="w-full border border-slate-800 rounded-xl p-3 text-sm font-bold text-slate-600 outline-none h-32 resize-none focus:ring-2 focus:ring-blue-500"
                         ></textarea>
 
-                        <button 
+                        <button
                             onClick={handleComplaintSubmit}
                             disabled={complaintLoading}
                             className="w-full py-4 bg-emerald-500 text-white rounded-xl text-sm font-black uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center justify-center gap-2"
@@ -406,7 +405,7 @@ export default function AttendancePage() {
                                     Rejected: 'bg-rose-50 text-rose-600 border-rose-100'
                                 };
                                 const currentStatusColor = statusColors[item.status] || 'bg-slate-50 text-slate-600 border-slate-100';
-                                
+
                                 return (
                                     <div key={item._id} className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm space-y-2">
                                         <div className="flex items-center justify-between">

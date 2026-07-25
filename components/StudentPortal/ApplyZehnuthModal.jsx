@@ -4,20 +4,49 @@ import axios from 'axios';
 import { X, Trophy, Upload, Loader2, CheckCircle, Send, User } from 'lucide-react';
 import { API_PORT } from '@/Constants';
 
-export default function ApplyZehnuthModal({ isOpen, onClose, student, mentor, onComplete, zehnuthPoints = [] }) {
+export default function ApplyZehnuthModal({ isOpen, onClose, student, mentor, onComplete, zehnuthPoints = [], editData = null }) {
     const [loading, setLoading] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState('Exam');
     const [selectedAchievement, setSelectedAchievement] = useState(null);
     const [remarks, setRemarks] = useState('');
+    const [fileUrl, setFileUrl] = useState('');
+    const [uploading, setUploading] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
+    const [innovationType, setInnovationType] = useState('');
+    const [websiteLink, setWebsiteLink] = useState('');
+
+    React.useEffect(() => {
+        if (isOpen) {
+            if (editData) {
+                setSelectedCategory(editData.category || 'Exam');
+                setSelectedAchievement(editData.activity || null);
+                setRemarks(editData.remarks || '');
+                setFileUrl(editData.imageUrl || '');
+                setInnovationType(editData.innovationType || '');
+                setWebsiteLink(editData.websiteLink || '');
+            } else {
+                setSelectedCategory('Exam');
+                setSelectedAchievement(null);
+                setRemarks('');
+                setFileUrl('');
+                setInnovationType('');
+                setWebsiteLink('');
+            }
+        }
+    }, [isOpen, editData]);
 
     const worksCount = useMemo(() => {
         if (!zehnuthPoints || !selectedAchievement || selectedCategory !== 'Works') return 0;
-        return zehnuthPoints.filter(p => 
+        let count = zehnuthPoints.filter(p => 
             p.category === 'Works' && 
             p.activity === selectedAchievement && 
             p.status !== 'rejected'
         ).length;
-    }, [zehnuthPoints, selectedAchievement, selectedCategory]);
+        if (editData && editData.category === 'Works' && editData.activity === selectedAchievement) {
+            count = Math.max(0, count - 1);
+        }
+        return count;
+    }, [zehnuthPoints, selectedAchievement, selectedCategory, editData]);
 
     const CATEGORIES = [
         { id: 'Exam', label: 'Exam', icon: '🎓' },
@@ -32,12 +61,6 @@ export default function ApplyZehnuthModal({ isOpen, onClose, student, mentor, on
     const toggleAchievement = (item) => {
         setSelectedAchievement(prev => prev === item ? null : item);
     };
-
-    const [fileUrl, setFileUrl] = useState('');
-    const [uploading, setUploading] = useState(false);
-    const [isDragging, setIsDragging] = useState(false);
-    const [innovationType, setInnovationType] = useState('');
-    const [websiteLink, setWebsiteLink] = useState('');
 
     if (!isOpen) return null;
 
@@ -121,21 +144,34 @@ export default function ApplyZehnuthModal({ isOpen, onClose, student, mentor, on
 
         setLoading(true);
         try {
-            await axios.post(`${API_PORT}/zehnuth/points`, {
-                studentId: student.id || student._id,
-                mentorId: mentor._id || mentor.id || mentor,
-                activity: selectedAchievement,
-                category: selectedCategory,
-                points: 0,
-                approved: false,
-                mentorApproved: false,
-                status: 'pending',
-                imageUrl: fileUrl || null,
-                remarks: remarks || null,
-                innovationType: selectedAchievement === 'Innovations' ? innovationType : null,
-                websiteLink: selectedAchievement === 'Innovations' ? websiteLink : null,
-                isAiGenerated: selectedAchievement === 'Innovations' ? isAiGenerated : false
-            });
+            if (editData) {
+                await axios.put(`${API_PORT}/zehnuth/points`, {
+                    id: editData._id,
+                    activity: selectedAchievement,
+                    category: selectedCategory,
+                    imageUrl: fileUrl || null,
+                    remarks: remarks || null,
+                    innovationType: selectedAchievement === 'Innovations' ? innovationType : null,
+                    websiteLink: selectedAchievement === 'Innovations' ? websiteLink : null,
+                    isAiGenerated: selectedAchievement === 'Innovations' ? isAiGenerated : false
+                });
+            } else {
+                await axios.post(`${API_PORT}/zehnuth/points`, {
+                    studentId: student.id || student._id,
+                    mentorId: mentor._id || mentor.id || mentor,
+                    activity: selectedAchievement,
+                    category: selectedCategory,
+                    points: 0,
+                    approved: false,
+                    mentorApproved: false,
+                    status: 'pending',
+                    imageUrl: fileUrl || null,
+                    remarks: remarks || null,
+                    innovationType: selectedAchievement === 'Innovations' ? innovationType : null,
+                    websiteLink: selectedAchievement === 'Innovations' ? websiteLink : null,
+                    isAiGenerated: selectedAchievement === 'Innovations' ? isAiGenerated : false
+                });
+            }
             onComplete();
             onClose();
             setSelectedAchievement(null);
@@ -206,9 +242,9 @@ export default function ApplyZehnuthModal({ isOpen, onClose, student, mentor, on
                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
                     <div className="relative z-10">
                         <h2 className="text-xl font-black uppercase italic tracking-tight flex items-center gap-3">
-                            <Trophy size={24} /> Zehnuth Point
+                            <Trophy size={24} /> {editData ? 'Edit Zehnuth Point' : 'Zehnuth Point'}
                         </h2>
-                        <p className="text-[9px] font-bold opacity-90 uppercase tracking-widest mt-1">Select your achievement</p>
+                        <p className="text-[9px] font-bold opacity-90 uppercase tracking-widest mt-1">{editData ? 'Update your achievement details' : 'Select your achievement'}</p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-2xl transition-all relative z-10"><X size={20} /></button>
                 </div>
@@ -540,7 +576,7 @@ export default function ApplyZehnuthModal({ isOpen, onClose, student, mentor, on
                                 ${(!selectedAchievement || uploading || (selectedCategory === 'Works' && worksCount >= 20)) ? 'bg-slate-100 text-slate-300 cursor-not-allowed shadow-none' : 'bg-slate-900 text-white hover:bg-indigo-600 active:scale-95 shadow-slate-200'}`}
                         >
                             {loading ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
-                            {loading ? 'Submitting...' : (selectedCategory === 'Works' && worksCount >= 20) ? 'Limit Reached for Activity' : 'Apply for Points'}
+                            {loading ? (editData ? 'Updating...' : 'Submitting...') : (selectedCategory === 'Works' && worksCount >= 20) ? 'Limit Reached for Activity' : (editData ? 'Update Points' : 'Apply for Points')}
                         </button>
                     </div>
                 </div>

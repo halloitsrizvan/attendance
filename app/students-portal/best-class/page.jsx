@@ -652,7 +652,7 @@ export default function BestClassPage() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Date (Optional)</label>
+                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Date</label>
                                 <input
                                     type="date"
                                     className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-800 focus:border-blue-500 outline-none transition-all shadow-sm cursor-pointer"

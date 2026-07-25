@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
-import { Star, Loader2, PlusCircle, CheckCircle, Clock, XCircle, Trophy } from 'lucide-react';
+import { Star, Loader2, PlusCircle, CheckCircle, Clock, XCircle, Trophy, Edit2, Trash2 } from 'lucide-react';
 import { API_PORT } from '@/Constants';
 import PortalSkeleton from '@/components/StudentPortal/PortalSkeleton';
 
@@ -17,6 +17,7 @@ export default function ZehnuthPage() {
     const [mentor, setMentor] = useState(null);
     const [rank, setRank] = useState('-');
     const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
+    const [editData, setEditData] = useState(null);
 
     useEffect(() => {
         fetchZehnuthData();
@@ -60,6 +61,22 @@ export default function ZehnuthPage() {
             }
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleEdit = (item) => {
+        setEditData(item);
+        setIsApplyModalOpen(true);
+    };
+
+    const handleDelete = async (id) => {
+        if (!confirm("Are you sure you want to delete this request?")) return;
+        try {
+            await axios.delete(`${API_PORT}/zehnuth/points?id=${id}`);
+            fetchZehnuthData();
+        } catch (error) {
+            console.error("Failed to delete request", error);
+            alert("Failed to delete request");
         }
     };
 
@@ -150,7 +167,10 @@ export default function ZehnuthPage() {
                                 )}
                                 <div>
                                     <div className="text-[14px] font-black text-slate-800 uppercase italic tracking-tight">{item.activity}</div>
-                                    <div className="text-[10px] font-bold text-slate-400 flex items-center gap-2 mt-1">
+                                    {item.remarks && (
+                                        <div className="text-[11px] font-medium text-slate-500 mt-1 line-clamp-2 leading-snug">{item.remarks}</div>
+                                    )}
+                                    <div className="text-[10px] font-bold text-slate-400 flex items-center flex-wrap gap-2 mt-1.5">
                                         <span className="uppercase tracking-widest text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-md">{item.category}</span>
                                         • {new Date(item.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
                                         {item.status === 'pending' && (
@@ -166,6 +186,16 @@ export default function ZehnuthPage() {
                                 </div>
                             </div>
                             <div className="text-right flex items-center gap-4">
+                                {item.status === 'pending' && !item.mentorApproved && (
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => handleEdit(item)} className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors" title="Edit Request">
+                                            <Edit2 size={14} />
+                                        </button>
+                                        <button onClick={() => handleDelete(item._id)} className="p-1.5 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100 transition-colors" title="Delete Request">
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                )}
                                 {item.imageUrl && (
                                     <a href={item.imageUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] font-black text-blue-500 hover:text-blue-700 underline uppercase">View Evidence</a>
                                 )}
@@ -189,11 +219,12 @@ export default function ZehnuthPage() {
 
             <ApplyZehnuthModal 
                 isOpen={isApplyModalOpen}
-                onClose={() => setIsApplyModalOpen(false)}
+                onClose={() => { setIsApplyModalOpen(false); setEditData(null); }}
                 student={student}
                 mentor={mentor}
                 onComplete={fetchZehnuthData}
                 zehnuthPoints={zehnuthPoints}
+                editData={editData}
             />
         </div>
     );
