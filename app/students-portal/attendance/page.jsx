@@ -322,11 +322,11 @@ export default function AttendancePage() {
                                         OnLeave: {item.onLeave ? 'Yes' : 'No'}
                                     </span>}
                                 </div>
-                                <div className={`text-left  text-sm ${isWithin24Hours(item.createdAt) ? 'md:text-center' : 'md:text-right'}`}>
+                                <div className={`text-left text-sm ${(isWithin24Hours(item.createdAt) || item.status === 'Absent') ? 'md:text-center' : 'md:text-right'}`}>
                                     <div className="font-black text-slate-800">{new Date(item.createdAt || item.attendanceDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                                     <div className="font-bold text-slate-500">{new Date(item.createdAt || item.attendanceDate).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
                                 </div>
-                                {isWithin24Hours(item.createdAt) && <div className="text-left md:text-right text-xs font-bold text-slate-600 md:max-w-[150px]">
+                                {(isWithin24Hours(item.createdAt) || item.status === 'Absent') && <div className="text-left md:text-right text-xs font-bold text-slate-600 md:max-w-[150px]">
                                     USTHAD {item.teacherId?.name || 'Teacher'}
                                 </div>}
                             </div>

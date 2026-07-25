@@ -18,7 +18,8 @@ import {
   ArrowRight,
   SkipForward,
   Presentation,
-  UserPlus
+  UserPlus,
+  Briefcase
 } from 'lucide-react';
 
 const iconMap = {
@@ -44,6 +45,7 @@ const iconMap = {
   'Function': PartyPopper,
   'Custom': Edit3,
   'OGEA': Presentation,
+  'Official': Briefcase,
 };
 
 function SelectionButton({ label, isSelected, onClick, type, disabled }) {

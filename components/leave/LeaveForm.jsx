@@ -163,9 +163,9 @@ const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCust
   const classNum = teacher?.classNum;
 
   let reasonOptions = [];
-  const classTeacher_reasons_for_primary = ['Medical (Home)', 'Room', 'Marriage', 'Hospital', 'Hospital bystander', 'Urgent (Death)', 'OGEA', 'Custom'];
+  const classTeacher_reasons_for_primary = ['Medical (Home)', 'Room', 'Marriage', 'Hospital', 'Hospital bystander', 'Urgent (Death)', 'OGEA', 'Official', 'Custom'];
   const classTeacher_reasons_for_s5_ss_d = ['Medical (Home)', 'Room', 'Hospital', 'Hospital bystander', 'Urgent (Death)', 'OGEA', 'Custom'];
-  const teacher_reasons_for_hos_hod = ['Medical (Home)', 'Room', 'Marriage', 'OGEA', 'Custom'];
+  const teacher_reasons_for_hos_hod = ['Medical (Home)', 'Room', 'Marriage', 'OGEA', 'Official', 'Custom'];
   const super_admin_reasons = ['Medical (Home)', 'Room', 'Marriage', 'OGEA', 'Custom'];
   if (leaveType === "leave") {
     const roles = Array.isArray(teacher?.role) ? teacher.role : (teacher?.role ? [teacher.role] : []);
@@ -232,7 +232,7 @@ const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCust
           />
         </div>
       )}
-      {(selectedReason?.includes('Medical') || selectedReason === 'Hospital' || selectedReason === 'Hospital bystander' || selectedReason === 'Room') && (
+      {(selectedReason?.includes('Medical') || selectedReason === 'Hospital' || selectedReason === 'Hospital bystander' || selectedReason === 'Room' || selectedReason === 'Official') && (
         <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
           <input
             type="text"
@@ -240,7 +240,7 @@ const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCust
             onChange={(e) => setDisease?.(e.target.value)}
             disabled={disabled}
             className={`w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all ${disabled ? 'opacity-50' : ''}`}
-            placeholder="Specify disease / condition..."
+            placeholder={selectedReason === 'Official' ? "Specify official reason..." : "Specify disease / condition..."}
           />
         </div>
       )}
@@ -1038,7 +1038,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   // Helper to map DB values back to form options
   const mapDataToForm = (leave) => {
     // 1. Map Reason
-    const standardReasons = ['Medical (Home)', 'Room', 'Marriage', 'Hospital', 'Hospital bystander', 'Urgent (Death)', 'OGEA'];
+    const standardReasons = ['Medical (Home)', 'Room', 'Marriage', 'Hospital', 'Hospital bystander', 'Urgent (Death)', 'OGEA', 'Official'];
     let matchedStandard = false;
 
     for (const sr of standardReasons) {
@@ -1285,7 +1285,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         fromTime: finalFromTime,
         toTime: finalToTime,
         reason: finalReason,
-        disease: (shortLeaveReason?.includes('Medical') || shortLeaveReason?.includes('Hospital') || shortLeaveReason === 'Room') ? shortLeaveDisease.trim() : undefined,
+        disease: (shortLeaveReason?.includes('Medical') || shortLeaveReason?.includes('Hospital') || shortLeaveReason === 'Room' || shortLeaveReason === 'Official') ? shortLeaveDisease.trim() : undefined,
         program: shortLeaveReason === 'OGEA' ? shortLeaveProgram.trim() : undefined,
         ...(shortLeaveReason === 'OGEA' && {
           isProgramSubmitted: false,
@@ -1435,7 +1435,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         updatePayload.reason = finalReason;
         updatePayload.toDate = finalToDate;
         updatePayload.toTime = finalToTime;
-        updatePayload.disease = (reason?.includes('Medical') || reason?.includes('Hospital') || reason === 'Room') ? disease.trim() : undefined;
+        updatePayload.disease = (reason?.includes('Medical') || reason?.includes('Hospital') || reason === 'Room' || reason === 'Official') ? disease.trim() : undefined;
         updatePayload.program = reason === 'OGEA' ? program.trim() : undefined;
         updatePayload.reasonHistory = [
           ...(activeLeave.reasonHistory || []),
@@ -1470,7 +1470,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       toDate: finalToDate,
       toTime: finalToTime,
       reason: finalReason,
-      disease: (reason?.includes('Medical') || reason?.includes('Hospital') || reason === 'Room') ? disease.trim() : undefined,
+      disease: (reason?.includes('Medical') || reason?.includes('Hospital') || reason === 'Room' || reason === 'Official') ? disease.trim() : undefined,
       program: reason === 'OGEA' ? program.trim() : undefined,
       ...(reason === 'OGEA' && {
         isProgramSubmitted: false,
@@ -1730,7 +1730,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
 
     const finalFromTime = getFormattedTime(fromTime, fromCustomTime, 'From Time');
     let finalReason = reason === 'Custom' ? customReason : reason;
-    if ((reason?.includes('Medical') || reason?.includes('Hospital') || reason === 'Room') && disease.trim() !== '') {
+    if ((reason?.includes('Medical') || reason?.includes('Hospital') || reason === 'Room' || reason === 'Official') && disease.trim() !== '') {
       finalReason = `${reason} - ${disease.trim()}`;
     } else if (reason === 'OGEA' && program.trim() !== '') {
       finalReason = `OGEA - ${program.trim()}`;
