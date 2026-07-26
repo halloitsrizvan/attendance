@@ -845,7 +845,7 @@ function Hajar() {
                           onClick={() => handleRowClick(student, currentStatus, displayOnLeave)}
                           className={`group transition-colors ${displayOnLeave ? "bg-amber-50/30 cursor-not-allowed" : "hover:bg-sky-50/50 cursor-pointer"}`}
                         >
-                          <td className="hidden sm:table-cell px-6 py-4 text-sm font-medium text-slate-400">{student.SL}</td>
+                          <td className="hidden sm:table-cell px-6 py-4 text-sm font-medium text-slate-400">{index + 1}</td>
                           <td className="hidden sm:table-cell px-6 py-4 text-sm font-mono text-slate-500">{student.ADNO}</td>
                           <td className="px-4 sm:px-6 py-4">
                             <div className="flex flex-col">
@@ -853,7 +853,7 @@ function Hajar() {
                                 {student["SHORT NAME"] || student["FULL NAME"] || student.name || "Unknown"}
                               </span>
                               <span className="text-[10px] sm:hidden font-mono text-slate-400 mt-0.5">
-                                AD: {student.ADNO} {student.SL > 0 && `• SL: ${student.SL}`}
+                                AD: {student.ADNO} • SL: {index + 1}
                               </span>
                             </div>
                           </td>
@@ -974,7 +974,7 @@ function Hajar() {
                         isPresent ? 'bg-emerald-500 text-white shadow-emerald-500/20' : 
                         'bg-rose-500 text-white shadow-rose-500/20'
                       }`}>
-                        {student.SL}
+                        {index + 1}
                       </div>
                     </div>
 
@@ -1028,7 +1028,7 @@ function Hajar() {
                       <span className="text-sm font-black text-rose-600">{s["SHORT NAME"] || s["FULL NAME"] || s.name || "Unknown"}</span>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className="text-[9px] font-bold text-rose-400 uppercase tracking-wider">AD: {s.ADNO}</span>
-                        {s.SL > 0 && <span className="text-[9px] font-bold text-rose-400 uppercase tracking-wider">• SL: {s.SL}</span>}
+                        <span className="text-[9px] font-bold text-rose-400 uppercase tracking-wider">• SL: {students.findIndex(st => st.ADNO === s.ADNO) + 1}</span>
                       </div>
                     </div>
                   ))}
