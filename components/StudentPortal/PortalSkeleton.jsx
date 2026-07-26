@@ -1,30 +1,33 @@
 import React from 'react';
+import Image from 'next/image';
 
 export default function PortalSkeleton({ hasBanner = false }) {
     return (
-        <div className="animate-pulse space-y-8 fade-in duration-500 w-full mt-2">
-            {/* Banner Skeleton */}
-            {hasBanner && (
-                <div className="h-32 md:h-48 bg-slate-200/70 rounded-[2rem] w-full mb-8"></div>
-            )}
-
-            {/* Title Skeleton */}
-            <div className="h-8 bg-slate-200/70 rounded-xl w-48 mb-6"></div>
-
-            {/* Metrics Skeleton */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                <div className="h-40 md:h-48 bg-slate-200/70 rounded-[2rem]"></div>
-                <div className="h-40 md:h-48 bg-slate-200/70 rounded-[2rem]"></div>
-                <div className="h-40 md:h-48 bg-slate-200/70 rounded-[2rem] hidden lg:block"></div>
-                <div className="h-40 md:h-48 bg-slate-200/70 rounded-[2rem] hidden lg:block"></div>
+        <div className="h-[70vh] flex flex-col items-center justify-center w-full">
+            <div className="relative w-32 h-32 flex items-center justify-center">
+                {/* Rotating Border */}
+                <div className="absolute inset-0 border-4 border-slate-50 border-t-blue-600 rounded-full animate-spin"></div>
+                
+                {/* Logo in Circle */}
+                <div className="w-24 h-24 bg-white rounded-full overflow-hidden flex items-center justify-center shadow-lg border border-slate-100 z-10 p-1">
+                    <Image 
+                        src="/cirlced-logo.png" 
+                        alt="Logo" 
+                        width={80} 
+                        height={80} 
+                        className="object-contain"
+                        priority
+                    />
+                </div>
             </div>
-
-            {/* List/Content Skeleton */}
-            <div className="space-y-4 pt-4 mt-8">
-                <div className="h-8 bg-slate-200/70 rounded-xl w-32 mb-4"></div>
-                <div className="h-20 bg-slate-200/70 rounded-2xl w-full"></div>
-                <div className="h-20 bg-slate-200/70 rounded-2xl w-full"></div>
-                <div className="h-20 bg-slate-200/70 rounded-2xl w-full"></div>
+            
+            <div className="mt-8 text-center space-y-2 animate-pulse">
+                <h2 className="text-sm font-black text-slate-800 uppercase tracking-[0.3em]">Verifying Access</h2>
+                <div className="flex justify-center gap-1">
+                    <div className="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
+                    <div className="w-1.5 h-1.5 bg-blue-600 rounded-full opacity-60"></div>
+                    <div className="w-1.5 h-1.5 bg-blue-600 rounded-full opacity-30"></div>
+                </div>
             </div>
         </div>
     );

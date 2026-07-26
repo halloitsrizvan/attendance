@@ -1,0 +1,1 @@
+std portal -header -logout btn
