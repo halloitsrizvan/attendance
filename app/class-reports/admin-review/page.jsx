@@ -38,6 +38,11 @@ export default function AdminReviewClassReports() {
     const [defaultMonth, setDefaultMonth] = useState('January');
     const [defaultYear, setDefaultYear] = useState(new Date().getFullYear());
     const [savingPeriod, setSavingPeriod] = useState(false);
+    
+    const [deadlineDate, setDeadlineDate] = useState('');
+    const [deadlineTime, setDeadlineTime] = useState('');
+    const [savingDeadline, setSavingDeadline] = useState(false);
+    
     const [selectedFilterMonth, setSelectedFilterMonth] = useState('All');
 
     useEffect(() => {
@@ -71,6 +76,12 @@ export default function AdminReviewClassReports() {
             } else {
                 setDefaultYear(new Date().getFullYear());
             }
+            if (res.data.programReportDeadlineDate) {
+                setDeadlineDate(res.data.programReportDeadlineDate);
+            }
+            if (res.data.programReportDeadlineTime) {
+                setDeadlineTime(res.data.programReportDeadlineTime);
+            }
         } catch (error) {
             console.error("Error loading default period settings:", error);
         }
@@ -87,6 +98,20 @@ export default function AdminReviewClassReports() {
             alert("Failed to save submission period settings.");
         } finally {
             setSavingPeriod(false);
+        }
+    };
+
+    const handleSaveDeadline = async () => {
+        setSavingDeadline(true);
+        try {
+            await axios.post('/api/settings', { key: 'programReportDeadlineDate', value: deadlineDate });
+            await axios.post('/api/settings', { key: 'programReportDeadlineTime', value: deadlineTime });
+            alert("Program report deadline successfully updated!");
+        } catch (error) {
+            console.error("Error saving deadline settings:", error);
+            alert("Failed to save deadline settings.");
+        } finally {
+            setSavingDeadline(false);
         }
     };
 
@@ -309,6 +334,36 @@ export default function AdminReviewClassReports() {
                         >
                             {savingPeriod ? <Loader2 size={10} className="animate-spin" /> : null}
                             Save Period
+                        </button>
+                    </div>
+                </div>
+
+                {/* Report Upload Deadline Settings Card */}
+                <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div>
+                        <h2 className="text-sm font-black text-slate-800 uppercase tracking-wider mb-1">Report Upload Deadline</h2>
+                        {/* <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sets the deadline date and time for students</p> */}
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 w-full md:w-auto">
+                        <input
+                            type="date"
+                            value={deadlineDate}
+                            onChange={(e) => setDeadlineDate(e.target.value)}
+                            className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-black text-slate-700 outline-none focus:border-indigo-500 transition-all w-full text-center"
+                        />
+                        <input
+                            type="time"
+                            value={deadlineTime}
+                            onChange={(e) => setDeadlineTime(e.target.value)}
+                            className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-black text-slate-700 outline-none focus:border-indigo-500 transition-all w-full text-center"
+                        />
+                        <button
+                            onClick={handleSaveDeadline}
+                            disabled={savingDeadline}
+                            className="bg-[#0F172A] hover:bg-slate-800 text-white rounded-xl px-4 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1 w-full md:w-auto whitespace-nowrap col-span-2 md:col-span-1"
+                        >
+                            {savingDeadline ? <Loader2 size={10} className="animate-spin" /> : null}
+                            Save Deadline
                         </button>
                     </div>
                 </div>

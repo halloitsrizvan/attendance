@@ -22,6 +22,35 @@ export default function BestClassPage() {
     const [editForm, setEditForm] = useState({ category: '', title: '', description: '', date: '', poster: '', gallery: [] });
     const [uploading, setUploading] = useState(false);
     const [uploadingGallery, setUploadingGallery] = useState(false);
+    
+    // Deadline state
+    const [deadlineDate, setDeadlineDate] = useState('');
+    const [deadlineTime, setDeadlineTime] = useState('');
+
+    useEffect(() => {
+        const fetchDeadline = async () => {
+            try {
+                const res = await axios.get('/api/settings');
+                if (res.data.programReportDeadlineDate) {
+                    setDeadlineDate(res.data.programReportDeadlineDate);
+                }
+                if (res.data.programReportDeadlineTime) {
+                    setDeadlineTime(res.data.programReportDeadlineTime);
+                }
+            } catch (error) {
+                console.error("Error fetching deadline:", error);
+            }
+        };
+        fetchDeadline();
+    }, []);
+
+    const isDeadlinePassed = () => {
+        if (!deadlineDate) return false;
+        const now = new Date();
+        const deadlineStr = deadlineTime ? `${deadlineDate}T${deadlineTime}` : `${deadlineDate}T23:59:59`;
+        const deadline = new Date(deadlineStr);
+        return now > deadline;
+    };
 
     const getMinMaxDatesForEdit = () => {
         if (!editingReportId) return { min: '', max: '' };
@@ -300,7 +329,13 @@ export default function BestClassPage() {
                     </p>
                 </div>
                 <button
-                    onClick={() => setIsSubmitModalOpen(true)}
+                    onClick={() => {
+                        if (isDeadlinePassed()) {
+                            alert("Timeout: The deadline for submitting programs has passed.");
+                        } else {
+                            setIsSubmitModalOpen(true);
+                        }
+                    }}
                     className="bg-blue-600 text-white px-6 py-4 rounded-2xl flex items-center gap-2 shadow-xl shadow-blue-200 hover:bg-blue-700 active:scale-95 transition-all text-xs font-black uppercase tracking-widest"
                 >
                     <PlusCircle size={18} />
