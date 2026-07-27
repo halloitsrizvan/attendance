@@ -303,68 +303,63 @@ export default function AdminReviewClassReports() {
                     </div>
                 </div>
 
-                {/* Default Submission Period Settings Card */}
-                <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div>
-                        <h2 className="text-sm font-black text-slate-800 uppercase tracking-wider mb-1">Active Submission Period</h2>
-                        {/* <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sets the default submission month & year for student reports</p> */}
+                {/* Settings Bar */}
+                <div className="bg-white rounded-2xl p-3 sm:p-4 border border-slate-200 shadow-sm flex flex-col xl:flex-row gap-4 items-center justify-between">
+                    
+                    {/* Default Period */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full xl:w-auto bg-slate-50/50 p-2 sm:p-2.5 rounded-xl border border-slate-100">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 whitespace-nowrap">Active Period:</span>
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <select
+                                value={defaultMonth}
+                                onChange={(e) => setDefaultMonth(e.target.value)}
+                                className="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all flex-1 sm:w-28 text-center"
+                            >
+                                {MONTHS_LIST.map(m => (
+                                    <option key={m} value={m}>{m}</option>
+                                ))}
+                            </select>
+                            <input
+                                type="number"
+                                value={defaultYear}
+                                onChange={(e) => setDefaultYear(parseInt(e.target.value) || new Date().getFullYear())}
+                                className="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all w-20 text-center"
+                                min="2020" max="2050"
+                            />
+                            <button
+                                onClick={handleSaveDefaultPeriod}
+                                disabled={savingPeriod}
+                                className="bg-slate-800 hover:bg-slate-900 text-white rounded-lg px-3 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all disabled:opacity-50 flex items-center justify-center gap-1 shrink-0"
+                            >
+                                {savingPeriod ? <Loader2 size={12} className="animate-spin" /> : "Save"}
+                            </button>
+                        </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 w-full md:w-auto">
-                        <select
-                            value={defaultMonth}
-                            onChange={(e) => setDefaultMonth(e.target.value)}
-                            className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-black text-slate-700 outline-none focus:border-indigo-500 transition-all cursor-pointer w-full text-center"
-                        >
-                            {MONTHS_LIST.map(m => (
-                                <option key={m} value={m}>{m}</option>
-                            ))}
-                        </select>
-                        <input
-                            type="number"
-                            value={defaultYear}
-                            onChange={(e) => setDefaultYear(parseInt(e.target.value) || new Date().getFullYear())}
-                            className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-black text-slate-700 outline-none focus:border-indigo-500 transition-all w-full text-center"
-                            min="2020"
-                            max="2050"
-                        />
-                        <button
-                            onClick={handleSaveDefaultPeriod}
-                            disabled={savingPeriod}
-                            className="bg-[#0F172A] hover:bg-slate-800 text-white rounded-xl px-4 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1 w-full whitespace-nowrap"
-                        >
-                            {savingPeriod ? <Loader2 size={10} className="animate-spin" /> : null}
-                            Save Period
-                        </button>
-                    </div>
-                </div>
 
-                {/* Report Upload Deadline Settings Card */}
-                <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div>
-                        <h2 className="text-sm font-black text-slate-800 uppercase tracking-wider mb-1">Report Upload Deadline</h2>
-                        {/* <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sets the deadline date and time for students</p> */}
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 w-full md:w-auto">
-                        <input
-                            type="date"
-                            value={deadlineDate}
-                            onChange={(e) => setDeadlineDate(e.target.value)}
-                            className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-black text-slate-700 outline-none focus:border-indigo-500 transition-all w-full text-center"
-                        />
-                        <input
-                            type="time"
-                            value={deadlineTime}
-                            onChange={(e) => setDeadlineTime(e.target.value)}
-                            className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-black text-slate-700 outline-none focus:border-indigo-500 transition-all w-full text-center"
-                        />
-                        <button
-                            onClick={handleSaveDeadline}
-                            disabled={savingDeadline}
-                            className="bg-[#0F172A] hover:bg-slate-800 text-white rounded-xl px-4 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1 w-full md:w-auto whitespace-nowrap col-span-2 md:col-span-1"
-                        >
-                            {savingDeadline ? <Loader2 size={10} className="animate-spin" /> : null}
-                            Save Deadline
-                        </button>
+                    {/* Deadline */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full xl:w-auto bg-slate-50/50 p-2 sm:p-2.5 rounded-xl border border-slate-100">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 whitespace-nowrap">Upload Deadline:</span>
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <input
+                                type="date"
+                                value={deadlineDate}
+                                onChange={(e) => setDeadlineDate(e.target.value)}
+                                className="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all flex-1 sm:w-36 text-center"
+                            />
+                            <input
+                                type="time"
+                                value={deadlineTime}
+                                onChange={(e) => setDeadlineTime(e.target.value)}
+                                className="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all flex-1 sm:w-28 text-center"
+                            />
+                            <button
+                                onClick={handleSaveDeadline}
+                                disabled={savingDeadline}
+                                className="bg-slate-800 hover:bg-slate-900 text-white rounded-lg px-3 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all disabled:opacity-50 flex items-center justify-center gap-1 shrink-0"
+                            >
+                                {savingDeadline ? <Loader2 size={12} className="animate-spin" /> : "Save"}
+                            </button>
+                        </div>
                     </div>
                 </div>
 
