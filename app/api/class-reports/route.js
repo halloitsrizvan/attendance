@@ -80,17 +80,31 @@ export async function POST(req) {
             return NextResponse.json({ error: 'This report has already been reviewed by the admin and cannot be modified.' }, { status: 403 });
         }
 
-        // Validate Tier 1 limit (maximum 10 per month) - only check if we are submitting new Tier 1 programs
-        const incomingTier1Count = programs.filter(p => p.tier === 'Tier 1').length;
-        if (incomingTier1Count > 0) {
+        // Calculate how many NEW Tier 1 programs are being added
+        let newTier1Count = 0;
+        programs.forEach(p => {
+            if (p.tier === 'Tier 1') {
+                if (existingReport && p._id) {
+                    const existingProg = existingReport.programs.find(ep => ep._id.toString() === p._id);
+                    if (!existingProg || existingProg.tier !== 'Tier 1') {
+                        newTier1Count++;
+                    }
+                } else {
+                    newTier1Count++;
+                }
+            }
+        });
+
+        // Validate Tier 1 limit (maximum 10 per month)
+        if (newTier1Count > 0) {
             const otherReports = await ClassReport.find({ classNumber: cNum, month, year });
             const existingTier1Count = otherReports.reduce((sum, r) => {
                 const count = (r.programs || []).filter(p => p.tier === 'Tier 1' && !p.rejected).length;
                 return sum + count;
             }, 0);
 
-            if (existingTier1Count + incomingTier1Count > 10) {
-                return NextResponse.json({ error: `Tier 1 programs limit exceeded. You already have ${existingTier1Count} Tier 1 program(s) and cannot submit ${incomingTier1Count} more.` }, { status: 400 });
+            if (existingTier1Count + newTier1Count > 10) {
+                return NextResponse.json({ error: `Tier 1 programs limit exceeded. You already have ${existingTier1Count} Tier 1 program(s) and cannot add ${newTier1Count} more.` }, { status: 400 });
             }
         }
 
@@ -98,14 +112,25 @@ export async function POST(req) {
         const latestZehnuth = await calculateZehnuthPoints(cNum, month, year);
 
         if (existingReport) {
-            existingReport.programs.push(...programs);
+            programs.forEach(incomingProg => {
+                if (incomingProg._id) {
+                    const existingProg = existingReport.programs.id(incomingProg._id);
+                    if (existingProg) {
+                        existingProg.set(incomingProg);
+                    } else {
+                        existingReport.programs.push(incomingProg);
+                    }
+                } else {
+                    existingReport.programs.push(incomingProg);
+                }
+            });
             if (submitterType === 'student' && existingReport.classTeacherApproved) {
                 existingReport.classTeacherApproved = false;
             }
             existingReport.originalZehnuthPoints = latestZehnuth.original;
             existingReport.zehnuthPoints = latestZehnuth.calculated;
             await existingReport.save();
-            return NextResponse.json({ message: 'Programs added to existing report successfully', report: existingReport }, { status: 200 });
+            return NextResponse.json({ message: 'Programs added/updated in existing report successfully', report: existingReport }, { status: 200 });
         } else {
             const newReport = new ClassReport({
                 teacherId: teacherId || undefined,

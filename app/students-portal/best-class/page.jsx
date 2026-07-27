@@ -395,6 +395,15 @@ export default function BestClassPage() {
 
                                         {/* Badges */}
                                         <div className="flex flex-wrap items-center gap-2 mb-3">
+                                            {/* {program.tier && (
+                                                <span className={`text-[9px] font-black px-2.5 py-1 rounded uppercase tracking-widest ${
+                                                    program.tier === 'Tier 1' 
+                                                    ? 'bg-blue-100 border border-blue-200 text-blue-800 shadow-sm' 
+                                                    : 'bg-slate-100 border border-slate-200 text-slate-600 shadow-sm'
+                                                }`}>
+                                                    {program.tier}
+                                                </span>
+                                            )} */}
                                             {program.isDraft && (
                                                 <span className="text-[9px] font-black bg-rose-100 border border-rose-200 text-rose-700 px-2.5 py-1 rounded uppercase tracking-widest animate-pulse">
                                                     DRAFT
@@ -426,7 +435,7 @@ export default function BestClassPage() {
                                             {program.tier && (
                                                 <div className="flex justify-between border-b border-slate-50 pb-1">
                                                     <span className="text-slate-400 font-bold uppercase tracking-tight text-[9px]">Tier</span>
-                                                    <span className="font-extrabold text-blue-650 uppercase text-[9px] bg-blue-50 px-2 py-0.5 rounded">{program.tier}</span>
+                                                    <span className="font-extrabold text-blue-700 uppercase text-[9px] bg-blue-50 px-2 py-0.5 rounded">{program.tier}</span>
                                                 </div>
                                             )}
                                             {program.targetAudience && (

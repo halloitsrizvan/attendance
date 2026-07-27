@@ -89,7 +89,7 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
             if (!classNumber && classNumber !== 0) return;
             try {
                 const res = await axios.get(`/api/class-reports?classNumber=${classNumber}`);
-                const thisMonthReports = (res.data || []).filter(r => r.month === month && r.year === Number(year));
+                const thisMonthReports = (res.data || []).filter(r => r.month === month && Number(r.year) === Number(year));
                 const count = thisMonthReports.reduce((sum, r) => {
                     return sum + (r.programs || []).filter(p => p.tier === 'Tier 1' && !p.rejected).length;
                 }, 0);
@@ -107,7 +107,7 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
             if (classNumber || classNumber === 0) {
                 try {
                     const res = await axios.get(`/api/class-reports?classNumber=${classNumber}`);
-                    const thisMonthReports = (res.data || []).filter(r => r.month === month && r.year === Number(year));
+                    const thisMonthReports = (res.data || []).filter(r => r.month === month && Number(r.year) === Number(year));
                     
                     let draftedPrograms = [];
                     thisMonthReports.forEach(r => {
@@ -273,7 +273,7 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
         if (tier1CountInForm > 0) {
             try {
                 const existingRes = await axios.get(`/api/class-reports?classNumber=${classNumber}`);
-                const thisMonthReports = (existingRes.data || []).filter(r => r.month === month && r.year === Number(year));
+                const thisMonthReports = (existingRes.data || []).filter(r => r.month === month && Number(r.year) === Number(year));
                 const existingTier1Count = thisMonthReports.reduce((sum, r) => {
                     const count = (r.programs || []).filter(p => p.tier === 'Tier 1' && !p.rejected).length;
                     return sum + count;
@@ -331,7 +331,8 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
             }
         } catch (error) {
             console.error("Error submitting report:", error);
-            alert("Failed to submit report. Please try again.");
+            const errMsg = error.response?.data?.error || "Failed to submit report. Please try again.";
+            alert(errMsg);
         } finally {
             setSubmitting(false);
         }
@@ -740,7 +741,8 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
                                 }
                             } catch (error) {
                                 console.error("Error saving draft:", error);
-                                alert("Failed to save draft.");
+                                const errMsg = error.response?.data?.error || "Failed to save draft.";
+                                alert(errMsg);
                             } finally {
                                 setSubmitting(false);
                             }
