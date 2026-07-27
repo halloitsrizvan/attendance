@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header/Header';
 import axios from 'axios';
-import { Trophy, CheckCircle2, XCircle, Loader2, User, Activity, Star, AlertTriangle, Clock, ChevronRight } from 'lucide-react';
+import { Trophy, CheckCircle2, XCircle, Loader2, User, Activity, Star, AlertTriangle, Clock, ChevronRight, Search } from 'lucide-react';
 
 const ADMIN_EMAIL = 'krehmankoolivayal13889@gmail.com';
 
@@ -246,6 +246,36 @@ export default function ZehnuthRequests() {
     const [processingId, setProcessingId] = useState(null);
     const [selectedRequest, setSelectedRequest] = useState(null);
 
+    // Search state
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
+    
+    // Pagination state
+    const [displayLimit, setDisplayLimit] = useState(50);
+
+    useEffect(() => {
+        setDisplayLimit(50);
+    }, [searchQuery]);
+
+    // Derived unique students for suggestions from current requests
+    const uniqueStudentsMap = new Map();
+    requests.forEach(r => {
+        const name = r.studentId?.["SHORT NAME"] || r.studentId?.["FULL NAME"];
+        const classNum = r.studentId?.CLASS;
+        if (name && !uniqueStudentsMap.has(name)) {
+            uniqueStudentsMap.set(name, { name, classNum });
+        }
+    });
+    const uniqueStudents = Array.from(uniqueStudentsMap.values());
+    const suggestions = uniqueStudents.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    // Filtered requests based on search query
+    const filteredRequests = requests.filter(r => {
+        if (!searchQuery) return true;
+        const name = r.studentId?.["SHORT NAME"] || r.studentId?.["FULL NAME"];
+        return name?.toLowerCase().includes(searchQuery.toLowerCase());
+    });
+
     useEffect(() => {
         const storedTeacher = localStorage.getItem('teacher');
         if (storedTeacher) {
@@ -389,9 +419,55 @@ export default function ZehnuthRequests() {
                     </div>
                 </div>
 
+                <div className="mb-6 relative">
+                    <div className="relative flex items-center">
+                        <div className="absolute left-4 text-slate-400">
+                            <Search size={18} />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Search by student name..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onFocus={() => setIsSearchFocused(true)}
+                            onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+                            className="w-full bg-white border border-slate-200 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-800 focus:border-blue-500 outline-none transition-all shadow-sm"
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                className="absolute right-4 text-slate-400 hover:text-slate-600"
+                            >
+                                <XCircle size={18} />
+                            </button>
+                        )}
+                    </div>
+                    
+                    {/* Suggestions Dropdown */}
+                    {isSearchFocused && searchQuery && suggestions.length > 0 && (
+                        <div className="absolute z-10 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2">
+                            {suggestions.map(s => (
+                                <button
+                                    key={s.name}
+                                    onClick={() => setSearchQuery(s.name)}
+                                    className="w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0 text-sm font-bold text-slate-700 flex items-center justify-between"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <User size={14} className="text-blue-500" />
+                                        {s.name}
+                                    </div>
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-0.5 rounded">
+                                        Class {s.classNum || 'N/A'}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
                 <div className="space-y-3">
-                    {requests.length > 0 ? (
-                        requests.map((request) => {
+                    {filteredRequests.length > 0 ? (
+                        filteredRequests.slice(0, displayLimit).map((request) => {
                             const categoryObj = CATEGORIES.find(c => c.id === request.category);
                             return (
                                 <button
@@ -436,11 +512,26 @@ export default function ZehnuthRequests() {
                             <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
                                 <CheckCircle2 size={40} />
                             </div>
-                            <h2 className="text-lg font-black text-slate-800 uppercase italic mb-1">Inbox Clear!</h2>
-                            <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">No pending achievement requests.</p>
+                            <h2 className="text-lg font-black text-slate-800 uppercase italic mb-1">
+                                {searchQuery && requests.length > 0 ? "No matches found" : "Inbox Clear!"}
+                            </h2>
+                            <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">
+                                {searchQuery && requests.length > 0 ? "No pending requests found for this student." : "No pending achievement requests."}
+                            </p>
                         </div>
                     )}
                 </div>
+
+                {filteredRequests.length > displayLimit && (
+                    <div className="mt-8 flex justify-center">
+                        <button
+                            onClick={() => setDisplayLimit(prev => prev + 50)}
+                            className="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-50 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm active:scale-95"
+                        >
+                            Load More
+                        </button>
+                    </div>
+                )}
             </main>
         </div>
     );
