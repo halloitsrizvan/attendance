@@ -52,7 +52,7 @@ export default function AuthGuard({ children }) {
 
             // 4. Role-based access for leave-form
             const isLeaveForm = pathname === '/leave-form' || pathname.startsWith('/leave-form/');
-            const allowedLeaveRoles = ["class_teacher", "super_admin", "HOD", "HOS", "Principal"];
+            const allowedLeaveRoles = ["class_teacher", "super_admin", "HOD", "HOS", "Principal", "medical_teacher"];
             if (token && isLeaveForm && !teacherRoles.some(r => allowedLeaveRoles.includes(r))) {
                 router.replace('/');
                 return;

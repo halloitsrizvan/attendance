@@ -167,6 +167,7 @@ const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCust
   const classTeacher_reasons_for_s5_ss_d = ['Medical (Home)', 'Room', 'Hospital', 'Hospital bystander', 'Urgent (Death)', 'OGEA', 'Custom'];
   const teacher_reasons_for_hos_hod = ['Medical (Home)', 'Room', 'Marriage', 'OGEA', 'Official', 'Custom'];
   const super_admin_reasons = ['Medical (Home)', 'Room', 'Marriage', 'OGEA', 'Custom'];
+  const medical_teacher_reasons = ['Hospital', 'Hospital bystander'];
   if (leaveType === "leave") {
     const roles = Array.isArray(teacher?.role) ? teacher.role : (teacher?.role ? [teacher.role] : []);
     const hasRole = (r) => roles.includes(r);
@@ -174,6 +175,10 @@ const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCust
 
     if (hasRole("super_admin")) {
       matchedReasons.push(...super_admin_reasons);
+    }
+
+    if (hasRole("medical_teacher")) {
+      matchedReasons.push(...medical_teacher_reasons);
     }
 
     if (hasRole("class_teacher") || teacher?.classNum) {
@@ -450,7 +455,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
     if (!teacher) return;
 
     const filterByRole = (rawStudents) => {
-      if (teacher?.role?.includes("super_admin")) return rawStudents;
+      if (teacher?.role?.includes("super_admin") || teacher?.role?.includes("medical_teacher")) return rawStudents;
 
       const allowedClasses = [];
       if (teacher?.role?.includes("HOD")) allowedClasses.push(8, 9, 10);

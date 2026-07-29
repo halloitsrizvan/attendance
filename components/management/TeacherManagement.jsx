@@ -397,13 +397,14 @@ const TeacherManagement = () => {
                   <label className="flex items-center gap-2 text-[10px] font-black text-slate-600 uppercase tracking-widest px-1 mb-3">
                     <Shield size={14} className="text-rose-500" /> Professional Roles (Multiple possible)
                   </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-slate-50/50 p-4 rounded-3xl border-2 border-slate-50">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50/50 p-4 rounded-3xl border-2 border-slate-50">
                     {[
                       { id: 'teacher', label: 'Teacher' },
                       { id: 'class_teacher', label: 'Class Teacher' },
                       { id: 'HOD', label: 'HOD' },
                       { id: 'HOS', label: 'HOS' },
                       { id: 'Principal', label: 'Principal' },
+                      { id: 'medical_teacher', label: 'Medical Teacher' },
                       { id: 'zehnuth_admin', label: 'Zehnuth Admin' },
                       { id: 'best_class_admin', label: 'Best Class Admin' },
                       { id: 'CEPApproval', label: 'CEP Approval' },
@@ -424,7 +425,7 @@ const TeacherManagement = () => {
                               setFormData({ ...formData, role: [...formData.role, roleObj.id] });
                             }
                           }}
-                          className={`flex items-center justify-center p-3 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all border-2 ${
+                          className={`flex items-center justify-center p-2 rounded-xl text-[10px] font-semibold uppercase tracking-wider transition-all border-2 ${
                             isSelected 
                               ? 'bg-rose-500 border-rose-500 text-white shadow-md shadow-rose-500/20' 
                               : 'bg-white border-slate-100 text-slate-400 hover:border-rose-100'
