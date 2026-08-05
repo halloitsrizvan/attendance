@@ -326,30 +326,31 @@ function AdvancedReport() {
 
     const minus = multipliers['Minus']?.active ? (student.totalManualMinus || 0) : 0;
     const totalAbsence = leave_MAN + punishment_MAN + punishment_PJQ + minus;
-    const overBy = Math.max(0, totalAbsence - permitted);
-
+    const netAbsence = totalAbsence - documentedLeaveMinus;
+    // NEW FORMULA
+    const overBy = Math.max(0, netAbsence - permitted);
+    
     return {
-      sl: student.SL,
-      adno: student.ad,
-      name: student.nameOfStd,
-      class: student.class,
-      permitted,
-      leave: leave_MAN,
-      absence: absence_PJ,
-      punishment_MAN,
-      punishment_PJQ,
-      minus,
-      totalAbsence,
-      medicalLeave: documentedMedicalLeaveMinus,
-      ogeaLeave: documentedOgeaLeaveMinus,
-      documentedLeave: documentedLeaveMinus,
-      netAbsence: totalAbsence - documentedLeaveMinus,
-      zehnuthPoints: student.totalZehnuthPoints || 0,
-      overBy,
-      srfAmount: overBy * 100
-    };
-  };
-
+  sl: student.SL,
+  adno: student.ad,
+  name: student.nameOfStd,
+  class: student.class,
+  permitted,
+  leave: leave_MAN,
+  absence: absence_PJ,
+  punishment_MAN,
+  punishment_PJQ,
+  minus,
+  totalAbsence,
+  medicalLeave: documentedMedicalLeaveMinus,
+  ogeaLeave: documentedOgeaLeaveMinus,
+  documentedLeave: documentedLeaveMinus,
+  netAbsence,
+  zehnuthPoints: student.totalZehnuthPoints || 0,
+  overBy,
+  srfAmount: overBy * 100
+};
+}; 
   // Re-calculate data if multipliers change even without fetching
   const reportData = useMemo(() => {
     let mappedData = data.map(calculateStudentRow);
