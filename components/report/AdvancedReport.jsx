@@ -74,10 +74,8 @@ function AdvancedReport() {
 
   // Set default dates to today on mount
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
-    setFromDate(today);
-    setToDate(today);
-  }, []);
+  setToDate(new Date().toISOString().split("T")[0]);
+}, []);
 
   useEffect(() => {
     const fetchTemplates = async () => {
