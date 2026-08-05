@@ -17,7 +17,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 function AdvancedReport() {
-  const [fromDate, setFromDate] = useState('');
+  const [fromDate, setFromDate] = useState('2026-04-01');
   const [toDate, setToDate] = useState('');
   const [classNumber, setClassNumber] = useState('');
 
