@@ -3,6 +3,7 @@ import Leave from "@/models/leaveModel";
 import Student from "@/models/studentsModel";
 import Teacher from "@/models/teachersModel";
 import { NextResponse } from "next/server";
+import { getActiveAcademicYearId } from "@/lib/getActiveAcademicYear";
 
 export async function GET(req) {
   await dbConnect();
@@ -40,6 +41,10 @@ export async function POST(req) {
   await dbConnect();
   try {
     const body = await req.json();
+    const activeYearId = await getActiveAcademicYearId();
+    if (!body.academicYearId && activeYearId) {
+      body.academicYearId = activeYearId;
+    }
     const newLeave = await Leave.create(body);
     return NextResponse.json(newLeave);
   } catch (error) {

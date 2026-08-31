@@ -30,6 +30,10 @@ const complaintSchema = new mongoose.Schema({
     },
     adminRemark: {
         type: String
+    },
+    academicYearId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'AcademicYear'
     }
 }, { timestamps: true });
 

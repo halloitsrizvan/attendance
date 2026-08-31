@@ -19,6 +19,10 @@ const offDaySchema = new mongoose.Schema({
     },
     description: {
         type: String
+    },
+    academicYearId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'AcademicYear'
     }
 }, { timestamps: true });
 

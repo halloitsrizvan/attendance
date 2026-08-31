@@ -2,7 +2,7 @@ import dbConnect from "@/lib/mongodb";
 import Attendance from "@/models/attendanceModel";
 import Student from "@/models/studentsModel";
 import Teacher from "@/models/teachersModel";
-import { NextResponse } from "next/server";
+import { getActiveAcademicYearId } from "@/lib/getActiveAcademicYear";
 
 export async function GET(req) {
   await dbConnect();
@@ -57,7 +57,20 @@ export async function GET(req) {
 export async function POST(req) {
   await dbConnect();
   try {
-    const body = await req.json();
+    let body = await req.json();
+    const activeYearId = await getActiveAcademicYearId();
+
+    if (Array.isArray(body)) {
+      body = body.map(item => ({
+        ...item,
+        academicYearId: item.academicYearId || activeYearId
+      }));
+    } else if (body && typeof body === 'object') {
+      if (!body.academicYearId && activeYearId) {
+        body.academicYearId = activeYearId;
+      }
+    }
+
     const attendance = await Attendance.create(body);
     return NextResponse.json(attendance);
   } catch (error) {

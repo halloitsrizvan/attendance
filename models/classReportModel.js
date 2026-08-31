@@ -147,6 +147,10 @@ const classReportSchema = new Schema({
     classTeacherApproved: {
         type: Boolean,
         default: false
+    },
+    academicYearId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'AcademicYear'
     }
 }, { timestamps: true });
 

@@ -40,7 +40,7 @@ export async function POST(req) {
         }
 
         // Get active academic year
-        const activeYear = await AcademicYear.findOne({ isCurrent: true });
+        const activeYear = await AcademicYear.findOne({ $or: [{ isActive: true }, { isCurrent: true }] });
 
         const newActivity = new MentorActivity({
             mentorId,

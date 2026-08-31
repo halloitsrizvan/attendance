@@ -3,6 +3,7 @@ import Complaint from "@/models/complaintModel";
 import Attendance from "@/models/attendanceModel";
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
+import { getActiveAcademicYearId } from "@/lib/getActiveAcademicYear";
 
 export async function GET(req) {
     await dbConnect();
@@ -47,6 +48,10 @@ export async function POST(req) {
     await dbConnect();
     try {
         const body = await req.json();
+        const activeYearId = await getActiveAcademicYearId();
+        if (!body.academicYearId && activeYearId) {
+            body.academicYearId = activeYearId;
+        }
         const complaint = await Complaint.create(body);
         return NextResponse.json(complaint);
     } catch (error) {

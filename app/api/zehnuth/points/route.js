@@ -4,11 +4,16 @@ import Student from "@/models/studentsModel";
 import Teacher from "@/models/teachersModel";
 import MentorMentee from "@/models/mentorMenteeModel";
 import { NextResponse } from "next/server";
+import { getActiveAcademicYearId } from "@/lib/getActiveAcademicYear";
 
 export async function POST(req) {
     await dbConnect();
     try {
         const body = await req.json();
+        const activeYearId = await getActiveAcademicYearId();
+        if (!body.academicYearId && activeYearId) {
+            body.academicYearId = activeYearId;
+        }
 
         // Check for duplicate proof image submissions
         const { imageUrl } = body;

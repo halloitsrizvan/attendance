@@ -4,6 +4,7 @@ import ClassReport from '@/models/classReportModel';
 import Teacher from '@/models/teachersModel';
 import Student from '@/models/studentsModel';
 import Points from '@/models/pointsModel';
+import { getActiveAcademicYearId } from '@/lib/getActiveAcademicYear';
 
 const MONTHS = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -110,6 +111,7 @@ export async function POST(req) {
 
         // Calculate latest month Zehnuth Points
         const latestZehnuth = await calculateZehnuthPoints(cNum, month, year);
+        const activeYearId = await getActiveAcademicYearId();
 
         if (existingReport) {
             programs.forEach(incomingProg => {
@@ -129,6 +131,9 @@ export async function POST(req) {
             }
             existingReport.originalZehnuthPoints = latestZehnuth.original;
             existingReport.zehnuthPoints = latestZehnuth.calculated;
+            if (!existingReport.academicYearId && activeYearId) {
+                existingReport.academicYearId = activeYearId;
+            }
             await existingReport.save();
             return NextResponse.json({ message: 'Programs added/updated in existing report successfully', report: existingReport }, { status: 200 });
         } else {
@@ -142,7 +147,8 @@ export async function POST(req) {
                 section,
                 programs,
                 originalZehnuthPoints: latestZehnuth.original,
-                zehnuthPoints: latestZehnuth.calculated
+                zehnuthPoints: latestZehnuth.calculated,
+                academicYearId: body.academicYearId || activeYearId || undefined
             });
 
             await newReport.save();

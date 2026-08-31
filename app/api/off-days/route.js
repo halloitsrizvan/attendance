@@ -1,6 +1,7 @@
 import dbConnect from "@/lib/mongodb";
 import OffDay from "@/models/offDayModel";
 import { NextResponse } from "next/server";
+import { getActiveAcademicYearId } from "@/lib/getActiveAcademicYear";
 
 export async function GET(req) {
     await dbConnect();
@@ -16,6 +17,10 @@ export async function POST(req) {
     await dbConnect();
     try {
         const body = await req.json();
+        const activeYearId = await getActiveAcademicYearId();
+        if (!body.academicYearId && activeYearId) {
+            body.academicYearId = activeYearId;
+        }
         const offDay = await OffDay.create(body);
         return NextResponse.json(offDay);
     } catch (error) {
