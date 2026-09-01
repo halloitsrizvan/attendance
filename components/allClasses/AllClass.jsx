@@ -449,10 +449,19 @@ function AllClass({ edit, id }) {
                       )}
 
                       {alreadyTaken && !edit && (
-                        <div className="mt-2 w-full">
-                          <div className="bg-emerald-50 py-0.5 rounded-full border border-emerald-100 flex items-center justify-center gap-1">
+                        <div className="mt-2 w-full flex flex-col items-center gap-0.5">
+                          {/* <div className="bg-emerald-50 py-0.5 px-2 rounded-full border border-emerald-100 flex items-center justify-center gap-1">
                             <span className="text-[7px] font-black text-emerald-600 uppercase tracking-widest">Completed</span>
-                          </div>
+                          </div> */}
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate.push(`/edit-attendance/${cls.class}`);
+                            }}
+                            className="text-[11px] font-extrabold text-black hover:text-sky-800 hover:underline cursor-pointer transition-colors"
+                          >
+                            Edit?
+                          </span>
                         </div>
                       )}
                     </div>
