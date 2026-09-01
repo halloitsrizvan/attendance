@@ -63,7 +63,7 @@ export async function GET(req) {
     if (rankStudentId) {
         try {
             const matchStage = { status: 'approved' };
-            if (activeYearId && searchParams.get('all') !== 'true') {
+            if (searchParams.get('session') === 'true' && searchParams.get('all') !== 'true' && activeYearId) {
                 matchStage.academicYearId = activeYearId;
             }
 
@@ -100,13 +100,13 @@ export async function GET(req) {
             query.activity = { $in: activities.split(',') };
         }
 
-        if (activeYearId && searchParams.get('all') !== 'true') {
+        if (searchParams.get('session') === 'true' && searchParams.get('all') !== 'true' && activeYearId) {
             query.academicYearId = activeYearId;
         }
 
         if (searchParams.get('leaderboard')) {
             const leaderboardMatch = { status: 'approved' };
-            if (activeYearId && searchParams.get('all') !== 'true') {
+            if (searchParams.get('session') === 'true' && searchParams.get('all') !== 'true' && activeYearId) {
                 leaderboardMatch.academicYearId = activeYearId;
             }
 
