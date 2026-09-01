@@ -14,6 +14,8 @@ export default function LeavePage() {
     const [student, setStudent] = useState(null);
     const [leaveData, setLeaveData] = useState([]);
     const [offDays, setOffDays] = useState([]);
+    const [academicYear, setAcademicYear] = useState('');
+    const [academicYearId, setAcademicYearId] = useState('');
     
     // Complaint Form State
     const [complaintLoading, setComplaintLoading] = useState(false);
@@ -53,8 +55,21 @@ export default function LeavePage() {
     };
 
     useEffect(() => {
-        fetchLeaveData();
+        const fetchSettings = async () => {
+            try {
+                const res = await axios.get(`${API_PORT}/settings`);
+                if (res.data.academicYear) setAcademicYear(res.data.academicYear);
+                if (res.data.academicYearId) setAcademicYearId(res.data.academicYearId);
+            } catch (err) {
+                console.error("Error fetching settings:", err);
+            }
+        };
+        fetchSettings();
     }, []);
+
+    useEffect(() => {
+        fetchLeaveData();
+    }, [academicYearId]);
 
     const fetchLeaveData = async () => {
         const token = localStorage.getItem('studentToken');
@@ -76,7 +91,17 @@ export default function LeavePage() {
                     axios.get(`${API_PORT}/off-days`)
                 ]);
 
-                if (results[0].status === 'fulfilled') setLeaveData(results[0].value.data || []);
+                if (results[0].status === 'fulfilled') {
+                    const rawLeaves = results[0].value.data || [];
+                    const filteredLeaves = rawLeaves.filter(item => {
+                        const itemYearId = item.academicYearId ? (typeof item.academicYearId === 'object' ? item.academicYearId._id : item.academicYearId) : null;
+                        if (academicYearId && (!itemYearId || String(itemYearId) !== String(academicYearId))) {
+                            return false;
+                        }
+                        return true;
+                    });
+                    setLeaveData(filteredLeaves);
+                }
                 if (results[1].status === 'fulfilled') setOffDays(results[1].value.data || []);
             }
         } catch (err) {
@@ -266,7 +291,14 @@ export default function LeavePage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
                 {/* Analytics */}
                 <div className="lg:col-span-1">
-                    <h2 className="text-2xl font-black text-slate-800 mb-6">My Analytics</h2>
+                    <div className="flex items-center gap-3 mb-6">
+                        <h2 className="text-2xl font-black text-slate-800">My Analytics</h2>
+                        {academicYear && (
+                            <span className="px-3 py-1 bg-blue-50 text-blue-600 border border-blue-200 text-xs font-black uppercase tracking-wider rounded-full shadow-sm">
+                                {academicYear}
+                            </span>
+                        )}
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                         <MetricCard 
                             title="Total leave count"
@@ -325,12 +357,16 @@ export default function LeavePage() {
                                                 {/* <span className="font-black text-slate-400 mr-1">RETURN:</span> */}
                                                 {item.returnedAt ? (
                                                     `${new Date(item.returnedAt).toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}, ${new Date(item.returnedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                                                ) : (
-                                                    item.toDate ? (
-                                                        `${new Date(item.toDate).toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}, ${formatTimeTo12h(item.toTime)}`
+                                                ) : (item.status === 'returned' || item.status === 'Late Returned') ? (
+                                                    item.updatedAt ? (
+                                                        `${new Date(item.updatedAt).toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}, ${new Date(item.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
                                                     ) : (
-                                                        <span className="text-amber-500 font-black">PENDING</span>
+                                                        <span className="text-emerald-600 font-bold">Returned</span>
                                                     )
+                                                ) : item.toDate ? (
+                                                    `${new Date(item.toDate).toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}, ${formatTimeTo12h(item.toTime)}`
+                                                ) : (
+                                                    <span className="text-amber-500 font-black">PENDING</span>
                                                 )}
                                             </div>
                                         </div>
@@ -405,8 +441,16 @@ export default function LeavePage() {
                                                     <span className="font-bold">
                                                         {item.toDate ? (
                                                             `${new Date(item.toDate).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, ${formatTimeTo12h(item.toTime) || '12:00 PM'}`
+                                                        ) : item.returnedAt ? (
+                                                            `${new Date(item.returnedAt).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, ${new Date(item.returnedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (Returned)`
+                                                        ) : (item.status === 'returned' || item.status === 'Late Returned') ? (
+                                                            item.updatedAt ? (
+                                                                `${new Date(item.updatedAt).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, ${new Date(item.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (Returned)`
+                                                            ) : (
+                                                                <span className="text-emerald-600 font-bold">Returned</span>
+                                                            )
                                                         ) : (
-                                                            <span className="text-amber-500 font-black">PENDING</span>
+                                                            <span className="text-amber-500 font-black">Open-ended</span>
                                                         )}
                                                     </span>
                                                 </div>
@@ -430,13 +474,19 @@ export default function LeavePage() {
                                             </div>
                                         </div>
                                     )}
-                                    {item.returnedAt && (
+                                    {(item.returnedAt || item.status === 'returned' || item.status === 'Late Returned') && (
                                         <div className="relative">
                                             <div className="absolute -left-[21px] top-1.5 w-3 h-3 rounded-full bg-slate-300 border-2 border-white"></div>
                                             <div className="flex items-start gap-4">
                                                 <span className="px-2 py-1 border border-slate-800 rounded-lg text-[10px] font-black w-20 text-center shrink-0 mt-0.5">Returned</span>
                                                 <div>
-                                                    <div className="text-[12px] font-bold text-slate-800">{new Date(item.returnedAt).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, {new Date(item.returnedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                                    <div className="text-[12px] font-bold text-slate-800">
+                                                        {item.returnedAt ? (
+                                                            `${new Date(item.returnedAt).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, ${new Date(item.returnedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                                                        ) : item.updatedAt ? (
+                                                            `${new Date(item.updatedAt).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, ${new Date(item.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                                                        ) : 'Returned'}
+                                                    </div>
                                                     <div className="text-[10px] font-semibold text-slate-500 mt-1">
                                                         USTHAD {item.markReturnedTeacher || item.teacherId?.name || item.teacher || 'Teacher'}
                                                     </div>

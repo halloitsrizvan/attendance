@@ -13,6 +13,8 @@ export default function AttendancePage() {
     const [loading, setLoading] = useState(true);
     const [student, setStudent] = useState(null);
     const [attendanceData, setAttendanceData] = useState([]);
+    const [academicYear, setAcademicYear] = useState('');
+    const [academicYearId, setAcademicYearId] = useState('');
 
     // Complaint Form State
     const [complaintLoading, setComplaintLoading] = useState(false);
@@ -46,8 +48,21 @@ export default function AttendancePage() {
     };
 
     useEffect(() => {
-        fetchAttendanceData();
+        const fetchSettings = async () => {
+            try {
+                const res = await axios.get(`${API_PORT}/settings`);
+                if (res.data.academicYear) setAcademicYear(res.data.academicYear);
+                if (res.data.academicYearId) setAcademicYearId(res.data.academicYearId);
+            } catch (err) {
+                console.error("Error fetching settings:", err);
+            }
+        };
+        fetchSettings();
     }, []);
+
+    useEffect(() => {
+        fetchAttendanceData();
+    }, [academicYearId]);
 
     const fetchAttendanceData = async () => {
         const token = localStorage.getItem('studentToken');
@@ -70,7 +85,15 @@ export default function AttendancePage() {
                     axios.get(`${API_PORT}/set-attendance?ad=${profileData.ADNO}`),
                     axios.get(`${API_PORT}/complaints?studentId=${sid}`)
                 ]);
-                setAttendanceData(attRes.data || []);
+                const rawAtt = attRes.data || [];
+                const filteredAtt = rawAtt.filter(item => {
+                    const itemYearId = item.academicYearId ? (typeof item.academicYearId === 'object' ? item.academicYearId._id : item.academicYearId) : null;
+                    if (academicYearId && (!itemYearId || String(itemYearId) !== String(academicYearId))) {
+                        return false;
+                    }
+                    return true;
+                });
+                setAttendanceData(filteredAtt);
                 setComplaints(complaintsRes.data || []);
             }
         } catch (err) {
@@ -201,7 +224,14 @@ export default function AttendancePage() {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-8">
                 {/* Analytics */}
                 <div className="lg:col-span-2">
-                    <h2 className="text-2xl font-black text-slate-800 mb-6">My Analytics</h2>
+                    <div className="flex items-center gap-3 mb-6">
+                        <h2 className="text-2xl font-black text-slate-800">My Analytics</h2>
+                        {academicYear && (
+                            <span className="px-3 py-1 bg-blue-50 text-blue-600 border border-blue-200 text-xs font-black uppercase tracking-wider rounded-full shadow-sm">
+                                {academicYear}
+                            </span>
+                        )}
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                         <MetricCard
                             title="Total Presents"

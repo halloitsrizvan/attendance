@@ -57,12 +57,18 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url);
     const studentId = searchParams.get('studentId');
     const mentorId = searchParams.get('mentorId');
+    const activeYearId = await getActiveAcademicYearId();
 
     const rankStudentId = searchParams.get('rankStudentId');
     if (rankStudentId) {
         try {
+            const matchStage = { status: 'approved' };
+            if (activeYearId && searchParams.get('all') !== 'true') {
+                matchStage.academicYearId = activeYearId;
+            }
+
             const rankings = await Points.aggregate([
-                { $match: { status: 'approved' } },
+                { $match: matchStage },
                 {
                     $group: {
                         _id: '$studentId',
@@ -94,9 +100,18 @@ export async function GET(req) {
             query.activity = { $in: activities.split(',') };
         }
 
+        if (activeYearId && searchParams.get('all') !== 'true') {
+            query.academicYearId = activeYearId;
+        }
+
         if (searchParams.get('leaderboard')) {
+            const leaderboardMatch = { status: 'approved' };
+            if (activeYearId && searchParams.get('all') !== 'true') {
+                leaderboardMatch.academicYearId = activeYearId;
+            }
+
             const leaderboard = await Points.aggregate([
-                { $match: { status: 'approved' } },
+                { $match: leaderboardMatch },
                 {
                     $group: {
                         _id: '$studentId',

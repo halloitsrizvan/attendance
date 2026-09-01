@@ -38,6 +38,11 @@ export async function GET(req) {
     if (period) query.period = Number(period);
     if (custom) query.custom = custom;
 
+    const activeYearId = await getActiveAcademicYearId();
+    if (activeYearId && searchParams.get('all') !== 'true') {
+      query.academicYearId = activeYearId;
+    }
+
     const all = searchParams.get('all') === 'true';
     let mongoQuery = Attendance.find(query)
       .populate('studentId')

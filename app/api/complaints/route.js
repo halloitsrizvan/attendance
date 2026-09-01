@@ -31,6 +31,11 @@ export async function GET(req) {
             }
         }
         
+        const activeYearId = await getActiveAcademicYearId();
+        if (activeYearId && searchParams.get('all') !== 'true') {
+            query.academicYearId = activeYearId;
+        }
+
         const complaints = await Complaint.find(query)
             .populate('studentId')
             .populate('attendanceId')

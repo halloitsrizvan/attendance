@@ -459,7 +459,7 @@ function AllClass({ edit, id }) {
                               navigate.push(`/edit-attendance/${cls.class}`);
                             }}
                             className="text-[11px] font-extrabold text-black hover:text-sky-800 hover:underline cursor-pointer transition-colors"
-                          >
+                          > 
                             Edit?
                           </span>
                         </div>
