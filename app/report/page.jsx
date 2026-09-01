@@ -1,9 +1,8 @@
 "use client";
 
-import React from 'react'
-import Header from '@/components/Header/Header'
-import dynamic from 'next/dynamic'
-const AdvancedReport = dynamic(() => import('@/components/report/AdvancedReport'), { ssr: false })
+import React from 'react';
+import Header from '@/components/Header/Header';
+import AdvancedReport from '@/components/report/AdvancedReport';
 
 export default function ReportPage() {
   return (

@@ -6,6 +6,7 @@ import Leave from "@/models/leaveModel";
 import ClassExcusedPass from "@/models/shortLeaveModel";
 import Points from "@/models/pointsModel";
 import { NextResponse } from "next/server";
+import { getActiveAcademicYearId } from "@/lib/getActiveAcademicYear";
 
 export async function GET(req) {
   await dbConnect();
@@ -31,24 +32,42 @@ export async function GET(req) {
     const students = await Student.find(studentQuery).sort({ SL: 1, ADNO: 1 });
     const studentIds = students.map(s => s._id);
 
-    // Fetch Attendance
-    const attendanceRecords = await Attendance.find({
+    const activeYearId = await getActiveAcademicYearId();
+
+    const attendanceQuery = {
       studentId: { $in: studentIds },
       attendanceDate: { $gte: startDate, $lte: endDate }
-    }).populate({ path: 'leaveId', strictPopulate: false }).sort({ attendanceDate: 1 });
+    };
+    if (activeYearId) {
+      attendanceQuery.academicYearId = activeYearId;
+    }
 
-    // Fetch Manual Minus
-    const minusRecords = await Minus.find({
+    const minusQuery = {
       studentId: { $in: studentIds },
       createdAt: { $gte: startDate, $lte: endDate }
-    });
+    };
+    if (activeYearId) {
+      minusQuery.academicYearId = activeYearId;
+    }
 
-    // Fetch Points
-    const pointsRecords = await Points.find({
+    const pointsQuery = {
       studentId: { $in: studentIds },
       createdAt: { $gte: startDate, $lte: endDate },
       status: 'approved'
-    });
+    };
+    if (activeYearId) {
+      pointsQuery.academicYearId = activeYearId;
+    }
+
+    // Fetch Attendance
+    const attendanceRecords = await Attendance.find(attendanceQuery)
+      .populate({ path: 'leaveId', strictPopulate: false }).sort({ attendanceDate: 1 });
+
+    // Fetch Manual Minus
+    const minusRecords = await Minus.find(minusQuery);
+
+    // Fetch Points
+    const pointsRecords = await Points.find(pointsQuery);
 
     const isWeekendRecord = (record) => {
       if (!record.attendanceDate) return false;

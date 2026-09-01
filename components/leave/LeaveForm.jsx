@@ -265,7 +265,7 @@ const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCust
   );
 };
 
-function LeaveForm({ initialStudents = null, initialLeaves = null }) {
+function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcademicYearId = '' }) {
   const [teacher, setTeacher] = useState(null);
   const [formMode, setFormMode] = useState('create'); // 'create', 'extend', 'add', 'schedule'
   const [activeLeave, setActiveLeave] = useState(null);
@@ -427,7 +427,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
   const fromTimeOptions = ['Morning', 'Evening', 'Now', 'Clock'];
   const toTimeOptions = ['Morning', 'Evening', 'Clock'];
   const [academicYear, setAcademicYear] = useState('');
-  const [academicYearId, setAcademicYearId] = useState('');
+  const [academicYearId, setAcademicYearId] = useState(initialAcademicYearId || '');
   const [startImmediately, setStartImmediately] = useState(false);
 
   useEffect(() => {
@@ -705,6 +705,12 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         const leaveStudentId = typeof leave.studentId === 'object' ? leave.studentId?._id : leave.studentId;
         const isMatch = String(leaveStudentId) === String(studentObj._id);
         const isApproved = leave.approved !== false;
+        
+        const leaveYearId = leave.academicYearId ? (typeof leave.academicYearId === 'object' ? leave.academicYearId._id : leave.academicYearId) : null;
+        if (academicYearId && (!leaveYearId || String(leaveYearId) !== String(academicYearId))) {
+          return false;
+        }
+
         return isMatch && isApproved;
       });
 
@@ -774,6 +780,12 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
         const leaveStudentId = typeof leave.studentId === 'object' ? leave.studentId?._id : leave.studentId;
         const isStudentMatch = String(leaveStudentId) === String(studentObj._id);
         const isReturned = leave.status === 'returned' || (leave.status && leave.status.toLowerCase() === 'returned');
+        
+        const leaveYearId = leave.academicYearId ? (typeof leave.academicYearId === 'object' ? leave.academicYearId._id : leave.academicYearId) : null;
+        if (academicYearId && (!leaveYearId || String(leaveYearId) !== String(academicYearId))) {
+          return false;
+        }
+
         return isStudentMatch && isReturned && !leave.recovery;
       });
 
@@ -1013,7 +1025,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null }) {
       setName('');
       setClassNum('');
     }
-  }, [ad, students, teacher, navigate, leaveData, bypassRecovery, formMode, loading]);
+  }, [ad, students, teacher, navigate, leaveData, bypassRecovery, formMode, loading, academicYearId]);
 
   // Reset showEndDateForMedical ONLY when reason changes
   useEffect(() => {

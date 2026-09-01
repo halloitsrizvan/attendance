@@ -21,6 +21,11 @@ export async function GET(req) {
       }
     }
 
+    const activeYearId = await getActiveAcademicYearId();
+    if (activeYearId && searchParams.get('all') !== 'true') {
+      query.academicYearId = activeYearId;
+    }
+
     const passes = await ClassExcusedPass.find(query)
       .populate('studentId')
       .populate('teacherId')

@@ -30,16 +30,36 @@ const MedicalReport = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all'); // 'all', 'home', 'hospital'
   const [dateFilter, setDateFilter] = useState({ from: '', to: '' });
+  const [academicYear, setAcademicYear] = useState('');
+  const [academicYearId, setAcademicYearId] = useState('');
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await axios.get(`${API_PORT}/settings`);
+        if (res.data.academicYear) setAcademicYear(res.data.academicYear);
+        if (res.data.academicYearId) setAcademicYearId(res.data.academicYearId);
+      } catch (err) {
+        console.error("Error fetching settings:", err);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   useEffect(() => {
     const fetchMedicalLeaves = async () => {
       try {
         setLoading(true);
         const res = await axios.get(`${API_PORT}/leave`);
-        // Filter for medical leaves
-        const medicalData = res.data.filter(l => 
-          l.reason === 'Medical (Home)' || l.reason === 'Hospital'
-        );
+        // Filter for medical leaves belonging to active session
+        const medicalData = res.data.filter(l => {
+          const isMedical = l.reason === 'Medical (Home)' || l.reason === 'Hospital' || l.reason === 'Medical';
+          const lYear = l.academicYearId ? (typeof l.academicYearId === 'object' ? l.academicYearId._id : l.academicYearId) : null;
+          if (academicYearId && (!lYear || String(lYear) !== String(academicYearId))) {
+            return false;
+          }
+          return isMedical;
+        });
         setLeaves(medicalData);
       } catch (err) {
         console.error("Error fetching medical leaves:", err);
@@ -49,7 +69,7 @@ const MedicalReport = () => {
     };
 
     fetchMedicalLeaves();
-  }, []);
+  }, [academicYearId]);
 
   const formatFullDateTime = (dateStr, timeStr) => {
     if (!dateStr) return '';
@@ -142,7 +162,14 @@ const MedicalReport = () => {
               <HeartPulse size={30} />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-slate-800 tracking-tight">Medical Report</h1>
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-black text-slate-800 tracking-tight">Medical Report</h1>
+                {academicYear && (
+                  <span className="px-3 py-1 bg-rose-50 text-rose-600 border border-rose-200 text-xs font-black uppercase tracking-wider rounded-full shadow-sm">
+                    {academicYear}
+                  </span>
+                )}
+              </div>
               <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">Hospital & Medical Home Leaves</p>
             </div>
           </div>

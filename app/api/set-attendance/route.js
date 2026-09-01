@@ -2,6 +2,7 @@ import dbConnect from "@/lib/mongodb";
 import Attendance from "@/models/attendanceModel";
 import Student from "@/models/studentsModel";
 import Teacher from "@/models/teachersModel";
+import { NextResponse } from "next/server";
 import { getActiveAcademicYearId } from "@/lib/getActiveAcademicYear";
 
 export async function GET(req) {

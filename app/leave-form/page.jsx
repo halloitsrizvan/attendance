@@ -4,6 +4,7 @@ import LeaveForm from '@/components/leave/LeaveForm';
 import dbConnect from '@/lib/mongodb';
 import StudentModel from '@/models/studentsModel';
 import LeaveModel from '@/models/leaveModel';
+import { getActiveAcademicYearId } from '@/lib/getActiveAcademicYear';
 
 // Always fetch fresh data on the server side for accurate leave allocations
 export const revalidate = 0;
@@ -24,14 +25,20 @@ export default async function LeaveFormMain() {
   
   const students = JSON.parse(JSON.stringify(studentsRaw));
 
-  // Pre-fetch all current leaves safely
-  const leavesRaw = await LeaveModel.find({}).sort({ createdAt: -1 }).lean();
+  // Pre-fetch all current leaves safely for the active session
+  const activeYearId = await getActiveAcademicYearId();
+  const leaveQuery = activeYearId ? { academicYearId: activeYearId } : {};
+  const leavesRaw = await LeaveModel.find(leaveQuery).sort({ createdAt: -1 }).lean();
   const leaves = JSON.parse(JSON.stringify(leavesRaw));
 
   return (
     <div>
         <Header/>
-        <LeaveForm initialStudents={students} initialLeaves={leaves} />
+        <LeaveForm 
+          initialStudents={students} 
+          initialLeaves={leaves} 
+          initialAcademicYearId={activeYearId ? String(activeYearId) : ''} 
+        />
     </div>
   );
 }

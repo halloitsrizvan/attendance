@@ -2,6 +2,7 @@ import dbConnect from "@/lib/mongodb";
 import Attendance from "@/models/attendanceModel";
 import Student from "@/models/studentsModel";
 import { NextResponse } from "next/server";
+import { getActiveAcademicYearId } from "@/lib/getActiveAcademicYear";
 
 export async function GET(req) {
   await dbConnect();
@@ -37,6 +38,11 @@ export async function GET(req) {
         $lte: endDate
       }
     };
+
+    const activeYearId = await getActiveAcademicYearId();
+    if (activeYearId) {
+      matchFilter.academicYearId = activeYearId;
+    }
 
     if (classNumber) {
       const studentsInClass = await Student.find({ CLASS: parseInt(classNumber, 10) });

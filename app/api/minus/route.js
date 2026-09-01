@@ -28,6 +28,11 @@ export async function GET(req) {
         return NextResponse.json([]);
       }
     }
+    const activeYearId = await getActiveAcademicYearId();
+    if (activeYearId && searchParams.get('all') !== 'true') {
+      query.academicYearId = activeYearId;
+    }
+
     const minus = await Minus.find(query)
       .populate('studentId')
       .populate('teacherId')

@@ -27,6 +27,11 @@ export async function GET(req) {
       query.status = { $in: statusList };
     }
 
+    const activeYearId = await getActiveAcademicYearId();
+    if (activeYearId && searchParams.get('all') !== 'true') {
+      query.academicYearId = activeYearId;
+    }
+
     const leaves = await Leave.find(query)
       .populate('studentId')
       .populate('teacherId')

@@ -15,17 +15,39 @@ const MedicalDocsPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [codeSearch, setCodeSearch] = useState('');
     const [filterStatus, setFilterStatus] = useState('all'); // all, pending, approved
+    const [academicYear, setAcademicYear] = useState('');
+    const [academicYearId, setAcademicYearId] = useState('');
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const res = await axios.get(`${API_PORT}/settings`);
+                if (res.data.academicYear) setAcademicYear(res.data.academicYear);
+                if (res.data.academicYearId) setAcademicYearId(res.data.academicYearId);
+            } catch (err) {
+                console.error("Error fetching settings:", err);
+            }
+        };
+        fetchSettings();
+    }, []);
 
     useEffect(() => {
         fetchLeaves();
-    }, []);
+    }, [academicYearId]);
 
     const fetchLeaves = async () => {
         setLoading(true);
         try {
             // We want leaves that have been submitted OR have a legacy document URL
             const res = await axios.get(`${API_PORT}/leave`);
-            const docsOnly = res.data.filter(leave => leave.documentUrl || leave.isMedicalSubmitted);
+            const docsOnly = res.data.filter(leave => {
+                const isDoc = leave.documentUrl || leave.isMedicalSubmitted;
+                const lYear = leave.academicYearId ? (typeof leave.academicYearId === 'object' ? leave.academicYearId._id : leave.academicYearId) : null;
+                if (academicYearId && (!lYear || String(lYear) !== String(academicYearId))) {
+                    return false;
+                }
+                return isDoc;
+            });
             setLeaves(docsOnly);
         } catch (err) {
             console.error("Error fetching leaves:", err);

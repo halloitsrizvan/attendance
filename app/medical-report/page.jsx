@@ -1,11 +1,9 @@
 "use client";
 
-import React from 'react'
-import Header from '@/components/Header/Header'
-import dynamic from 'next/dynamic'
-import AuthGuard from '@/components/auth/AuthGuard'
-
-const MedicalReport = dynamic(() => import('@/components/report/MedicalReport'), { ssr: false })
+import React from 'react';
+import Header from '@/components/Header/Header';
+import AuthGuard from '@/components/auth/AuthGuard';
+import MedicalReport from '@/components/report/MedicalReport';
 
 export default function MedicalReportPage() {
   return (
