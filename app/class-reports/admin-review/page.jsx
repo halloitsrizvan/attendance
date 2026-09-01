@@ -483,11 +483,36 @@ export default function AdminReviewClassReports() {
 
                             {showPrograms && (
                                 <div className="space-y-6">
-                                    {selectedReport.programs.map((program, idx) => {
-                                    const isRejected = rejectedPrograms[selectedReport._id]?.[program._id];
-                                    return (
-                                        <div key={program._id} className={`border rounded-[1.5rem] p-6 shadow-sm flex flex-col lg:flex-row gap-6 transition-all duration-300 ${isRejected ? 'border-rose-200 bg-rose-50/20 shadow-rose-50/5' : 'bg-white border-slate-200'
-                                            }`}>
+                                    {(() => {
+                                        const tier1Programs = (selectedReport.programs || []).filter(p => p.tier !== 'Tier 2');
+                                        const tier2Programs = (selectedReport.programs || []).filter(p => p.tier === 'Tier 2');
+                                        const sortedPrograms = [...tier1Programs, ...tier2Programs];
+
+                                        return sortedPrograms.map((program, idx) => {
+                                            const isRejected = rejectedPrograms[selectedReport._id]?.[program._id];
+                                            const isFirstTier1 = idx === 0 && program.tier !== 'Tier 2';
+                                            const isFirstTier2 = program.tier === 'Tier 2' && (idx === 0 || sortedPrograms[idx - 1]?.tier !== 'Tier 2');
+
+                                            return (
+                                                <React.Fragment key={program._id}>
+                                                    {isFirstTier1 && (
+                                                        <div className="flex items-center gap-3 pt-2 pb-1">
+                                                            <span className="px-3.5 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-black uppercase tracking-widest rounded-xl shadow-sm">
+                                                                Tier 1 Programs ({tier1Programs.length})
+                                                            </span>
+                                                            <div className="h-px bg-slate-200 flex-1"></div>
+                                                        </div>
+                                                    )}
+                                                    {isFirstTier2 && (
+                                                        <div className="flex items-center gap-3 pt-6 pb-1">
+                                                            <span className="px-3.5 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-black uppercase tracking-widest rounded-xl shadow-sm">
+                                                                Tier 2 Programs ({tier2Programs.length})
+                                                            </span>
+                                                            <div className="h-px bg-slate-200 flex-1"></div>
+                                                        </div>
+                                                    )}
+                                                    <div key={program._id} className={`border rounded-[1.5rem] p-6 shadow-sm flex flex-col lg:flex-row gap-6 transition-all duration-300 ${isRejected ? 'border-rose-200 bg-rose-50/20 shadow-rose-50/5' : 'bg-white border-slate-200'
+                                                        }`}>
 
                                             {/* Program Details */}
                                             <div className="flex-1 space-y-4">
@@ -645,9 +670,11 @@ export default function AdminReviewClassReports() {
                                                 </div>
                                             )}
 
-                                        </div>
-                                    );
-                                })}
+                                                    </div>
+                                                </React.Fragment>
+                                            );
+                                        });
+                                    })()}
                                 </div>
                             )}
 
