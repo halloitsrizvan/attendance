@@ -15,16 +15,20 @@ export async function GET(req) {
     const fromDateStr = searchParams.get('fromDate');
     const toDateStr = searchParams.get('toDate');
     const classNumber = searchParams.get('class');
+    const ad = searchParams.get('ad');
 
-    if (!fromDateStr || !toDateStr) {
+    if (!ad && (!fromDateStr || !toDateStr)) {
       return NextResponse.json({ error: 'fromDate and toDate are required' }, { status: 400 });
     }
 
-    const startDate = new Date(fromDateStr);
-    const endDate = new Date(toDateStr);
+    const startDate = fromDateStr ? new Date(fromDateStr) : new Date('2020-01-01');
+    const endDate = toDateStr ? new Date(toDateStr) : new Date();
     endDate.setHours(23, 59, 59, 999);
 
     let studentQuery = {};
+    if (ad) {
+      studentQuery.ADNO = parseInt(ad, 10);
+    }
     if (classNumber) {
       studentQuery.CLASS = parseInt(classNumber, 10);
     }

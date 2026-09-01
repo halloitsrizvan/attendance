@@ -17,12 +17,69 @@ export default function DashboardPage() {
     const [minusData, setMinusData] = useState([]);
     const [zehnuthPoints, setZehnuthPoints] = useState([]);
 
-    // Breakdown Popup State
-    const [breakdownType, setBreakdownType] = useState(null); // 'attendance', 'leave', 'minus', 'zehnuth'
+    const [minusReportData, setMinusReportData] = useState(null);
+    const [savedTemplates, setSavedTemplates] = useState([]);
+    const [academicYear, setAcademicYear] = useState('');
+    const [academicYearId, setAcademicYearId] = useState('');
+    const [breakdownType, setBreakdownType] = useState(null);
 
     useEffect(() => {
         fetchDashboardData();
     }, []);
+
+    const evaluateMultiplier = (val) => {
+        if (typeof val === 'number') return val;
+        if (!val || typeof val !== 'string') return 0;
+        const trimmed = val.trim();
+        if (!trimmed) return 0;
+        if (trimmed.includes('/')) {
+            const parts = trimmed.split('/');
+            if (parts.length === 2) {
+                const num = parseFloat(parts[0]);
+                const den = parseFloat(parts[1]);
+                if (!isNaN(num) && den) return num / den;
+            }
+        }
+        return parseFloat(trimmed) || 0;
+    };
+
+    const formatNum = (num) => {
+        if (!num && num !== 0) return '0';
+        if (Number.isInteger(num)) return num.toString();
+
+        const integerPart = Math.floor(num);
+        const decimalPart = num - integerPart;
+
+        let bestDen = 1;
+        let bestNum = 0;
+        let minDiff = 1;
+
+        for (let d = 2; d <= 12; d++) {
+            const n = Math.round(decimalPart * d);
+            const diff = Math.abs(decimalPart - n / d);
+            if (diff < minDiff) {
+                minDiff = diff;
+                bestDen = d;
+                bestNum = n;
+            }
+        }
+
+        if (minDiff < 0.01) {
+            if (bestNum === 0) return integerPart.toString();
+            if (bestNum === bestDen) return (integerPart + 1).toString();
+
+            const gcd = (a, b) => b ? gcd(b, a % b) : a;
+            const divisor = gcd(bestNum, bestDen);
+            const finalNum = bestNum / divisor;
+            const finalDen = bestDen / divisor;
+
+            if (integerPart === 0) return `${finalNum}/${finalDen}`;
+            return `${integerPart} ${finalNum}/${finalDen}`;
+        }
+
+        const rounded = Math.round(num * 10) / 10;
+        return Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(1);
+    };
 
     const fetchDashboardData = async () => {
         const token = localStorage.getItem('studentToken');
@@ -32,11 +89,27 @@ export default function DashboardPage() {
         }
 
         try {
-            const profileRes = await axios.get(`${API_PORT}/students/profile`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const [profileRes, settingsRes] = await Promise.all([
+                axios.get(`${API_PORT}/students/profile`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                }),
+                axios.get(`${API_PORT}/settings`)
+            ]);
+
             const profileData = profileRes.data;
             setStudent(profileData);
+
+            if (settingsRes.data) {
+                if (settingsRes.data.deduction_templates) {
+                    setSavedTemplates(settingsRes.data.deduction_templates);
+                }
+                if (settingsRes.data.academicYear) {
+                    setAcademicYear(settingsRes.data.academicYear);
+                }
+                if (settingsRes.data.academicYearId) {
+                    setAcademicYearId(settingsRes.data.academicYearId);
+                }
+            }
 
             const ad = profileData.ADNO;
             const sid = profileData._id || profileData.id;
@@ -46,13 +119,20 @@ export default function DashboardPage() {
                     axios.get(`${API_PORT}/set-attendance?ad=${ad}`),
                     axios.get(`${API_PORT}/leave?ad=${ad}`),
                     axios.get(`${API_PORT}/minus?ad=${ad}`),
-                    axios.get(`${API_PORT}/zehnuth/points?studentId=${sid}`)
+                    axios.get(`${API_PORT}/zehnuth/points?studentId=${sid}`),
+                    axios.get(`${API_PORT}/report/minus-advanced?ad=${ad}`)
                 ]);
 
                 if (results[0].status === 'fulfilled') setAttendanceData(results[0].value.data || []);
                 if (results[1].status === 'fulfilled') setLeaveData(results[1].value.data || []);
                 if (results[2].status === 'fulfilled') setMinusData(results[2].value.data || []);
                 if (results[3].status === 'fulfilled') setZehnuthPoints(results[3].value.data || []);
+                if (results[4].status === 'fulfilled') {
+                    const resResults = results[4].value.data?.results;
+                    if (resResults && resResults.length > 0) {
+                        setMinusReportData(resResults[0]);
+                    }
+                }
             }
         } catch (err) {
             console.error("Error fetching dashboard data:", err);
@@ -129,16 +209,193 @@ export default function DashboardPage() {
             }
         });
 
-        const minusBreakdown = {};
-        const totalMinus = minusData.reduce((sum, item) => {
-            const reason = item.reason || 'General';
-            minusBreakdown[reason] = (minusBreakdown[reason] || 0) + (Number(item.minusNum) || 0);
-            return sum + (Number(item.minusNum) || 0);
-        }, 0);
+        // Resolve "Normal" Template Multipliers from Settings or Defaults (matching /report)
+        const normalTemplate = savedTemplates.find(t => t.name?.trim().toLowerCase() === 'normal');
+        const multipliers = normalTemplate?.multipliers || {
+            Morning: { true: '1', false: '1', active: true },
+            Afternoon: { true: '1', false: '1', active: true },
+            Night: { true: '1', false: '1', active: true },
+            Period: { true: '1', false: '1', active: true },
+            Jamath: { true: '1', false: '1', active: true },
+            Quiraath: { true: '1', false: '1', active: true },
+            Minus: { active: true },
+            Weekend: { true: '1/6', false: '1/6', active: true }
+        };
 
-        Object.keys(minusBreakdown).forEach(key => {
-            minusBreakdown[key] = minusBreakdown[key].toFixed(1);
-        });
+        let calculatedDeduction = null;
+        if (minusReportData && minusReportData.groupedAttendance) {
+            let leave_MAN = 0;
+            let absence_PJ = 0;
+            let punishment_MAN = 0;
+            let punishment_PJQ = 0;
+            let documentedMedicalLeaveMinus = 0;
+            let documentedOgeaLeaveMinus = 0;
+            let documentedLeaveMinus = 0;
+
+            ['Morning', 'Afternoon', 'Night'].forEach(t => {
+                if (multipliers[t]?.active) {
+                    const d = minusReportData.groupedAttendance[t];
+                    if (d) {
+                        const mTrue = evaluateMultiplier(multipliers[t].true);
+                        const mFalse = evaluateMultiplier(multipliers[t].false);
+                        const wkTrue = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].true) : mTrue;
+                        const wkFalse = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].false) : mFalse;
+
+                        leave_MAN += (d.absentOnLeaveTrue || 0) * mTrue;
+                        leave_MAN += (d.absentOnLeaveFalse || 0) * mTrue;
+                        punishment_MAN += (d.absentOnLeaveFalse || 0) * mFalse;
+
+                        leave_MAN += (d.weekendAbsentOnLeaveTrue || 0) * wkTrue;
+                        leave_MAN += (d.weekendAbsentOnLeaveFalse || 0) * wkTrue;
+                        punishment_MAN += (d.weekendAbsentOnLeaveFalse || 0) * wkFalse;
+
+                        documentedMedicalLeaveMinus += (d.documentedMedicalAbsentOnLeaveTrue || 0) * mTrue;
+                        documentedMedicalLeaveMinus += (d.weekendDocumentedMedicalAbsentOnLeaveTrue || 0) * wkTrue;
+
+                        documentedOgeaLeaveMinus += (d.documentedOgeaAbsentOnLeaveTrue || 0) * mTrue;
+                        documentedOgeaLeaveMinus += (d.weekendDocumentedOgeaAbsentOnLeaveTrue || 0) * wkTrue;
+
+                        documentedLeaveMinus += (d.documentedAbsentOnLeaveTrue || 0) * mTrue;
+                        documentedLeaveMinus += (d.weekendDocumentedAbsentOnLeaveTrue || 0) * wkTrue;
+                    }
+                }
+            });
+
+            if (multipliers['Period']?.active) {
+                const periodData = minusReportData.groupedAttendance['Period'];
+                if (periodData && periodData.periods) {
+                    const pTrue = evaluateMultiplier(multipliers['Period'].true);
+                    const pFalse = evaluateMultiplier(multipliers['Period'].false);
+                    const wkTrue = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].true) : pTrue;
+                    const wkFalse = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].false) : pFalse;
+
+                    Object.values(periodData.periods).forEach(p => {
+                        absence_PJ += (p.absentOnLeaveTrue || 0) * pTrue;
+                        absence_PJ += (p.absentOnLeaveFalse || 0) * pTrue;
+                        punishment_PJQ += (p.absentOnLeaveFalse || 0) * pFalse;
+
+                        absence_PJ += (p.weekendAbsentOnLeaveTrue || 0) * wkTrue;
+                        absence_PJ += (p.weekendAbsentOnLeaveFalse || 0) * wkTrue;
+                        punishment_PJQ += (p.weekendAbsentOnLeaveFalse || 0) * wkFalse;
+
+                        documentedMedicalLeaveMinus += (p.documentedMedicalAbsentOnLeaveTrue || 0) * pTrue;
+                        documentedMedicalLeaveMinus += (p.weekendDocumentedMedicalAbsentOnLeaveTrue || 0) * wkTrue;
+
+                        documentedOgeaLeaveMinus += (p.documentedOgeaAbsentOnLeaveTrue || 0) * pTrue;
+                        documentedOgeaLeaveMinus += (p.weekendDocumentedOgeaAbsentOnLeaveTrue || 0) * wkTrue;
+
+                        documentedLeaveMinus += (p.documentedAbsentOnLeaveTrue || 0) * pTrue;
+                        documentedLeaveMinus += (p.weekendDocumentedAbsentOnLeaveTrue || 0) * wkTrue;
+                    });
+                }
+            }
+
+            if (multipliers['Jamath']?.active) {
+                const jamathData = minusReportData.groupedAttendance['Jamath'];
+                if (jamathData) {
+                    const jTrue = evaluateMultiplier(multipliers['Jamath'].true);
+                    const jFalse = evaluateMultiplier(multipliers['Jamath'].false);
+                    const wkTrue = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].true) : jTrue;
+                    const wkFalse = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].false) : jFalse;
+
+                    absence_PJ += (jamathData.absentOnLeaveTrue || 0) * jTrue;
+                    absence_PJ += (jamathData.absentOnLeaveFalse || 0) * jTrue;
+                    punishment_PJQ += (jamathData.absentOnLeaveFalse || 0) * jFalse;
+
+                    absence_PJ += (jamathData.weekendAbsentOnLeaveTrue || 0) * wkTrue;
+                    absence_PJ += (jamathData.weekendAbsentOnLeaveFalse || 0) * wkTrue;
+                    punishment_PJQ += (jamathData.weekendAbsentOnLeaveFalse || 0) * wkFalse;
+
+                    documentedMedicalLeaveMinus += (jamathData.documentedMedicalAbsentOnLeaveTrue || 0) * jTrue;
+                    documentedMedicalLeaveMinus += (jamathData.weekendDocumentedMedicalAbsentOnLeaveTrue || 0) * wkTrue;
+
+                    documentedOgeaLeaveMinus += (jamathData.documentedOgeaAbsentOnLeaveTrue || 0) * jTrue;
+                    documentedOgeaLeaveMinus += (jamathData.weekendDocumentedOgeaAbsentOnLeaveTrue || 0) * wkTrue;
+
+                    documentedLeaveMinus += (jamathData.documentedAbsentOnLeaveTrue || 0) * jTrue;
+                    documentedLeaveMinus += (jamathData.weekendDocumentedAbsentOnLeaveTrue || 0) * wkTrue;
+                }
+            }
+
+            if (multipliers['Quiraath']?.active) {
+                const quiraathData = minusReportData.groupedAttendance['Quiraath'];
+                if (quiraathData) {
+                    const qTrue = evaluateMultiplier(multipliers['Quiraath'].true);
+                    const qFalse = evaluateMultiplier(multipliers['Quiraath'].false);
+                    const wkTrue = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].true) : qTrue;
+                    const wkFalse = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].false) : qFalse;
+
+                    absence_PJ += (quiraathData.absentOnLeaveTrue || 0) * qTrue;
+                    absence_PJ += (quiraathData.absentOnLeaveFalse || 0) * qTrue;
+                    punishment_PJQ += (quiraathData.absentOnLeaveFalse || 0) * qFalse;
+
+                    absence_PJ += (quiraathData.weekendAbsentOnLeaveTrue || 0) * wkTrue;
+                    absence_PJ += (quiraathData.weekendAbsentOnLeaveFalse || 0) * wkTrue;
+                    punishment_PJQ += (quiraathData.weekendAbsentOnLeaveFalse || 0) * wkFalse;
+
+                    documentedMedicalLeaveMinus += (quiraathData.documentedMedicalAbsentOnLeaveTrue || 0) * qTrue;
+                    documentedMedicalLeaveMinus += (quiraathData.weekendDocumentedMedicalAbsentOnLeaveTrue || 0) * wkTrue;
+
+                    documentedOgeaLeaveMinus += (quiraathData.documentedOgeaAbsentOnLeaveTrue || 0) * qTrue;
+                    documentedOgeaLeaveMinus += (quiraathData.weekendDocumentedOgeaAbsentOnLeaveTrue || 0) * wkTrue;
+
+                    documentedLeaveMinus += (quiraathData.documentedAbsentOnLeaveTrue || 0) * qTrue;
+                    documentedLeaveMinus += (quiraathData.weekendDocumentedAbsentOnLeaveTrue || 0) * wkTrue;
+                }
+            }
+
+            const c = parseInt(minusReportData.class, 10);
+            let permitted = 0;
+            if (!isNaN(c)) {
+                if (c >= 1 && c <= 5) permitted = 6;
+                else if (c === 6 || c === 7) permitted = 7;
+                else if (c >= 8 && c <= 10) permitted = 8;
+            }
+
+            const minus = multipliers['Minus']?.active ? (minusReportData.totalManualMinus || 0) : 0;
+            const totalAbsence = leave_MAN + punishment_MAN + punishment_PJQ + minus;
+            const netAbsence = totalAbsence - documentedLeaveMinus;
+            const overBy = Math.max(0, netAbsence - permitted);
+
+            calculatedDeduction = {
+                leave_MAN,
+                absence_PJ,
+                punishment_MAN,
+                punishment_PJQ,
+                minus,
+                documentedLeaveMinus,
+                permitted,
+                totalAbsence,
+                netAbsence,
+                overBy
+            };
+        }
+
+        const minusBreakdown = {};
+        if (calculatedDeduction) {
+            minusBreakdown["Absence (M+A+N)"] = formatNum(calculatedDeduction.leave_MAN);
+            if (calculatedDeduction.absence_PJ > 0) {
+                minusBreakdown["Absence (P+J+Q)"] = formatNum(calculatedDeduction.absence_PJ);
+            }
+            if (calculatedDeduction.punishment_MAN > 0) {
+                minusBreakdown["Punishment (M+A+N)"] = formatNum(calculatedDeduction.punishment_MAN);
+            }
+            if (calculatedDeduction.punishment_PJQ > 0) {
+                minusBreakdown["Punishment (P+J+Q)"] = formatNum(calculatedDeduction.punishment_PJQ);
+            }
+            if (calculatedDeduction.minus > 0) {
+                minusBreakdown["Manual Minus"] = formatNum(calculatedDeduction.minus);
+            }
+            if (calculatedDeduction.documentedLeaveMinus > 0) {
+                minusBreakdown["Documented Exemption"] = `-${formatNum(calculatedDeduction.documentedLeaveMinus)}`;
+            }
+            minusBreakdown["Permitted Allowance"] = `${calculatedDeduction.permitted}`;
+            minusBreakdown["Net Minus"] = formatNum(calculatedDeduction.netAbsence);
+            minusBreakdown["Over Allowance"] = formatNum(calculatedDeduction.overBy);
+        } else {
+            const manualTotal = minusData.reduce((sum, item) => sum + (Number(item.minusNum) || 0), 0);
+            minusBreakdown["Manual Minus"] = formatNum(manualTotal);
+        }
 
         const zehnuthBreakdown = { Approved: 0, Pending: 0 };
         const totalZehnuth = zehnuthPoints.reduce((sum, point) => {
@@ -151,17 +408,21 @@ export default function DashboardPage() {
             return sum;
         }, 0);
 
+        const totalMinusFormatted = calculatedDeduction 
+            ? formatNum(calculatedDeduction.netAbsence)
+            : formatNum(minusData.reduce((sum, item) => sum + (Number(item.minusNum) || 0), 0));
+
         return {
             attendanceRate,
             totalLeave,
-            totalMinus: totalMinus.toFixed(1),
+            totalMinus: totalMinusFormatted,
             totalZehnuth,
             attendanceBreakdown,
             leaveBreakdown,
             minusBreakdown,
             zehnuthBreakdown
         };
-    }, [attendanceData, leaveData, minusData, zehnuthPoints]);
+    }, [attendanceData, leaveData, minusData, zehnuthPoints, minusReportData, savedTemplates]);
 
     if (loading) {
         return <PortalSkeleton hasBanner={true} />;
@@ -223,7 +484,14 @@ export default function DashboardPage() {
             )}
 
             <div className="mb-8">
-                <h2 className="text-2xl font-black text-slate-800 mb-6">My Analytics</h2>
+                <div className="flex items-center gap-3 mb-6">
+                    <h2 className="text-2xl font-black text-slate-800">My Analytics</h2>
+                    {academicYear && (
+                        <span className="px-3 py-1 bg-blue-50 text-blue-600 border border-blue-200 text-xs font-black uppercase tracking-wider rounded-full shadow-sm">
+                            {academicYear}
+                        </span>
+                    )}
+                </div>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                     <MetricCard 
                         title="Attendance"
