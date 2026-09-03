@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
-import { Star, Loader2, PlusCircle, CheckCircle, Clock, XCircle, Trophy, Edit2, Trash2 } from 'lucide-react';
+import { Star, Loader2, PlusCircle, CheckCircle, Clock, XCircle, Trophy, Edit2, Trash2, FileSpreadsheet } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { API_PORT } from '@/Constants';
 import PortalSkeleton from '@/components/StudentPortal/PortalSkeleton';
 
@@ -12,6 +13,7 @@ import ApplyZehnuthModal from '@/components/StudentPortal/ApplyZehnuthModal';
 export default function ZehnuthPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(true);
+    const [isExporting, setIsExporting] = useState(false);
     const [student, setStudent] = useState(null);
     const [zehnuthPoints, setZehnuthPoints] = useState([]);
     const [mentor, setMentor] = useState(null);
@@ -80,6 +82,69 @@ export default function ZehnuthPage() {
         }
     };
 
+    const handleExportClassPoints = async () => {
+        if (!student?.CLASS) {
+            alert("Class information not found.");
+            return;
+        }
+
+        try {
+            setIsExporting(true);
+            const classNum = student.CLASS;
+
+            // Fetch all students of current student's class and all approved points
+            const [studentsRes, pointsRes] = await Promise.all([
+                axios.get(`${API_PORT}/students?class=${classNum}`),
+                axios.get(`${API_PORT}/zehnuth/points?status=approved`)
+            ]);
+
+            const classStudents = Array.isArray(studentsRes.data) ? studentsRes.data : [];
+            const approvedPoints = Array.isArray(pointsRes.data) ? pointsRes.data : [];
+
+            // Calculate total approved points for each student
+            const studentPointsMap = {};
+            approvedPoints.forEach(p => {
+                const sId = (typeof p.studentId === 'object' && p.studentId?._id) 
+                    ? p.studentId._id.toString() 
+                    : (p.studentId?.toString() || '');
+                if (sId) {
+                    studentPointsMap[sId] = (studentPointsMap[sId] || 0) + (Number(p.points) || 0);
+                }
+            });
+
+            // Map each student with their points
+            const exportData = classStudents.map((s, idx) => {
+                const sId = s._id?.toString() || s.id?.toString() || '';
+                const totalPoints = studentPointsMap[sId] || 0;
+                return {
+                    'SL No': s.SL !== undefined ? s.SL : idx + 1,
+                    'AD NO': s.ADNO,
+                    'Student Name': s["FULL NAME"] || s["SHORT NAME"] || '',
+                    'Class': s.CLASS || classNum,
+                    'Zehnuth Points': totalPoints
+                };
+            });
+
+            if (exportData.length === 0) {
+                alert(`No student records found for Class ${classNum}.`);
+                return;
+            }
+
+            // Generate and download Excel sheet
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, `Class ${classNum} Points`);
+
+            const dateStr = new Date().toISOString().split('T')[0];
+            XLSX.writeFile(workbook, `Class_${classNum}_Zehnuth_Points_${dateStr}.xlsx`);
+        } catch (error) {
+            console.error("Error exporting class points:", error);
+            alert("Failed to export class points. Please try again.");
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     const stats = useMemo(() => {
         let total = 0;
         let approved = 0;
@@ -145,8 +210,21 @@ export default function ZehnuthPage() {
             </div>
 
             <div className="w-full">
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
                     <h2 className="text-xl font-black text-slate-800">Zehnuth Log</h2>
+                    <button
+                        onClick={handleExportClassPoints}
+                        disabled={isExporting || !student?.CLASS}
+                        title={`Export Class ${student?.CLASS || ''} Zehnuth Points`}
+                        className="inline-flex items-center gap-2 px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 active:scale-95 border border-emerald-200/80 rounded-xl text-xs font-bold transition-all shadow-sm hover:shadow disabled:opacity-50 disabled:pointer-events-none"
+                    >
+                        {isExporting ? (
+                            <Loader2 size={15} className="animate-spin text-emerald-600" />
+                        ) : (
+                            <FileSpreadsheet size={15} className="text-emerald-600" />
+                        )}
+                        <span>{isExporting ? "Exporting..." : `Export Class ${student?.CLASS || ''} Points`}</span>
+                    </button>
                 </div>
                 <div className="bg-slate-50 rounded-[2rem] p-6 space-y-4 border border-slate-100 max-h-[600px] overflow-y-auto custom-scrollbar">
                     {zehnuthPoints.length > 0 ? zehnuthPoints.map(item => (
