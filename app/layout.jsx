@@ -1,5 +1,6 @@
 import './globals.css';
 import AuthGuard from '@/components/auth/AuthGuard';
+import TestUserBanner from '@/components/common/TestUserBanner';
 
 export const metadata = {
   title: 'Attendance App',
@@ -43,6 +44,7 @@ export default function RootLayout({ children }) {
           <AuthGuard>
             {children}
           </AuthGuard>
+          <TestUserBanner />
         </div>
       </body>
     </html>

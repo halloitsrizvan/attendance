@@ -37,7 +37,12 @@ async function calculateZehnuthPoints(classNumber, month, year) {
     return approvedPoints[0]?.total || 0;
 }
 
+import { protectMutation } from '@/utils/mutationGuard';
+
 export async function PUT(req, { params }) {
+    const mutationBlocked = protectMutation(req);
+    if (mutationBlocked) return mutationBlocked;
+
     try {
         await dbConnect();
         
@@ -113,6 +118,9 @@ export async function PUT(req, { params }) {
 }
 
 export async function DELETE(req, { params }) {
+    const mutationBlocked = protectMutation(req);
+    if (mutationBlocked) return mutationBlocked;
+
     try {
         await dbConnect();
         

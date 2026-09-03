@@ -12,7 +12,7 @@ const ADMIN_PAGES = [
     '/minus-report'
 ];
 
-export default function AuthGuard({ children }) {
+export default function AuthGuard({ children, roles = [] }) {
     const router = useRouter();
     const pathname = usePathname();
     const [isAuthorized, setIsAuthorized] = useState(false);
@@ -41,7 +41,25 @@ export default function AuthGuard({ children }) {
                 return;
             }
 
-            const teacherRoles = Array.isArray(teacher?.role) ? teacher.role : [teacher?.role];
+            const email = (teacher?.email || teacher?.EMAIL || '').trim().toLowerCase();
+            const isTestUser = email === 'test@gmail.com';
+
+            // Test user can view the entire website
+            if (isTestUser) {
+                setIsAuthorized(true);
+                return;
+            }
+
+            const teacherRoles = Array.isArray(teacher?.role) ? teacher.role : (teacher?.role ? [teacher.role] : []);
+
+            // Check explicitly passed roles prop if any
+            if (roles && roles.length > 0) {
+                const hasRequiredRole = roles.some(r => teacherRoles.includes(r));
+                if (!hasRequiredRole) {
+                    router.replace('/');
+                    return;
+                }
+            }
 
             // 3. Role-based access control for admin pages
             const isAdminPage = ADMIN_PAGES.some(page => pathname === page || pathname.startsWith(page + '/'));
@@ -67,7 +85,7 @@ export default function AuthGuard({ children }) {
         // Listen for storage changes (logout in other tab etc)
         window.addEventListener('storage', checkAuth);
         return () => window.removeEventListener('storage', checkAuth);
-    }, [pathname, router]);
+    }, [pathname, router, roles]);
 
     // Show nothing while checking (or a loading skeleton if preferred)
     // For now, only show children if authorized

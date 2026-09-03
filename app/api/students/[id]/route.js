@@ -18,7 +18,12 @@ export async function GET(req, { params }) {
   return NextResponse.json({ error: "Student not found" }, { status: 404 });
 }
 
+import { protectMutation } from "@/utils/mutationGuard";
+
 export async function DELETE(req, { params }) {
+  const mutationBlocked = protectMutation(req);
+  if (mutationBlocked) return mutationBlocked;
+
   await dbConnect();
   const { id } = params;
   
@@ -44,6 +49,9 @@ export async function DELETE(req, { params }) {
 }
 
 export async function PATCH(req, { params }) {
+  const mutationBlocked = protectMutation(req);
+  if (mutationBlocked) return mutationBlocked;
+
   await dbConnect();
   const { id } = params;
   try {

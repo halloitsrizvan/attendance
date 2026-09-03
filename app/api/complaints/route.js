@@ -49,7 +49,12 @@ export async function GET(req) {
     }
 }
 
+import { protectMutation } from "@/utils/mutationGuard";
+
 export async function POST(req) {
+    const mutationBlocked = protectMutation(req);
+    if (mutationBlocked) return mutationBlocked;
+
     await dbConnect();
     try {
         const body = await req.json();
@@ -65,6 +70,9 @@ export async function POST(req) {
 }
 
 export async function PATCH(req) {
+    const mutationBlocked = protectMutation(req);
+    if (mutationBlocked) return mutationBlocked;
+
     await dbConnect();
     try {
         const { id, ...updates } = await req.json();
