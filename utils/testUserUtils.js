@@ -100,44 +100,68 @@ export function setupAxiosTestUserInterceptors() {
 
   axios.interceptors.request.use(
     (config) => {
-      // 1. Always attach token and user email if present
-      const token = localStorage.getItem('token') || localStorage.getItem('studentToken');
-      const teacherStr = localStorage.getItem('teacher');
-      let teacherEmail = null;
-
-      if (teacherStr) {
-        try {
-          const parsed = JSON.parse(teacherStr);
-          teacherEmail = parsed?.email || parsed?.EMAIL;
-        } catch (e) {
-          // Ignore
-        }
-      }
-
-      if (token && !config.headers.Authorization) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      if (teacherEmail && !config.headers['x-user-email']) {
-        config.headers['x-user-email'] = teacherEmail;
-      }
-
-      // 2. Intercept mutation methods if test user
-      const method = (config.method || 'get').toLowerCase();
-      const isMutation = ['post', 'put', 'patch', 'delete'].includes(method);
       const url = config.url || '';
+      const isCloudinary = url.includes('cloudinary.com');
+      const isInternal = !url.startsWith('http://') && !url.startsWith('https://') 
+        || (typeof window !== 'undefined' && url.startsWith(window.location.origin));
 
-      // Allow login endpoints
-      const isLoginRequest = url.includes('/teachers/login') || url.includes('/students/login');
+      // 1. If it's Cloudinary, strip any auth headers to prevent CORS issues
+      if (isCloudinary) {
+        if (config.headers) {
+          if (typeof config.headers.delete === 'function') {
+            config.headers.delete('Authorization');
+            config.headers.delete('authorization');
+            config.headers.delete('x-user-email');
+            config.headers.delete('X-User-Email');
+          } else {
+            delete config.headers.Authorization;
+            delete config.headers.authorization;
+            delete config.headers['x-user-email'];
+            delete config.headers['X-User-Email'];
+          }
+        }
+        return config;
+      }
 
-      if (isMutation && !isLoginRequest && isTestUser(teacherEmail)) {
-        showTestUserToast('Action disabled: test@gmail.com has View-Only access across the teacher panel.');
-        
-        // Cancel / reject the request safely without hitting network
-        return Promise.reject({
-          isTestUserBlocked: true,
-          message: 'Action cancelled: test@gmail.com is restricted from mutations.',
-          config
-        });
+      // 2. Attach default token and user email if present ONLY for internal requests
+      if (isInternal) {
+        const token = localStorage.getItem('token') || localStorage.getItem('studentToken');
+        const teacherStr = localStorage.getItem('teacher');
+        let teacherEmail = null;
+
+        if (teacherStr) {
+          try {
+            const parsed = JSON.parse(teacherStr);
+            teacherEmail = parsed?.email || parsed?.EMAIL;
+          } catch (e) {
+            // Ignore
+          }
+        }
+
+        const hasAuth = config.headers?.Authorization || config.headers?.authorization
+          || (typeof config.headers?.has === 'function' && config.headers.has('Authorization'));
+
+        if (token && !hasAuth) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+        if (teacherEmail && !config.headers['x-user-email']) {
+          config.headers['x-user-email'] = teacherEmail;
+        }
+
+        // Intercept mutation methods if test user on internal requests
+        const method = (config.method || 'get').toLowerCase();
+        const isMutation = ['post', 'put', 'patch', 'delete'].includes(method);
+        const isLoginRequest = url.includes('/teachers/login') || url.includes('/students/login');
+
+        if (isMutation && !isLoginRequest && isTestUser(teacherEmail)) {
+          showTestUserToast('Action disabled: test@gmail.com has View-Only access across the teacher panel.');
+          
+          return Promise.reject({
+            isTestUserBlocked: true,
+            message: 'Action cancelled: test@gmail.com is restricted from mutations.',
+            config
+          });
+        }
       }
 
       return config;

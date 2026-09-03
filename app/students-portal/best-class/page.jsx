@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { BookOpen, Calendar, CheckCircle2, Clock, PlusCircle, Edit3, Trash2, X, Trophy, Image as ImageIcon, ImagePlus, Loader2, ChevronLeft, ChevronDown } from 'lucide-react';
 import axios from 'axios';
 import { API_PORT } from '@/Constants';
+import { uploadToCloudinary } from '@/utils/cloudinaryUtils';
 import PortalSkeleton from '@/components/StudentPortal/PortalSkeleton';
 import ProgramSubmitForm from '@/components/programs/ProgramSubmitForm';
 
@@ -142,13 +143,9 @@ export default function BestClassPage() {
         if (!file) return;
 
         setUploading(true);
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', 'college_db');
-
         try {
-            const res = await axios.post('https://api.cloudinary.com/v1_1/dqgspgrul/image/upload', formData);
-            setEditForm({ ...editForm, poster: res.data.secure_url });
+            const url = await uploadToCloudinary(file);
+            setEditForm({ ...editForm, poster: url });
         } catch (err) {
             console.error("Upload error:", err);
             alert("Failed to upload image.");
@@ -168,16 +165,13 @@ export default function BestClassPage() {
 
         try {
             for (const file of files) {
-                const formData = new FormData();
-                formData.append('file', file);
-                formData.append('upload_preset', 'college_db');
-                const res = await axios.post('https://api.cloudinary.com/v1_1/dqgspgrul/image/upload', formData);
-                uploadedUrls.push(res.data.secure_url);
+                const url = await uploadToCloudinary(file);
+                uploadedUrls.push(url);
             }
         } catch (err) {
             console.error("Gallery upload error:", err);
             hasError = true;
-            errorMsg = err.response?.data?.error?.message || err.message;
+            errorMsg = err.message || "Failed to upload some gallery images";
         } finally {
             if (uploadedUrls.length > 0) {
                 setEditForm(prev => ({ ...prev, gallery: [...(prev.gallery || []), ...uploadedUrls] }));

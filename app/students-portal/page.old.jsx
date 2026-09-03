@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Menu, X, CheckCircle, Clock, Calendar, CalendarClock, TrendingUp, LogOut, Info, AlertTriangle, FileText, User, ChevronRight, LayoutGrid, PlusCircle, MessageSquare, Upload, Loader2, Send, Trophy, Image as ImageIcon, BookOpen } from 'lucide-react';
 import axios from 'axios';
 import { API_PORT } from '@/Constants';
+import { uploadToCloudinary } from '@/utils/cloudinaryUtils';
 import StudentAuthGuard from '@/components/auth/StudentAuthGuard';
 import VerifyingAccess from '@/components/auth/VerifyingAccess';
 import StudentPortalSkeleton from '@/components/auth/StudentPortalSkeleton';
@@ -893,16 +894,9 @@ const DocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
         if (!file) return;
 
         setUploading(true);
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', 'college_db');
-
         try {
-            const res = await axios.post(
-                'https://api.cloudinary.com/v1_1/dqgspgrul/image/upload',
-                formData
-            );
-            setFileUrl(res.data.secure_url);
+            const url = await uploadToCloudinary(file);
+            setFileUrl(url);
         } catch (err) {
             console.error("Upload error:", err);
             alert("Failed to upload file. Please ensure you have a valid internet connection.");
@@ -1083,16 +1077,9 @@ const ProgramDocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
         if (!file) return;
 
         setUploading(true);
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', 'college_db');
-
         try {
-            const res = await axios.post(
-                'https://api.cloudinary.com/v1_1/dqgspgrul/image/upload',
-                formData
-            );
-            setFileUrl(res.data.secure_url);
+            const url = await uploadToCloudinary(file);
+            setFileUrl(url);
         } catch (err) {
             console.error("Upload error:", err);
             alert("Failed to upload file. Please ensure you have a valid internet connection.");
@@ -1278,16 +1265,8 @@ const ZehnuthEvidenceModal = ({ isOpen, onClose, request, onUpdate }) => {
         if (!file) return;
 
         setUploading(true);
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', 'college_db');
-
         try {
-            const res = await axios.post(
-                'https://api.cloudinary.com/v1_1/dqgspgrul/image/upload',
-                formData
-            );
-            const imageUrl = res.data.secure_url;
+            const imageUrl = await uploadToCloudinary(file);
 
             // Update on server
             await axios.put('/api/zehnuth/points', { id: request._id, imageUrl });
@@ -1485,16 +1464,9 @@ const ApplyZehnuthModal = ({ isOpen, onClose, student, mentor, onComplete }) => 
         if (!file) return;
 
         setUploading(true);
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', 'college_db');
-
         try {
-            const res = await axios.post(
-                'https://api.cloudinary.com/v1_1/dqgspgrul/image/upload',
-                formData
-            );
-            setFileUrl(res.data.secure_url);
+            const url = await uploadToCloudinary(file);
+            setFileUrl(url);
         } catch (err) {
             console.error("Upload error:", err);
             alert("Failed to upload image. Please try again.");

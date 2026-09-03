@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import axios from 'axios';
 import { X, Trophy, Upload, Loader2, CheckCircle, Send, User } from 'lucide-react';
 import { API_PORT } from '@/Constants';
+import { uploadToCloudinary } from '@/utils/cloudinaryUtils';
 
 export default function ApplyZehnuthModal({ isOpen, onClose, student, mentor, onComplete, zehnuthPoints = [], editData = null }) {
     const [loading, setLoading] = useState(false);
@@ -68,16 +69,9 @@ export default function ApplyZehnuthModal({ isOpen, onClose, student, mentor, on
         if (!file) return;
 
         setUploading(true);
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', 'college_db');
-
         try {
-            const res = await axios.post(
-                'https://api.cloudinary.com/v1_1/dqgspgrul/image/upload',
-                formData
-            );
-            setFileUrl(res.data.secure_url);
+            const url = await uploadToCloudinary(file);
+            setFileUrl(url);
         } catch (err) {
             console.error("Upload error:", err);
             alert("Failed to upload image. Please try again.");

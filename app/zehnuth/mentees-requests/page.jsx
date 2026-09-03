@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Header from '@/components/Header/Header';
 import axios from 'axios';
+import { uploadToCloudinary } from '@/utils/cloudinaryUtils';
 import { Trophy, CheckCircle2, XCircle, Loader2, User, Activity, Clock, ChevronRight, AlertTriangle, Inbox, Check, X, Image as ImageIcon, Upload, ExternalLink, MoreVertical } from 'lucide-react';
 
 const ReviewModal = ({ request, isOpen, onClose, onAction, onUpload, uploading, processing }) => {
@@ -327,16 +328,8 @@ export default function MenteeRequests() {
         if (!file) return;
 
         setUploadingId(requestId);
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', 'college_db');
-
         try {
-            const res = await axios.post(
-                'https://api.cloudinary.com/v1_1/dqgspgrul/image/upload',
-                formData
-            );
-            const imageUrl = res.data.secure_url;
+            const imageUrl = await uploadToCloudinary(file);
             await axios.put('/api/zehnuth/points', { id: requestId, imageUrl });
 
             setRequests(prev => prev.map(r => r._id === requestId ? { ...r, imageUrl } : r));

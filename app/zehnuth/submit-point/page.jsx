@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Header from '@/components/Header/Header';
 import axios from 'axios';
+import { uploadToCloudinary } from '@/utils/cloudinaryUtils';
 import { Trophy, Star, Send, Loader2, User, Activity, Plus, CheckCircle2, X, ChevronDown, AlertTriangle, Search, CheckCircle, Image as ImageIcon, Upload } from 'lucide-react';
 
 const ADMIN_EMAIL = 'krehmankoolivayal13889@gmail.com';
@@ -145,16 +146,9 @@ export default function SubmitPoint() {
         if (!file) return;
 
         setUploading(true);
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', 'college_db');
-
         try {
-            const res = await axios.post(
-                'https://api.cloudinary.com/v1_1/dqgspgrul/image/upload',
-                formData
-            );
-            setFileUrl(res.data.secure_url);
+            const url = await uploadToCloudinary(file);
+            setFileUrl(url);
         } catch (err) {
             console.error("Upload error:", err);
             alert("Failed to upload image. Please try again.");

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header/Header';
 import axios from 'axios';
+import { uploadToCloudinary } from '@/utils/cloudinaryUtils';
 import { Trophy, Star, Send, Loader2, User, Activity, Plus, CheckCircle2, X, AlertTriangle, Image as ImageIcon, Upload, FileText } from 'lucide-react';
 
 const SuccessModal = ({ isOpen, onClose }) => {
@@ -84,19 +85,12 @@ export default function MentorActivities() {
         if (!file) return;
 
         setUploading(true);
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', 'college_db');
-
         try {
-            const res = await axios.post(
-                'https://api.cloudinary.com/v1_1/dqgspgrul/image/upload',
-                formData
-            );
-            setFileUrl(res.data.secure_url);
+            const url = await uploadToCloudinary(file);
+            setFileUrl(url);
         } catch (err) {
             console.error("Upload error:", err);
-            alert("Failed to upload image: " + (err.response?.data?.error?.message || err.message));
+            alert("Failed to upload image: " + (err.message || "Please try again"));
         } finally {
             setUploading(false);
         }

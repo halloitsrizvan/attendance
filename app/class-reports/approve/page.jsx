@@ -5,6 +5,7 @@ import Header from '@/components/Header/Header';
 import { BookOpen, Loader2, AlertTriangle, CheckCircle2, Clock, Calendar, Users, X, Image as ImageIcon, Edit3, Trash2, ImagePlus, PlusCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
+import { uploadToCloudinary } from '@/utils/cloudinaryUtils';
 
 const ApproveClassReportSkeleton = () => (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans animate-fade-in">
@@ -149,13 +150,9 @@ export default function ApproveClassReport() {
         if (!file) return;
 
         setUploading(true);
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', 'college_db');
-
         try {
-            const res = await axios.post('https://api.cloudinary.com/v1_1/dqgspgrul/image/upload', formData);
-            setEditForm({ ...editForm, poster: res.data.secure_url });
+            const url = await uploadToCloudinary(file);
+            setEditForm({ ...editForm, poster: url });
         } catch (err) {
             console.error("Upload error:", err);
             alert("Failed to upload image.");
@@ -175,16 +172,13 @@ export default function ApproveClassReport() {
 
         try {
             for (const file of files) {
-                const formData = new FormData();
-                formData.append('file', file);
-                formData.append('upload_preset', 'college_db');
-                const res = await axios.post('https://api.cloudinary.com/v1_1/dqgspgrul/image/upload', formData);
-                uploadedUrls.push(res.data.secure_url);
+                const url = await uploadToCloudinary(file);
+                uploadedUrls.push(url);
             }
         } catch (err) {
             console.error("Gallery upload error:", err);
             hasError = true;
-            errorMsg = err.response?.data?.error?.message || err.message;
+            errorMsg = err.message || "Failed to upload some gallery images";
         } finally {
             if (uploadedUrls.length > 0) {
                 setEditForm(prev => ({ ...prev, gallery: [...(prev.gallery || []), ...uploadedUrls] }));

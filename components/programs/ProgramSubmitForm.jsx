@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { uploadToCloudinary } from '@/utils/cloudinaryUtils';
 import { BookOpen, Send, Plus, X, Loader2, AlertTriangle, CheckCircle2, Calendar, LayoutGrid, ImagePlus, Images, ChevronDown } from 'lucide-react';
 
 const MONTHS = [
@@ -185,19 +186,12 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
         if (!file) return;
 
         setUploading(true);
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', 'college_db');
-
         try {
-            const res = await axios.post(
-                'https://api.cloudinary.com/v1_1/dqgspgrul/image/upload',
-                formData
-            );
-            handleProgramChange('poster', res.data.secure_url);
+            const url = await uploadToCloudinary(file);
+            handleProgramChange('poster', url);
         } catch (err) {
             console.error("Upload error:", err);
-            alert("Failed to upload image: " + (err.response?.data?.error?.message || err.message));
+            alert("Failed to upload image: " + (err.message || "Please try again"));
         } finally {
             setUploading(false);
         }
@@ -214,16 +208,13 @@ export default function ProgramSubmitForm({ submitterId, classNumber, submitterT
 
         try {
             for (const file of files) {
-                const formData = new FormData();
-                formData.append('file', file);
-                formData.append('upload_preset', 'college_db');
-                const res = await axios.post('https://api.cloudinary.com/v1_1/dqgspgrul/image/upload', formData);
-                uploadedUrls.push(res.data.secure_url);
+                const url = await uploadToCloudinary(file);
+                uploadedUrls.push(url);
             }
         } catch (err) {
             console.error("Gallery upload error:", err);
             hasError = true;
-            errorMsg = err.response?.data?.error?.message || err.message;
+            errorMsg = err.message || "Failed to upload some gallery images";
         } finally {
             if (uploadedUrls.length > 0) {
                 const newGallery = [...(programs[activeProgramIndex].gallery || []), ...uploadedUrls];
