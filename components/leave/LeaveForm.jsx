@@ -268,6 +268,7 @@ const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCust
 
 function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcademicYearId = '' }) {
   const [teacher, setTeacher] = useState(null);
+  const isTestUser = (teacher?.email || teacher?.EMAIL || '').trim().toLowerCase() === 'test@gmail.com';
   const [formMode, setFormMode] = useState('create'); // 'create', 'extend', 'add', 'schedule'
   const [activeLeave, setActiveLeave] = useState(null);
 
