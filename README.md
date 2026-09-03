@@ -1,4 +1,4 @@
-# Darul Irfan — Advanced Institutional Attendance & Management System
+  # Darul Irfan — Advanced Institutional Attendance & Management System
 
 ![Darul Irfan Banner](public/logo.png)
 
