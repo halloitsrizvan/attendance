@@ -1029,21 +1029,31 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
     }
   }, [ad, students, teacher, navigate, leaveData, bypassRecovery, formMode, loading, academicYearId]);
 
-  // Reset showEndDateForMedical ONLY when reason changes
+  // Reset showEndDateForMedical and configure startImmediately when reason changes
   useEffect(() => {
     if (reason !== 'Medical' && reason !== 'Medical (Home)' && reason !== 'Room') {
       setShowEndDateForMedical(true);
-      setStartImmediately(false);
     } else {
       setShowEndDateForMedical(false);
-      // For immediate medical/room needs, set time to Now and auto-start
+    }
+
+    const immediateStartReasons = [
+      'Medical',
+      'Medical (Home)',
+      'Room',
+      'Urgent (Death)',
+      'Hospital bystander',
+      'Hospital'
+    ];
+
+    if (immediateStartReasons.includes(reason)) {
+      setStartImmediately(true);
       if (reason === 'Room') {
         setFromTime('Now');
         setFromDate('Today');
-        setStartImmediately(true);
-      } else if (reason === 'Medical' || reason === 'Medical (Home)') {
-        setStartImmediately(true);
       }
+    } else {
+      setStartImmediately(false);
     }
   }, [reason]);
 
