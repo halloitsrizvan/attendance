@@ -25,10 +25,21 @@ export default function MentorPoints() {
     useEffect(() => {
         const storedTeacher = localStorage.getItem('teacher');
         if (storedTeacher) {
-            const teacherData = JSON.parse(storedTeacher);
-            setTeacher(teacherData);
-            const mentorId = teacherData.id || teacherData._id;
-            if (mentorId) fetchPoints(mentorId);
+            try {
+                const teacherData = JSON.parse(storedTeacher);
+                setTeacher(teacherData);
+                const mentorId = teacherData.id || teacherData._id;
+                if (mentorId) {
+                    fetchPoints(mentorId);
+                } else {
+                    setLoading(false);
+                }
+            } catch (e) {
+                console.error("Error parsing teacher data:", e);
+                setLoading(false);
+            }
+        } else {
+            setLoading(false);
         }
     }, []);
 
@@ -36,16 +47,36 @@ export default function MentorPoints() {
         try {
             // Get mentee IDs first
             const relRes = await axios.get(`/api/zehnuth/mentor-mentee?mentorId=${mentorId}`);
-            const menteeIds = relRes.data.map(rel => rel.menteeId._id);
+            const menteeIds = (relRes.data || [])
+                .map(rel => (rel.menteeId?._id || rel.menteeId)?.toString())
+                .filter(Boolean);
 
-            const res = await axios.get(`/api/zehnuth/points?mentorId=${mentorId}`);
+            const res = await axios.get(`/api/zehnuth/points?mentorId=${mentorId}&includeMentees=true`);
+            const allPoints = Array.isArray(res.data) ? res.data : [];
             
-            // Filter points to only show those awarded to mentees
-            const menteePoints = res.data.filter(p => menteeIds.includes(p.studentId._id));
+            // Filter points to show those awarded to mentees or by this mentor
+            const menteePoints = allPoints.filter(p => {
+                if (!p) return false;
+                const studentIdStr = (p.studentId?._id || p.studentId)?.toString();
+                const mentorIdStr = (p.mentorId?._id || p.mentorId)?.toString();
+                if (menteeIds.length > 0) {
+                    return (studentIdStr && menteeIds.includes(studentIdStr)) || (mentorIdStr && mentorIdStr === mentorId.toString());
+                }
+                return true;
+            });
             
             setPoints(menteePoints);
         } catch (err) {
             console.error("Error fetching points:", err);
+            // Fallback: try querying points directly
+            try {
+                const res = await axios.get(`/api/zehnuth/points?mentorId=${mentorId}`);
+                if (Array.isArray(res.data)) {
+                    setPoints(res.data);
+                }
+            } catch (fallbackErr) {
+                console.error("Fallback fetch error:", fallbackErr);
+            }
         } finally {
             setLoading(false);
         }
@@ -68,7 +99,9 @@ export default function MentorPoints() {
     };
 
     const formatDate = (dateStr) => {
+        if (!dateStr) return '—';
         const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return '—';
         return date.toLocaleDateString('en-US', { 
             month: 'short', 
             day: 'numeric',
@@ -77,9 +110,11 @@ export default function MentorPoints() {
         });
     };
 
+    const filteredPoints = points.filter(p => filter === 'all' || p.category === filter);
+
     const stats = {
-        totalPoints: points.reduce((acc, p) => acc + p.points, 0),
-        totalAwards: points.length,
+        totalPoints: filteredPoints.reduce((acc, p) => acc + (Number(p?.points) || 0), 0),
+        totalAwards: filteredPoints.length,
     };
 
     if (loading) return (
@@ -191,68 +226,73 @@ export default function MentorPoints() {
 
                 {/* Card List */}
                 <div className="space-y-4">
-                    {points
-                        .filter(p => filter === 'all' || p.category === filter)
-                        .map((p) => (
-                        <div key={p._id} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all group">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 font-bold group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                                        {(p.studentId["SHORT NAME"] || p.studentId["FULL NAME"] || "??").slice(0, 2).toUpperCase()}
-                                    </div>
-                                    <div>
-                                        <p className="font-black text-slate-800 text-sm uppercase tracking-tight">{p.studentId["SHORT NAME"] || p.studentId["FULL NAME"]}</p>
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">AD: {p.studentId.ADNO}</p>
-                                    </div>
-                                </div>
-                                <div className="text-right flex flex-col items-end gap-1.5">
-                                    <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-tighter border ${CATEGORY_COLORS[p.category] || 'bg-slate-50 text-slate-600'}`}>
-                                        {p.category}
-                                    </span>
-                                    {p.status === 'pending' && !p.mentorApproved && (
-                                        <button 
-                                            onClick={() => handleMentorApprove(p._id)}
-                                            className="bg-indigo-600 text-white px-3 py-1 rounded-full text-[7px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-sm"
-                                        >
-                                            Verify Achievement
-                                        </button>
-                                    )}
-                                    {p.status === 'pending' && p.mentorApproved && (
-                                        <span className="bg-amber-50 text-amber-500 border border-amber-100 px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest animate-pulse">
-                                            Awaiting Admin
-                                        </span>
-                                    )}
-                                    {p.status === 'rejected' && (
-                                        <span className="bg-rose-50 text-rose-500 border border-rose-100 px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest">
-                                            Rejected
-                                        </span>
-                                    )}
-                                    {p.status === 'approved' && (
-                                        <span className="bg-emerald-50 text-emerald-500 border border-emerald-100 px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest">
-                                            Approved
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                            
-                            <div className="bg-slate-50/50 rounded-2xl p-4 mb-4">
-                                <p className="text-sm font-bold text-slate-600 leading-relaxed">{p.activity}</p>
-                            </div>
+                    {filteredPoints.map((p) => {
+                        const studentName = p.studentId?.["SHORT NAME"] || p.studentId?.["FULL NAME"] || "Unknown Student";
+                        const studentAd = p.studentId?.ADNO || "—";
+                        const initials = studentName.slice(0, 2).toUpperCase();
+                        const pointVal = Number(p.points) || 0;
 
-                            <div className="flex items-center justify-between pt-2 border-t border-slate-50">
-                                <div className="flex items-center gap-2 text-slate-300">
-                                    <Calendar size={12} />
-                                    <span className="text-[9px] font-bold uppercase tracking-widest">{formatDate(p.createdAt)}</span>
+                        return (
+                            <div key={p._id} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all group">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 font-bold group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                                            {initials}
+                                        </div>
+                                        <div>
+                                            <p className="font-black text-slate-800 text-sm uppercase tracking-tight">{studentName}</p>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">AD: {studentAd}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right flex flex-col items-end gap-1.5">
+                                        <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-tighter border ${CATEGORY_COLORS[p.category] || 'bg-slate-50 text-slate-600'}`}>
+                                            {p.category}
+                                        </span>
+                                        {p.status === 'pending' && !p.mentorApproved && (
+                                            <button 
+                                                onClick={() => handleMentorApprove(p._id)}
+                                                className="bg-indigo-600 text-white px-3 py-1 rounded-full text-[7px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-sm"
+                                            >
+                                                Verify Achievement
+                                            </button>
+                                        )}
+                                        {p.status === 'pending' && p.mentorApproved && (
+                                            <span className="bg-amber-50 text-amber-500 border border-amber-100 px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest animate-pulse">
+                                                Awaiting Admin
+                                            </span>
+                                        )}
+                                        {p.status === 'rejected' && (
+                                            <span className="bg-rose-50 text-rose-500 border border-rose-100 px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest">
+                                                Rejected
+                                            </span>
+                                        )}
+                                        {p.status === 'approved' && (
+                                            <span className="bg-emerald-50 text-emerald-500 border border-emerald-100 px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest">
+                                                Approved
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-1 text-amber-500 font-black">
-                                    <Star size={16} fill="currentColor" />
-                                    <span className="text-lg">+{p.points}</span>
+                                
+                                <div className="bg-slate-50/50 rounded-2xl p-4 mb-4">
+                                    <p className="text-sm font-bold text-slate-600 leading-relaxed">{p.activity}</p>
+                                </div>
+
+                                <div className="flex items-center justify-between pt-2 border-t border-slate-50">
+                                    <div className="flex items-center gap-2 text-slate-300">
+                                        <Calendar size={12} />
+                                        <span className="text-[9px] font-bold uppercase tracking-widest">{formatDate(p.createdAt)}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1 text-amber-500 font-black">
+                                        <Star size={16} fill="currentColor" />
+                                        <span className="text-lg">+{pointVal}</span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
 
-                    {points.length === 0 && (
+                    {filteredPoints.length === 0 && (
                         <div className="py-20 text-center">
                             <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-200">
                                 <History size={32} />

@@ -94,8 +94,25 @@ export async function GET(req) {
 
     try {
         let query = {};
-        if (studentId) query.studentId = studentId;
-        if (mentorId) query.mentorId = mentorId;
+        if (studentId) {
+            if (studentId.includes(',')) {
+                query.studentId = { $in: studentId.split(',').map(s => s.trim()).filter(Boolean) };
+            } else {
+                query.studentId = studentId;
+            }
+        }
+        if (mentorId) {
+            if (searchParams.get('includeMentees') === 'true') {
+                const relations = await MentorMentee.find({ mentorId, isActive: true }).select('menteeId');
+                const menteeIds = relations.map(r => r.menteeId).filter(Boolean);
+                query.$or = [
+                    { mentorId: mentorId },
+                    { studentId: { $in: menteeIds } }
+                ];
+            } else {
+                query.mentorId = mentorId;
+            }
+        }
 
         const status = searchParams.get('status');
         if (status) query.status = status;
