@@ -5,11 +5,15 @@ import Teacher from "@/models/teachersModel";
 import { NextResponse } from "next/server";
 import { getActiveAcademicYearId } from "@/lib/getActiveAcademicYear";
 
+import AcademicYear from "@/models/academicYearModel";
+
 export async function GET(req) {
   await dbConnect();
   const { searchParams } = new URL(req.url);
   const ad = searchParams.get('ad');
   const status = searchParams.get('status');
+  const academicYearId = searchParams.get('academicYearId');
+  const allYears = searchParams.get('all') === 'true' || academicYearId === 'all';
 
   try {
     let query = {};
@@ -27,14 +31,21 @@ export async function GET(req) {
       query.status = { $in: statusList };
     }
 
-    const activeYearId = await getActiveAcademicYearId();
-    if (activeYearId && searchParams.get('all') !== 'true') {
-      query.academicYearId = activeYearId;
+    if (!allYears) {
+      if (academicYearId) {
+        query.academicYearId = academicYearId;
+      } else {
+        const activeYearId = await getActiveAcademicYearId();
+        if (activeYearId) {
+          query.academicYearId = activeYearId;
+        }
+      }
     }
 
     const leaves = await Leave.find(query)
       .populate('studentId')
       .populate('teacherId')
+      .populate('academicYearId')
       .sort({ createdAt: -1 });
     return NextResponse.json(leaves);
   } catch (error) {

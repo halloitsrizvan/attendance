@@ -1,61 +1,28 @@
 "use client";
-import React, { useState, useEffect, useMemo } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-    BookOpen, Calendar, Image as ImageIcon, Search, 
-    AlertCircle, ChevronDown, Award, Trophy, Loader2, 
-    RefreshCw, Filter, ShieldCheck, CheckCircle2, AlertTriangle, Clock, Download
+    BookOpen, Trophy, ShieldCheck, ChevronRight,
+    Sparkles, ArrowUpRight, FileSpreadsheet, Layers,
+    Mic, Award, CalendarDays
 } from 'lucide-react';
 import axios from 'axios';
 import { API_PORT } from '@/Constants';
 import PortalSkeleton from '@/components/StudentPortal/PortalSkeleton';
 
-export default function LisanPage() {
+export default function LisanHubPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [student, setStudent] = useState(null);
-    const [reports, setReports] = useState([]);
-
-    // Filters and Search State
-    const [selectedClass, setSelectedClass] = useState('All');
-    const [selectedMonth, setSelectedMonth] = useState('All');
-    const [searchQuery, setSearchQuery] = useState('');
+    const [programsCount, setProgramsCount] = useState(0);
+    const [achievementsCount, setAchievementsCount] = useState(0);
 
     useEffect(() => {
-        fetchProfileAndReports();
+        fetchProfileAndCounts();
     }, []);
 
-    const handleDownloadPoster = async (url, filename) => {
-        try {
-            // Transform Cloudinary URL if possible to force download headers
-            let downloadUrl = url;
-            if (url.includes('cloudinary.com') && url.includes('/image/upload/')) {
-                downloadUrl = url.replace('/image/upload/', '/image/upload/fl_attachment/');
-            }
-            
-            // Try fetching as blob (best user experience)
-            const response = await fetch(downloadUrl);
-            const blob = await response.blob();
-            const blobUrl = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = blobUrl;
-            link.download = filename || 'poster.jpg';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(blobUrl);
-        } catch (error) {
-            console.error("CORS or network error during direct download, trying link method:", error);
-            // Fallback: open transformed download link directly or open in new tab
-            let fallbackUrl = url;
-            if (url.includes('cloudinary.com') && url.includes('/image/upload/')) {
-                fallbackUrl = url.replace('/image/upload/', '/image/upload/fl_attachment/');
-            }
-            window.open(fallbackUrl, '_blank');
-        }
-    };
-
-    const fetchProfileAndReports = async () => {
+    const fetchProfileAndCounts = async () => {
         const token = localStorage.getItem('studentToken');
         if (!token) {
             router.push('/students-login');
@@ -78,12 +45,37 @@ export default function LisanPage() {
 
             setStudent(profileData);
 
-            // Fetch all reports
-            const reportsRes = await axios.get(`${API_PORT}/class-reports`);
-            setReports(reportsRes.data || []);
+            // Fetch counts for preview badges
+            try {
+                const [reportsRes, pointsRes] = await Promise.all([
+                    axios.get(`${API_PORT}/class-reports`),
+                    axios.get(`${API_PORT}/zehnuth/points?status=approved`)
+                ]);
+                
+                const reportsData = reportsRes.data || [];
+                let totalProg = 0;
+                reportsData.forEach(r => {
+                    totalProg += (r.programs || []).length;
+                });
+                setProgramsCount(totalProg);
+
+                const pointsData = pointsRes.data || [];
+                // Count target categories: Outside Presentations, Achievements, Outside Competitions
+                const targetPoints = pointsData.filter(item => {
+                    const cat = item.category;
+                    const act = (item.activity || '').toLowerCase();
+                    if (cat === 'Presentation' && !act.includes('(in)') && act !== 'speech' && !act.includes('inside campus')) return true;
+                    if (cat === 'Achievements' && !act.includes('innovation')) return true;
+                    if (cat === 'Competitions' && !act.includes('(in)') && !act.includes('inside campus')) return true;
+                    return false;
+                });
+                setAchievementsCount(targetPoints.length);
+            } catch (err) {
+                console.error("Error fetching preview counts:", err);
+            }
 
         } catch (err) {
-            console.error("Error fetching data on Lisan page:", err);
+            console.error("Error fetching data on Lisan hub:", err);
             if (err.response?.status === 401) {
                 localStorage.removeItem('studentToken');
                 router.push('/students-login');
@@ -93,281 +85,148 @@ export default function LisanPage() {
         }
     };
 
-    // Extract unique classes and months for filter lists
-    const filterOptions = useMemo(() => {
-        const classes = new Set();
-        const months = new Set();
-        
-        reports.forEach(report => {
-            if (report.classNumber) classes.add(report.classNumber);
-            if (report.month) months.add(report.month);
-        });
-
-        return {
-            classes: Array.from(classes).sort((a, b) => a - b),
-            months: Array.from(months)
-        };
-    }, [reports]);
-
-    // Apply filtering and searching
-    const filteredReports = useMemo(() => {
-        let result = reports.map(report => {
-            // Filter programs within the report
-            const filteredPrograms = (report.programs || []).filter(prog => {
-                const matchesSearch = prog.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    prog.description?.toLowerCase().includes(searchQuery.toLowerCase());
-                return matchesSearch;
-            });
-
-            return {
-                ...report,
-                programs: filteredPrograms
-            };
-        });
-
-        // Remove reports with no programs matching search, unless query is empty
-        if (searchQuery) {
-            result = result.filter(report => report.programs.length > 0);
-        }
-
-        // Filter by classNumber
-        if (selectedClass !== 'All') {
-            result = result.filter(report => String(report.classNumber) === String(selectedClass));
-        }
-
-        // Filter by month
-        if (selectedMonth !== 'All') {
-            result = result.filter(report => report.month === selectedMonth);
-        }
-
-        return result;
-    }, [reports, selectedClass, selectedMonth, searchQuery]);
-
-    // Grouping helper: Group reports by classNumber
-    const groupedByClass = useMemo(() => {
-        const groups = {};
-        filteredReports.forEach(report => {
-            if (report.programs.length === 0) return;
-            const classKey = `Class ${report.classNumber}`;
-            if (!groups[classKey]) {
-                groups[classKey] = {
-                    classNumber: report.classNumber,
-                    months: {}
-                };
-            }
-
-            const monthKey = `${report.month} ${report.year}`;
-            if (!groups[classKey].months[monthKey]) {
-                groups[classKey].months[monthKey] = [];
-            }
-            groups[classKey].months[monthKey].push(report);
-        });
-
-        // Convert to sorted array of classes
-        return Object.values(groups).sort((a, b) => a.classNumber - b.classNumber);
-    }, [filteredReports]);
-
     if (loading) {
         return <PortalSkeleton hasBanner={false} />;
     }
 
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto px-1 pb-16">
             
-            {/* Header Banner */}
-            <div className="bg-gradient-to-r from-blue-600 to-sky-500 rounded-[2rem] p-6 sm:p-8 text-white shadow-xl shadow-sky-500/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-white/20 rounded-2xl backdrop-blur-md">
-                            <BookOpen className="w-6 h-6 text-white" />
-                        </div>
-                        <span className="text-[10px] font-black uppercase tracking-widest bg-white/20 px-2.5 py-1 rounded-lg backdrop-blur-md">
-                            Lisan Dashboard
-                        </span>
+            {/* Top Hub Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white px-6 py-4 rounded-3xl border border-slate-100 shadow-sm">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center font-black">
+                        <BookOpen size={20} />
                     </div>
-                    <h1 className="text-2xl sm:text-3xl font-black tracking-tight">Class Programs Directory</h1>
-                    <p className="text-sky-100 text-xs sm:text-sm font-semibold max-w-xl">
-                        Monitor, filter, and review class program submissions and reports from students and teachers class-wise and month-wise.
+                    <div>
+                        <div className="text-xs font-black uppercase tracking-wider text-sky-600">Lisan Hub</div>
+                        <div className="text-sm font-bold text-slate-700">Central Management & Achievements Portal</div>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-black border border-emerald-100">
+                        <ShieldCheck size={14} />
+                        <span>Lisan Authorized</span>
+                    </span>
+                </div>
+            </div>
+
+            {/* Header Banner */}
+            <div className="bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-700 rounded-[2.5rem] p-7 sm:p-10 text-white shadow-xl shadow-sky-500/10 relative overflow-hidden">
+                <div className="absolute right-0 top-0 w-72 h-72 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
+                <div className="relative z-10 space-y-2 max-w-2xl">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/15 backdrop-blur-md rounded-xl text-[10px] font-black uppercase tracking-widest text-sky-100">
+                        <Sparkles size={12} />
+                        <span>Select a Module to Proceed</span>
+                    </div>
+                    <h1 className="text-3xl sm:text-4xl font-black tracking-tight">
+                        Lisan Activity Hub
+                    </h1>
+                    <p className="text-sky-100 text-xs sm:text-sm font-semibold leading-relaxed">
+                        Access the class programs archive or generate intelligence reports for external presentations, student achievements, and outside competitions.
                     </p>
                 </div>
-                {/* <button 
-                    onClick={fetchProfileAndReports}
-                    className="flex items-center gap-2 self-start md:self-center px-4 py-3 bg-white/10 hover:bg-white/20 border border-white/20 active:scale-95 transition-all rounded-2xl text-xs font-black uppercase tracking-widest"
-                >
-                    <RefreshCw className="w-4 h-4" /> Refresh Data
-                </button> */}
             </div>
 
-            {/* Filters Bar */}
-            <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6 sm:p-8 flex flex-col md:flex-row gap-4 items-center justify-between">
+            {/* ============================================================ */}
+            {/* 2 MAIN MODULE CARDS */}
+            {/* ============================================================ */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 pt-2">
                 
-                {/* Search input */}
-                <div className="relative w-full md:max-w-md">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                    <input 
-                        type="text"
-                        placeholder="Search programs..."
-                        value={searchQuery}
-                        onChange={e => setSearchQuery(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-100 hover:border-slate-200 focus:border-blue-400 focus:bg-white rounded-2xl py-3.5 pl-11 pr-4 text-sm font-semibold outline-none transition-all placeholder:text-slate-400 text-slate-700"
-                    />
-                </div>
+                {/* CARD 1: Class Programs Directory */}
+                <div 
+                    onClick={() => router.push('/students-portal/lisan/programs')}
+                    className="cursor-pointer group relative p-8 sm:p-9 bg-white hover:bg-slate-50/50 rounded-[2.5rem] border border-slate-200/80 hover:border-sky-500 shadow-sm hover:shadow-xl hover:shadow-sky-500/10 transition-all duration-300 overflow-hidden flex flex-col justify-between space-y-6"
+                >
+                    {/* Background Subtle Glow */}
+                    <div className="absolute -right-10 -top-10 w-40 h-40 bg-sky-100/50 rounded-full blur-3xl group-hover:bg-sky-200/50 transition-colors duration-300"></div>
 
-                {/* Filter Dropdowns */}
-                <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto items-stretch sm:items-center">
-                    
-                    {/* Class Selector */}
-                    <div className="relative flex-1 sm:flex-initial">
-                        <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5" />
-                        <select 
-                            value={selectedClass}
-                            onChange={e => setSelectedClass(e.target.value)}
-                            className="bg-slate-50 border border-slate-100 hover:border-slate-200 rounded-2xl pl-10 pr-8 py-3 text-xs font-black uppercase tracking-widest text-slate-600 outline-none appearance-none cursor-pointer w-full focus:border-blue-400 focus:bg-white transition-all"
-                        >
-                            <option value="All">All Classes</option>
-                            {filterOptions.classes.map(cNum => (
-                                <option key={cNum} value={cNum}>Class {cNum}</option>
-                            ))}
-                        </select>
-                        <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5 pointer-events-none" />
-                    </div>
-
-                    {/* Month Selector */}
-                    <div className="relative flex-1 sm:flex-initial">
-                        <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5" />
-                        <select 
-                            value={selectedMonth}
-                            onChange={e => setSelectedMonth(e.target.value)}
-                            className="bg-slate-50 border border-slate-100 hover:border-slate-200 rounded-2xl pl-10 pr-8 py-3 text-xs font-black uppercase tracking-widest text-slate-600 outline-none appearance-none cursor-pointer w-full focus:border-blue-400 focus:bg-white transition-all"
-                        >
-                            <option value="All">All Months</option>
-                            {filterOptions.months.map(mName => (
-                                <option key={mName} value={mName}>{mName}</option>
-                            ))}
-                        </select>
-                        <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5 pointer-events-none" />
-                    </div>
-                </div>
-            </div>
-
-            {/* Reports Display Section */}
-            <div className="space-y-10">
-                {groupedByClass.length === 0 ? (
-                    <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-12 text-center flex flex-col items-center justify-center space-y-4">
-                        <AlertCircle className="w-12 h-12 text-slate-300" />
-                        <div className="space-y-1">
-                            <h3 className="text-lg font-black text-slate-800">No Program Reports Found</h3>
-                            <p className="text-sm text-slate-400 font-semibold max-w-sm">
-                                Try resetting the search or filter settings to display results.
-                            </p>
+                    <div className="relative z-10 space-y-5">
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-sky-500/25 group-hover:scale-105 transition-transform duration-300">
+                                <BookOpen size={32} />
+                            </div>
+                            <div className="w-10 h-10 rounded-2xl bg-sky-50 group-hover:bg-sky-600 text-sky-600 group-hover:text-white flex items-center justify-center transition-all duration-300 shadow-sm">
+                                <ArrowUpRight size={20} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                            </div>
                         </div>
-                        {(selectedClass !== 'All' || selectedMonth !== 'All' || searchQuery !== '') && (
-                            <button 
-                                onClick={() => {
-                                    setSelectedClass('All');
-                                    setSelectedMonth('All');
-                                    setSearchQuery('');
-                                }}
-                                className="px-6 py-3 bg-blue-50 hover:bg-blue-100 text-blue-600 transition-all rounded-2xl text-xs font-black uppercase tracking-widest"
-                            >
-                                Reset All Filters
-                            </button>
-                        )}
-                    </div>
-                ) : (
-                    groupedByClass.map(classGroup => (
-                        <div key={classGroup.classNumber} className="space-y-6">
-                            
-                            {/* Class Main Heading */}
-                            <div className="flex items-center gap-4">
-                                <h2 className="text-2xl font-black text-slate-800 tracking-tight">
-                                    Class {classGroup.classNumber}
-                                </h2>
-                                <div className="h-0.5 bg-slate-200/60 flex-1 rounded-full"></div>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 px-3 py-1 rounded-xl">
-                                    {Object.keys(classGroup.months).length} Months Submissions
+
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-sky-600 bg-sky-50 px-2.5 py-0.5 rounded-lg border border-sky-100">
+                                    Module 01
                                 </span>
                             </div>
-
-                            {/* Month Subsections */}
-                            {Object.entries(classGroup.months).map(([monthYear, reportList]) => (
-                                <div key={monthYear} className="space-y-4 pl-0 sm:pl-4">
-                                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-500 italic">
-                                        🗓️ {monthYear}
-                                    </h3>
-                                    
-                                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
-                                        {reportList.flatMap(report => 
-                                            (report.programs || []).map(program => (
-                                                <div 
-                                                    key={program._id} 
-                                                    className="bg-white border border-slate-100 hover:border-slate-200 hover:shadow-md transition-all duration-300 rounded-[1.8rem] overflow-hidden flex flex-col group"
-                                                >
-                                                    {/* Card Header Poster */}
-                                                    <div className="relative h-48 w-full bg-slate-100 overflow-hidden shrink-0">
-                                                        {program.poster ? (
-                                                            <a href={program.poster} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
-                                                                <img 
-                                                                    src={program.poster} 
-                                                                    alt={program.title} 
-                                                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 cursor-pointer" 
-                                                                />
-                                                            </a>
-                                                        ) : (
-                                                            <div className="w-full h-full bg-gradient-to-br from-sky-50 to-blue-50 flex flex-col items-center justify-center p-6 text-center space-y-2">
-                                                                <div className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center">
-                                                                    <BookOpen className="w-5 h-5 text-sky-500" />
-                                                                </div>
-                                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
-                                                                    No Poster Uploaded
-                                                                </span>
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    {/* Card Body */}
-                                                    <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
-                                                        <div className="space-y-3">
-                                                            {/* Program Metadata badges */}
-                                                            <div className="flex flex-wrap gap-1.5">
-                                                                <span className="text-[8px] font-black bg-amber-50 text-amber-800 px-2 py-0.5 rounded border border-amber-100 uppercase tracking-widest">
-                                                                    {program.programType || 'Curriculum'}
-                                                                </span>
-                                                            </div>
-
-                                                            {/* Program Title */}
-                                                            <h4 className="text-md font-black text-slate-800 tracking-tight leading-snug line-clamp-2">
-                                                                {program.title}
-                                                            </h4>
-                                                        </div>
-
-                                                        {/* Card Footer Details */}
-                                                        <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                                            <div className="flex items-center gap-1">
-                                                                <Calendar size={12} className="text-slate-300" />
-                                                                <span>{program.date || 'No Date'}</span>
-                                                            </div>
-                                                            {program.poster && (
-                                                                <button
-                                                                    onClick={() => handleDownloadPoster(program.poster, `${program.title || 'program'}-poster.jpg`)}
-                                                                    className="flex items-center gap-1 text-sky-600 bg-sky-50 hover:bg-sky-100 transition-colors px-2.5 py-1 rounded-xl border border-sky-100 font-black uppercase tracking-widest text-[9px] active:scale-95 transition-all"
-                                                                >
-                                                                    <Download size={10} className="text-sky-500" />
-                                                                    Download
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
+                            <h2 className="text-2xl font-black text-slate-800 tracking-tight mt-2 group-hover:text-sky-600 transition-colors">
+                                Class Programs Directory
+                            </h2>
                         </div>
-                    ))
-                )}
+
+                        <p className="text-xs sm:text-sm font-semibold text-slate-500 leading-relaxed">
+                            Explore, search, and download class-wise program submissions, posters, and curriculum reports submitted by students & teachers.
+                        </p>
+                    </div>
+
+                    <div className="relative z-10 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-600">
+                        <span className="text-sky-600 font-extrabold flex items-center gap-1.5">
+                            <CalendarDays size={14} />
+                            <span>{programsCount} Programs Logged</span>
+                        </span>
+                        <span className="text-slate-400 group-hover:text-slate-600 flex items-center gap-1">
+                            <span>Open Directory</span>
+                            <ChevronRight size={14} />
+                        </span>
+                    </div>
+                </div>
+
+                {/* CARD 2: Zehnuth Achievements Report */}
+                <div 
+                    onClick={() => router.push('/students-portal/lisan/zehnuth-report')}
+                    className="cursor-pointer group relative p-8 sm:p-9 bg-white hover:bg-slate-50/50 rounded-[2.5rem] border border-slate-200/80 hover:border-indigo-500 shadow-sm hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-300 overflow-hidden flex flex-col justify-between space-y-6"
+                >
+                    {/* Background Subtle Glow */}
+                    <div className="absolute -right-10 -top-10 w-40 h-40 bg-indigo-100/50 rounded-full blur-3xl group-hover:bg-indigo-200/50 transition-colors duration-300"></div>
+
+                    <div className="relative z-10 space-y-5">
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-transform duration-300">
+                                <Trophy size={32} />
+                            </div>
+                            <div className="w-10 h-10 rounded-2xl bg-indigo-50 group-hover:bg-indigo-600 text-indigo-600 group-hover:text-white flex items-center justify-center transition-all duration-300 shadow-sm">
+                                <ArrowUpRight size={20} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                            </div>
+                        </div>
+
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-lg border border-indigo-100">
+                                    Module 02
+                                </span>
+                            </div>
+                            <h2 className="text-2xl font-black text-slate-800 tracking-tight mt-2 group-hover:text-indigo-600 transition-colors">
+                                Zehnuth Achievements Report
+                            </h2>
+                        </div>
+
+                        <p className="text-xs sm:text-sm font-semibold text-slate-500 leading-relaxed">
+                            Analyze external presentations (outside campus), student achievements, and outside competitions with monthly filters and PDF export.
+                        </p>
+                    </div>
+
+                    <div className="relative z-10 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-600">
+                        <span className="text-indigo-600 font-extrabold flex items-center gap-1.5">
+                            <Award size={14} />
+                            <span>{achievementsCount} Approved Records</span>
+                        </span>
+                        <span className="text-slate-400 group-hover:text-slate-600 flex items-center gap-1">
+                            <span>View Report</span>
+                            <ChevronRight size={14} />
+                        </span>
+                    </div>
+                </div>
+
             </div>
+
         </div>
     );
 }
