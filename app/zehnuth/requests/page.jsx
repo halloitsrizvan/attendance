@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Header from '@/components/Header/Header';
 import axios from 'axios';
 import { Trophy, CheckCircle2, XCircle, Loader2, User, Activity, Star, AlertTriangle, Clock, ChevronRight, Search } from 'lucide-react';
@@ -47,9 +47,77 @@ const ACTIVITY_POINTS = {
     'Social works': [4], 'Poster design': [4], 'video edit': [4]
 };
 
+const formatDateTime = (dateString) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+    });
+};
+
+const useContinuousPress = (callback, initialDelay = 350, intervalTime = 75) => {
+    const timerRef = useRef(null);
+    const intervalRef = useRef(null);
+    const callbackRef = useRef(callback);
+    callbackRef.current = callback;
+
+    const stop = useCallback(() => {
+        if (timerRef.current) {
+            clearTimeout(timerRef.current);
+            timerRef.current = null;
+        }
+        if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+        }
+    }, []);
+
+    const start = useCallback((e) => {
+        if (e && e.type === 'mousedown' && e.button !== 0) return;
+        
+        stop();
+        callbackRef.current();
+
+        timerRef.current = setTimeout(() => {
+            intervalRef.current = setInterval(() => {
+                callbackRef.current();
+            }, intervalTime);
+        }, initialDelay);
+    }, [initialDelay, intervalTime, stop]);
+
+    useEffect(() => {
+        return () => stop();
+    }, [stop]);
+
+    return {
+        onMouseDown: start,
+        onMouseUp: stop,
+        onMouseLeave: stop,
+        onTouchStart: (e) => {
+            if (e.cancelable) e.preventDefault();
+            start(e);
+        },
+        onTouchEnd: stop,
+        onTouchCancel: stop,
+        onContextMenu: (e) => e.preventDefault(),
+    };
+};
+
 const ReviewModal = ({ request, isOpen, onClose, onAction, processingId }) => {
     const [points, setPoints] = useState(0);
     const categoryObj = CATEGORIES.find(c => c.id === request?.category);
+
+    const minusHandlers = useContinuousPress(() => {
+        setPoints(prev => Math.max(0, prev - 1));
+    });
+
+    const plusHandlers = useContinuousPress(() => {
+        setPoints(prev => prev + 1);
+    });
 
     // Determine which points to show: activity-specific or category fallback
     const displayPoints = request?.activity && ACTIVITY_POINTS[request.activity]
@@ -119,7 +187,7 @@ const ReviewModal = ({ request, isOpen, onClose, onAction, processingId }) => {
                                             </a>
                                         </div>
                                         {request.isAiGenerated && (
-                                            <div className="mt-2 flex items-center gap-1.5 p-2 bg-amber-50 rounded-lg border border-amber-200 text-[10px] font-black text-amber-600 uppercase tracking-widest">
+                                             <div className="mt-2 flex items-center gap-1.5 p-2 bg-amber-50 rounded-lg border border-amber-200 text-[10px] font-black text-amber-600 uppercase tracking-widest">
                                                 <AlertTriangle size={12} /> AI GENERATED WEBSITE DETECTED
                                             </div>
                                         )}
@@ -137,9 +205,16 @@ const ReviewModal = ({ request, isOpen, onClose, onAction, processingId }) => {
                             )}
 
                             <div className="flex items-center justify-between mt-4 pt-4 border-t border-blue-100/30">
-                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                    {request.mentorApproved ? 'by' : 'by'} <span className="text-blue-600"> {request.mentorId?.name}</span>
-                                </p>
+                                <div>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                        {request.mentorApproved ? 'by' : 'by'} <span className="text-blue-600"> {request.mentorId?.name}</span>
+                                    </p>
+                                    {request.createdAt && (
+                                        <p className="text-[9px] font-semibold text-slate-400 mt-1 flex items-center gap-1">
+                                            <Clock size={10} /> {formatDateTime(request.createdAt)}
+                                        </p>
+                                    )}
+                                </div>
                                 {request.mentorApproved ? (
                                     <span className="bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded text-[8px] font-black uppercase flex items-center gap-1">
                                         <CheckCircle2 size={10} /> Mentor Verified
@@ -171,25 +246,27 @@ const ReviewModal = ({ request, isOpen, onClose, onAction, processingId }) => {
                         )}
 
                         <div>
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 mb-2 block">Set Points Value</label>
-                            <div className="flex items-center justify-center gap-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 mb-2 block select-none">Set Points Value</label>
+                            <div className="flex items-center justify-center gap-6 p-4 bg-slate-50 rounded-2xl border border-slate-100 select-none">
                                 <button
-                                    onClick={() => setPoints(prev => Math.max(0, prev - 1))}
-                                    className="w-12 h-12 rounded-2xl bg-white border-2 border-slate-200 flex items-center justify-center text-slate-500 hover:border-amber-400 hover:text-amber-500 transition-all active:scale-95 shadow-sm"
+                                    type="button"
+                                    {...minusHandlers}
+                                    className="w-12 h-12 rounded-2xl bg-white border-2 border-slate-200 flex items-center justify-center text-slate-500 hover:border-amber-400 hover:text-amber-500 transition-all active:scale-90 shadow-sm select-none touch-none cursor-pointer"
                                 >
-                                    <span className="text-2xl font-light leading-none mb-1">-</span>
+                                    <span className="text-2xl font-light leading-none mb-1 select-none pointer-events-none">-</span>
                                 </button>
                                 
-                                <div className="w-24 text-center">
-                                    <span className="text-4xl font-black text-slate-800 tracking-tight">{points}</span>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Points</p>
+                                <div className="w-24 text-center select-none">
+                                    <span className="text-4xl font-black text-slate-800 tracking-tight select-none">{points}</span>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1 select-none">Points</p>
                                 </div>
                                 
                                 <button
-                                    onClick={() => setPoints(prev => prev + 1)}
-                                    className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center hover:bg-amber-600 transition-all active:scale-95 shadow-lg shadow-amber-200"
+                                    type="button"
+                                    {...plusHandlers}
+                                    className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center hover:bg-amber-600 transition-all active:scale-90 shadow-lg shadow-amber-200 select-none touch-none cursor-pointer"
                                 >
-                                    <span className="text-2xl font-light leading-none mb-1">+</span>
+                                    <span className="text-2xl font-light leading-none mb-1 select-none pointer-events-none">+</span>
                                 </button>
                             </div>
                         </div>
@@ -409,7 +486,7 @@ export default function ZehnuthRequests() {
             />
 
             <main className="max-w-3xl mx-auto px-4 pt-20 pb-12">
-                <div className="mb-10 flex items-end justify-between px-2">
+                <div className="mb-6 flex items-end justify-between px-2">
                     <div>
                         <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
                             <span className="p-2 bg-amber-500 text-white rounded-xl shadow-lg shadow-amber-200"><Clock size={20} /></span>
@@ -492,16 +569,22 @@ export default function ZehnuthRequests() {
                                         <div>
                                             <div className="flex items-center gap-2 mb-0.5">
                                                 <h3 className="text-sm font-black text-slate-800 uppercase italic">{request.studentId?.["SHORT NAME"] || request.studentId?.["FULL NAME"]}</h3>
-                                                <span className="text-[9px] font-black text-slate-400">Class: {request.studentId?.CLASS}</span>
+                                                <span className="text-[9px] font-black text-slate-400">CL: {request.studentId?.CLASS}</span>
                                             </div>
                                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider line-clamp-1">
-                                                {categoryObj?.label} • <span className="text-slate-300 italic font-medium">{request.mentorId?.name}</span>
+                                                 {categoryObj?.label}
+                                                {/* • <span className="text-slate-400 italic font-medium">{request.mentorId?.name}</span> */}
                                             </p>
-                                        </div>
+                                        </div> 
                                     </div>
-                                    <div className="flex items-center gap-3">
-                                        <div className="hidden sm:flex flex-col items-end">
-                                            <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Review</span>
+                                    <div className="flex items-center gap-3 shrink-0">
+                                        <div className="flex flex-col items-end text-right">
+                                            {request.createdAt && (
+                                                <span className="text-[9px] font-bold text-slate-400 flex items-center gap-1 mb-0.5">
+                                                    <Clock size={10} className="text-slate-400" />
+                                                    <span>{formatDateTime(request.createdAt)}</span>
+                                                </span>
+                                            )}
                                             <span className="text-[10px] font-black text-blue-500 uppercase flex items-center gap-1">Click to Award <Star size={10} /></span>
                                         </div>
                                         <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-300 group-hover:text-blue-500 group-hover:bg-blue-50 transition-all">
