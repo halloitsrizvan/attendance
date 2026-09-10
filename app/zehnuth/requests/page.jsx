@@ -269,6 +269,26 @@ const ReviewModal = ({ request, isOpen, onClose, onAction, processingId }) => {
                                     <span className="text-2xl font-light leading-none mb-1 select-none pointer-events-none">+</span>
                                 </button>
                             </div>
+
+                            {/* Point Suggestions */}
+                            <div className="mt-2.5">
+                                <div className="grid grid-cols-4 gap-2">
+                                    {[5, 10, 15, 20].map((val) => (
+                                        <button
+                                            key={val}
+                                            type="button"
+                                            onClick={() => setPoints(val)}
+                                            className={`py-2 px-1 rounded-xl text-xs font-black transition-all active:scale-95 border cursor-pointer select-none ${
+                                                points === val
+                                                    ? 'bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-200 ring-2 ring-amber-300 ring-offset-1'
+                                                    : 'bg-slate-50 hover:bg-amber-50/50 text-slate-600 hover:text-amber-600 border-slate-200/80 hover:border-amber-200'
+                                            }`}
+                                        >
+                                            {val} pts
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     </div>
 
