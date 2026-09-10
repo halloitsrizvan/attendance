@@ -205,14 +205,14 @@ export default function AttendancePage() {
         });
     }, [attendanceData, logMonth]);
 
-    const isWithin24Hours = (dateString) => {
+    const isWithin1Week = (dateString) => {
         if (!dateString) return false;
         const diffMs = new Date() - new Date(dateString);
-        return diffMs <= 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+        return diffMs <= 7 * 24 * 60 * 60 * 1000; // 1 week (7 days) in milliseconds
     };
 
     const eligibleAbsentsData = useMemo(() => {
-        return attendanceData.filter(log => log.status !== 'Present' && isWithin24Hours(log.createdAt || log.attendanceDate));
+        return attendanceData.filter(log => log.status !== 'Present' && isWithin1Week(log.createdAt || log.attendanceDate));
     }, [attendanceData]);
 
     if (loading) {
@@ -284,7 +284,7 @@ export default function AttendancePage() {
 
                                 </div>
                                 <div className="text-left sm:text-right">
-                                    {isWithin24Hours(item.createdAt) && <div className="text-[10px] font-bold text-slate-600 sm:max-w-[200px]">
+                                    {isWithin1Week(item.createdAt) && <div className="text-[10px] font-bold text-slate-600 sm:max-w-[200px]">
                                         {item.teacherId ? "USTHAD  " : ""} {item.teacherId?.name || 'Teacher'}
                                     </div>}
                                     {(() => {
@@ -302,7 +302,7 @@ export default function AttendancePage() {
                                                 </span>
                                             );
                                         }
-                                        return isWithin24Hours(item.createdAt || item.attendanceDate) && (
+                                        return isWithin1Week(item.createdAt || item.attendanceDate) && (
                                             <button
                                                 onClick={() => handleComplaintClick(item._id)}
                                                 className="text-[10px] font-black text-rose-600 bg-rose-100 hover:bg-rose-200 hover:text-rose-700 px-3 py-1 rounded-lg uppercase mt-2 inline-block transition-colors cursor-pointer shadow-sm active:scale-95"
@@ -352,11 +352,11 @@ export default function AttendancePage() {
                                         OnLeave: {item.onLeave ? 'Yes' : 'No'}
                                     </span>}
                                 </div>
-                                <div className={`text-left text-sm ${(isWithin24Hours(item.createdAt) || item.status === 'Absent') ? 'md:text-center' : 'md:text-right'}`}>
+                                <div className={`text-left text-sm ${(isWithin1Week(item.createdAt) || item.status === 'Absent') ? 'md:text-center' : 'md:text-right'}`}>
                                     <div className="font-black text-slate-800">{new Date(item.createdAt || item.attendanceDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                                     <div className="font-bold text-slate-500">{new Date(item.createdAt || item.attendanceDate).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
                                 </div>
-                                {(isWithin24Hours(item.createdAt) || item.status === 'Absent') && <div className="text-left md:text-right text-xs font-bold text-slate-600 md:max-w-[150px]">
+                                {(isWithin1Week(item.createdAt) || item.status === 'Absent') && <div className="text-left md:text-right text-xs font-bold text-slate-600 md:max-w-[150px]">
                                     USTHAD {item.teacherId?.name || 'Teacher'}
                                 </div>}
                             </div>
@@ -369,7 +369,7 @@ export default function AttendancePage() {
                     <h2 className="text-xl font-black text-slate-800 mb-2">Report Any Issue?</h2>
                     <div className="text-[10px] font-black text-amber-600 bg-amber-50 border border-amber-100 px-3 py-2 rounded-xl uppercase mb-6 inline-flex items-center gap-2">
                         <AlertTriangle className="w-3 h-3" />
-                        NB: You can only complain about absents within the last 24 hours
+                        NB: You can only complain about absents within the last 1 week
                     </div>
                     <div
                         ref={formRef}
