@@ -65,6 +65,7 @@ export async function POST(req) {
         const complaint = await Complaint.create(body);
         return NextResponse.json(complaint);
     } catch (error) {
+        console.error("Complaints POST Error:", error);
         return NextResponse.json({ error: error.message }, { status: 400 });
     }
 }

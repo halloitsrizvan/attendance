@@ -17,8 +17,12 @@ const complaintSchema = new mongoose.Schema({
     },
     actualStatus: {
         type: String,
-        enum: ['Present', 'Leave', 'Other'],
+        enum: ['Present', 'Leave', 'CEP', 'Other'],
         required: true
+    },
+    isMedical: {
+        type: Boolean,
+        default: false
     },
     message: {
         type: String
@@ -37,4 +41,8 @@ const complaintSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-export default mongoose.models['Complaint'] || mongoose.model('Complaint', complaintSchema);
+if (mongoose.models['Complaint']) {
+  delete mongoose.models['Complaint'];
+}
+
+export default mongoose.model('Complaint', complaintSchema);
