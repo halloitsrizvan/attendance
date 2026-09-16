@@ -444,14 +444,14 @@ const AdminComplaints = () => {
 
                     {/* Status Badge & Super Admin Action Buttons */}
                     <div className="flex flex-wrap items-center gap-2 self-end lg:self-auto">
-                      <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${isPending
+                      {/* <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${isPending
                           ? 'bg-amber-50 text-amber-700 border-amber-200'
                           : isResolved
                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                             : 'bg-rose-50 text-rose-700 border-rose-200'
                         }`}>
                         {complaint.status}
-                      </span>
+                      </span> */}
 
                       {isPending ? (
                         <>
@@ -477,13 +477,13 @@ const AdminComplaints = () => {
                         </button>
                       )}
 
-                      <button
+                      {/* <button
                         onClick={() => handleDeleteComplaint(complaint._id)}
                         className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
                         title="Delete complaint log"
                       >
                         <Trash2 size={16} />
-                      </button>
+                      </button> */}
                     </div>
                   </div>
 
@@ -632,14 +632,14 @@ const AdminComplaints = () => {
                     )}
                   </div>
                 </div>
-                <div className="flex justify-between items-center text-xs font-bold text-slate-600">
+                {/* <div className="flex justify-between items-center text-xs font-bold text-slate-600">
                   <span>Recorded Attendance ID:</span>
                   <span className="font-mono text-[10px] text-slate-400">
                     {activeComplaint.attendanceId?._id || activeComplaint.attendanceId || 'N/A'}
                   </span>
-                </div>
+                </div> */}
 
-                {decisionStatus === 'Resolved' ? (
+                {/* {decisionStatus === 'Resolved' ? (
                   <div className="mt-3 p-3 bg-emerald-100/60 rounded-xl text-[11px] font-bold text-emerald-800">
                     💡 <strong>Automated Database Correction:</strong> Submitting will immediately update the student's attendance record in the database to <strong>{activeComplaint.actualStatus}</strong>.
                   </div>
@@ -647,7 +647,7 @@ const AdminComplaints = () => {
                   <div className="mt-3 p-3 bg-rose-100/60 rounded-xl text-[11px] font-bold text-rose-800">
                     ⚠️ <strong>Dispute Dismissal:</strong> The complaint will be marked as Rejected. The attendance record will remain unchanged.
                   </div>
-                )}
+                )} */}
               </div>
 
               {/* Status Switcher in Modal */}
