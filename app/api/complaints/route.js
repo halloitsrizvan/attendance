@@ -1,6 +1,9 @@
 import dbConnect from "@/lib/mongodb";
 import Complaint from "@/models/complaintModel";
 import Attendance from "@/models/attendanceModel";
+import Student from "@/models/studentsModel";
+import Teacher from "@/models/teachersModel";
+import AcademicYear from "@/models/academicYearModel";
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { getActiveAcademicYearId } from "@/lib/getActiveAcademicYear";
@@ -85,7 +88,10 @@ export async function PATCH(req) {
         }
 
         // Update complaint
-        const updatedComplaint = await Complaint.findByIdAndUpdate(id, updates, { new: true });
+        const updatedComplaint = await Complaint.findByIdAndUpdate(id, updates, { new: true })
+            .populate('studentId')
+            .populate('attendanceId')
+            .populate('teacherId');
 
         // Automated Correction: If status is set to 'Resolved', update the actual attendance record
         if (updates.status === 'Resolved' && complaint.attendanceId) {
@@ -106,5 +112,24 @@ export async function PATCH(req) {
         return NextResponse.json(updatedComplaint);
     } catch (error) {
         return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+}
+
+export async function DELETE(req) {
+    const mutationBlocked = protectMutation(req);
+    if (mutationBlocked) return mutationBlocked;
+
+    await dbConnect();
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+
+    try {
+        if (!id) {
+            return NextResponse.json({ error: "Complaint ID is required" }, { status: 400 });
+        }
+        await Complaint.findByIdAndDelete(id);
+        return NextResponse.json({ success: true, message: "Complaint removed" });
+    } catch (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

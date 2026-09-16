@@ -9,7 +9,8 @@ const ADMIN_PAGES = [
     '/attendance-report',
     '/students-management',
     '/teachers-management',
-    '/minus-report'
+    '/minus-report',
+    '/admin-complaints'
 ];
 
 export default function AuthGuard({ children, roles = [] }) {
@@ -70,7 +71,7 @@ export default function AuthGuard({ children, roles = [] }) {
 
             // 4. Role-based access for leave-form
             const isLeaveForm = pathname === '/leave-form' || pathname.startsWith('/leave-form/');
-            const allowedLeaveRoles = ["class_teacher", "super_admin", "HOD", "HOS", "Principal", "medical_teacher"];
+            const allowedLeaveRoles = ["class_teacher", "super_admin", "HOD", "HOS", "Principal", "vice_principal", "medical_teacher"];
             if (token && isLeaveForm && !teacherRoles.some(r => allowedLeaveRoles.includes(r))) {
                 router.replace('/');
                 return;

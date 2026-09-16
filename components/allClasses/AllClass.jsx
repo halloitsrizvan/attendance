@@ -315,7 +315,7 @@ function AllClass({ edit, id }) {
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Select Time</label>
                   <div className="flex flex-wrap gap-2 pb-2">
                     {['Fajr', 'Zuhr', 'Asr', 'Maghrib', 'Isha'].map((jamath) => (
-                      <button
+                      <button 
                         key={jamath}
                         type="button"
                         onClick={() => setMore(jamath)}

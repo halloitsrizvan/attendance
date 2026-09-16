@@ -142,9 +142,13 @@ export default function AttendancePage() {
         return { presents, absents, presentsBreakdown, absentsBreakdown };
     }, [attendanceData]);
 
-    const sortedTeachers = useMemo(() => {
+    const sortedCepTeachers = useMemo(() => {
         return teachers
-            .filter(t => (t.name || '').trim().toUpperCase() !== 'TEST' && (t.email || '').trim().toLowerCase() !== 'test@gmail.com')
+            .filter(t => {
+                if ((t.name || '').trim().toUpperCase() === 'TEST' || (t.email || '').trim().toLowerCase() === 'test@gmail.com') return false;
+                const roles = Array.isArray(t.role) ? t.role : (t.role ? [t.role] : []);
+                return roles.includes('CEPApproval');
+            })
             .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     }, [teachers]);
 
@@ -526,7 +530,7 @@ export default function AttendancePage() {
                                     className="w-full border border-slate-800 rounded-xl p-3 text-sm font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-500"
                                 >
                                     <option value="">Select Teacher...</option>
-                                    {sortedTeachers.map(t => (
+                                    {sortedCepTeachers.map(t => (
                                         <option key={t._id} value={t._id}>
                                             {t.name}
                                         </option>

@@ -82,7 +82,7 @@ The application implements granular permissions across multiple specialized role
 | Role | Permissions & Scope |
 |---|---|
 | `super_admin` | Unrestricted institutional access, system settings, academic years, user management, and global report exports. |
-| `Principal` | Full institutional view, leave approvals, complaints overview, and high-level reports. |
+| `Principal` / `vice_principal` | Full institutional view, leave approvals, complaints overview, and high-level reports. |
 | `HOD` / `HOS` | Section-level supervision (Junior classes 1–7 for HOS, Senior classes 8–10 for HOD), leave approvals, and student tracking. |
 | `class_teacher` | Manage assigned class attendance, approve monthly class reports, and monitor class leaves. |
 | `medical_teacher` | Create and manage medical leaves (Hospital, Hospital Bystander, Medical Room). |
@@ -138,6 +138,7 @@ attendance/
 │   │   ├── students/                   # Student CRUD, bulk import, & auth
 │   │   ├── teachers/                   # Teacher CRUD & authentication
 │   │   └── zehnuth/                    # Points, mentor activities, & leaderboards
+│   ├── admin-complaints/               # Super admin attendance complaints & resolution
 │   ├── attendance/                     # Attendance recording interface
 │   ├── attendance-report/              # Periodic attendance reports
 │   ├── class-reports/                  # Monthly program submissions & admin grading

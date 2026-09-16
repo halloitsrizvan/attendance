@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Header from '../../components/Header/Header';
 import axios from 'axios';
 import { API_PORT } from '../../Constants';
@@ -18,7 +18,8 @@ import {
   CheckCircle,
   XCircle,
   CornerDownRight,
-  Send
+  Send,
+  HeartPulse
 } from 'lucide-react';
 
 const ComplaintsPage = () => {
@@ -48,17 +49,25 @@ const ComplaintsPage = () => {
     }
   }, []);
 
+  const isSuperAdmin = useMemo(() => {
+    if (!teacher) return false;
+    const email = (teacher.email || teacher.EMAIL || '').trim().toLowerCase();
+    return teacher.role === 'super_admin' || 
+      (Array.isArray(teacher.role) && teacher.role.includes('super_admin')) ||
+      email === 'test@gmail.com';
+  }, [teacher]);
+
   const fetchComplaints = async (teacherObj) => {
     try {
       setLoading(true);
       const tid = teacherObj._id || teacherObj.id;
       const email = (teacherObj.email || teacherObj.EMAIL || '').trim().toLowerCase();
-      const isSuperAdmin = teacherObj.role === 'super_admin' || 
+      const superAdmin = teacherObj.role === 'super_admin' || 
         (Array.isArray(teacherObj.role) && teacherObj.role.includes('super_admin')) ||
         email === 'test@gmail.com';
       
-      const res = await axios.get(`${API_PORT}/complaints${isSuperAdmin ? '' : `?teacherId=${tid}`}`);
-      setComplaints(res.data);
+      const res = await axios.get(`${API_PORT}/complaints${superAdmin ? '' : `?teacherId=${tid}`}`);
+      setComplaints(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Error fetching complaints:", err);
     } finally {
@@ -91,26 +100,49 @@ const ComplaintsPage = () => {
     }
   };
 
-  const isSuperAdmin = teacher?.role === 'super_admin' || 
-    (Array.isArray(teacher?.role) && teacher?.role.includes('super_admin')) ||
-    (teacher?.email || teacher?.EMAIL || '').trim().toLowerCase() === 'test@gmail.com';
+  // Base list of complaints visible to the current user
+  const teacherComplaints = useMemo(() => {
+    if (!teacher) return [];
+    const currentTeacherId = (teacher._id || teacher.id || '').toString();
 
-  const filteredComplaints = complaints.filter(c => {
-    const matchesTab = activeTab === 'All' || c.status === activeTab;
-    const matchesSearch = 
-      (c.studentId?.["FULL NAME"] || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (c.studentId?.ADNO || '').toString().includes(searchQuery) ||
-      (c.message || '').toLowerCase().includes(searchQuery.toLowerCase());
-      
-    let matchesAdminFilter = true;
-    if (isSuperAdmin && adminViewFilter === 'Mine') {
-      const currentTeacherId = teacher?._id || teacher?.id;
-      const assignedTeacherId = c.teacherId?._id || c.teacherId;
-      matchesAdminFilter = currentTeacherId && assignedTeacherId && currentTeacherId.toString() === assignedTeacherId.toString();
-    }
-      
-    return matchesTab && matchesSearch && matchesAdminFilter;
-  });
+    return complaints.filter(c => {
+      const assignedTeacherId = (c.teacherId?._id || c.teacherId || '').toString();
+      const isAssignedToMe = Boolean(currentTeacherId && assignedTeacherId && currentTeacherId === assignedTeacherId);
+
+      if (isSuperAdmin) {
+        if (adminViewFilter === 'Mine') {
+          return isAssignedToMe;
+        }
+        return true;
+      }
+
+      // Normal faculty: strictly only complaints assigned to me
+      return isAssignedToMe;
+    });
+  }, [complaints, teacher, isSuperAdmin, adminViewFilter]);
+
+  const tabCounts = useMemo(() => {
+    return {
+      All: teacherComplaints.length,
+      Pending: teacherComplaints.filter(c => c.status === 'Pending').length,
+      Resolved: teacherComplaints.filter(c => c.status === 'Resolved').length,
+      Rejected: teacherComplaints.filter(c => c.status === 'Rejected').length,
+    };
+  }, [teacherComplaints]);
+
+  const filteredComplaints = useMemo(() => {
+    return teacherComplaints.filter(c => {
+      const matchesTab = activeTab === 'All' || c.status === activeTab;
+      const q = searchQuery.toLowerCase().trim();
+      const matchesSearch = !q || 
+        (c.studentId?.["FULL NAME"] || '').toLowerCase().includes(q) ||
+        (c.studentId?.ADNO || '').toString().includes(q) ||
+        (c.message || '').toLowerCase().includes(q) ||
+        (c.actualStatus || '').toLowerCase().includes(q);
+        
+      return matchesTab && matchesSearch;
+    });
+  }, [teacherComplaints, activeTab, searchQuery]);
 
   const formatDate = (dateString) => {
     if (!dateString) return '—';
@@ -127,11 +159,20 @@ const ComplaintsPage = () => {
     }
   };
 
-  const formatTime = (dateString) => {
-    return new Date(dateString).toLocaleTimeString('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  const isMedicalComplaint = (complaint) => {
+    return Boolean(
+      complaint?.isMedical ||
+      complaint?.message?.toLowerCase().includes('[medical leave]') ||
+      complaint?.message?.toLowerCase().includes('[medical]')
+    );
+  };
+
+  const getCleanMessage = (message) => {
+    if (!message) return '';
+    return message
+      .replace(/^\[Medical Leave\]\s*/i, '')
+      .replace(/^\[Medical\]\s*/i, '')
+      .trim();
   };
 
   return (
@@ -147,7 +188,8 @@ const ComplaintsPage = () => {
               Disputes
             </h1>
             <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.2em] mt-2 flex items-center gap-2">
-              <Clock size={14} className="text-sky-500" /> Review student complaints
+              <Clock size={14} className="text-sky-500" /> 
+              {isSuperAdmin ? 'Review student complaints & disputes' : 'Review student complaints assigned to you'}
             </p>
           </div>
           
@@ -166,7 +208,7 @@ const ComplaintsPage = () => {
                 <span className={`ml-2 px-1.5 py-0.5 rounded-md text-[8px] ${
                   activeTab === tab ? 'bg-white/20' : 'bg-slate-100'
                 }`}>
-                  {tab === 'All' ? complaints.length : complaints.filter(c => c.status === tab).length}
+                  {tabCounts[tab] || 0}
                 </span>
               </button>
             ))}
@@ -179,7 +221,7 @@ const ComplaintsPage = () => {
             <Search className="absolute left-4 md:left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input
               type="text"
-              placeholder="Search student, ADNO..."
+              placeholder="Search student, ADNO, message..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-white border-2 border-slate-50 rounded-2xl py-3 md:py-4 pl-11 md:pl-14 pr-4 text-sm font-bold text-slate-700 shadow-sm focus:border-rose-300 outline-none transition-all truncate"
@@ -222,98 +264,126 @@ const ComplaintsPage = () => {
                 <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Loading...</p>
               </div>
             ) : filteredComplaints.length > 0 ? (
-              filteredComplaints.map(complaint => (
-                <div 
-                  key={complaint._id}
-                  className={`bg-white rounded-[1.5rem] md:rounded-[2rem] shadow-sm border p-4 md:p-6 transition-all cursor-pointer group hover:border-rose-200 hover:shadow-md ${
-                    selectedComplaint?._id === complaint._id 
-                    ? 'border-rose-400 ring-2 md:ring-4 ring-rose-50 shadow-xl' 
-                    : 'border-slate-50'
-                  }`}
-                  onClick={() => setSelectedComplaint(complaint)}
-                >
-                  <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4 md:mb-6">
-                    <div className="flex items-center gap-3 md:gap-4">
-                      <div className="w-12 h-12 md:w-14 md:h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-rose-500 group-hover:text-white transition-colors duration-300 font-black text-lg md:text-xl">
-                        {complaint.studentId?.["FULL NAME"]?.[0] || 'S'}
+              filteredComplaints.map(complaint => {
+                const isMedical = isMedicalComplaint(complaint);
+                const cleanMsg = getCleanMessage(complaint.message);
+
+                return (
+                  <div 
+                    key={complaint._id}
+                    className={`bg-white rounded-[1.5rem] md:rounded-[2rem] shadow-sm border p-4 md:p-6 transition-all cursor-pointer group hover:border-rose-200 hover:shadow-md ${
+                      selectedComplaint?._id === complaint._id 
+                      ? 'border-rose-400 ring-2 md:ring-4 ring-rose-50 shadow-xl' 
+                      : 'border-slate-50'
+                    }`}
+                    onClick={() => setSelectedComplaint(complaint)}
+                  >
+                    <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4 md:mb-6">
+                      <div className="flex items-center gap-3 md:gap-4">
+                        <div className="w-12 h-12 md:w-14 md:h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-rose-500 group-hover:text-white transition-colors duration-300 font-black text-lg md:text-xl">
+                          {complaint.studentId?.["FULL NAME"]?.[0] || 'S'}
+                        </div>
+                        <div>
+                          <h3 className="text-base md:text-lg font-black text-slate-800 tracking-tight leading-tight uppercase italic">
+                            {complaint.studentId?.["FULL NAME"]}
+                          </h3>
+                          <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                            AD: {complaint.studentId?.ADNO} • Class {complaint.studentId?.CLASS}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-base md:text-lg font-black text-slate-800 tracking-tight leading-tight uppercase italic">
-                          {complaint.studentId?.["FULL NAME"]}
-                        </h3>
-                        <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
-                          AD: {complaint.studentId?.ADNO} • Class {complaint.studentId?.CLASS}
+                      <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-1">
+                        <span className={`px-3 md:px-4 py-1 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-widest ${
+                          complaint.status === 'Pending' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
+                          complaint.status === 'Resolved' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                          'bg-rose-50 text-rose-600 border border-rose-100'
+                        }`}>
+                          {complaint.status}
+                        </span>
+                        <p className="text-[9px] md:text-[10px] font-bold text-slate-300 uppercase">
+                          {formatDate(complaint.createdAt)}
                         </p>
                       </div>
                     </div>
-                    <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-1">
-                      <span className={`px-3 md:px-4 py-1 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-widest ${
-                        complaint.status === 'Pending' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
-                        complaint.status === 'Resolved' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
-                        'bg-rose-50 text-rose-600 border border-rose-100'
-                      }`}>
-                        {complaint.status}
-                      </span>
-                      <p className="text-[9px] md:text-[10px] font-bold text-slate-300 uppercase">
-                        {formatDate(complaint.createdAt)}
-                      </p>
-                    </div>
-                  </div>
 
-                  {complaint.attendanceId ? (
-                    <div className="flex flex-wrap items-center gap-2 md:gap-4 text-[9px] md:text-[10px] font-black uppercase tracking-widest">
-                      <div className="flex items-center gap-1.5 bg-slate-50 px-2 md:px-3 py-1.5 rounded-lg border border-slate-100 text-slate-400">
-                        <Calendar size={12} />
-                        {formatDate(complaint.attendanceId?.attendanceDate)}
-                      </div>
-                      <div className="flex items-center gap-1.5 bg-slate-50 px-2 md:px-3 py-1.5 rounded-lg border border-slate-100 text-slate-400">
-                        <Clock3 size={12} />
-                        {complaint.attendanceId?.attendanceTime}
-                        {complaint.attendanceId?.period && (
-                          <span className="ml-1 bg-sky-100 text-sky-600 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter">
-                            P{complaint.attendanceId.period}
-                          </span>
+                    {complaint.attendanceId ? (
+                      <div className="flex flex-wrap items-center gap-2 md:gap-4 text-[9px] md:text-[10px] font-black uppercase tracking-widest">
+                        <div className="flex items-center gap-1.5 bg-slate-50 px-2 md:px-3 py-1.5 rounded-lg border border-slate-100 text-slate-400">
+                          <Calendar size={12} />
+                          {formatDate(complaint.attendanceId?.attendanceDate)}
+                        </div>
+                        <div className="flex items-center gap-1.5 bg-slate-50 px-2 md:px-3 py-1.5 rounded-lg border border-slate-100 text-slate-400">
+                          <Clock3 size={12} />
+                          {complaint.attendanceId?.attendanceTime}
+                          {complaint.attendanceId?.period && (
+                            <span className="ml-1 bg-sky-100 text-sky-600 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter">
+                              P{complaint.attendanceId.period}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-rose-500 bg-rose-50 px-2 md:px-3 py-1.5 rounded-lg border border-rose-100">
+                          Was: {complaint.attendanceId?.status}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-2 md:px-3 py-1.5 rounded-lg border border-emerald-100">
+                          Claimed: {complaint.actualStatus}
+                        </div>
+                        {isMedical && (
+                          <div className="flex items-center gap-1.5 text-rose-600 bg-rose-50 px-2.5 md:px-3 py-1.5 rounded-lg border border-rose-200 shadow-sm animate-pulse">
+                            <HeartPulse size={12} className="text-rose-500" />
+                            [Medical Leave]
+                          </div>
                         )}
                       </div>
-                      <div className="flex items-center gap-1.5 text-rose-500 bg-rose-50 px-2 md:px-3 py-1.5 rounded-lg border border-rose-100">
-                        Was: {complaint.attendanceId?.status}
+                    ) : (
+                      <div className="flex flex-wrap items-center gap-2 md:gap-4 text-[9px] md:text-[10px] font-black uppercase tracking-widest">
+                        <div className="flex items-center gap-1.5 text-purple-600 bg-purple-50 px-2 md:px-3 py-1.5 rounded-lg border border-purple-100">
+                          Type: Leave Recovery / Issue
+                        </div>
+                        <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-2 md:px-3 py-1.5 rounded-lg border border-emerald-100">
+                          Claimed: {complaint.actualStatus}
+                        </div>
+                        {isMedical && (
+                          <div className="flex items-center gap-1.5 text-rose-600 bg-rose-50 px-2.5 md:px-3 py-1.5 rounded-lg border border-rose-200 shadow-sm animate-pulse">
+                            <HeartPulse size={12} className="text-rose-500" />
+                            [Medical Leave]
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-2 md:px-3 py-1.5 rounded-lg border border-emerald-100">
-                        Student claimed as: {complaint.actualStatus}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap items-center gap-2 md:gap-4 text-[9px] md:text-[10px] font-black uppercase tracking-widest">
-                      <div className="flex items-center gap-1.5 text-purple-600 bg-purple-50 px-2 md:px-3 py-1.5 rounded-lg border border-purple-100">
-                        Type: Leave Recovery / Issue
-                      </div>
-                      <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-2 md:px-3 py-1.5 rounded-lg border border-emerald-100">
-                        Student claimed as: {complaint.actualStatus}
-                      </div>
-                    </div>
-                  )}
+                    )}
 
-                   <div className="p-4 md:p-5 bg-slate-50 rounded-2xl border border-slate-100 mt-4">
-                    <p className="text-xs md:text-sm font-bold text-slate-700 italic">“{complaint.message}”</p>
-                  </div>
-
-                  {complaint.adminRemark && (
-                    <div className="mt-4 pt-4 border-t border-slate-100">
-                      <p className="text-xs font-bold text-emerald-600 bg-emerald-50/50 p-3 rounded-xl border border-emerald-100/50 italic">
-                        <span className="text-[8px] font-black uppercase text-emerald-400 block mb-1">Response</span>
-                        “{complaint.adminRemark}”
+                    <div className="p-4 md:p-5 bg-slate-50 rounded-2xl border border-slate-100 mt-4 space-y-2">
+                      {/* {isMedical && (
+                        <div className="inline-flex items-center gap-1.5 bg-rose-100 text-rose-700 px-2.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider">
+                          <HeartPulse size={11} />
+                          Medical Leave Claim
+                        </div>
+                      )}
+                       */}
+                      <p className="text-xs md:text-sm font-bold text-slate-700 italic">
+                        “{cleanMsg || complaint.message || 'No description provided'}”
                       </p>
                     </div>
-                  )}
-                </div>
-              ))
+
+                    {complaint.adminRemark && (
+                      <div className="mt-4 pt-4 border-t border-slate-100">
+                        <p className="text-xs font-bold text-emerald-600 bg-emerald-50/50 p-3 rounded-xl border border-emerald-100/50 italic">
+                          <span className="text-[8px] font-black uppercase text-emerald-400 block mb-1">Response</span>
+                          “{complaint.adminRemark}”
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
             ) : (
               <div className="bg-white rounded-[2rem] p-12 md:p-20 text-center border border-slate-100">
                 <div className="w-16 h-16 md:w-20 md:h-20 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
                   <Filter size={32} className="text-slate-200" />
                 </div>
-                <h3 className="text-lg md:text-xl font-black text-slate-800 uppercase italic mb-2">No data found</h3>
-                <p className="text-slate-400 font-bold uppercase text-[9px] md:text-[10px] tracking-widest">Adjust your filters or search</p>
+                <h3 className="text-lg md:text-xl font-black text-slate-800 uppercase italic mb-2">No complaints found</h3>
+                <p className="text-slate-400 font-bold uppercase text-[9px] md:text-[10px] tracking-widest">
+                  {isSuperAdmin ? 'Adjust your filters or search' : 'No disputes currently assigned to you'}
+                </p>
               </div>
             )}
           </div>
@@ -321,9 +391,11 @@ const ComplaintsPage = () => {
 
       {/* Resolution Popup Modal */}
       {selectedComplaint && (() => {
-        const currentTeacherId = teacher?._id || teacher?.id;
-        const assignedTeacherId = selectedComplaint.teacherId?._id || selectedComplaint.teacherId;
-        const isAssignedToMe = currentTeacherId && assignedTeacherId && currentTeacherId.toString() === assignedTeacherId.toString();
+        const currentTeacherId = (teacher?._id || teacher?.id || '').toString();
+        const assignedTeacherId = (selectedComplaint.teacherId?._id || selectedComplaint.teacherId || '').toString();
+        const isAssignedToMe = Boolean(currentTeacherId && assignedTeacherId && currentTeacherId === assignedTeacherId);
+        const isMedical = isMedicalComplaint(selectedComplaint);
+        const cleanMsg = getCleanMessage(selectedComplaint.message);
 
         return (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -347,12 +419,30 @@ const ComplaintsPage = () => {
               </div>
               
               <div className="p-6 md:p-8 space-y-6">
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Student</span>
-                  <p className="text-sm font-black text-slate-800 uppercase tracking-tight">{selectedComplaint.studentId?.["FULL NAME"]}</p>
-                  <div className="flex items-center gap-2 mt-1">
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2">
+                  <div>
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Student</span>
+                    <p className="text-sm font-black text-slate-800 uppercase tracking-tight">{selectedComplaint.studentId?.["FULL NAME"]}</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">
+                      AD: {selectedComplaint.studentId?.ADNO} • Class {selectedComplaint.studentId?.CLASS}
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 pt-2 border-t border-slate-200/60 flex-wrap">
                     <span className="text-[10px] font-bold text-slate-400 uppercase">Claims:</span>
                     <span className="text-[10px] font-black text-rose-500 uppercase">{selectedComplaint.actualStatus}</span>
+                    {isMedical && (
+                      <span className="bg-rose-100 text-rose-700 px-2 py-0.5 rounded-md text-[9px] font-black uppercase flex items-center gap-1">
+                        <HeartPulse size={10} /> [Medical Leave]
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-200/60">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Student Reason</span>
+                    <p className="text-xs font-bold text-slate-700 italic">
+                      “{cleanMsg || selectedComplaint.message || 'No description provided'}”
+                    </p>
                   </div>
                 </div>
 
@@ -362,13 +452,13 @@ const ComplaintsPage = () => {
                     placeholder="Explain your decision..."
                     value={remark}
                     onChange={(e) => setRemark(e.target.value)}
-                    disabled={selectedComplaint.status !== 'Pending' || submitting || !isAssignedToMe}
+                    disabled={selectedComplaint.status !== 'Pending' || submitting || (!isAssignedToMe && !isSuperAdmin)}
                     className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-rose-400 outline-none transition-all h-32 resize-none disabled:opacity-50"
                   />
                 </div>
 
                 {selectedComplaint.status === 'Pending' ? (
-                  isAssignedToMe ? (
+                  (isAssignedToMe || isSuperAdmin) ? (
                     <div className="grid grid-cols-2 gap-4">
                       <button
                         onClick={() => handleResolve(selectedComplaint._id, 'Rejected')}
@@ -392,8 +482,8 @@ const ComplaintsPage = () => {
                     </div>
                   ) : (
                     <div className="p-4 rounded-2xl text-center border-2 border-dashed bg-slate-50 border-slate-200 text-slate-500">
-                      <p className="text-[10px] font-black uppercase tracking-widest">Admin View</p>
-                      <p className="text-xs font-bold mt-1">Only the assigned teacher can resolve this.</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest">Teacher View</p>
+                      <p className="text-xs font-bold mt-1">Only the assigned teacher or Super Admin can resolve this.</p>
                     </div>
                   )
                 ) : (

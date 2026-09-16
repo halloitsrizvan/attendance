@@ -34,6 +34,7 @@ export async function POST(req) {
           'HOD',
           'HOS',
           'Principal',
+          'vice_principal',
           'medical_teacher',
           'zehnuth_admin',
           'best_class_admin',

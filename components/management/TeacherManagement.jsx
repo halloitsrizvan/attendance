@@ -236,11 +236,11 @@ const TeacherManagement = () => {
                         {Array.isArray(teacher.role) ? teacher.role.map(r => (
                           <p key={r} className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1 bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-100">
                             {r === 'super_admin' && <Shield size={8} className="text-amber-500" />}
-                            {r.replace('_', ' ')}
+                            {r.replace(/_/g, ' ')}
                           </p>
                         )) : (
                           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1 bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-100">
-                             {teacher.role?.replace('_', ' ')}
+                             {teacher.role?.replace(/_/g, ' ')}
                           </p>
                         )}
                       </div>
@@ -404,6 +404,7 @@ const TeacherManagement = () => {
                       { id: 'HOD', label: 'HOD' },
                       { id: 'HOS', label: 'HOS' },
                       { id: 'Principal', label: 'Principal' },
+                      { id: 'vice_principal', label: 'Vice Principal' },
                       { id: 'medical_teacher', label: 'Medical Teacher' },
                       { id: 'zehnuth_admin', label: 'Zehnuth Admin' },
                       { id: 'best_class_admin', label: 'Best Class Admin' },
