@@ -36,7 +36,10 @@ export async function GET(req) {
     }
     if (time) query.attendanceTime = time;
     if (period) query.period = Number(period);
-    if (custom) query.custom = custom;
+    if (custom) {
+      const regex = new RegExp(`^${custom.trim()}$`, 'i');
+      query.$or = [{ custom: regex }, { more: regex }];
+    }
 
     const activeYearId = await getActiveAcademicYearId();
     if (activeYearId && searchParams.get('all') !== 'true') {

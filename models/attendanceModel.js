@@ -36,6 +36,10 @@ const attendanceSchema = new Schema({
     onLeave: {
         type: Boolean,
     },
+    isLate: {
+        type: Boolean,
+        default: false
+    },
     leaveId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Leave'

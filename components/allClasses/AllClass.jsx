@@ -197,18 +197,18 @@ function AllClass({ edit, id }) {
           setPeriod(0); // Outside period times
         }
       }
-    } else if (totalMinutes >= nightStart && totalMinutes <= nightEnd) {
+    } else if (totalMinutes >= nightStart && totalMinutes < nightEnd) {
       setTime('Night');
     } else {
       if (totalMinutes >= periodEnd && totalMinutes <= nightStart) {
-        setTime('Jamath')
-        setMore('Asr')
-      } else if (totalMinutes >= nightEnd && totalMinutes <= FajrStart) {
-        setTime('Jamath')
-        setMore('Isha')
+        setTime('Jamath');
+        setMore('Asr');
+      } else if (totalMinutes >= nightEnd) {
+        setTime('Jamath');
+        setMore('Isha');
       } else {
         setTime('Jamath');
-        setMore('Fajr')
+        setMore('Fajr');
       }
 
     }
@@ -386,11 +386,11 @@ function AllClass({ edit, id }) {
                       record.attendanceTime === "Period" &&
                       String(record.period) === String(period)
                     );
-                  } else if (time === "Jamath") {
+                  } else if (time === "Jamath" || time === "More") {
                     return (
                       isSameClassAndDate &&
-                      record.attendanceTime === "Jamath" &&
-                      record.custom === more
+                      record.attendanceTime === time &&
+                      (record.custom || record.more || '').trim().toLowerCase() === (more || '').trim().toLowerCase()
                     );
                   } else {
                     return (

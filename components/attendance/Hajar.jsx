@@ -284,6 +284,57 @@ function Hajar() {
   // Alias for backward compatibility/typo fix
   const isStudentOnMedicalLeave = isStudentOnActiveLeave;
 
+  // Check if active leave has passed its toDate & toTime (late)
+  const isLeaveLate = (leave) => {
+    if (!leave) return false;
+    const dbStatus = (leave.status || '').toLowerCase();
+    if (dbStatus === 'late') return true;
+
+    // If no toDate or no toTime, the leave has no end boundary / not late
+    if (!leave.toDate || !leave.toTime) return false;
+
+    try {
+      const toDateStr = typeof leave.toDate === 'string' 
+        ? leave.toDate.split('T')[0] 
+        : new Date(leave.toDate).toISOString().split('T')[0];
+
+      let toTimeStr = (leave.toTime || '').trim();
+      if (toTimeStr.toLowerCase().includes('pm') || toTimeStr.toLowerCase().includes('am')) {
+        const isPM = toTimeStr.toLowerCase().includes('pm');
+        const clean = toTimeStr.replace(/am|pm/i, '').trim();
+        const [h, m] = clean.split(':').map(Number);
+        const hours = isPM && h < 12 ? h + 12 : (!isPM && h === 12 ? 0 : h);
+        toTimeStr = `${String(hours).padStart(2, '0')}:${String(m || 0).padStart(2, '0')}`;
+      } else if (toTimeStr.length <= 5) {
+        const [h, m] = toTimeStr.split(':').map(Number);
+        toTimeStr = `${String(h || 0).padStart(2, '0')}:${String(m || 0).padStart(2, '0')}`;
+      }
+
+      const endDateTime = new Date(`${toDateStr}T${toTimeStr}:00`);
+      if (isNaN(endDateTime.getTime())) return false;
+
+      // Real-time comparison
+      const now = new Date();
+      if (now > endDateTime) return true;
+
+      // Attendance date/session comparison
+      const today = getNormalizedToday();
+      const targetDate = new Date(toDateStr);
+      targetDate.setHours(0, 0, 0, 0);
+
+      if (today.getTime() > targetDate.getTime()) return true;
+      if (today.getTime() === targetDate.getTime()) {
+        const ctx = getContextTimeRange();
+        const leaveToMinutes = convertTimeToMinutes(toTimeStr);
+        if (ctx && ctx.from > leaveToMinutes) return true;
+      }
+
+      return false;
+    } catch (e) {
+      return false;
+    }
+  };
+
   // Get current time in HH:MM format
   const getCurrentTimeString = () => {
     const now = new Date();
@@ -361,6 +412,7 @@ function Hajar() {
           time: time
         };
         if (period) queryParams.period = period;
+        if (more) queryParams.custom = more;
 
         const takenCacheKey = `attendance_taken_${JSON.stringify(queryParams)}`;
         const cachedTaken = sessionStorage.getItem(takenCacheKey);
@@ -370,7 +422,18 @@ function Hajar() {
         }
 
         const res = await axios.get(`${API_PORT}/set-attendance`, { params: queryParams });
-        const isTaken = res.data && res.data.length > 0;
+        let isTaken = false;
+        if (res.data && res.data.length > 0) {
+          if (time === "Jamath" || time === "More") {
+            isTaken = res.data.some(r => 
+              (r.custom || r.more || '').trim().toLowerCase() === (more || '').trim().toLowerCase()
+            );
+          } else if (time === "Period" && period) {
+            isTaken = res.data.some(r => String(r.period) === String(period));
+          } else {
+            isTaken = true;
+          }
+        }
         
         if (cachedTaken !== JSON.stringify(isTaken)) {
           setIsAlreadyTaken(isTaken);
@@ -382,7 +445,7 @@ function Hajar() {
     };
 
     checkAttendanceTaken();
-  }, [id, period, date, time]);
+  }, [id, period, date, time, more]);
 
   const handleCheckboxChange = (ad, studentId, isChecked) => {
     const student = students.find(s => s.ADNO === ad);
@@ -467,6 +530,7 @@ function Hajar() {
       const activeLeave = getStudentActiveLeave(student.ADNO, student._id);
       const isReturned = returnedStudents.includes(student.ADNO);
       const isOnLeave = (!!activeShortLeave || !!activeLeave) && !isReturned;
+      const isStudentLate = isOnLeave && isLeaveLate(activeLeave);
       const status = isOnLeave ? "Absent" : (attendance[student.ADNO] || "Absent");
 
       return {
@@ -478,6 +542,7 @@ function Hajar() {
         attendanceTime: time,
         attendanceDate: new Date(),
         onLeave: isOnLeave,
+        isLate: Boolean(isStudentLate),
         leaveId: (isOnLeave && activeLeave) ? activeLeave._id : null,
         shortLeaveId: (isOnLeave && activeShortLeave) ? activeShortLeave._id : null,
         ...(period && { period: Number(period) }),
@@ -487,6 +552,27 @@ function Hajar() {
 
     try {
       await axios.post(`${API_PORT}/set-attendance`, payload);
+
+      // Update attendance taken status in state and cache
+      const queryParams = {
+        classNumber: id,
+        date: date || new Date().toISOString().split('T')[0],
+        time: time
+      };
+      if (period) queryParams.period = period;
+      if (more) queryParams.custom = more;
+      const takenCacheKey = `attendance_taken_${JSON.stringify(queryParams)}`;
+      sessionStorage.setItem(takenCacheKey, JSON.stringify(true));
+      setIsAlreadyTaken(true);
+
+      // Invalidate attendance pre-cache so home page shows updated state
+      try {
+        Object.keys(sessionStorage).forEach(key => {
+          if (key.startsWith('attendance_')) {
+            sessionStorage.removeItem(key);
+          }
+        });
+      } catch (e) {}
 
       // Calculate summary based on the actual statuses being submitted
       const strength = students.length;
@@ -562,12 +648,14 @@ function Hajar() {
       // Categorize absentees into mutually exclusive groups
       const shortLeaveStudents = [];
       const medicalLeaveStudents = [];
+      const lateStudents = [];
       const onLeaveStudents = [];
       const regularAbsentees = [];
 
       absentees.forEach(s => {
         const isOnShortLeave = isStudentOnShortLeave(s.ADNO, s._id);
         const activeLeave = getStudentActiveLeave(s.ADNO, s._id); 
+        const isStudentLate = isLeaveLate(activeLeave);
         
         // Detailed reason check for Medical Leave
         const isMedical = activeLeave && (
@@ -576,7 +664,9 @@ function Hajar() {
           activeLeave.reason?.toLowerCase().includes('room')
         );
 
-        if (isOnShortLeave) {
+        if (isStudentLate) {
+          lateStudents.push(s);
+        } else if (isOnShortLeave) {
           shortLeaveStudents.push(s);
         } else if (activeLeave && isMedical) {
           medicalLeaveStudents.push(s);
@@ -616,6 +706,14 @@ function Hajar() {
       if (onLeaveStudents.length > 0) {
         if (text) text += "\n\n";
         text += "On Leave:\n" + onLeaveStudents
+          .map((s) => `${s["SHORT NAME"] || s["FULL NAME"] || s.name} (AdNo: ${s.ADNO})`)
+          .join("\n");
+      }
+
+      // Add late students
+      if (lateStudents.length > 0) {
+        if (text) text += "\n\n";
+        text += "Late:\n" + lateStudents
           .map((s) => `${s["SHORT NAME"] || s["FULL NAME"] || s.name} (AdNo: ${s.ADNO})`)
           .join("\n");
       }
@@ -681,13 +779,15 @@ function Hajar() {
           const currentP = period ? Number(period) : null;
           const currentT = time;
           const currentD = date || new Date().toISOString().split('T')[0];
-          const currentKey = `${currentD}-${currentT}-${currentP || ''}`;
+          const currentM = (more || '').trim().toLowerCase();
+          const currentKey = `${currentD}-${currentT}-${currentP || ''}-${currentM}`;
 
-          // Group by session (Date + Time + Period)
+          // Group by session (Date + Time + Period + Custom/More)
           const sessions = new Map();
           res.data.forEach(r => {
             const rDate = r.attendanceDate ? (typeof r.attendanceDate === 'string' ? r.attendanceDate.split('T')[0] : new Date(r.attendanceDate).toISOString().split('T')[0]) : '';
-            const key = `${rDate}-${r.attendanceTime}-${r.period || ''}`;
+            const rMore = (r.custom || r.more || '').trim().toLowerCase();
+            const key = `${rDate}-${r.attendanceTime}-${r.period || ''}-${rMore}`;
             if (!sessions.has(key)) sessions.set(key, []);
             sessions.get(key).push(r);
           });
@@ -829,10 +929,15 @@ function Hajar() {
                       const displayOnLeave = isOnLeave && !isReturned;
 
                       let leaveType = "";
+                      let isStudentLate = false;
                       if (displayOnLeave) {
-                        if (isOnShortLeave) leaveType = "CEP";
-                        else {
-                          const activeLeave = getStudentActiveLeave(student.ADNO, student._id);
+                        const activeLeave = getStudentActiveLeave(student.ADNO, student._id);
+                        isStudentLate = isLeaveLate(activeLeave);
+                        if (isStudentLate) {
+                          leaveType = "Late";
+                        } else if (isOnShortLeave) {
+                          leaveType = "CEP";
+                        } else {
                           const reason = activeLeave?.reason || "";
                           const isMed = reason === 'Medical' || reason === 'Medical (Home)' || reason === 'Medical (Room)' || reason === 'Room' || reason === 'Hospital';
                           leaveType = isMed ? "Medical" : "On Leave";
@@ -843,13 +948,21 @@ function Hajar() {
                         <tr
                           key={index}
                           onClick={() => handleRowClick(student, currentStatus, displayOnLeave)}
-                          className={`group transition-colors ${displayOnLeave ? "bg-amber-50/30 cursor-not-allowed" : "hover:bg-sky-50/50 cursor-pointer"}`}
+                          className={`group transition-colors ${
+                            displayOnLeave 
+                              ? isStudentLate ? "bg-rose-50/40 cursor-not-allowed" : "bg-amber-50/30 cursor-not-allowed" 
+                              : "hover:bg-sky-50/50 cursor-pointer"
+                          }`}
                         >
                           <td className="hidden sm:table-cell px-6 py-4 text-sm font-medium text-slate-400">{index + 1}</td>
                           <td className="hidden sm:table-cell px-6 py-4 text-sm font-mono text-slate-500">{student.ADNO}</td>
                           <td className="px-4 sm:px-6 py-4">
                             <div className="flex flex-col">
-                              <span className={`font-bold transition-colors leading-tight ${displayOnLeave ? "text-slate-400" : "text-slate-900 group-hover:text-sky-700"}`}>
+                              <span className={`font-bold transition-colors leading-tight ${
+                                displayOnLeave 
+                                  ? isStudentLate ? "text-rose-700" : "text-slate-400" 
+                                  : "text-slate-900 group-hover:text-sky-700"
+                              }`}>
                                 {student["SHORT NAME"] || student["FULL NAME"] || student.name || "Unknown"}
                               </span>
                               <span className="text-[10px] sm:hidden font-mono text-slate-400 mt-0.5">
@@ -864,7 +977,9 @@ function Hajar() {
                                 disabled={displayOnLeave}
                                 className={`min-w-[80px] sm:min-w-[100px] px-3 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-tighter shadow-sm transition-all duration-200 ${
                                   displayOnLeave 
-                                    ? "bg-amber-100 text-amber-600 border border-amber-200"
+                                    ? isStudentLate
+                                      ? "bg-rose-100 text-rose-700 border border-rose-200"
+                                      : "bg-amber-100 text-amber-600 border border-amber-200"
                                     : currentStatus === "Present"
                                       ? "bg-emerald-500 text-white hover:bg-emerald-600 shadow-emerald-500/20"
                                       : "bg-rose-500 text-white hover:bg-rose-600 shadow-rose-500/20"
@@ -872,7 +987,7 @@ function Hajar() {
                               >
                                 {displayOnLeave ? leaveType : currentStatus}
                               </button>
-                              {isOnLeave && (
+                              {/* {isOnLeave && (
                                 <button 
                                   className={`w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg sm:rounded-xl text-white transition-all hover:scale-110 shadow-sm ${isReturned ? "bg-emerald-600" : "bg-sky-500"}`}
                                   type="button"
@@ -888,7 +1003,7 @@ function Hajar() {
                                 >
                                   <span className="text-[10px] sm:text-xs font-bold">{isReturned ? "↩" : "R"}</span>
                                 </button>
-                              )}
+                              )} */}
                             </div>
                           </td>
                         </tr>
@@ -942,10 +1057,15 @@ function Hajar() {
                 const isPresent = attendance[student.ADNO] === "Present" && !displayOnLeave;
 
                 let leaveType = "";
+                let isStudentLate = false;
                 if (displayOnLeave) {
-                  if (isOnShortLeave) leaveType = "CEP";
-                  else {
-                    const activeLeave = getStudentActiveLeave(student.ADNO, student._id);
+                  const activeLeave = getStudentActiveLeave(student.ADNO, student._id);
+                  isStudentLate = isLeaveLate(activeLeave);
+                  if (isStudentLate) {
+                    leaveType = "Late";
+                  } else if (isOnShortLeave) {
+                    leaveType = "CEP";
+                  } else {
                     const reason = activeLeave?.reason || "";
                     const isMed = reason === 'Medical' || reason === 'Medical (Home)' || reason === 'Medical (Room)' || reason === 'Room' || reason === 'Hospital';
                     leaveType = isMed ? "Medical" : "On Leave";
@@ -962,7 +1082,9 @@ function Hajar() {
                     }}
                     className={`relative p-5 rounded-3xl border-2 transition-all duration-300 transform active:scale-95 cursor-pointer ${
                       displayOnLeave 
-                        ? 'bg-amber-50 border-amber-200 grayscale-[0.3]' 
+                        ? isStudentLate
+                          ? 'bg-rose-50/70 border-rose-200'
+                          : 'bg-amber-50 border-amber-200 grayscale-[0.3]' 
                         : isPresent 
                           ? 'bg-emerald-50 border-emerald-200 shadow-lg shadow-emerald-500/5' 
                           : 'bg-rose-50 border-rose-200 shadow-lg shadow-rose-500/5'
@@ -970,25 +1092,35 @@ function Hajar() {
                   >
                     <div className="flex justify-center mb-3">
                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg transition-colors shadow-lg ${
-                        displayOnLeave ? 'bg-amber-400 text-white' : 
-                        isPresent ? 'bg-emerald-500 text-white shadow-emerald-500/20' : 
-                        'bg-rose-500 text-white shadow-rose-500/20'
+                        displayOnLeave 
+                          ? isStudentLate ? 'bg-rose-500 text-white shadow-rose-500/20' : 'bg-amber-400 text-white' 
+                          : isPresent ? 'bg-emerald-500 text-white shadow-emerald-500/20' : 
+                          'bg-rose-500 text-white shadow-rose-500/20'
                       }`}>
                         {index + 1}
                       </div>
                     </div>
 
-                    <h3 className={`text-sm font-bold truncate mb-1 ${displayOnLeave ? 'text-amber-800' : isPresent ? 'text-emerald-900' : 'text-rose-900'}`}>
+                    <h3 className={`text-sm font-bold truncate mb-1 ${
+                      displayOnLeave 
+                        ? isStudentLate ? 'text-rose-800' : 'text-amber-800' 
+                        : isPresent ? 'text-emerald-900' : 'text-rose-900'
+                    }`}>
                       {student["SHORT NAME"] || student["FULL NAME"] || student.name || "Unknown"}
                     </h3>
-                    <p className={`text-[10px] uppercase font-black tracking-widest opacity-60 mb-4 ${displayOnLeave ? 'text-amber-700' : isPresent ? 'text-emerald-700' : 'text-rose-700'}`}>
+                    <p className={`text-[10px] uppercase font-black tracking-widest opacity-60 mb-4 ${
+                      displayOnLeave 
+                        ? isStudentLate ? 'text-rose-700' : 'text-amber-700' 
+                        : isPresent ? 'text-emerald-700' : 'text-rose-700'
+                    }`}>
                       Ad: {student.ADNO}
                     </p>
 
                     <div className={`py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
-                      displayOnLeave ? 'bg-amber-200/50 text-amber-700' : 
-                      isPresent ? 'bg-emerald-200/50 text-emerald-700' : 
-                      'bg-rose-200/50 text-rose-700'
+                      displayOnLeave 
+                        ? isStudentLate ? 'bg-rose-200/50 text-rose-700' : 'bg-amber-200/50 text-amber-700' 
+                        : isPresent ? 'bg-emerald-200/50 text-emerald-700' : 
+                        'bg-rose-200/50 text-rose-700'
                     }`}>
                       {displayOnLeave ? leaveType : isPresent ? "Present" : "Absent"}
                     </div>
@@ -1023,15 +1155,35 @@ function Hajar() {
             {absentees.length > 0 ? (
               <div className="max-h-60 overflow-y-auto mb-6 no-scrollbar rounded-3xl bg-rose-50 border border-rose-100 p-4">
                 <div className="space-y-3">
-                  {absentees.map((s) => (
-                    <div key={s.ADNO} className="flex flex-col border-b border-rose-100 last:border-0 pb-2 last:pb-0">
-                      <span className="text-sm font-black text-rose-600">{s["SHORT NAME"] || s["FULL NAME"] || s.name || "Unknown"}</span>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[9px] font-bold text-rose-400 uppercase tracking-wider">AD: {s.ADNO}</span>
-                        <span className="text-[9px] font-bold text-rose-400 uppercase tracking-wider">• SL: {students.findIndex(st => st.ADNO === s.ADNO) + 1}</span>
+                  {absentees.map((s) => {
+                    const isOnShortLeave = isStudentOnShortLeave(s.ADNO, s._id);
+                    const activeLeave = getStudentActiveLeave(s.ADNO, s._id);
+                    const isOnActiveLeave = Boolean(activeLeave);
+                    const isReturned = returnedStudents.includes(s.ADNO);
+                    const isOnLeave = (isOnShortLeave || isOnActiveLeave) && !isReturned;
+                    const isStudentLate = isOnLeave && isLeaveLate(activeLeave);
+
+                    return (
+                      <div key={s.ADNO} className="flex items-center justify-between border-b border-rose-100 last:border-0 pb-2 last:pb-0">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-black text-rose-600">{s["SHORT NAME"] || s["FULL NAME"] || s.name || "Unknown"}</span>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[9px] font-bold text-rose-400 uppercase tracking-wider">AD: {s.ADNO}</span>
+                            <span className="text-[9px] font-bold text-rose-400 uppercase tracking-wider">• SL: {students.findIndex(st => st.ADNO === s.ADNO) + 1}</span>
+                          </div>
+                        </div>
+                        {isOnLeave && (
+                          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                            isStudentLate
+                              ? "bg-rose-100 text-rose-700 border-rose-200"
+                              : "bg-amber-100 text-amber-700 border-amber-200"
+                          }`}>
+                            {isStudentLate ? "Late" : "On Leave"}
+                          </span>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ) : (
