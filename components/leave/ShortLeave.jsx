@@ -85,15 +85,33 @@ function ShortLeave({ statusData: initialStatusData, type, onDataUpdate }) {
     setStatusData(initialStatusData || []);
   }, [initialStatusData]);
 
-  const actionButtonHandle = (leave, actionType) => {
-    let title = '';
-    let message = '';
-    let confirmText = '';
-    let isDangerous = false;
+  const canReturnLateLeave = (leave) => {
+    if (!teacher) return false;
+    const teacherRoles = Array.isArray(teacher.role) ? teacher.role : (teacher.role ? [teacher.role] : []);
+    const studentClassVal = leave.studentId?.CLASS || leave.classNum || leave.class;
+    const teacherClass = teacher.classNum || teacher.class;
+    if (teacherClass && studentClassVal && String(teacherClass).trim() === String(studentClassVal).trim()) {
+      return true;
+    }
+    const classNumStr = String(studentClassVal || '').toLowerCase();
+    const classNumberMatch = classNumStr.match(/\d+/);
+    if (classNumberMatch) {
+      const classLevel = parseInt(classNumberMatch[0], 10);
+      if (classLevel >= 1 && classLevel <= 7 && teacherRoles.includes('HOS')) return true;
+      if (classLevel >= 8 && classLevel <= 10 && teacherRoles.includes('HOD')) return true;
+    }
+    return false;
+  };
 
+  const actionButtonHandle = (leave, actionType) => {
     if (actionType === 'returnToClass' || actionType === 'markReturn') {
+      const currentLeaveStatus = getStatus(leave);
+      if (currentLeaveStatus === 'Expired' && !canReturnLateLeave(leave)) {
+        alert("Only class teacher and section head can return late leaves");
+        return;
+      }
       title = 'Confirm Return';
-      message = `Are you sure you want to mark ${leave.studentId?.['SHORT NAME'] || leave.name} as returned?`;
+      message = `Mark ${leave.studentId?.['SHORT NAME'] || leave.name} as returned?`;
       confirmText = 'Mark Returned';
       isDangerous = false;
     } else if (actionType === 'medicalLeave') {
@@ -400,7 +418,11 @@ function ShortLeave({ statusData: initialStatusData, type, onDataUpdate }) {
                     <button
                       onClick={() => actionButtonHandle(leave, 'markReturn')}
                       disabled={isProcessing}
-                      className="px-3 py-1.5 text-sm sm:text-sm font-medium bg-green-500 text-white rounded-lg shadow hover:bg-green-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                      className={`px-3 py-1.5 text-sm sm:text-sm font-medium rounded-lg shadow transition flex items-center gap-1 ${
+                        (status === 'Expired' && !canReturnLateLeave(leave))
+                          ? 'bg-slate-400 text-white opacity-70 cursor-not-allowed hover:bg-slate-400'
+                          : 'bg-green-500 hover:bg-green-600 text-white'
+                      }`}
                     >
                       {isProcessing ? (
                         <>
@@ -426,7 +448,11 @@ function ShortLeave({ statusData: initialStatusData, type, onDataUpdate }) {
                     <button
                       onClick={() => actionButtonHandle(leave, 'returnToClass')}
                       disabled={isProcessing}
-                      className="px-3 py-1.5 text-xs sm:text-sm font-medium bg-green-500 text-white rounded-full shadow hover:bg-green-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                      className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-full shadow transition flex items-center gap-1 ${
+                        (status === 'Expired' && !canReturnLateLeave(leave))
+                          ? 'bg-slate-400 text-white opacity-70 cursor-not-allowed hover:bg-slate-400'
+                          : 'bg-green-500 hover:bg-green-600 text-white'
+                      }`}
                     >
                       {isProcessing ? (
                         <>

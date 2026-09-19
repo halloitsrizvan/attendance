@@ -277,6 +277,24 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
   const [isProcessing, setIsProcessing] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
 
+  const getCalculatedStatus = () => {
+    if (getLeaveStatus) {
+      const res = getLeaveStatus(classInfo);
+      if (res) return res;
+    }
+    const dbStatus = (classInfo.status || '').toLowerCase();
+    if (dbStatus === 'late') return 'Late';
+    if (classInfo.toDate && classInfo.toTime) {
+      const toDateTime = new Date(`${classInfo.toDate}T${classInfo.toTime}`);
+      if (new Date() > toDateTime && (dbStatus === 'active' || dbStatus === 'on leave')) {
+        return 'Late';
+      }
+    }
+    return classInfo.status;
+  };
+
+  const currentStatus = getCalculatedStatus();
+  const isLate = currentStatus === 'Late' || status === 'Late' || (toDate && toTime && new Date() > new Date(`${toDate}T${toTime}`) && (status === 'On Leave' || status === 'active'));
   const canBeSelected = status === 'Pending' || status === 'On Leave' || status === 'Late';
 
   const calculateRemainingTime = (toDate, toTime) => {
@@ -437,6 +455,34 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
     return false;
   };
 
+  const canReturnLateLeave = () => {
+    if (!teacher) return false;
+    const teacherRoles = Array.isArray(teacher.role) ? teacher.role : (teacher.role ? [teacher.role] : []);
+
+    const studentClassVal = studentId?.CLASS || classInfo.classNum || classInfo.class;
+    
+    // Check if class teacher
+    const teacherClass = teacher.classNum || teacher.class;
+    if (teacherClass && studentClassVal && String(teacherClass).trim() === String(studentClassVal).trim()) {
+      return true;
+    }
+
+    // Check if section head
+    const classNumStr = String(studentClassVal || '').toLowerCase();
+    const classNumberMatch = classNumStr.match(/\d+/);
+    if (classNumberMatch) {
+      const classLevel = parseInt(classNumberMatch[0], 10);
+      if (classLevel >= 1 && classLevel <= 7 && teacherRoles.includes('HOS')) {
+        return true;
+      }
+      if (classLevel >= 8 && classLevel <= 10 && teacherRoles.includes('HOD')) {
+        return true;
+      }
+    }
+    
+    return false;
+  };
+
   const handleRoomToMedicalTransition = async () => {
     try {
       setIsProcessing(true);
@@ -589,7 +635,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
   };
 
   const getButtonState = () => {
-    if (status === 'Scheduled') {
+    if (currentStatus === 'Scheduled') {
       return {
         disabled: true,
         text: 'Scheduled',
@@ -598,7 +644,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
       };
     }
 
-    if (status === 'Pending') {
+    if (currentStatus === 'Pending') {
       return {
         disabled: false,
         text: 'Start',
@@ -607,16 +653,19 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
       };
     }
 
-    if (status === 'On Leave' || status === 'Late') {
+    if (currentStatus === 'On Leave' || currentStatus === 'Late' || isLate) {
+      const isLateNotAllowed = (currentStatus === 'Late' || isLate) && !canReturnLateLeave();
       return {
         disabled: false,
         text: 'Return',
-        className: 'bg-blue-500 hover:bg-blue-600 text-white shadow-sm',
+        className: isLateNotAllowed 
+           ? 'bg-slate-400 text-white opacity-70 cursor-not-allowed hover:bg-slate-400' 
+           : 'bg-blue-500 hover:bg-blue-600 text-white shadow-sm',
         icon: CheckCircle
       };
     }
 
-    if (status === 'Returned' || status === 'Late Returned') {
+    if (currentStatus === 'Returned' || currentStatus === 'Late Returned') {
       return {
         disabled: true,
         text: 'Returned',
@@ -625,10 +674,13 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
       };
     }
 
+    const isLateNotAllowed = (currentStatus === 'Late' || isLate) && !canReturnLateLeave();
     return {
       disabled: false,
       text: 'Return',
-      className: 'bg-blue-500 hover:bg-blue-600 text-white shadow-sm',
+      className: isLateNotAllowed
+        ? 'bg-slate-400 text-white opacity-70 cursor-not-allowed hover:bg-slate-400'
+        : 'bg-blue-500 hover:bg-blue-600 text-white shadow-sm',
       icon: CheckCircle
     };
   };
@@ -765,7 +817,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
                 <span>To: {formatDateTime(toDate, toTime)}</span>
               </div> */}
           {/* Action Buttons */}
-          {reason === 'Room' && status === 'On Leave' ? (
+          {reason === 'Room' && (status === 'On Leave' || currentStatus === 'On Leave' || currentStatus === 'Late') ? (
             <div className="flex flex-col gap-1.5 flex-shrink-0">
               {hasAccessToStudent() && (
                 <button
@@ -777,9 +829,20 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
                 </button>
               )}
               <button
-                className="flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-all shadow-sm shadow-blue-500/20 active:scale-95"
+                className={`flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-lg transition-all ${
+                  ((currentStatus === 'Late' || isLate) && !canReturnLateLeave())
+                    ? 'bg-slate-400 text-white opacity-70 cursor-not-allowed hover:bg-slate-400'
+                    : 'bg-blue-500 hover:bg-blue-600 text-white shadow-sm shadow-blue-500/20 active:scale-95'
+                }`}
                 disabled={isProcessing}
-                onClick={(e) => { e.stopPropagation(); setShowConfirm(true); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if ((currentStatus === 'Late' || isLate) && !canReturnLateLeave()) {
+                    alert("Only class teacher and section head can return late leaves");
+                    return;
+                  }
+                  setShowConfirm(true);
+                }}
               >
                 <CheckCircle size={12} />
                 Return
@@ -812,6 +875,10 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
                 disabled={buttonState.disabled || isProcessing}
                 onClick={(e) => {
                   e.stopPropagation();
+                  if ((currentStatus === 'Late' || isLate) && !canReturnLateLeave()) {
+                    alert("Only class teacher and section head can return late leaves");
+                    return;
+                  }
                   if (!buttonState.disabled) setShowConfirm(true);
                 }}
               >
@@ -929,30 +996,85 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
 
       {/* Confirmation Modal */}
       {showConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-xs w-full p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-gray-900 text-sm">Confirm {buttonState.text}</h3>
-              <button
-                onClick={() => !isProcessing && setShowConfirm(false)}
-                className="text-gray-400 hover:text-gray-500 transition-colors"
-              >
-                ✕
-              </button>
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => !isProcessing && setShowConfirm(false)}
+        >
+          <div 
+            className="relative bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-sm w-full p-6 text-center animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => !isProcessing && setShowConfirm(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-colors disabled:opacity-40"
+              disabled={isProcessing}
+            >
+              <X size={16} />
+            </button>
+
+            {/* Header Icon */}
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-sm ${
+              buttonState.text === 'Start' 
+                ? 'bg-emerald-50 text-emerald-500 border border-emerald-100 shadow-emerald-500/10' 
+                : 'bg-sky-50 text-sky-500 border border-sky-100 shadow-sky-500/10'
+            }`}>
+              {buttonState.text === 'Start' ? (
+                <PlayCircle size={26} strokeWidth={2.3} />
+              ) : (
+                <RotateCcw size={24} strokeWidth={2.4} />
+              )}
             </div>
-            <p className="text-xs text-gray-600 mb-3">
-              {actionDescription} leave for <span className="font-semibold">{name}</span>?
-            </p>
-            <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-100 rounded-lg px-2 py-1.5 mb-3">
-              <Calendar size={12} className="text-gray-400" />
-              {actionDescription === "start" ?
-                <span>From: {formatDateTime(fromDate, fromTime)}</span> :
-                <span>To: {formatDateTime(toDate, toTime)}</span>}
+
+            {/* Title */}
+            <div className="mb-4">
+              <span className="text-[10px] font-black uppercase tracking-widest text-sky-500">
+                {buttonState.text === 'Start' ? 'Leave Action' : 'Student Return'}
+              </span>
+              <h3 className="text-lg font-black text-slate-800 tracking-tight mt-0.5">
+                Confirm {buttonState.text}
+              </h3>
             </div>
-            <div className="flex gap-2">
+
+            {/* Concise Info Card - No Over-texts */}
+            <div className="bg-slate-50 rounded-2xl p-3.5 border border-slate-100/80 mb-5 text-left">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-sm font-black text-slate-800 truncate">
+                    {name}
+                  </h4>
+                  <div className="flex items-center gap-1.5 mt-0.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    {classNum && <span>Class {classNum}</span>}
+                    {classNum && ad && <span>•</span>}
+                    {ad && <span>AD: {ad}</span>}
+                  </div>
+                </div>
+                {reason && (
+                  <span className="px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-white border border-slate-200/80 text-slate-600 shadow-sm flex-shrink-0">
+                    {reason}
+                  </span>
+                )}
+              </div>
+
+              {(toDate || fromDate) && (
+                <div className="flex items-center justify-between pt-2.5 mt-2.5 border-t border-slate-200/60 text-xs">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                    <Calendar size={12} className="text-slate-400" />
+                    {actionDescription === "start" ? "From" : "Expected"}
+                  </span>
+                  <span className="text-xs font-bold text-slate-700 font-mono">
+                    {actionDescription === "start" ? formatDateTime(fromDate, fromTime) : formatDateTime(toDate, toTime)}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
-                className="flex-1 border border-gray-300 text-gray-600 text-xs font-medium py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                className="py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-black uppercase tracking-wider rounded-2xl transition-all active:scale-95 disabled:opacity-50"
                 onClick={() => setShowConfirm(false)}
                 disabled={isProcessing}
               >
@@ -960,19 +1082,23 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
               </button>
               <button
                 type="button"
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-white text-xs font-semibold transition-colors ${isProcessing ? 'bg-emerald-400' : 'bg-emerald-500 hover:bg-emerald-600'}`}
+                className={`py-3 px-4 text-white text-xs font-black uppercase tracking-wider rounded-2xl transition-all active:scale-95 shadow-lg flex items-center justify-center gap-1.5 disabled:opacity-50 ${
+                  buttonState.text === 'Start'
+                    ? (isProcessing ? 'bg-emerald-400' : 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20')
+                    : (isProcessing ? 'bg-sky-400' : 'bg-sky-500 hover:bg-sky-600 shadow-sky-500/20')
+                }`}
                 onClick={handleActionWithConfirm}
                 disabled={isProcessing}
               >
                 {isProcessing ? (
                   <>
-                    <div className="w-3 h-3 border-2 border-white/60 border-t-white rounded-full animate-spin"></div>
-                    Wait
+                    <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin"></div>
+                    <span>Wait...</span>
                   </>
                 ) : (
                   <>
-                    <CheckCircle size={12} />
-                    Confirm
+                    <CheckCircle size={15} />
+                    <span>Confirm</span>
                   </>
                 )}
               </button>
@@ -1022,6 +1148,35 @@ function LeaveStatusTable({ classData: initialClassData1, onDataUpdate, getLeave
     if (!isAllStart && !isAllReturn) {
       setShowStatusMismatch(true);
       return;
+    }
+
+    if (isAllReturn) {
+      const hasUnauthorizedLate = leavesToProcess.some(l => {
+        const itemStatus = getLeaveStatus ? getLeaveStatus(l) : l.status;
+        const isItemLate = itemStatus === 'Late' || l.status === 'Late' || (l.toDate && l.toTime && new Date() > new Date(`${l.toDate}T${l.toTime}`));
+        if (isItemLate) {
+          const teacherRoles = Array.isArray(teacher?.role) ? teacher.role : (teacher?.role ? [teacher.role] : []);
+          const studentClassVal = l.studentId?.CLASS || l.classNum || l.class;
+          const teacherClass = teacher?.classNum || teacher?.class;
+          if (teacherClass && studentClassVal && String(teacherClass).trim() === String(studentClassVal).trim()) {
+            return false;
+          }
+          const classNumStr = String(studentClassVal || '').toLowerCase();
+          const classNumberMatch = classNumStr.match(/\d+/);
+          if (classNumberMatch) {
+            const classLevel = parseInt(classNumberMatch[0], 10);
+            if (classLevel >= 1 && classLevel <= 7 && teacherRoles.includes('HOS')) return false;
+            if (classLevel >= 8 && classLevel <= 10 && teacherRoles.includes('HOD')) return false;
+          }
+          return true; // unauthorized
+        }
+        return false;
+      });
+
+      if (hasUnauthorizedLate) {
+        alert("Only class teacher and section head can return late leaves");
+        return;
+      }
     }
 
     setShowBulkConfirm(true);
