@@ -457,7 +457,12 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
 
   const canReturnLateLeave = () => {
     if (!teacher) return false;
-    const teacherRoles = Array.isArray(teacher.role) ? teacher.role : (teacher.role ? [teacher.role] : []);
+    const teacherRoles = (Array.isArray(teacher.role) ? teacher.role : (teacher.role ? [teacher.role] : [])).map(r => String(r).toLowerCase());
+
+    // Check if Principal, Vice Principal, or Super Admin
+    if (teacherRoles.some(r => ['principal', 'vice_principal', 'vice-principal', 'viceprincipal', 'super_admin', 'superadmin'].includes(r))) {
+      return true;
+    }
 
     const studentClassVal = studentId?.CLASS || classInfo.classNum || classInfo.class;
     
@@ -472,10 +477,10 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
     const classNumberMatch = classNumStr.match(/\d+/);
     if (classNumberMatch) {
       const classLevel = parseInt(classNumberMatch[0], 10);
-      if (classLevel >= 1 && classLevel <= 7 && teacherRoles.includes('HOS')) {
+      if (classLevel >= 1 && classLevel <= 7 && teacherRoles.includes('hos')) {
         return true;
       }
-      if (classLevel >= 8 && classLevel <= 10 && teacherRoles.includes('HOD')) {
+      if (classLevel >= 8 && classLevel <= 10 && teacherRoles.includes('hod')) {
         return true;
       }
     }
@@ -838,7 +843,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
                 onClick={(e) => {
                   e.stopPropagation();
                   if ((currentStatus === 'Late' || isLate) && !canReturnLateLeave()) {
-                    alert("Only class teacher and section head can return late leaves");
+                    alert("Only class teacher, section head, Principal, Vice Principal or Super Admin can return late leaves");
                     return;
                   }
                   setShowConfirm(true);
@@ -876,7 +881,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
                 onClick={(e) => {
                   e.stopPropagation();
                   if ((currentStatus === 'Late' || isLate) && !canReturnLateLeave()) {
-                    alert("Only class teacher and section head can return late leaves");
+                    alert("Only class teacher, section head, Principal, Vice Principal or Super Admin can return late leaves");
                     return;
                   }
                   if (!buttonState.disabled) setShowConfirm(true);
@@ -1155,7 +1160,10 @@ function LeaveStatusTable({ classData: initialClassData1, onDataUpdate, getLeave
         const itemStatus = getLeaveStatus ? getLeaveStatus(l) : l.status;
         const isItemLate = itemStatus === 'Late' || l.status === 'Late' || (l.toDate && l.toTime && new Date() > new Date(`${l.toDate}T${l.toTime}`));
         if (isItemLate) {
-          const teacherRoles = Array.isArray(teacher?.role) ? teacher.role : (teacher?.role ? [teacher.role] : []);
+          const teacherRoles = (Array.isArray(teacher?.role) ? teacher.role : (teacher?.role ? [teacher.role] : [])).map(r => String(r).toLowerCase());
+          if (teacherRoles.some(r => ['principal', 'vice_principal', 'vice-principal', 'viceprincipal', 'super_admin', 'superadmin'].includes(r))) {
+            return false;
+          }
           const studentClassVal = l.studentId?.CLASS || l.classNum || l.class;
           const teacherClass = teacher?.classNum || teacher?.class;
           if (teacherClass && studentClassVal && String(teacherClass).trim() === String(studentClassVal).trim()) {
@@ -1165,8 +1173,8 @@ function LeaveStatusTable({ classData: initialClassData1, onDataUpdate, getLeave
           const classNumberMatch = classNumStr.match(/\d+/);
           if (classNumberMatch) {
             const classLevel = parseInt(classNumberMatch[0], 10);
-            if (classLevel >= 1 && classLevel <= 7 && teacherRoles.includes('HOS')) return false;
-            if (classLevel >= 8 && classLevel <= 10 && teacherRoles.includes('HOD')) return false;
+            if (classLevel >= 1 && classLevel <= 7 && teacherRoles.includes('hos')) return false;
+            if (classLevel >= 8 && classLevel <= 10 && teacherRoles.includes('hod')) return false;
           }
           return true; // unauthorized
         }
@@ -1174,7 +1182,7 @@ function LeaveStatusTable({ classData: initialClassData1, onDataUpdate, getLeave
       });
 
       if (hasUnauthorizedLate) {
-        alert("Only class teacher and section head can return late leaves");
+        alert("Only class teacher, section head, Principal, Vice Principal or Super Admin can return late leaves");
         return;
       }
     }

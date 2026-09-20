@@ -1,6 +1,7 @@
 external edu for shanoob ust -leave reason
-common leave documentation
-dlt leave in leave dashboard
+dlt leave in leave dashboard (not need)
 leave complaint -not registered leaves
+common leave documentation 
 make sure the deduction minus
-DB install
+DB install 
+ 

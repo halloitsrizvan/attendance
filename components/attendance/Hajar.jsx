@@ -879,6 +879,7 @@ function Hajar() {
                 </span>
               </div>
             )}
+
           </div>
 
           <div className="flex items-center gap-2">
@@ -944,6 +945,12 @@ function Hajar() {
                         }
                       }
 
+                      const isClassTeacher = Boolean(
+                        teacher &&
+                        (teacher.classNum || teacher.class) &&
+                        String(teacher.classNum || teacher.class).trim() === String(student.CLASS || student.class || id).trim()
+                      );
+
                       return (
                         <tr
                           key={index}
@@ -987,7 +994,7 @@ function Hajar() {
                               >
                                 {displayOnLeave ? leaveType : currentStatus}
                               </button>
-                              {/* {isOnLeave && (
+                              {isOnLeave && isClassTeacher && (
                                 <button 
                                   className={`w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg sm:rounded-xl text-white transition-all hover:scale-110 shadow-sm ${isReturned ? "bg-emerald-600" : "bg-sky-500"}`}
                                   type="button"
@@ -1003,7 +1010,7 @@ function Hajar() {
                                 >
                                   <span className="text-[10px] sm:text-xs font-bold">{isReturned ? "↩" : "R"}</span>
                                 </button>
-                              )} */}
+                              )}
                             </div>
                           </td>
                         </tr>

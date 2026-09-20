@@ -87,7 +87,10 @@ function ShortLeave({ statusData: initialStatusData, type, onDataUpdate }) {
 
   const canReturnLateLeave = (leave) => {
     if (!teacher) return false;
-    const teacherRoles = Array.isArray(teacher.role) ? teacher.role : (teacher.role ? [teacher.role] : []);
+    const teacherRoles = (Array.isArray(teacher.role) ? teacher.role : (teacher.role ? [teacher.role] : [])).map(r => String(r).toLowerCase());
+    if (teacherRoles.some(r => ['principal', 'vice_principal', 'vice-principal', 'viceprincipal', 'super_admin', 'superadmin'].includes(r))) {
+      return true;
+    }
     const studentClassVal = leave.studentId?.CLASS || leave.classNum || leave.class;
     const teacherClass = teacher.classNum || teacher.class;
     if (teacherClass && studentClassVal && String(teacherClass).trim() === String(studentClassVal).trim()) {
@@ -97,8 +100,8 @@ function ShortLeave({ statusData: initialStatusData, type, onDataUpdate }) {
     const classNumberMatch = classNumStr.match(/\d+/);
     if (classNumberMatch) {
       const classLevel = parseInt(classNumberMatch[0], 10);
-      if (classLevel >= 1 && classLevel <= 7 && teacherRoles.includes('HOS')) return true;
-      if (classLevel >= 8 && classLevel <= 10 && teacherRoles.includes('HOD')) return true;
+      if (classLevel >= 1 && classLevel <= 7 && teacherRoles.includes('hos')) return true;
+      if (classLevel >= 8 && classLevel <= 10 && teacherRoles.includes('hod')) return true;
     }
     return false;
   };
@@ -107,7 +110,7 @@ function ShortLeave({ statusData: initialStatusData, type, onDataUpdate }) {
     if (actionType === 'returnToClass' || actionType === 'markReturn') {
       const currentLeaveStatus = getStatus(leave);
       if (currentLeaveStatus === 'Expired' && !canReturnLateLeave(leave)) {
-        alert("Only class teacher and section head can return late leaves");
+        alert("Only class teacher, section head, Principal, Vice Principal or Super Admin can return late leaves");
         return;
       }
       title = 'Confirm Return';
