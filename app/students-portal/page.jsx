@@ -212,14 +212,14 @@ export default function DashboardPage() {
         // Resolve "Normal" Template Multipliers from Settings or Defaults (matching /report)
         const normalTemplate = savedTemplates.find(t => t.name?.trim().toLowerCase() === 'normal');
         const multipliers = normalTemplate?.multipliers || {
-            Morning: { true: '1', false: '1', active: true },
-            Afternoon: { true: '1', false: '1', active: true },
-            Night: { true: '1', false: '1', active: true },
-            Period: { true: '1', false: '1', active: true },
-            Jamath: { true: '1', false: '1', active: true },
-            Quiraath: { true: '1', false: '1', active: true },
+            Morning: { true: '1', false: '1', late: '0', active: true },
+            Afternoon: { true: '1', false: '1', late: '0', active: true },
+            Night: { true: '1', false: '1', late: '0', active: true },
+            Period: { true: '1', false: '1', late: '0', active: true },
+            Jamath: { true: '1', false: '1', late: '0', active: true },
+            Quiraath: { true: '1', false: '1', late: '0', active: true },
             Minus: { active: true },
-            Weekend: { true: '1/6', false: '1/6', active: true }
+            Weekend: { true: '1/6', false: '1/6', late: '0', active: true }
         };
 
         let calculatedDeduction = null;
@@ -238,16 +238,20 @@ export default function DashboardPage() {
                     if (d) {
                         const mTrue = evaluateMultiplier(multipliers[t].true);
                         const mFalse = evaluateMultiplier(multipliers[t].false);
+                        const mLate = evaluateMultiplier(multipliers[t].late || '0');
                         const wkTrue = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].true) : mTrue;
                         const wkFalse = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].false) : mFalse;
+                        const wkLate = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].late || '0') : mLate;
 
                         leave_MAN += (d.absentOnLeaveTrue || 0) * mTrue;
                         leave_MAN += (d.absentOnLeaveFalse || 0) * mTrue;
                         punishment_MAN += (d.absentOnLeaveFalse || 0) * mFalse;
+                        punishment_MAN += (d.lateAbsentOnLeaveTrue || 0) * mLate;
 
                         leave_MAN += (d.weekendAbsentOnLeaveTrue || 0) * wkTrue;
                         leave_MAN += (d.weekendAbsentOnLeaveFalse || 0) * wkTrue;
                         punishment_MAN += (d.weekendAbsentOnLeaveFalse || 0) * wkFalse;
+                        punishment_MAN += (d.weekendLateAbsentOnLeaveTrue || 0) * wkLate;
 
                         documentedMedicalLeaveMinus += (d.documentedMedicalAbsentOnLeaveTrue || 0) * mTrue;
                         documentedMedicalLeaveMinus += (d.weekendDocumentedMedicalAbsentOnLeaveTrue || 0) * wkTrue;
@@ -266,17 +270,21 @@ export default function DashboardPage() {
                 if (periodData && periodData.periods) {
                     const pTrue = evaluateMultiplier(multipliers['Period'].true);
                     const pFalse = evaluateMultiplier(multipliers['Period'].false);
+                    const pLate = evaluateMultiplier(multipliers['Period'].late || '0');
                     const wkTrue = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].true) : pTrue;
                     const wkFalse = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].false) : pFalse;
+                    const wkLate = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].late || '0') : pLate;
 
                     Object.values(periodData.periods).forEach(p => {
                         absence_PJ += (p.absentOnLeaveTrue || 0) * pTrue;
                         absence_PJ += (p.absentOnLeaveFalse || 0) * pTrue;
                         punishment_PJQ += (p.absentOnLeaveFalse || 0) * pFalse;
+                        punishment_PJQ += (p.lateAbsentOnLeaveTrue || 0) * pLate;
 
                         absence_PJ += (p.weekendAbsentOnLeaveTrue || 0) * wkTrue;
                         absence_PJ += (p.weekendAbsentOnLeaveFalse || 0) * wkTrue;
                         punishment_PJQ += (p.weekendAbsentOnLeaveFalse || 0) * wkFalse;
+                        punishment_PJQ += (p.weekendLateAbsentOnLeaveTrue || 0) * wkLate;
 
                         documentedMedicalLeaveMinus += (p.documentedMedicalAbsentOnLeaveTrue || 0) * pTrue;
                         documentedMedicalLeaveMinus += (p.weekendDocumentedMedicalAbsentOnLeaveTrue || 0) * wkTrue;
@@ -295,16 +303,20 @@ export default function DashboardPage() {
                 if (jamathData) {
                     const jTrue = evaluateMultiplier(multipliers['Jamath'].true);
                     const jFalse = evaluateMultiplier(multipliers['Jamath'].false);
+                    const jLate = evaluateMultiplier(multipliers['Jamath'].late || '0');
                     const wkTrue = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].true) : jTrue;
                     const wkFalse = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].false) : jFalse;
+                    const wkLate = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].late || '0') : jLate;
 
                     absence_PJ += (jamathData.absentOnLeaveTrue || 0) * jTrue;
                     absence_PJ += (jamathData.absentOnLeaveFalse || 0) * jTrue;
                     punishment_PJQ += (jamathData.absentOnLeaveFalse || 0) * jFalse;
+                    punishment_PJQ += (jamathData.lateAbsentOnLeaveTrue || 0) * jLate;
 
                     absence_PJ += (jamathData.weekendAbsentOnLeaveTrue || 0) * wkTrue;
                     absence_PJ += (jamathData.weekendAbsentOnLeaveFalse || 0) * wkTrue;
                     punishment_PJQ += (jamathData.weekendAbsentOnLeaveFalse || 0) * wkFalse;
+                    punishment_PJQ += (jamathData.weekendLateAbsentOnLeaveTrue || 0) * wkLate;
 
                     documentedMedicalLeaveMinus += (jamathData.documentedMedicalAbsentOnLeaveTrue || 0) * jTrue;
                     documentedMedicalLeaveMinus += (jamathData.weekendDocumentedMedicalAbsentOnLeaveTrue || 0) * wkTrue;
@@ -322,16 +334,20 @@ export default function DashboardPage() {
                 if (quiraathData) {
                     const qTrue = evaluateMultiplier(multipliers['Quiraath'].true);
                     const qFalse = evaluateMultiplier(multipliers['Quiraath'].false);
+                    const qLate = evaluateMultiplier(multipliers['Quiraath'].late || '0');
                     const wkTrue = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].true) : qTrue;
                     const wkFalse = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].false) : qFalse;
+                    const wkLate = multipliers['Weekend']?.active ? evaluateMultiplier(multipliers['Weekend'].late || '0') : qLate;
 
                     absence_PJ += (quiraathData.absentOnLeaveTrue || 0) * qTrue;
                     absence_PJ += (quiraathData.absentOnLeaveFalse || 0) * qTrue;
                     punishment_PJQ += (quiraathData.absentOnLeaveFalse || 0) * qFalse;
+                    punishment_PJQ += (quiraathData.lateAbsentOnLeaveTrue || 0) * qLate;
 
                     absence_PJ += (quiraathData.weekendAbsentOnLeaveTrue || 0) * wkTrue;
                     absence_PJ += (quiraathData.weekendAbsentOnLeaveFalse || 0) * wkTrue;
                     punishment_PJQ += (quiraathData.weekendAbsentOnLeaveFalse || 0) * wkFalse;
+                    punishment_PJQ += (quiraathData.weekendLateAbsentOnLeaveTrue || 0) * wkLate;
 
                     documentedMedicalLeaveMinus += (quiraathData.documentedMedicalAbsentOnLeaveTrue || 0) * qTrue;
                     documentedMedicalLeaveMinus += (quiraathData.weekendDocumentedMedicalAbsentOnLeaveTrue || 0) * wkTrue;

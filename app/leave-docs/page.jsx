@@ -5,8 +5,8 @@ import LeaveDocumentation, { getMedicalDocsOnly, getProgramDocsOnly, getAllDocs 
 
 export { getMedicalDocsOnly, getProgramDocsOnly, getAllDocs };
 
-const MedicalDocsPage = () => {
-    return <LeaveDocumentation defaultTab="medical" />;
+const LeaveDocsPage = () => {
+    return <LeaveDocumentation defaultTab="all" />;
 };
 
-export default MedicalDocsPage;
+export default LeaveDocsPage;

@@ -12,14 +12,14 @@ const getSafeLocalStorage = () => typeof window !== 'undefined' ? localStorage :
 const getDefaultTemplate = () => ({
     name: '',
     multipliers: {
-        Morning: { true: '1/3', false: '1/3', active: true },
-        Afternoon: { true: '1/3', false: '1/3', active: true },
-        Night: { true: '1/3', false: '1/3', active: true },
-        Period: { true: '0', false: '1/6', active: true },
-        Jamath: { true: '0', false: '1/6', active: true },
-        Quiraath: { true: '0', false: '1/6', active: true },
+        Morning: { true: '1/3', false: '1/3', late: '0', active: true },
+        Afternoon: { true: '1/3', false: '1/3', late: '0', active: true },
+        Night: { true: '1/3', false: '1/3', late: '0', active: true },
+        Period: { true: '0', false: '1/6', late: '0', active: true },
+        Jamath: { true: '0', false: '1/6', late: '0', active: true },
+        Quiraath: { true: '0', false: '1/6', late: '0', active: true },
         Minus: { active: true },
-        Weekend: { true: '1/6', false: '1/6', active: true }
+        Weekend: { true: '1/6', false: '1/6', late: '0', active: true }
     }
 });
 
@@ -188,7 +188,17 @@ export default function SettingsPage() {
 
     const handleStartEdit = (index) => {
         setEditingIndex(index);
-        setNewTemplate(JSON.parse(JSON.stringify(templates[index])));
+        const tpl = JSON.parse(JSON.stringify(templates[index]));
+        if (tpl && tpl.multipliers) {
+            Object.keys(tpl.multipliers).forEach(k => {
+                if (k !== 'Minus' && tpl.multipliers[k]) {
+                    if (tpl.multipliers[k].late === undefined) {
+                        tpl.multipliers[k].late = '0';
+                    }
+                }
+            });
+        }
+        setNewTemplate(tpl);
         const formEl = document.getElementById('template-form');
         if (formEl) {
             formEl.scrollIntoView({ behavior: 'smooth' });
@@ -678,19 +688,21 @@ export default function SettingsPage() {
                             </div>
 
                             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 overflow-x-auto">
-                                <div className="min-w-[500px] space-y-3">
-                                    <div className="grid grid-cols-[150px_1fr_1fr_60px] gap-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">
+                                <div className="min-w-[600px] space-y-3">
+                                    <div className="grid grid-cols-[140px_1fr_1fr_1fr_50px] gap-3 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">
                                         <div>Time / Session</div>
                                         <div>Base Minus</div>
                                         <div>Additional Unapproved</div>
+                                        <div>Additional Late</div>
                                         <div className="text-center">Active</div>
                                     </div>
                                     {['Morning', 'Afternoon', 'Night', 'Period', 'Jamath', 'Quiraath', 'Weekend'].map(time => (
-                                        <div key={time} className="grid grid-cols-[150px_1fr_1fr_60px] gap-4 items-center">
+                                        <div key={time} className="grid grid-cols-[140px_1fr_1fr_1fr_50px] gap-3 items-center">
                                             <span className="text-xs font-bold text-slate-600">{time === 'Weekend' ? 'Weekend Days' : time}</span>
                                             <input
                                                 type="text"
-                                                value={newTemplate.multipliers[time].true}
+                                                placeholder="0"
+                                                value={newTemplate.multipliers[time]?.true ?? ''}
                                                 onChange={(e) => {
                                                     const val = e.target.value;
                                                     setNewTemplate(prev => ({
@@ -705,7 +717,8 @@ export default function SettingsPage() {
                                             />
                                             <input
                                                 type="text"
-                                                value={newTemplate.multipliers[time].false}
+                                                placeholder="0"
+                                                value={newTemplate.multipliers[time]?.false ?? ''}
                                                 onChange={(e) => {
                                                     const val = e.target.value;
                                                     setNewTemplate(prev => ({
@@ -718,10 +731,26 @@ export default function SettingsPage() {
                                                 }}
                                                 className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-sky-400"
                                             />
+                                            <input
+                                                type="text"
+                                                placeholder="0"
+                                                value={newTemplate.multipliers[time]?.late ?? ''}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    setNewTemplate(prev => ({
+                                                        ...prev,
+                                                        multipliers: {
+                                                            ...prev.multipliers,
+                                                            [time]: { ...prev.multipliers[time], late: val }
+                                                        }
+                                                    }));
+                                                }}
+                                                className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-sky-400"
+                                            />
                                             <div className="flex justify-center">
                                                 <input
                                                     type="checkbox"
-                                                    checked={newTemplate.multipliers[time].active}
+                                                    checked={newTemplate.multipliers[time]?.active ?? true}
                                                     onChange={(e) => {
                                                         const checked = e.target.checked;
                                                         setNewTemplate(prev => ({
@@ -738,13 +767,13 @@ export default function SettingsPage() {
                                         </div>
                                     ))}
                                     {/* Minus Checkbox */}
-                                    <div className="grid grid-cols-[150px_1fr_1fr_60px] gap-4 items-center pt-2 border-t border-slate-100">
+                                    <div className="grid grid-cols-[140px_1fr_1fr_1fr_50px] gap-3 items-center pt-2 border-t border-slate-100">
                                         <span className="text-xs font-bold text-slate-600">Manual Minus Points</span>
-                                        <div className="col-span-2 text-[10px] text-slate-400 italic">Include manually logged minus points</div>
+                                        <div className="col-span-3 text-[10px] text-slate-400 italic">Include manually logged minus points</div>
                                         <div className="flex justify-center">
                                             <input
                                                 type="checkbox"
-                                                checked={newTemplate.multipliers.Minus.active}
+                                                checked={newTemplate.multipliers.Minus?.active ?? true}
                                                 onChange={(e) => {
                                                     const checked = e.target.checked;
                                                     setNewTemplate(prev => ({

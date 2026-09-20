@@ -92,6 +92,10 @@ export async function GET(req) {
       return false;
     };
 
+    const checkIsRecordLate = (record) => {
+      return Boolean(record.onLeave) && Boolean(record.isLate);
+    };
+
     const studentData = students.map(student => {
       const id = student._id.toString();
       
@@ -127,8 +131,10 @@ export async function GET(req) {
           groupedAttendance[time] = { 
             absentOnLeaveFalse: 0, 
             absentOnLeaveTrue: 0, 
+            lateAbsentOnLeaveTrue: 0,
             weekendAbsentOnLeaveFalse: 0, 
             weekendAbsentOnLeaveTrue: 0, 
+            weekendLateAbsentOnLeaveTrue: 0,
             medicalAbsentOnLeaveTrue: 0,
             weekendMedicalAbsentOnLeaveTrue: 0,
             documentedMedicalAbsentOnLeaveTrue: 0,
@@ -175,6 +181,7 @@ export async function GET(req) {
 
           const weekend = isWeekendRecord(record);
           const isDocumented = record.onLeave && record.leaveId && (record.leaveId.documented === true || record.leaveId.programDocumented === true);
+          const isLate = checkIsRecordLate(record);
 
           // Helper to increment documented/medical/ogea values
           const incrementSpecialCounters = (obj) => {
@@ -206,8 +213,10 @@ export async function GET(req) {
                 groupedAttendance[time].periods[p] = { 
                   absentOnLeaveFalse: 0, 
                   absentOnLeaveTrue: 0,
-                  weekendAbsentOnLeaveFalse: 0,
+                  lateAbsentOnLeaveTrue: 0,
+                  weekendAbsentOnLeaveFalse: 0, 
                   weekendAbsentOnLeaveTrue: 0,
+                  weekendLateAbsentOnLeaveTrue: 0,
                   medicalAbsentOnLeaveTrue: 0,
                   weekendMedicalAbsentOnLeaveTrue: 0,
                   documentedMedicalAbsentOnLeaveTrue: 0,
@@ -227,8 +236,10 @@ export async function GET(req) {
             if (record.onLeave) {
                 if (weekend) {
                   groupedAttendance[time].periods[p].weekendAbsentOnLeaveTrue++;
+                  if (isLate) groupedAttendance[time].periods[p].weekendLateAbsentOnLeaveTrue++;
                 } else {
                   groupedAttendance[time].periods[p].absentOnLeaveTrue++;
+                  if (isLate) groupedAttendance[time].periods[p].lateAbsentOnLeaveTrue++;
                 }
             } else {
                 if (weekend) {
@@ -244,8 +255,10 @@ export async function GET(req) {
             if (record.onLeave) {
               if (weekend) {
                 groupedAttendance[time].weekendAbsentOnLeaveTrue++;
+                if (isLate) groupedAttendance[time].weekendLateAbsentOnLeaveTrue++;
               } else {
                 groupedAttendance[time].absentOnLeaveTrue++;
+                if (isLate) groupedAttendance[time].lateAbsentOnLeaveTrue++;
               }
             } else {
               if (weekend) {
