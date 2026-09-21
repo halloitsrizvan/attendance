@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { API_PORT } from '../../Constants';
+import CommonAttendanceComplaints from './CommonAttendanceComplaints';
 import {
   MessageSquare,
   Clock,
@@ -24,10 +25,12 @@ import {
   X,
   ExternalLink,
   ChevronDown,
-  HeartPulse
+  HeartPulse,
+  Users
 } from 'lucide-react';
 
 const AdminComplaints = () => {
+  const [viewMode, setViewMode] = useState('disputes'); // 'disputes' | 'common'
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -249,58 +252,50 @@ const AdminComplaints = () => {
           </div>
         </div>
 
-        {/* Overview Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Filed</p>
-              <h3 className="text-2xl sm:text-3xl font-black text-slate-800 mt-1">{stats.total}</h3>
-              <p className="text-[10px] font-bold text-slate-400 mt-1">All recorded disputes</p>
-            </div>
-            <div className="w-12 h-12 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center font-bold">
-              <FileText size={22} />
-            </div>
-          </div>
+        {/* Top View Mode Switcher */}
+        <div className="flex items-center p-1.5 bg-white rounded-2xl border border-slate-100 shadow-sm w-full sm:w-auto self-start gap-1">
+          <button
+            onClick={() => setViewMode('disputes')}
+            className={`flex-1 sm:flex-none px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 ${
+              viewMode === 'disputes'
+                ? 'bg-slate-900 text-white shadow-md'
+                : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+            }`}
+          >
+            <ShieldAlert size={16} className={viewMode === 'disputes' ? 'text-rose-400' : 'text-slate-400'} />
+            <span>Individual Complaints</span>
+            {stats.pending > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white">
+                {stats.pending}
+              </span>
+            )}
+          </button>
 
-          <div className="bg-white rounded-3xl p-5 border border-amber-100 shadow-sm flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Pending Review</p>
-              </div>
-              <h3 className="text-2xl sm:text-3xl font-black text-amber-600 mt-1">{stats.pending}</h3>
-              <p className="text-[10px] font-bold text-slate-400 mt-1">Awaiting decision</p>
-            </div>
-            <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center font-bold">
-              <Clock size={22} />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-3xl p-5 border border-emerald-100 shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Resolved & Corrected</p>
-              <h3 className="text-2xl sm:text-3xl font-black text-emerald-600 mt-1">{stats.resolved}</h3>
-              <p className="text-[10px] font-bold text-slate-400 mt-1">Attendance corrected</p>
-            </div>
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center font-bold">
-              <CheckCircle2 size={22} />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-3xl p-5 border border-rose-100 shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-rose-600">Rejected</p>
-              <h3 className="text-2xl sm:text-3xl font-black text-rose-600 mt-1">{stats.rejected}</h3>
-              <p className="text-[10px] font-bold text-slate-400 mt-1">Marked invalid</p>
-            </div>
-            <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center font-bold">
-              <XCircle size={22} />
-            </div>
-          </div>
+          <button
+            onClick={() => setViewMode('common')}
+            className={`flex-1 sm:flex-none px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 ${
+              viewMode === 'common'
+                ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
+                : 'text-slate-500 hover:text-amber-600 hover:bg-slate-50'
+            }`}
+          >
+            <Users size={16} />
+            <span>Common Attendance Complaints</span>
+            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${
+              viewMode === 'common' ? 'bg-white/20 text-white' : 'bg-amber-50 text-amber-700'
+            }`}>
+              Batch Mode
+            </span>
+          </button>
         </div>
 
-        {/* Filter & Controls Panel */}
-        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 space-y-4">
+        {/* View Mode Content */}
+        {viewMode === 'common' ? (
+          <CommonAttendanceComplaints />
+        ) : (
+          <>
+            {/* Filter & Controls Panel */}
+            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 space-y-4">
           <div className="flex flex-col md:flex-row gap-4 justify-between items-stretch md:items-center">
 
             {/* Search Input */}
@@ -573,7 +568,9 @@ const AdminComplaints = () => {
             })}
           </div>
         )}
-      </div>
+        </>
+      )}
+    </div>
 
       {/* Super Admin Decision Modal */}
       {modalOpen && activeComplaint && (

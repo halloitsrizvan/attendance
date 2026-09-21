@@ -14,6 +14,11 @@ export async function GET(req) {
   const status = searchParams.get('status');
   const academicYearId = searchParams.get('academicYearId');
   const allYears = searchParams.get('all') === 'true' || academicYearId === 'all';
+  const fromDate = searchParams.get('fromDate');
+  const toDate = searchParams.get('toDate');
+  const classesParam = searchParams.get('classes');
+  const hasDoc = searchParams.get('hasDoc');
+  const docType = searchParams.get('docType');
 
   try {
     let query = {};
@@ -26,9 +31,55 @@ export async function GET(req) {
       }
     }
 
+    if (classesParam && classesParam !== 'all' && !ad) {
+      const classList = classesParam.split(',').map(c => c.trim()).filter(Boolean);
+      if (classList.length > 0) {
+        const numericClasses = classList.map(c => Number(c)).filter(n => !isNaN(n));
+        const students = await Student.find({
+          $or: [
+            { CLASS: { $in: classList } },
+            { CLASS: { $in: numericClasses } }
+          ]
+        }).select('_id');
+        const studentIds = students.map(s => s._id);
+        query.studentId = { $in: studentIds };
+      }
+    }
+
     if (status) {
       const statusList = status.split(',');
       query.status = { $in: statusList };
+    }
+
+    if (fromDate && toDate) {
+      query.$and = query.$and || [];
+      query.$and.push({
+        $or: [
+          { fromDate: { $lte: toDate }, toDate: { $gte: fromDate } },
+          { fromDate: { $gte: fromDate, $lte: toDate } },
+          { toDate: { $gte: fromDate, $lte: toDate } },
+          { fromDate: { $lte: toDate }, toDate: null }
+        ]
+      });
+    } else if (fromDate) {
+      query.fromDate = { $gte: fromDate };
+    } else if (toDate) {
+      query.fromDate = { $lte: toDate };
+    }
+
+    if (hasDoc === 'true') {
+      if (docType === 'medical') {
+        query.$or = [{ documentUrl: { $ne: null } }, { isMedicalSubmitted: true }];
+      } else if (docType === 'program') {
+        query.$or = [{ programDocumentUrl: { $ne: null } }, { isProgramSubmitted: true }];
+      } else {
+        query.$or = [
+          { documentUrl: { $ne: null } },
+          { isMedicalSubmitted: true },
+          { programDocumentUrl: { $ne: null } },
+          { isProgramSubmitted: true }
+        ];
+      }
     }
 
     if (!allYears) {
