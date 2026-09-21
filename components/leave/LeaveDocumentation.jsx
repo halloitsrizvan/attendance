@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Header from '@/components/Header/Header';
+import CommonLeaveSection from '@/components/leave/CommonLeaveSection';
 import axios from 'axios';
 import { API_PORT } from '@/Constants';
 import { 
     FileText, CheckCircle, Clock, ExternalLink, 
     Search, Filter, Loader2, Calendar, ShieldCheck, 
-    RefreshCw, Layers, Stethoscope, Sparkles, Check, XCircle
+    RefreshCw, Layers, Stethoscope, Sparkles, Check, XCircle, Users
 } from 'lucide-react';
 
 /**
@@ -349,7 +350,7 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
                     {/* Top row: Tab Switcher & Status Filter */}
                     <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
                         {/* Scope Tabs */}
-                        <div className="flex items-center p-1.5 bg-slate-100/80 rounded-2xl w-full lg:w-auto">
+                        <div className="flex items-center p-1.5 bg-slate-100/80 rounded-2xl w-full lg:w-auto flex-wrap gap-1">
                             <button
                                 onClick={() => setActiveTab('all')}
                                 className={`flex-1 lg:flex-none px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
@@ -378,63 +379,81 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
                                         : 'text-slate-500 hover:text-purple-600'
                                 }`}
                             >
-                                Program ({stats.totalProgram})
+                                Program / Official ({stats.totalProgram})
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('common')}
+                                className={`flex-1 lg:flex-none px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                                    activeTab === 'common'
+                                        ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
+                                        : 'text-slate-500 hover:text-amber-600'
+                                }`}
+                            >
+                                <Users size={13} />
+                                <span>Common Leaves</span>
                             </button>
                         </div>
 
-                        {/* Status Filter Tabs */}
-                        <div className="flex items-center gap-2 w-full lg:w-auto justify-end">
-                            <select
-                                value={filterStatus}
-                                onChange={e => setFilterStatus(e.target.value)}
-                                className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:border-sky-500 shadow-sm cursor-pointer"
-                            >
-                                <option value="all">All Verification Statuses</option>
-                                <option value="pending">Pending Approval Only</option>
-                                <option value="approved">Verified / Approved Only</option>
-                            </select>
-
-                            {availableClasses.length > 0 && (
+                        {/* Status Filter Tabs (Only shown when not in common tab) */}
+                        {activeTab !== 'common' && (
+                            <div className="flex items-center gap-2 w-full lg:w-auto justify-end">
                                 <select
-                                    value={filterClass}
-                                    onChange={e => setFilterClass(e.target.value)}
+                                    value={filterStatus}
+                                    onChange={e => setFilterStatus(e.target.value)}
                                     className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:border-sky-500 shadow-sm cursor-pointer"
                                 >
-                                    <option value="">All Classes</option>
-                                    {availableClasses.map(cls => (
-                                        <option key={cls} value={cls}>Class {cls}</option>
-                                    ))}
+                                    <option value="all">All Verification Statuses</option>
+                                    <option value="pending">Pending Approval Only</option>
+                                    <option value="approved">Verified / Approved Only</option>
                                 </select>
-                            )}
-                        </div>
+
+                                {availableClasses.length > 0 && (
+                                    <select
+                                        value={filterClass}
+                                        onChange={e => setFilterClass(e.target.value)}
+                                        className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:border-sky-500 shadow-sm cursor-pointer"
+                                    >
+                                        <option value="">All Classes</option>
+                                        {availableClasses.map(cls => (
+                                            <option key={cls} value={cls}>Class {cls}</option>
+                                        ))}
+                                    </select>
+                                )}
+                            </div>
+                        )}
                     </div>
 
-                    {/* Bottom row: Search Inputs */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="relative">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
-                            <input
-                                type="text"
-                                placeholder="Search by student name or AD number..."
-                                value={searchTerm}
-                                onChange={e => setSearchTerm(e.target.value)}
-                                className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-sky-500 focus:bg-white transition-all"
-                            />
+                    {/* Bottom row: Search Inputs (Only shown when not in common tab) */}
+                    {activeTab !== 'common' && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="relative">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
+                                <input
+                                    type="text"
+                                    placeholder="Search by student name or AD number..."
+                                    value={searchTerm}
+                                    onChange={e => setSearchTerm(e.target.value)}
+                                    className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-sky-500 focus:bg-white transition-all"
+                                />
+                            </div>
+                            <div className="relative">
+                                <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
+                                <input
+                                    type="text"
+                                    placeholder="Search Medical Code / Program Code..."
+                                    value={codeSearch}
+                                    onChange={e => setCodeSearch(e.target.value)}
+                                    className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs font-bold text-slate-800 uppercase placeholder:text-slate-400 placeholder:normal-case placeholder:font-normal focus:outline-none focus:border-sky-500 focus:bg-white transition-all"
+                                />
+                            </div>
                         </div>
-                        <div className="relative">
-                            <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
-                            <input
-                                type="text"
-                                placeholder="Search Medical Code / Program Code..."
-                                value={codeSearch}
-                                onChange={e => setCodeSearch(e.target.value)}
-                                className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs font-bold text-slate-800 uppercase placeholder:text-slate-400 placeholder:normal-case placeholder:font-normal focus:outline-none focus:border-sky-500 focus:bg-white transition-all"
-                            />
-                        </div>
-                    </div>
+                    )}
                 </div>
 
-                {/* Content Table / Card List */}
+                {/* Main Content Area */}
+                {activeTab === 'common' ? (
+                    <CommonLeaveSection />
+                ) : (
                 <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
                     {loading ? (
                         <div className="h-96 flex flex-col items-center justify-center gap-4">
@@ -460,6 +479,13 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
                                         const hasProgram = Boolean(leave.programDocumentUrl || leave.isProgramSubmitted);
                                         const isMedApproved = Boolean(leave.documented);
                                         const isProgApproved = Boolean(leave.programDocumented);
+
+                                        const reasonLower = (leave.reason || '').toLowerCase();
+                                        const progTypeLabel = reasonLower.includes('external edu')
+                                            ? 'External Edu'
+                                            : reasonLower.includes('official')
+                                            ? 'Official'
+                                            : 'Program';
 
                                         return (
                                             <tr key={leave._id} className="hover:bg-slate-50/40 transition-colors group">
@@ -527,7 +553,7 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
                                                         {hasProgram && (
                                                             <div className="flex items-center gap-1.5">
                                                                 <span className="px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-100 rounded-md text-[9px] font-black uppercase">
-                                                                    Program
+                                                                    {progTypeLabel}
                                                                 </span>
                                                                 {leave.programCode && (
                                                                     <span className="text-[10px] font-mono font-black text-purple-800">
@@ -567,10 +593,10 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
                                                                         rel="noopener noreferrer"
                                                                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 rounded-xl text-[10px] font-black uppercase tracking-wider border border-purple-100 hover:bg-purple-600 hover:text-white transition-all shadow-sm"
                                                                     >
-                                                                        <ExternalLink size={12} /> Program Doc
+                                                                        <ExternalLink size={12} /> {progTypeLabel} Doc
                                                                     </a>
                                                                 ) : (
-                                                                    <span className="text-[9px] font-bold text-slate-300 uppercase italic">No Prog File</span>
+                                                                    <span className="text-[9px] font-bold text-slate-300 uppercase italic">No {progTypeLabel} File</span>
                                                                 )}
                                                             </div>
                                                         )}
@@ -597,7 +623,7 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
                                                                     : 'bg-amber-500 text-white shadow-amber-200'
                                                             }`}>
                                                                 {isProgApproved ? <CheckCircle size={10} /> : <Clock size={10} />}
-                                                                {hasMedical ? 'Prog: ' : ''}{isProgApproved ? 'Verified' : 'Pending'}
+                                                                {hasMedical ? `${progTypeLabel}: ` : ''}{isProgApproved ? 'Verified' : 'Pending'}
                                                             </span>
                                                         )}
                                                     </div>
@@ -642,7 +668,7 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
                                                                         disabled={actionLoading[leave._id + '_prog']}
                                                                         className="px-4 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-purple-600 active:scale-95 transition-all shadow-md shadow-slate-200 disabled:opacity-50 cursor-pointer"
                                                                     >
-                                                                        {actionLoading[leave._id + '_prog'] ? 'Saving...' : 'Approve Prog'}
+                                                                        {actionLoading[leave._id + '_prog'] ? 'Saving...' : `Approve ${progTypeLabel === 'Program' ? 'Prog' : progTypeLabel}`}
                                                                     </button>
                                                                 ) : (
                                                                     <button 
@@ -652,7 +678,7 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
                                                                         title="Click to revoke verification"
                                                                     >
                                                                         <span className="group-hover/btn:hidden flex items-center gap-1">
-                                                                            <Check size={11} /> Prog Verified
+                                                                            <Check size={11} /> {progTypeLabel} Verified
                                                                         </span>
                                                                         <span className="hidden group-hover/btn:inline">
                                                                             Revoke
@@ -681,6 +707,7 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
                         </div>
                     )}
                 </div>
+                )}
             </main>
         </div>
     );

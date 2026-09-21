@@ -179,7 +179,7 @@ const ReasonPicker = ({ selectedReason, setSelectedReason, customReason, setCust
   const classTeacher_reasons_for_primary = ['Medical (Home)', 'Room', 'Hospital', 'Hospital bystander', 'Marriage', 'OGEA', 'Official', 'Urgent (Death)', 'Custom'];
   const classTeacher_reasons_for_s5_ss_d = ['Medical (Home)', 'Room', 'Hospital', 'Hospital bystander', 'OGEA', 'Urgent (Death)', 'Custom'];
   const teacher_reasons_for_hos_hod = ['Medical (Home)', 'Room', 'Marriage', 'OGEA', 'Official', 'Custom'];
-  const super_admin_reasons = ['Medical (Home)', 'Room', 'Marriage', 'OGEA', 'External Edu', 'Custom'];
+  const super_admin_reasons = ['Medical (Home)', 'Room', 'Marriage', 'OGEA', 'Official', 'External Edu', 'Custom'];
   const medical_teacher_reasons = ['Hospital', 'Hospital bystander'];
   if (leaveType === "leave") {
     const isTestUser = (teacher?.email || teacher?.EMAIL || '').trim().toLowerCase() === 'test@gmail.com';

@@ -506,12 +506,12 @@ export default function LeavePage() {
                                         <Upload size={14} /> Upload Medical Documents
                                     </button>
                                 )}
-                                {!item.programDocumented && !item.isProgramSubmitted && !item.programDocumentUrl && item.reason?.includes('OGEA') && (
+                                {!item.programDocumented && !item.isProgramSubmitted && !item.programDocumentUrl && ['ogea', 'official', 'external edu'].some(r => item.reason?.toLowerCase().includes(r)) && (
                                     <button
                                         onClick={() => { setSelectedLeave(item); setIsProgramDocumentOpen(true); }}
                                         className="mt-6 w-full py-3 bg-purple-50 border border-purple-100 rounded-2xl text-[10px] font-black text-purple-600 uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-purple-600 hover:text-white transition-all shadow-sm cursor-pointer"
                                     >
-                                        <Upload size={14} /> Upload Program Documents
+                                        <Upload size={14} /> Upload {item.reason?.toLowerCase().includes('external edu') ? 'External Edu' : item.reason?.toLowerCase().includes('official') ? 'Official' : 'Program'} Documents
                                     </button>
                                 )}
                                 {!item.documented && (item.isMedicalSubmitted || item.documentUrl) && (
@@ -536,7 +536,9 @@ export default function LeavePage() {
                                     <div className="mt-6 flex flex-col sm:flex-row gap-2">
                                         <div className="flex-1 p-3 bg-amber-50 rounded-2xl flex items-center justify-center gap-2 border border-amber-100">
                                             <Clock size={14} className="text-amber-500 animate-pulse" />
-                                            <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Program Doc Waiting for Approval</span>
+                                            <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">
+                                                {item.reason?.toLowerCase().includes('external edu') ? 'External Edu' : item.reason?.toLowerCase().includes('official') ? 'Official' : 'Program'} Doc Waiting for Approval
+                                            </span>
                                         </div>
                                         {item.programDocumentUrl && (
                                             <a
@@ -837,6 +839,13 @@ const ProgramDocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
     const [uploading, setUploading] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
 
+    const docLabel = useMemo(() => {
+        const r = (leave?.reason || '').toLowerCase();
+        if (r.includes('external edu')) return 'External Edu';
+        if (r.includes('official')) return 'Official';
+        return 'Program';
+    }, [leave?.reason]);
+
     if (!isOpen || !leave) return null;
 
     const handleDragOver = (e) => {
@@ -909,8 +918,8 @@ const ProgramDocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
             <div className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
                 <div className="p-6 bg-purple-600 text-white flex items-center justify-between">
                     <div>
-                        <h2 className="text-xl font-black uppercase italic">Program Document</h2>
-                        <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest">Attach program documents (Optional)</p>
+                        <h2 className="text-xl font-black uppercase italic">{docLabel} Document</h2>
+                        <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest">Attach {docLabel.toLowerCase()} documents (Optional)</p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-xl transition-all"><X size={20} /></button>
                 </div>
@@ -954,7 +963,7 @@ const ProgramDocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
                                             <Upload size={24} />
                                         </div>
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">
-                                            Drag & Drop or Click to select <br /> program documents
+                                            Drag & Drop or Click to select <br /> {docLabel.toLowerCase()} documents
                                         </p>
                                         <p className="text-[8px] font-bold text-slate-300 uppercase mt-2">(Optional)</p>
                                     </div>
