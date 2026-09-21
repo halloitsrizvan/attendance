@@ -17,6 +17,8 @@ const CommonLeaveSection = () => {
     const [selectedClass, setSelectedClass] = useState('');
     const [fromDate, setFromDate] = useState(todayStr);
     const [toDate, setToDate] = useState(todayStr);
+    const [fromTime, setFromTime] = useState('07:30');
+    const [toTime, setToTime] = useState('16:10');
 
     // Students state
     const [students, setStudents] = useState([]);
@@ -136,6 +138,8 @@ const CommonLeaveSection = () => {
                     classNumber: selectedClass,
                     fromDate,
                     toDate,
+                    fromTime,
+                    toTime,
                     studentIds: idsParam
                 }
             });
@@ -275,6 +279,30 @@ const CommonLeaveSection = () => {
         return timeType || 'General Session';
     };
 
+    // Quick time presets & period definitions
+    const TIME_PRESETS = [
+        { label: 'Full Day (P1–10)', from: '07:30', to: '16:10', icon: '🌟' },
+        { label: 'Morning (P1–7)', from: '07:30', to: '12:50', icon: '🌅' },
+        { label: 'Afternoon (P8–10)', from: '14:00', to: '16:10', icon: '☀️' },
+        { label: 'Night / Jamath', from: '18:00', to: '22:00', icon: '🌙' },
+        { label: 'Quiraath / Fajr', from: '05:30', to: '07:00', icon: '📖' },
+        { label: 'Entire 24h', from: '00:00', to: '23:59', icon: '🕒' },
+    ];
+
+    const [isSingleDay, setIsSingleDay] = useState(false);
+
+    const format12Hour = (time24) => {
+        if (!time24) return '';
+        const parts = time24.split(':');
+        let h = parseInt(parts[0], 10);
+        const m = parts[1] || '00';
+        if (isNaN(h)) return time24;
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12;
+        h = h ? h : 12;
+        return `${h}:${m} ${ampm}`;
+    };
+
     // Quick Date setters
     const setQuickDate = (type) => {
         const today = new Date();
@@ -288,7 +316,14 @@ const CommonLeaveSection = () => {
             const s = y.toISOString().split('T')[0];
             setFromDate(s);
             setToDate(s);
+        } else if (type === 'tomorrow') {
+            const tom = new Date(today);
+            tom.setDate(tom.getDate() + 1);
+            const s = tom.toISOString().split('T')[0];
+            setFromDate(s);
+            setToDate(s);
         } else if (type === 'last7') {
+            setIsSingleDay(false);
             const sTo = today.toISOString().split('T')[0];
             const from = new Date(today);
             from.setDate(from.getDate() - 6);
@@ -298,110 +333,298 @@ const CommonLeaveSection = () => {
         }
     };
 
+    // Shift date by +1 or -1 day
+    const shiftDate = (offsetDays) => {
+        const base = fromDate ? new Date(fromDate) : new Date();
+        base.setDate(base.getDate() + offsetDays);
+        const newStr = base.toISOString().split('T')[0];
+        setFromDate(newStr);
+        if (isSingleDay) {
+            setToDate(newStr);
+        } else if (toDate) {
+            const toBase = new Date(toDate);
+            toBase.setDate(toBase.getDate() + offsetDays);
+            setToDate(toBase.toISOString().split('T')[0]);
+        }
+    };
+
+    const handleFromDateChange = (val) => {
+        setFromDate(val);
+        if (isSingleDay) {
+            setToDate(val);
+        } else if (toDate && val > toDate) {
+            setToDate(val);
+        }
+    };
+
+    const handleToDateChange = (val) => {
+        setToDate(val);
+        if (isSingleDay && val !== fromDate) {
+            setIsSingleDay(false);
+        }
+    };
+
+    const applyTimePreset = (preset) => {
+        setFromTime(preset.from);
+        setToTime(preset.to);
+    };
+
     return (
         <div className="space-y-6">
-            {/* Context Banner */}
-            {/* <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent p-6 rounded-3xl border border-amber-200/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-amber-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-amber-500/30 shrink-0">
-                        <Users size={24} />
-                    </div>
-                    <div>
-                        <h2 className="text-xl font-black text-slate-800 uppercase italic tracking-tight">
-                            Common Leave Documentation
-                        </h2>
-                        <p className="text-xs font-bold text-slate-500 mt-0.5">
-                            Reconcile class-wide leaves and bulk convert absents to Present or On Leave (Excused).
-                        </p>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => setQuickDate('today')}
-                        className="px-3 py-1.5 bg-white border border-amber-200 rounded-xl text-[10px] font-black uppercase text-amber-700 hover:bg-amber-50 transition-all shadow-sm cursor-pointer"
-                    >
-                        Today
-                    </button>
-                    <button
-                        onClick={() => setQuickDate('yesterday')}
-                        className="px-3 py-1.5 bg-white border border-amber-200 rounded-xl text-[10px] font-black uppercase text-amber-700 hover:bg-amber-50 transition-all shadow-sm cursor-pointer"
-                    >
-                        Yesterday
-                    </button>
-                    <button
-                        onClick={() => setQuickDate('last7')}
-                        className="px-3 py-1.5 bg-white border border-amber-200 rounded-xl text-[10px] font-black uppercase text-amber-700 hover:bg-amber-50 transition-all shadow-sm cursor-pointer"
-                    >
-                        Last 7 Days
-                    </button>
-                </div>
-            </div> */}
-
             {/* Filter and Selection Card */}
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                    {/* From Date */}
-                    <div>
-                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                            <Calendar size={13} className="text-slate-400" /> From Date
-                        </label>
-                        <input
-                            type="date"
-                            value={fromDate}
-                            onChange={(e) => setFromDate(e.target.value)}
-                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:border-amber-500 focus:bg-white transition-all shadow-inner"
-                        />
+                {/* Header with Mode Toggles & Date Shortcuts */}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center shrink-0 shadow-sm border border-amber-100">
+                            <Sparkles size={18} />
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">
+                                Common Leave Filter
+                            </h3>
+                            <p className="text-[11px] font-bold text-slate-400">
+                                Select date, time range, and target class to find absents
+                            </p>
+                        </div>
                     </div>
 
-                    {/* To Date */}
-                    <div>
-                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                            <Calendar size={13} className="text-slate-400" /> To Date
-                        </label>
-                        <input
-                            type="date"
-                            value={toDate}
-                            onChange={(e) => setToDate(e.target.value)}
-                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:border-amber-500 focus:bg-white transition-all shadow-inner"
-                        />
+                    <div className="flex flex-wrap items-center gap-2">
+                        {/* Single Day vs Date Range Toggle */}
+                        <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/80">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setIsSingleDay(true);
+                                    setToDate(fromDate);
+                                }}
+                                className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                                    isSingleDay 
+                                        ? 'bg-white text-slate-800 shadow-sm font-black' 
+                                        : 'text-slate-500 hover:text-slate-700'
+                                }`}
+                            >
+                                Single Day
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setIsSingleDay(false)}
+                                className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                                    !isSingleDay 
+                                        ? 'bg-white text-slate-800 shadow-sm font-black' 
+                                        : 'text-slate-500 hover:text-slate-700'
+                                }`}
+                            >
+                                Date Range
+                            </button>
+                        </div>
+
+                        {/* Quick Date Presets */}
+                        {/* <div className="flex items-center gap-1.5">
+                            <button
+                                type="button"
+                                onClick={() => setQuickDate('yesterday')}
+                                className="px-2.5 py-1.5 bg-slate-50 hover:bg-amber-50 hover:border-amber-200 border border-slate-200 rounded-xl text-[10px] font-bold text-slate-600 hover:text-amber-800 transition-all cursor-pointer"
+                            >
+                                Yesterday
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setQuickDate('today')}
+                                className="px-2.5 py-1.5 bg-amber-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-amber-600 transition-all shadow-sm shadow-amber-500/20 cursor-pointer"
+                            >
+                                Today
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setQuickDate('tomorrow')}
+                                className="px-2.5 py-1.5 bg-slate-50 hover:bg-amber-50 hover:border-amber-200 border border-slate-200 rounded-xl text-[10px] font-bold text-slate-600 hover:text-amber-800 transition-all cursor-pointer"
+                            >
+                                Tomorrow
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setQuickDate('last7')}
+                                className="px-2.5 py-1.5 bg-slate-50 hover:bg-amber-50 hover:border-amber-200 border border-slate-200 rounded-xl text-[10px] font-bold text-slate-600 hover:text-amber-800 transition-all cursor-pointer"
+                            >
+                                Last 7 Days
+                            </button>
+                        </div> */}
+                    </div>
+                </div>
+
+                {/* Primary Input Controls Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 items-start">
+                    {/* Date Block */}
+                    <div className="lg:col-span-4 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 space-y-3">
+                        <div className="flex items-center justify-between">
+                            <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-1.5">
+                                <Calendar size={13} className="text-amber-600" />
+                                {isSingleDay ? 'Date Selection' : 'Date Range'}
+                            </label>
+                            {/* Day Navigation Stepper */}
+                            <div className="flex items-center gap-1">
+                                <button
+                                    type="button"
+                                    onClick={() => shiftDate(-1)}
+                                    className="p-1 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors cursor-pointer text-[10px] font-black px-1.5"
+                                    title="Previous Day"
+                                >
+                                    ◀ Prev
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => shiftDate(1)}
+                                    className="p-1 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors cursor-pointer text-[10px] font-black px-1.5"
+                                    title="Next Day"
+                                >
+                                    Next ▶
+                                </button>
+                            </div>
+                        </div>
+
+                        {isSingleDay ? (
+                            <div>
+                                <input
+                                    type="date"
+                                    value={fromDate}
+                                    onChange={(e) => handleFromDateChange(e.target.value)}
+                                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-amber-500 shadow-sm"
+                                />
+                                <div className="mt-1.5 flex items-center justify-between text-[10px] font-bold text-amber-700">
+                                    <span>{formatDateDisplay(fromDate)}</span>
+                                    <span className="text-slate-400 font-medium">Single Day Mode</span>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <span className="block text-[9px] font-bold text-slate-400 uppercase mb-1">From</span>
+                                    <input
+                                        type="date"
+                                        value={fromDate}
+                                        onChange={(e) => handleFromDateChange(e.target.value)}
+                                        className="w-full px-2.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-amber-500 shadow-sm"
+                                    />
+                                </div>
+                                <div>
+                                    <span className="block text-[9px] font-bold text-slate-400 uppercase mb-1">To</span>
+                                    <input
+                                        type="date"
+                                        value={toDate}
+                                        onChange={(e) => handleToDateChange(e.target.value)}
+                                        className="w-full px-2.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-amber-500 shadow-sm"
+                                    />
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    {/* Class Selector */}
-                    <div>
-                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                            <Users size={13} className="text-slate-400" /> Class
-                        </label>
-                        <select
-                            value={selectedClass}
-                            onChange={(e) => setSelectedClass(e.target.value)}
-                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:border-amber-500 focus:bg-white transition-all shadow-inner cursor-pointer"
-                        >
-                            {classes.map(c => (
-                                <option key={c} value={c}>Class {c}</option>
-                            ))}
-                        </select>
+                    {/* Time Block */}
+                    <div className="lg:col-span-5 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 space-y-3">
+                        <div className="flex items-center justify-between">
+                            <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-1.5">
+                                <Clock size={13} className="text-amber-600" /> Time Range
+                            </label>
+                            <span className="text-[10px] font-black text-amber-700 bg-amber-100/60 px-2 py-0.5 rounded-md">
+                                {format12Hour(fromTime)} – {format12Hour(toTime)}
+                            </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <span className="block text-[9px] font-bold text-slate-400 uppercase mb-1">From Time</span>
+                                <input
+                                    type="time"
+                                    value={fromTime}
+                                    onChange={(e) => setFromTime(e.target.value)}
+                                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-amber-500 shadow-sm"
+                                />
+                                <p className="text-[10px] font-extrabold text-slate-500 mt-1">
+                                    {format12Hour(fromTime)}
+                                </p>
+                            </div>
+                            <div>
+                                <span className="block text-[9px] font-bold text-slate-400 uppercase mb-1">To Time</span>
+                                <input
+                                    type="time"
+                                    value={toTime}
+                                    onChange={(e) => setToTime(e.target.value)}
+                                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-amber-500 shadow-sm"
+                                />
+                                <p className="text-[10px] font-extrabold text-slate-500 mt-1">
+                                    {format12Hour(toTime)}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Quick Time Presets Pills */}
+                        <div className="pt-2 border-t border-slate-200/60">
+                            <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider block mb-1.5">
+                                Session Shortcuts
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
+                                {TIME_PRESETS.map((p, idx) => {
+                                    const isActive = fromTime === p.from && toTime === p.to;
+                                    return (
+                                        <button
+                                            key={idx}
+                                            type="button"
+                                            onClick={() => applyTimePreset(p)}
+                                            className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                                                isActive
+                                                    ? 'bg-amber-500 text-white font-black shadow-sm'
+                                                    : 'bg-white text-slate-600 border border-slate-200 hover:border-amber-300 hover:text-amber-800'
+                                            }`}
+                                        >
+                                            <span>{p.icon}</span>
+                                            <span>{p.label}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Fetch Button */}
-                    <div>
-                        <button
-                            onClick={handleFetchAbsents}
-                            disabled={absentsLoading || studentsLoading || selectedStudentIds.size === 0}
-                            className="w-full py-3.5 bg-slate-900 hover:bg-amber-600 active:scale-95 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-slate-300 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 cursor-pointer"
-                        >
-                            {absentsLoading ? (
-                                <>
-                                    <Loader2 size={16} className="animate-spin" />
-                                    <span>Fetching Absents...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Search size={16} />
-                                    <span>Fetch Absents</span>
-                                </>
-                            )}
-                        </button>
+                    {/* Class Selector & Fetch Action Block */}
+                    <div className="lg:col-span-3 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 space-y-3 flex flex-col justify-between">
+                        <div>
+                            <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                                <Users size={13} className="text-amber-600" /> Class Selection
+                            </label>
+                            <select
+                                value={selectedClass}
+                                onChange={(e) => setSelectedClass(e.target.value)}
+                                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-amber-500 shadow-sm cursor-pointer"
+                            >
+                                {classes.map(c => (
+                                    <option key={c} value={c}>Class {c}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <button
+                                onClick={handleFetchAbsents}
+                                disabled={absentsLoading || studentsLoading || selectedStudentIds.size === 0}
+                                className="w-full py-3 bg-slate-900 hover:bg-amber-600 active:scale-95 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-slate-300 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 cursor-pointer"
+                            >
+                                {absentsLoading ? (
+                                    <>
+                                        <Loader2 size={16} className="animate-spin" />
+                                        <span>Fetching...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Search size={16} />
+                                        <span>Fetch Absents</span>
+                                    </>
+                                )}
+                            </button>
+                            <p className="text-[10px] font-bold text-slate-400 text-center mt-1.5">
+                                {selectedStudentIds.size} students selected
+                            </p>
+                        </div>
                     </div>
                 </div>
 
