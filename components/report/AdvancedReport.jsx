@@ -526,7 +526,6 @@ function AdvancedReport() {
       'Name': r.name,
       'Class': r.class,
       [`Absence ${manHeader.sub}`.trim() + '*']: formatExcelNum(r.leave),
-      [`Absence ${pjqHeader.sub}`.trim()]: formatExcelNum(r.absence),
       [`Unapproved Absence Deduction ${manHeader.sub}`.trim() + '*']: formatExcelNum(r.punishment_MAN),
       [`Unapproved Absence Deduction ${pjqHeader.sub}`.trim() + '*']: formatExcelNum(r.punishment_PJQ),
       'Minus*': formatExcelNum(r.minus),
@@ -563,7 +562,6 @@ function AdvancedReport() {
       'Name',
       'Class',
       `Absence\n${manHeader.sub}`.trim() + '*',
-      `Absence\n${pjqHeader.sub}`.trim(),
       `Unapproved Ded.\n${manHeader.sub}`.trim() + '*',
       `Unapproved Ded.\n${pjqHeader.sub}`.trim() + '*',
       'Minus*',
@@ -582,7 +580,6 @@ function AdvancedReport() {
       r.name,
       r.class,
       formatNum(r.leave),
-      formatNum(r.absence),
       formatNum(r.punishment_MAN),
       formatNum(r.punishment_PJQ),
       formatNum(r.minus),
@@ -864,9 +861,6 @@ function AdvancedReport() {
                     <th className="p-4 border-r border-white text-center bg-amber-50/50 text-amber-600">
                       {manHeader.main}{manHeader.sub ? <><br />{manHeader.sub}*</> : '*'}
                     </th>
-                    <th className="p-4 border-r border-white text-center bg-orange-50/50 text-orange-600">
-                      {pjqHeader.main}{pjqHeader.sub && <><br />{pjqHeader.sub}</>}
-                    </th>
                     <th className="p-4 border-r border-white text-center bg-purple-50/50 text-purple-600">
                       Unapproved Absence<br />Deduction{manHeader.sub ? <><br />{manHeader.sub}*</> : '*'}
                     </th>
@@ -894,7 +888,6 @@ function AdvancedReport() {
                         <span className="px-2 py-1 bg-sky-50 text-sky-600 rounded-lg text-xs font-bold">{row.class}</span>
                       </td>
                       <td className="p-3 border-r border-white text-center font-semibold text-amber-600 bg-amber-50/20">{formatNum(row.leave)}</td>
-                      <td className="p-3 border-r border-white text-center font-semibold text-orange-600 bg-orange-50/20">{formatNum(row.absence)}</td>
                       <td className="p-3 border-r border-white text-center font-semibold text-purple-600 bg-purple-50/20">{formatNum(row.punishment_MAN)}</td>
                       <td className="p-3 border-r border-white text-center font-semibold text-purple-600 bg-purple-50/20">{formatNum(row.punishment_PJQ)}</td>
                       <td className="p-3 border-r border-white text-center font-semibold text-rose-600 bg-rose-50/20">{formatNum(row.minus)}</td>
