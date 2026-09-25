@@ -224,54 +224,73 @@ function Hajar() {
       const toDate = leave.toDate ? new Date(leave.toDate) : null;
       if (toDate) toDate.setHours(0, 0, 0, 0);
 
+      // If attendance date is before leave starts, student is not on leave yet
+      if (today.getTime() < fromDate.getTime()) return false;
+
       const leaveFrom = convertTimeToMinutes(leave.fromTime);
       const leaveTo = leave.toTime ? convertTimeToMinutes(leave.toTime) : null;
 
       const isStartDay = today.getTime() === fromDate.getTime();
       const isEndDay = toDate && today.getTime() === toDate.getTime();
 
-      // If it's the start day, check if leave session overlaps with attendance context
+      // If it's the start day
       if (isStartDay) {
+        // If the attendance session ends before the leave starts, they are not on leave yet
+        if (ctx.isRange ? ctx.to <= leaveFrom : ctx.from < leaveFrom) {
+          return false;
+        }
+
         // For multi-day leaves, leaveTo only applies on the LAST day.
         // On the first day, the student is on leave from leaveFrom until the end of the day.
         const effectiveLeaveTo = isEndDay ? leaveTo : null;
 
-        if (ctx.isRange) {
-           return Math.max(leaveFrom, ctx.from) < (effectiveLeaveTo !== null ? Math.min(effectiveLeaveTo, ctx.to) : ctx.to + 1);
-        } else {
-           if (ctx.from < leaveFrom) return false;
-           if (effectiveLeaveTo !== null && ctx.from > effectiveLeaveTo) return false;
-           return true;
-        }
-      }
+        if (effectiveLeaveTo !== null) {
+          const overlaps = ctx.isRange
+            ? (Math.max(leaveFrom, ctx.from) < Math.min(effectiveLeaveTo, ctx.to) || (leaveFrom === ctx.from && effectiveLeaveTo === ctx.to))
+            : (ctx.from >= leaveFrom && ctx.from <= effectiveLeaveTo);
 
-      // If it's an intermediate day or the end day
-      if (today > fromDate || (isStartDay && !isEndDay)) {
-        // We are past the start day or it's a multi-day leave
-        // If it's the end day today, only hide if they actually returned (handled above)
-        // or if it's explicitly a short duration that passed (but even then, 'late' should show)
-        if (isEndDay && leaveTo !== null) {
-          // If the current attendance period starts AFTER the leave was supposed to end,
-          // we still show them as "On Leave" if they haven't returned yet, 
-          // but we categorize it as a "Late" return possibility.
-          if (ctx.from > leaveTo) {
-            // Keep showing if status is active or late
+          if (overlaps) return true;
+
+          // If attendance period is AFTER the leave was supposed to end,
+          // check if they haven't returned yet (status is active, late, pending, on leave)
+          if (ctx.from >= effectiveLeaveTo) {
             return ['active', 'late', 'pending', 'on leave'].includes(leave.status?.toLowerCase());
           }
-          return true;
-        }
-        
-        // If it's past the end day, only count as active if it's truly current (not returned)
-        // and not ancient (e.g., within 30 days) to prevent old unreturned records from haunting lists
-        if (toDate && today > toDate) {
-          const thirtyDaysAgo = new Date();
-          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-          if (toDate < thirtyDaysAgo) return false;
-          
-          return ['active', 'late', 'pending', 'on leave'].includes(leave.status?.toLowerCase());
+          return false;
         }
 
         return true;
+      }
+
+      // If it's an intermediate day (past start day, and before end day or no end date)
+      if (!toDate || today.getTime() < toDate.getTime()) {
+        return true;
+      }
+
+      // If it's the end day (past start day)
+      if (isEndDay) {
+        if (leaveTo === null) return true;
+
+        const overlaps = ctx.isRange
+          ? (ctx.from < leaveTo)
+          : (ctx.from <= leaveTo);
+
+        if (overlaps) return true;
+
+        // Attendance session is after leaveTo on end day
+        if (ctx.from >= leaveTo) {
+          return ['active', 'late', 'pending', 'on leave'].includes(leave.status?.toLowerCase());
+        }
+        return false;
+      }
+
+      // If it's past the end day (today > toDate)
+      if (toDate && today.getTime() > toDate.getTime()) {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        if (toDate < thirtyDaysAgo) return false;
+
+        return ['active', 'late', 'pending', 'on leave'].includes(leave.status?.toLowerCase());
       }
 
       return false;
@@ -290,13 +309,13 @@ function Hajar() {
     const dbStatus = (leave.status || '').toLowerCase();
     if (dbStatus === 'late') return true;
 
-    // If no toDate or no toTime, the leave has no end boundary / not late
-    if (!leave.toDate || !leave.toTime) return false;
+    const targetDate = leave.toDate || leave.date;
+    if (!targetDate || !leave.toTime) return false;
 
     try {
-      const toDateStr = typeof leave.toDate === 'string' 
-        ? leave.toDate.split('T')[0] 
-        : new Date(leave.toDate).toISOString().split('T')[0];
+      const toDateStr = typeof targetDate === 'string' 
+        ? targetDate.split('T')[0] 
+        : new Date(targetDate).toISOString().split('T')[0];
 
       let toTimeStr = (leave.toTime || '').trim();
       if (toTimeStr.toLowerCase().includes('pm') || toTimeStr.toLowerCase().includes('am')) {
@@ -319,14 +338,14 @@ function Hajar() {
 
       // Attendance date/session comparison
       const today = getNormalizedToday();
-      const targetDate = new Date(toDateStr);
-      targetDate.setHours(0, 0, 0, 0);
+      const targetDateObj = new Date(toDateStr);
+      targetDateObj.setHours(0, 0, 0, 0);
 
-      if (today.getTime() > targetDate.getTime()) return true;
-      if (today.getTime() === targetDate.getTime()) {
+      if (today.getTime() > targetDateObj.getTime()) return true;
+      if (today.getTime() === targetDateObj.getTime()) {
         const ctx = getContextTimeRange();
         const leaveToMinutes = convertTimeToMinutes(toTimeStr);
-        if (ctx && ctx.from > leaveToMinutes) return true;
+        if (ctx && ctx.from >= leaveToMinutes) return true;
       }
 
       return false;
