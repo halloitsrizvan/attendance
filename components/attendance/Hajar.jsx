@@ -152,6 +152,9 @@ function Hajar() {
     const ctx = getContextTimeRange();
 
     return data.find(leave => {
+      // Must be approved CEP
+      if (leave.ApproveCEP === false) return false;
+
       // Check ADNO or ID match
       const leaveAdno = leave.ad || leave.studentId?.ADNO;
       const leaveStudentId = leave.studentId?._id || leave.studentId;
@@ -164,7 +167,8 @@ function Hajar() {
       // Check date match
       const leaveDate = new Date(leave.date);
       leaveDate.setHours(0, 0, 0, 0);
-      const isSameDate = leaveDate.getTime() === today.getTime();
+      const isSameDate = leaveDate.getTime() === today.getTime() ||
+                         (typeof leave.date === 'string' && leave.date.split('T')[0] === (date || new Date().toISOString().split('T')[0]));
 
       if (!isSameDate) return false;
 

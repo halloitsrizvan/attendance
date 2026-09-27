@@ -29,6 +29,57 @@ const StatusPill = ({ status }) => {
   );
 };
 
+const LateReturnPermissionModal = ({ isOpen, onClose }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div 
+      className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div 
+        className="relative bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-sm w-full p-6 text-center animate-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-colors"
+        >
+          <X size={16} />
+        </button>
+
+        <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-500 border border-rose-100 flex items-center justify-center mx-auto mb-3 shadow-sm shadow-rose-500/10">
+          <Clock size={28} strokeWidth={2.3} />
+        </div>
+
+        <div className="mb-4">
+          <span className="text-[10px] font-black uppercase tracking-widest text-rose-500">
+            Permission Restricted
+          </span>
+          <h3 className="text-lg font-black text-slate-800 tracking-tight mt-0.5">
+            Late Return Restricted
+          </h3>
+        </div>
+
+        <div className="bg-rose-50/50 rounded-2xl p-4 border border-rose-100/80 mb-5 text-center">
+          <p className="text-xs font-bold text-slate-700 leading-relaxed">
+            Only class teacher, section head, Principal, Vice Principal or Super Admin can return late leaves.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-slate-900/10 transition-all active:scale-95"
+        >
+          Okay
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const EditLeaveModal = ({ classInfo, onSave, onClose, isOpen, onDelete }) => {
   const [formData, setFormData] = useState({
     reason: classInfo?.reason || '',
@@ -274,6 +325,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
   const [showConfirm, setShowConfirm] = useState(false);
   const [showRoomTransitionConfirm, setShowRoomTransitionConfirm] = useState(false);
   const [showDeleteQuickConfirm, setShowDeleteQuickConfirm] = useState(false);
+  const [showLateReturnPermissionModal, setShowLateReturnPermissionModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
 
@@ -843,7 +895,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
                 onClick={(e) => {
                   e.stopPropagation();
                   if ((currentStatus === 'Late' || isLate) && !canReturnLateLeave()) {
-                    alert("Only class teacher, section head, Principal, Vice Principal or Super Admin can return late leaves");
+                    setShowLateReturnPermissionModal(true);
                     return;
                   }
                   setShowConfirm(true);
@@ -881,7 +933,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
                 onClick={(e) => {
                   e.stopPropagation();
                   if ((currentStatus === 'Late' || isLate) && !canReturnLateLeave()) {
-                    alert("Only class teacher, section head, Principal, Vice Principal or Super Admin can return late leaves");
+                    setShowLateReturnPermissionModal(true);
                     return;
                   }
                   if (!buttonState.disabled) setShowConfirm(true);
@@ -1111,6 +1163,12 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
           </div>
         </div>
       )}
+
+      {/* Late Return Permission Modal */}
+      <LateReturnPermissionModal
+        isOpen={showLateReturnPermissionModal}
+        onClose={() => setShowLateReturnPermissionModal(false)}
+      />
     </>
   );
 };
@@ -1134,6 +1192,7 @@ function LeaveStatusTable({ classData: initialClassData1, onDataUpdate, getLeave
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
   const [showStatusMismatch, setShowStatusMismatch] = useState(false);
+  const [showBulkLatePermissionModal, setShowBulkLatePermissionModal] = useState(false);
 
   const handleSelect = (id) => {
     setSelectedIds(prev =>
@@ -1182,7 +1241,7 @@ function LeaveStatusTable({ classData: initialClassData1, onDataUpdate, getLeave
       });
 
       if (hasUnauthorizedLate) {
-        alert("Only class teacher, section head, Principal, Vice Principal or Super Admin can return late leaves");
+        setShowBulkLatePermissionModal(true);
         return;
       }
     }
@@ -1444,6 +1503,12 @@ function LeaveStatusTable({ classData: initialClassData1, onDataUpdate, getLeave
           </div>
         </div>
       )}
+
+      {/* Bulk Late Return Permission Modal */}
+      <LateReturnPermissionModal
+        isOpen={showBulkLatePermissionModal}
+        onClose={() => setShowBulkLatePermissionModal(false)}
+      />
     </div>
   );
 }

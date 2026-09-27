@@ -53,10 +53,62 @@ const StatusBadge = ({ status }) => {
   );
 };
 
+const LateReturnPermissionModal = ({ isOpen, onClose }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div 
+      className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div 
+        className="relative bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-sm w-full p-6 text-center animate-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-colors"
+        >
+          <X size={16} />
+        </button>
+
+        <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-500 border border-rose-100 flex items-center justify-center mx-auto mb-3 shadow-sm shadow-rose-500/10">
+          <Clock size={28} strokeWidth={2.3} />
+        </div>
+
+        <div className="mb-4">
+          <span className="text-[10px] font-black uppercase tracking-widest text-rose-500">
+            Permission Restricted
+          </span>
+          <h3 className="text-lg font-black text-slate-800 tracking-tight mt-0.5">
+            Late Return Restricted
+          </h3>
+        </div>
+
+        <div className="bg-rose-50/50 rounded-2xl p-4 border border-rose-100/80 mb-5 text-center">
+          <p className="text-xs font-bold text-slate-700 leading-relaxed">
+            Only class teacher, section head, Principal, Vice Principal or Super Admin can return late leaves.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-slate-900/10 transition-all active:scale-95"
+        >
+          Okay
+        </button>
+      </div>
+    </div>
+  );
+};
+
 function ShortLeave({ statusData: initialStatusData, type, onDataUpdate }) {
   const teacher = typeof window !== "undefined" && localStorage.getItem("teacher") ? JSON.parse(localStorage.getItem("teacher")) : null;
   const [statusData, setStatusData] = useState(initialStatusData || []);
   const [processingId, setProcessingId] = useState(null);
+  const [showLateReturnPermissionModal, setShowLateReturnPermissionModal] = useState(false);
   const [academicYear, setAcademicYear] = useState('');
   const [academicYearId, setAcademicYearId] = useState('');
 
@@ -110,7 +162,7 @@ function ShortLeave({ statusData: initialStatusData, type, onDataUpdate }) {
     if (actionType === 'returnToClass' || actionType === 'markReturn') {
       const currentLeaveStatus = getStatus(leave);
       if (currentLeaveStatus === 'Expired' && !canReturnLateLeave(leave)) {
-        alert("Only class teacher, section head, Principal, Vice Principal or Super Admin can return late leaves");
+        setShowLateReturnPermissionModal(true);
         return;
       }
       title = 'Confirm Return';
@@ -302,17 +354,37 @@ function ShortLeave({ statusData: initialStatusData, type, onDataUpdate }) {
     return 'Expired';
   };
 
+  const isSameDay = (dateInput) => {
+    if (!dateInput) return false;
+    const now = new Date();
+    const todayYMD = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    
+    if (typeof dateInput === 'string') {
+      const rawDatePart = dateInput.split('T')[0];
+      if (rawDatePart === todayYMD) return true;
+    }
+    
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return false;
+    
+    return (d.getFullYear() === now.getFullYear() &&
+            d.getMonth() === now.getMonth() &&
+            d.getDate() === now.getDate()) ||
+           (d.getUTCFullYear() === now.getUTCFullYear() &&
+            d.getUTCMonth() === now.getUTCMonth() &&
+            d.getUTCDate() === now.getUTCDate());
+  };
+
   // For short leave data
   const getShortLeaveStatus = (leave) => {
-    const now = new Date();
-    const today = new Date().toDateString();
-    const leaveDate = new Date(leave.date).toDateString();
+    if (leave.ApproveCEP === false) return 'Pending';
+    if (leave.status?.toLowerCase() === 'returned') return 'Completed';
 
-    // If it's not today's leave, mark as expired
-    if (leaveDate !== today) {
+    if (!isSameDay(leave.date)) {
       return 'Expired';
     }
 
+    const now = new Date();
     const currentTime = now.getHours() * 60 + now.getMinutes();
     const fromTime = convertTimeToMinutes(leave.fromTime);
     const toTime = convertTimeToMinutes(leave.toTime);
@@ -361,7 +433,7 @@ function ShortLeave({ statusData: initialStatusData, type, onDataUpdate }) {
     return (
       <div className="text-center text-gray-500 mt-8 p-8 bg-white rounded-lg shadow-sm">
         <p className="text-sm sm:text-base">
-          {type === "shortLeave" ? "No short leave records found." :
+          {type === "shortLeave" ? "No active CEP records found." :
             type === "medicalWithoutEndDate" ? "No medical leaves without end date found." :
               "No medical (room) leave records found."}
         </p>
@@ -564,6 +636,11 @@ function ShortLeave({ statusData: initialStatusData, type, onDataUpdate }) {
         message={confirmationModal.message}
         confirmText={confirmationModal.confirmText}
         isDangerous={confirmationModal.isDangerous}
+      />
+
+      <LateReturnPermissionModal
+        isOpen={showLateReturnPermissionModal}
+        onClose={() => setShowLateReturnPermissionModal(false)}
       />
     </div>
   );

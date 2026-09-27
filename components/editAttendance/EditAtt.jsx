@@ -62,6 +62,7 @@ function EditAtt() {
       const ctxTime = convertTimeToMinutes(recordTime);
 
       return shortLeaveData.find(leave => {
+        if (leave.ApproveCEP === false) return false;
         const leaveAdno = leave.ad || leave.studentId?.ADNO;
         if (Number(leaveAdno) !== Number(studentAdno)) return false;
 

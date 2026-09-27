@@ -859,25 +859,81 @@ function LeaveStatus({ myClassOnly = false }) {
     });
   }, [leaveData, myClassOnly, teacher?.classNum]);
   
-  const activeCEPCount = useMemo(() => {
+  const isSameDay = (dateInput) => {
+    if (!dateInput) return false;
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
+    const todayYMD = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    
+    if (typeof dateInput === 'string') {
+      const rawDatePart = dateInput.split('T')[0];
+      if (rawDatePart === todayYMD) return true;
+    }
+    
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return false;
+    
+    return (d.getFullYear() === now.getFullYear() &&
+            d.getMonth() === now.getMonth() &&
+            d.getDate() === now.getDate()) ||
+           (d.getUTCFullYear() === now.getUTCFullYear() &&
+            d.getUTCMonth() === now.getUTCMonth() &&
+            d.getUTCDate() === now.getUTCDate());
+  };
+
+  const isCEPActive = (leave) => {
+    if (leave.ApproveCEP === false) return false;
+    if (leave.status?.toLowerCase() === 'returned') return false;
+    if (!leave.date) return false;
+
+    if (!isSameDay(leave.date)) return false;
+
+    const [fH, fM] = (leave.fromTime || '00:00').split(':').map(Number);
+    const [tH, tM] = (leave.toTime || '23:59').split(':').map(Number);
+    const fromMin = (fH || 0) * 60 + (fM || 0);
+    const toMin = (tH || 0) * 60 + (tM || 0);
+    
+    const now = new Date();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
+    return currentMinutes >= fromMin && currentMinutes <= toMin;
+  };
+
+  const activeShortLeaveStatus = useMemo(() => {
     return shortLeaveStatus.filter(leave => {
-      if (leave.status === 'returned') return false;
-      
-      const leaveDate = new Date(leave.date).toISOString().split('T')[0];
-      if (leaveDate !== today) return false;
+      if (!isCEPActive(leave)) return false;
 
-      const [fH, fM] = (leave.fromTime || '00:00').split(':').map(Number);
-      const [tH, tM] = (leave.toTime || '23:59').split(':').map(Number);
-      const fromMin = fH * 60 + fM;
-      const toMin = tH * 60 + tM;
+      if (myClassOnly && teacher?.classNum) {
+        const classNum = leave.studentId?.CLASS || leave.classNum;
+        if (String(classNum) !== String(teacher.classNum)) return false;
+      }
+      if (searchValue) {
+        const searchLower = searchValue.toLowerCase();
+        const ad = leave.studentId?.ADNO || leave.ad;
+        const name = (leave.studentId?.['SHORT NAME'] || leave.studentId?.['FULL NAME'] || leave.name || '').toLowerCase();
+        if (!name.includes(searchLower) && !String(ad).toLowerCase().includes(searchLower)) return false;
+      }
+      if (filterClass !== 'All') {
+        const classNum = leave.studentId?.CLASS || leave.classNum;
+        if (String(classNum) !== String(filterClass)) return false;
+      }
+      if (filterReason !== 'All') {
+        if (leave.reason !== filterReason) return false;
+      }
 
-      return currentMinutes >= fromMin && currentMinutes <= toMin;
+      return true;
+    });
+  }, [shortLeaveStatus, searchValue, filterClass, filterReason, myClassOnly, teacher]);
+
+  const activeCEPCount = useMemo(() => {
+    return shortLeaveStatus.filter(leave => {
+      if (!isCEPActive(leave)) return false;
+      if (myClassOnly && teacher?.classNum) {
+        const classNum = leave.studentId?.CLASS || leave.classNum;
+        if (String(classNum) !== String(teacher.classNum)) return false;
+      }
+      return true;
     }).length;
-  }, [shortLeaveStatus]);
+  }, [shortLeaveStatus, myClassOnly, teacher?.classNum]);
 
   const filterDB = useMemo(() => {
     return leaveData.filter(student => (student.teacherId?.name === teacher?.name || student.teacher === teacher?.name) && matchesFilters(student));
@@ -1316,8 +1372,9 @@ function LeaveStatus({ myClassOnly = false }) {
             activeTab === "shortLeave" ?
               <div>
                 <ShortLeave
-                  statusData={shortLeaveStatus.filter(matchesFilters)}
+                  statusData={activeShortLeaveStatus}
                   type="shortLeave"
+                  onDataUpdate={fetchShortLeave}
                 />
               </div>
               :

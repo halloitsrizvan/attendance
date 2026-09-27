@@ -574,7 +574,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
       // It's likely an ISO returnedAt string
       endDate = new Date(to);
     } else {
-      endDate = new Date(`${to || new Date().toISOString().split('T')[0]}T${toTime || '18:00'}`);
+      endDate = new Date(`${to || new Date().toISOString().split('T')[0]}T${toTime || '19:00'}`);
     }
 
     if (isNaN(start.getTime()) || isNaN(endDate.getTime())) return { days: 0, hours: 0 };
@@ -605,10 +605,10 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
     if (!timeStr) return '';
 
     // Exact standard matches first
-    const morning = isFrom ? "05:30" : "07:00";
-    const evening = isFrom ? "16:30" : "18:00";
-    if (timeStr === morning) return "Morning";
-    if (timeStr === evening) return "Evening";
+    const morning = isFrom ? "05:30" : "07:30";
+    const evening = isFrom ? "16:30" : "19:00";
+    if (timeStr === morning || (!isFrom && timeStr === "07:00")) return "Morning";
+    if (timeStr === evening || (!isFrom && timeStr === "18:00")) return "Evening";
 
     // Fallback to fuzzy categorization
     const hour = parseInt(timeStr.split(':')[0]);
@@ -619,7 +619,41 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
     return formatTimeTo12h(timeStr);
   };
 
+  const canReturnLateLeave = (leave) => {
+    if (!teacher) return false;
+    const teacherRoles = (Array.isArray(teacher.role) ? teacher.role : (teacher.role ? [teacher.role] : [])).map(r => String(r).toLowerCase());
+
+    if (teacherRoles.some(r => ['principal', 'vice_principal', 'vice-principal', 'viceprincipal', 'super_admin', 'superadmin'].includes(r))) {
+      return true;
+    }
+
+    const studentClassVal = leave?.studentId?.CLASS || leave?.classNum || leave?.class || student?.CLASS;
+    const teacherClass = teacher.classNum || teacher.class;
+    if (teacherClass && studentClassVal && String(teacherClass).trim() === String(studentClassVal).trim()) {
+      return true;
+    }
+
+    const classNumStr = String(studentClassVal || '').toLowerCase();
+    const classNumberMatch = classNumStr.match(/\d+/);
+    if (classNumberMatch) {
+      const classLevel = parseInt(classNumberMatch[0], 10);
+      if (classLevel >= 1 && classLevel <= 7 && teacherRoles.includes('hos')) return true;
+      if (classLevel >= 8 && classLevel <= 10 && teacherRoles.includes('hod')) return true;
+    }
+    return false;
+  };
+
   const handleMarkReturned = async (leave) => {
+    const status = getLeaveStatus(leave);
+    if ((status === 'Late' || leave.status?.toLowerCase() === 'late') && !canReturnLateLeave(leave)) {
+      showAlert(
+        "Only class teacher, section head, Principal, Vice Principal or Super Admin can return late leaves.",
+        "Permission Restricted",
+        "error"
+      );
+      return;
+    }
+
     setLoading(true);
     try {
       const payload = {
@@ -1146,11 +1180,11 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
 
     // 3. Map Times
     const processTime = (timeStr, setTime, setCustom, isFrom) => {
-      const morning = isFrom ? "05:30" : "07:00";
-      const evening = isFrom ? "16:30" : "18:00";
+      const morning = isFrom ? "05:30" : "07:30";
+      const evening = isFrom ? "16:30" : "19:00";
 
-      if (timeStr === morning) setTime('Morning');
-      else if (timeStr === evening) setTime('Evening');
+      if (timeStr === morning || (!isFrom && timeStr === "07:00")) setTime('Morning');
+      else if (timeStr === evening || (!isFrom && timeStr === "18:00")) setTime('Evening');
       else { setTime('Clock'); setCustom(timeStr); }
     };
 
@@ -1240,6 +1274,14 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
 
     // If AD is updated, auto-fill name and class
     if (field === 'ad' && value) {
+      const isDuplicate = shortLeaveStudents.some((s, i) => i !== index && String(s.ad) === String(value));
+      if (isDuplicate) {
+        showAlert("This student is already added to the list.", "Duplicate Student", "info");
+        updatedStudents[index] = { ad: '', name: '', classNum: '', student: null };
+        setShortLeaveStudents(updatedStudents);
+        return;
+      }
+
       const found = students.find((std) => String(std.ADNO) === String(value));
       if (found) {
         updatedStudents[index].student = found;
@@ -1248,7 +1290,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
         const activeRecord = checkLeaveStatus(found.ADNO);
         if (activeRecord) {
           showConflictAlert(found, activeRecord, 'cep');
-          updatedStudents[index].ad = '';
+          updatedStudents[index] = { ad: '', name: '', classNum: '', student: null };
         }
       } else {
         updatedStudents[index].student = null;
@@ -1284,10 +1326,20 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
   const handleShortLeaveSubmit = (e) => {
     e.preventDefault();
 
-    // Validate all students are selected
-    const invalidStudents = shortLeaveStudents.filter(student => !student.ad || !student.name || !student.classNum);
-    if (invalidStudents.length > 0) {
-      showAlert("Please ensure all student details are filled.", "Missing Info", "info");
+    // Validate and deduplicate students
+    const seen = new Set();
+    const validStudents = [];
+    for (const studentData of shortLeaveStudents) {
+      if (studentData.student && studentData.ad && studentData.name && studentData.classNum) {
+        if (!seen.has(String(studentData.ad))) {
+          seen.add(String(studentData.ad));
+          validStudents.push(studentData);
+        }
+      }
+    }
+
+    if (validStudents.length === 0) {
+      showAlert("Please search for and select at least one valid student.", "Missing Info", "info");
       return;
     }
     if (!shortLeaveCustomReason.trim() && shortLeaveReason === 'Custom') {
@@ -1296,7 +1348,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
     }
 
     // Check if any student is already on leave
-    const unavailableStudents = shortLeaveStudents.filter(student => checkLeaveStatus(student.ad));
+    const unavailableStudents = validStudents.filter(student => checkLeaveStatus(student.ad));
     if (unavailableStudents.length > 0) {
       const names = unavailableStudents.map(s => s.name).join(', ');
       showAlert(`Cannot submit. These students are currently unavailable (On Leave): ${names}`, "Student Status Error", "error");
@@ -1332,8 +1384,8 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
 
     const currentTeacherId = teacher?.id || teacher?._id;
 
-    // Submit for each student
-    const submitPromises = shortLeaveStudents.map(studentData => {
+    // Submit for each unique student
+    const submitPromises = validStudents.map(studentData => {
       const payload = {
         studentId: studentData.student?._id || studentData.student?.id,
         teacherId: currentTeacherId,
@@ -1358,7 +1410,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
 
     Promise.all(submitPromises)
       .then(() => {
-        const studentCount = shortLeaveStudents.filter(s => s.student).length;
+        const studentCount = validStudents.length;
         showAlert(`Leave approved for ${studentCount} student${studentCount === 1 ? '' : 's'}.`, "Approval Successful", "success");
         resetShortLeaveForm();
       })
@@ -1407,8 +1459,8 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
         if (timeOption === "Morning") return "05:30";
         if (timeOption === "Evening") return "16:30";
       } else if (label === "To Time") {
-        if (timeOption === "Morning") return "07:00";
-        if (timeOption === "Evening") return "18:00";
+        if (timeOption === "Morning") return "07:30";
+        if (timeOption === "Evening") return "19:00";
       } else {
         if (timeOption === "Morning") return "05:30";
         if (timeOption === "Evening") return "16:30";
@@ -1651,8 +1703,8 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
 
     if (skippedLeave > 0 || skippedRecovery > 0) {
       let msg = "";
-      if (skippedLeave > 0) msg += `${skippedLeave} students on leave skipped. `;
-      if (skippedRecovery > 0) msg += `${skippedRecovery} students with incomplete recovery skipped.`;
+      if (skippedLeave > 0) msg += `${skippedLeave} student${skippedLeave > 1 ? 's' : ''} on leave skipped. `;
+      if (skippedRecovery > 0) msg += `${skippedRecovery} student${skippedRecovery > 1 ? 's' : ''} with incomplete recovery skipped.`;
 
       const actions = [
         {
@@ -1667,7 +1719,34 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
           label: "Bypass Recovery & Select All",
           onClick: () => {
             setBypassRecovery(true);
-            showAlert("Recovery bypass enabled. You can now select all students.", "Success", "success");
+            const bypassedSelection = [...newSelection];
+            let leaveSkippedCount = 0;
+
+            Bulkstudents.forEach(student => {
+              const activeRecord = checkLeaveStatus(student.ADNO);
+              if (!activeRecord) {
+                if (!bypassedSelection.some(s => s.ADNO === student.ADNO)) {
+                  bypassedSelection.push({
+                    ADNO: student.ADNO,
+                    name: student["SHORT NAME"],
+                    classNum: student.CLASS
+                  });
+                }
+              } else {
+                leaveSkippedCount++;
+              }
+            });
+
+            setSelectedBulkStudents(bypassedSelection);
+            if (leaveSkippedCount > 0) {
+              showAlert(
+                `Recovery bypass enabled. ${leaveSkippedCount} student${leaveSkippedCount > 1 ? 's' : ''} currently on leave skipped.`,
+                "Success",
+                "success"
+              );
+            } else {
+              showAlert("Recovery bypass enabled. All eligible students selected.", "Success", "success");
+            }
           },
           variant: "link"
         });
@@ -1752,8 +1831,8 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
         if (timeOption === "Morning") return "05:30";
         if (timeOption === "Evening") return "16:30";
       } else if (label === "To Time") {
-        if (timeOption === "Morning") return "07:00";
-        if (timeOption === "Evening") return "18:00";
+        if (timeOption === "Morning") return "07:30";
+        if (timeOption === "Evening") return "19:00";
       } else {
         if (timeOption === "Morning") return "05:30";
         if (timeOption === "Evening") return "16:30";
@@ -1946,7 +2025,14 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
               ? "bg-sky-500 text-white hover:bg-sky-600 shadow-sky-500/20"
               : "bg-amber-500 text-white hover:bg-amber-600 shadow-amber-500/20"
               }`}
-            onClick={() => setLeaveType(leaveType === "leave" ? 'short-leave' : 'leave')}
+            onClick={() => {
+              if (leaveType === "leave") {
+                setLeaveType('short-leave');
+                setShortLeaveReason('Custom');
+              } else {
+                setLeaveType('leave');
+              }
+            }}
           >
             {leaveType === "leave" ? "Class Excused Pass" : "← Regular Leave"}
           </button>
@@ -2242,7 +2328,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
                       <th className="p-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest w-12">No</th>
                       <th className="p-3 text-left text-[10px] font-black text-slate-600 uppercase tracking-widest">Student</th>
                       <th className="p-3 text-center">
-                        <button onClick={handleSelectAll} className="w-8 h-8 rounded-lg bg-sky-500 text-white text-lg font-black">+</button>
+                        <button onClick={handleSelectAll} className="w-16 h-8 rounded-lg bg-sky-500 text-white text-xs font-semibold">Add All</button>
                       </th>
                     </tr>
                   </thead>
@@ -2251,7 +2337,11 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
                       Bulkstudents.map((student) => {
                         const isSelected = selectedBulkStudents.some(s => s.ADNO === student.ADNO);
                         return (
-                          <tr key={student.ADNO} className="hover:bg-slate-50 transition-colors">
+                          <tr
+                            key={student.ADNO}
+                            onClick={() => isSelected ? handleRemoveBulkStudent(student.ADNO) : handleAdd(student)}
+                            className={`cursor-pointer transition-colors ${isSelected ? 'bg-sky-50/60 hover:bg-sky-50' : 'hover:bg-slate-50'}`}
+                          >
                             <td className="p-3 text-xs font-black text-slate-400">{student.SL}</td>
                             <td className="p-3">
                               <div className="flex flex-col">
@@ -2259,11 +2349,15 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
                                 <span className="text-[8px] font-bold text-slate-300 uppercase tracking-tight">AD: {student.ADNO}</span>
                               </div>
                             </td>
-                            <td className="p-3 text-center">
+                            <td className="p-3 flex items-center justify-center">
                               <button
-                                onClick={() => isSelected ? handleRemoveBulkStudent(student.ADNO) : handleAdd(student)}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  isSelected ? handleRemoveBulkStudent(student.ADNO) : handleAdd(student);
+                                }}
                                 className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${isSelected ? 'bg-emerald-500 text-white rotate-0' : 'bg-slate-100 text-slate-400 hover:bg-sky-100 hover:text-sky-500'
-                                  }`}
+                                  }`}   
                               >
                                 {isSelected ? '✓' : '+'}
                               </button>
@@ -2481,11 +2575,30 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
                         key={s.ADNO}
                         className="px-4 py-4 hover:bg-sky-50 cursor-pointer flex items-center justify-between transition-colors"
                         onClick={() => {
+                          const isAlreadyAdded = shortLeaveStudents.some(entry => String(entry.ad) === String(s.ADNO));
+                          if (isAlreadyAdded) {
+                            showAlert(`${s["SHORT NAME"] || s["FULL NAME"] || s.ADNO} is already added to the list.`, "Duplicate Student", "info");
+                            setShortLeaveSuggestions([]);
+                            setActiveSuggestionIndex(null);
+                            return;
+                          }
+
+                          const activeRecord = checkLeaveStatus(s.ADNO);
+                          if (activeRecord) {
+                            showConflictAlert(s, activeRecord, 'cep');
+                            setShortLeaveSuggestions([]);
+                            setActiveSuggestionIndex(null);
+                            return;
+                          }
+
                           const lastIndex = shortLeaveStudents.length - 1;
-                          if (shortLeaveStudents[lastIndex].student) {
-                            setShortLeaveStudents([...shortLeaveStudents, { ad: String(s.ADNO), name: s["SHORT NAME"] || s["FULL NAME"], classNum: s.CLASS, student: s }]);
-                          } else {
+                          if (lastIndex >= 0 && !shortLeaveStudents[lastIndex].student && !shortLeaveStudents[lastIndex].ad) {
                             updateShortLeaveStudent(lastIndex, 'ad', s.ADNO);
+                          } else {
+                            setShortLeaveStudents(prev => [
+                              ...prev.filter(entry => entry.student || entry.ad),
+                              { ad: String(s.ADNO), name: s["SHORT NAME"] || s["FULL NAME"] || s.name || "Unknown", classNum: s.CLASS, student: s }
+                            ]);
                           }
                           setShortLeaveSuggestions([]);
                           setActiveSuggestionIndex(null);
@@ -2510,7 +2623,10 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
               <div className="flex bg-slate-100 p-1 rounded-xl">
                 <button
                   type="button"
-                  onClick={() => setCepMode('period')}
+                  onClick={() => {
+                    setCepMode('period');
+                    setShortLeaveReason('Custom');
+                  }}
                   className={`px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-lg transition-all ${cepMode === 'period' ? 'bg-white text-sky-500 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                 >
                   Periods
@@ -2519,7 +2635,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
                   type="button"
                   onClick={() => {
                     setCepMode('dars');
-                    setShortLeaveReason('Dars');
+                    setShortLeaveReason('Custom');
                   }}
                   className={`px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-lg transition-all ${cepMode === 'dars' ? 'bg-white text-emerald-500 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                 >
