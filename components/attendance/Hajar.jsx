@@ -153,7 +153,7 @@ function Hajar() {
 
     return data.find(leave => {
       // Must be approved CEP
-      if (leave.ApproveCEP === false) return false;
+      // if (leave.ApproveCEP === false) return false;
 
       // Check ADNO or ID match
       const leaveAdno = leave.ad || leave.studentId?.ADNO;
