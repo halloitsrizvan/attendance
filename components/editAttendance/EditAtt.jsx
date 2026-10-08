@@ -54,7 +54,7 @@ function EditAtt() {
       return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     };
 
-    const getStudentActiveShortLeave = (studentAdno) => {
+    const getStudentActiveShortLeave = (studentAdno, studentInternalId) => {
       const today = students[0]?.attendanceDate ? new Date(students[0].attendanceDate) : new Date();
       // For Edit mode, we don't have a specific 'period' in context easily, 
       // so we use a flexible window around the record's time.
@@ -62,9 +62,12 @@ function EditAtt() {
       const ctxTime = convertTimeToMinutes(recordTime);
 
       return shortLeaveData.find(leave => {
-        if (leave.ApproveCEP === false) return false;
+        // if (leave.ApproveCEP === false) return false;
         const leaveAdno = leave.ad || leave.studentId?.ADNO;
-        if (Number(leaveAdno) !== Number(studentAdno)) return false;
+        const leaveStudentId = leave.studentId?._id || leave.studentId;
+        const isMatch = (leaveAdno && Number(leaveAdno) === Number(studentAdno)) || 
+                        (leaveStudentId && studentInternalId && String(leaveStudentId) === String(studentInternalId));
+        if (!isMatch) return false;
 
         const leaveDate = new Date(leave.date);
         const isSameDate =
@@ -89,7 +92,13 @@ function EditAtt() {
       });
     };
 
-    const isStudentOnShortLeave = (studentAdno) => !!getStudentActiveShortLeave(studentAdno);
+    const isClassTeacher = Boolean(
+      teacher &&
+      (teacher.classNum || teacher.class) &&
+      String(teacher.classNum || teacher.class).trim() === String(id).trim()
+    );
+
+    const isStudentOnShortLeave = (studentAdno, studentInternalId) => !!getStudentActiveShortLeave(studentAdno, studentInternalId);
 
     const getStudentActiveLeave = (studentAdno, studentInternalId) => {
       const today = students[0]?.attendanceDate ? new Date(students[0].attendanceDate) : new Date();
@@ -118,6 +127,7 @@ function EditAtt() {
     };
 
     const isStudentOnMedicalLeave = (studentAdno, studentInternalId) => !!getStudentActiveLeave(studentAdno, studentInternalId);
+    const isStudentOnActiveLeave = isStudentOnMedicalLeave;
 
     const isLeaveLate = (leave) => {
       if (!leave) return false;
@@ -253,8 +263,9 @@ function EditAtt() {
     if (e) e.preventDefault();
     const absentList = students.filter((s) => {
       const ad = s.studentId?.ADNO || s.ad;
+      const internalId = s.studentId?._id || s._id;
       const isReturned = returnedStudents.includes(ad);
-      const isOnLeave = (isStudentOnShortLeave(ad) || isStudentOnMedicalLeave(ad)) && !isReturned;
+      const isOnLeave = (isStudentOnShortLeave(ad, internalId) || isStudentOnMedicalLeave(ad, internalId)) && !isReturned;
       return (status[ad] ?? s.status) !== "Present" || isOnLeave;
     });
     setAbsentees(absentList);
@@ -262,23 +273,101 @@ function EditAtt() {
   };
   
   const handleCopyAbsentees = () => {
-    const attendanceDate = students[0]?.attendanceDate ? new Date(students[0].attendanceDate).toLocaleDateString("en-US", { dateStyle: "long" }) : "N/A";
+    const attendanceDate = students[0]?.attendanceDate ? new Date(students[0].attendanceDate).toLocaleDateString("en-US", { dateStyle: "long" }) : new Date().toLocaleDateString("en-US", { dateStyle: "long" });
     const attendanceTime = students[0]?.attendanceTime || students[0]?.attentenceTime || "N/A";
-    const headText = `Class ${id} Attendance\n${attendanceDate} | ${attendanceTime}\n\n`;
+    const headText = `Class ${id} Absentiees\n${attendanceDate} | ${attendanceTime}\n\n`;
 
     if (absentees.length > 0) {
-      const text = absentees
-        .map((s) => `${s.studentId?.['SHORT NAME'] || s.studentId?.['FULL NAME'] || s.nameOfStd || s.name} (AdNo: ${s.studentId?.ADNO || s.ad})`)
-        .join("\n");
+      // Categorize absentees into mutually exclusive groups
+      const shortLeaveStudents = [];
+      const medicalLeaveStudents = [];
+      const lateStudents = [];
+      const onLeaveStudents = [];
+      const regularAbsentees = [];
+
+      absentees.forEach(s => {
+        const ad = s.studentId?.ADNO || s.ad;
+        const internalId = s.studentId?._id || s._id;
+        const isOnShortLeave = isStudentOnShortLeave(ad, internalId);
+        const activeLeave = getStudentActiveLeave(ad, internalId); 
+        const isStudentLate = isLeaveLate(activeLeave);
+        
+        // Detailed reason check for Medical Leave
+        const isMedical = activeLeave && (
+          activeLeave.reason?.toLowerCase().includes('medical') || 
+          activeLeave.reason?.toLowerCase().includes('hospital') ||
+          activeLeave.reason?.toLowerCase().includes('room')
+        );
+
+        if (isStudentLate) {
+          lateStudents.push(s);
+        } else if (isOnShortLeave) {
+          shortLeaveStudents.push(s);
+        } else if (activeLeave && isMedical) {
+          medicalLeaveStudents.push(s);
+        } else if (activeLeave) {
+          onLeaveStudents.push(s);
+        } else {
+          regularAbsentees.push(s);
+        }
+      });
+
+      let text = "";
+
+      // Add regular absentees
+      if (regularAbsentees.length > 0) {
+        text += "Absent:\n" + regularAbsentees
+          .map((s) => `${s.studentId?.['SHORT NAME'] || s.studentId?.['FULL NAME'] || s.nameOfStd || s.name} (AdNo: ${s.studentId?.ADNO || s.ad})`)
+          .join("\n");
+      }
+
+      // Add short leave students
+      if (shortLeaveStudents.length > 0) {
+        if (text) text += "\n\n";
+        text += "Class excused pass:\n" + shortLeaveStudents
+          .map((s) => `${s.studentId?.['SHORT NAME'] || s.studentId?.['FULL NAME'] || s.nameOfStd || s.name} (AdNo: ${s.studentId?.ADNO || s.ad})`)
+          .join("\n");
+      }
+
+      // Add medical leave students
+      if (medicalLeaveStudents.length > 0) {
+        if (text) text += "\n\n";
+        text += "Medical Leave:\n" + medicalLeaveStudents
+          .map((s) => `${s.studentId?.['SHORT NAME'] || s.studentId?.['FULL NAME'] || s.nameOfStd || s.name} (AdNo: ${s.studentId?.ADNO || s.ad})`)
+          .join("\n");
+      }
+
+      // Add on-leave students
+      if (onLeaveStudents.length > 0) {
+        if (text) text += "\n\n";
+        text += "On Leave:\n" + onLeaveStudents
+          .map((s) => `${s.studentId?.['SHORT NAME'] || s.studentId?.['FULL NAME'] || s.nameOfStd || s.name} (AdNo: ${s.studentId?.ADNO || s.ad})`)
+          .join("\n");
+      }
+
+      // Add late students
+      if (lateStudents.length > 0) {
+        if (text) text += "\n\n";
+        text += "Late:\n" + lateStudents
+          .map((s) => `${s.studentId?.['SHORT NAME'] || s.studentId?.['FULL NAME'] || s.nameOfStd || s.name} (AdNo: ${s.studentId?.ADNO || s.ad})`)
+          .join("\n");
+      }
+
       navigator.clipboard.writeText(headText + text)
-        .then(() => setCopy(true))
-        .catch((err) => console.error("Failed to copy: ", err));
+        .then(() => {
+          setCopy(true);
+        })
+        .catch((err) => {
+          console.error("Failed to copy: ", err);
+        });
     } else {
-      navigator.clipboard.writeText(headText + "No absentees 🎉");
-      setCopy(true)
+      navigator.clipboard.writeText(headText + "All students are present 🎉");
+      setCopy(true);
     }
-    setTimeout(() => setCopy(false), 4000)
-  }
+    setTimeout(() => {
+      setCopy(false);
+    }, 4000);
+  };
   
     const handleSubmit=async(e)=>{
       if (e) e.preventDefault();
@@ -514,7 +603,7 @@ function EditAtt() {
                               >
                                 {displayOnLeave ? leaveType : currentStatus}
                               </button>
-                              {isOnLeave && (
+                              {isOnLeave && isClassTeacher && (
                                 <button 
                                   className={`w-8 h-8 flex items-center justify-center rounded-xl text-white transition-all hover:scale-110 shadow-sm ${isReturned ? "bg-emerald-600" : "bg-sky-500"}`}
                                   type="button"
@@ -629,30 +718,11 @@ function EditAtt() {
                     <p className={`text-[10px] font-black uppercase tracking-widest opacity-60 mb-3 ${displayOnLeave ? 'text-amber-700' : isPresent ? 'text-emerald-700' : 'text-rose-700'}`}>
                       Ad: {ad}
                     </p>
-                    <div className="flex items-center gap-2">
-                      <div className={`flex-1 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest text-center ${
-                        displayOnLeave ? 'bg-amber-200/50 text-amber-700' : 
-                        isPresent ? 'bg-emerald-200/50 text-emerald-700' : 'bg-rose-200/50 text-rose-700'
-                      }`}>
-                        {displayOnLeave ? leaveType : isPresent ? "Present" : "Absent"}
-                      </div>
-                      {isOnLeave && (
-                        <button 
-                          className={`w-7 h-7 flex items-center justify-center rounded-lg text-white transition-all hover:scale-110 shadow-sm ${isReturned ? "bg-emerald-600" : "bg-sky-500"}`}
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (isReturned) {
-                              setReturnedStudents(prev => prev.filter(id => id !== ad));
-                              setStatus(prev => ({ ...prev, [ad]: "Absent" }));
-                            } else {
-                              openReturnModal(student);
-                            }
-                          }}
-                        >
-                          <span className="text-[10px] font-bold">{isReturned ? "↩" : "R"}</span>
-                        </button>
-                      )}
+                    <div className={`py-1 rounded-lg text-[10px] font-black uppercase tracking-widest text-center ${
+                      displayOnLeave ? 'bg-amber-200/50 text-amber-700' : 
+                      isPresent ? 'bg-emerald-200/50 text-emerald-700' : 'bg-rose-200/50 text-rose-700'
+                    }`}>
+                      {displayOnLeave ? leaveType : isPresent ? "Present" : "Absent"}
                     </div>
                   </div>
                 );
@@ -774,17 +844,39 @@ function EditAtt() {
             {absentees.length > 0 ? (
               <div className="max-h-60 overflow-y-auto mb-6 no-scrollbar rounded-3xl bg-rose-50 border border-rose-100 p-4">
                 <div className="space-y-3">
-                  {absentees.map((s) => (
-                    <div key={s.studentId?.ADNO || s.ad} className="flex flex-col border-b border-rose-100 last:border-0 pb-2 last:pb-0">
-                      <span className="text-sm font-black text-rose-600">
-                        {s.studentId?.['SHORT NAME'] || s.studentId?.['FULL NAME'] || s.nameOfStd || s.name}
-                      </span>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[9px] font-bold text-rose-400 uppercase tracking-wider">AD: {s.studentId?.ADNO || s.ad}</span>
-                        {(s.studentId?.SL || s.SL) > 0 && <span className="text-[9px] font-bold text-rose-400 uppercase tracking-wider">• SL: {s.studentId?.SL || s.SL}</span>}
+                  {absentees.map((s) => {
+                    const ad = s.studentId?.ADNO || s.ad;
+                    const internalId = s.studentId?._id || s._id;
+                    const isReturned = returnedStudents.includes(ad);
+                    const isOnShortLeave = isStudentOnShortLeave(ad, internalId);
+                    const isOnMedicalLeave = isStudentOnMedicalLeave(ad, internalId);
+                    const isOnLeave = (isOnShortLeave || isOnMedicalLeave) && !isReturned;
+                    const activeLeave = isOnLeave ? getStudentActiveLeave(ad, internalId) : null;
+                    const isStudentLate = isLeaveLate(activeLeave);
+
+                    return (
+                      <div key={ad} className="flex items-center justify-between border-b border-rose-100 last:border-0 pb-2 last:pb-0">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-black text-rose-600">
+                            {s.studentId?.['SHORT NAME'] || s.studentId?.['FULL NAME'] || s.nameOfStd || s.name}
+                          </span>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[9px] font-bold text-rose-400 uppercase tracking-wider">AD: {ad}</span>
+                            {(s.studentId?.SL || s.SL) > 0 && <span className="text-[9px] font-bold text-rose-400 uppercase tracking-wider">• SL: {s.studentId?.SL || s.SL}</span>}
+                          </div>
+                        </div>
+                        {isOnLeave && (
+                          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                            isStudentLate
+                              ? "bg-rose-100 text-rose-700 border-rose-200"
+                              : "bg-amber-100 text-amber-700 border-amber-200"
+                          }`}>
+                            {isStudentLate ? "Late" : "On Leave"}
+                          </span>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ) : (

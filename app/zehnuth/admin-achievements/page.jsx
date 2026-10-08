@@ -57,7 +57,7 @@ export default function AdminAchievements() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [pointsData, setPointsData] = useState([]);
-  
+
   // Student Balances State
   const [studentBalances, setStudentBalances] = useState({});
   const [balancesLoaded, setBalancesLoaded] = useState(false);
@@ -148,16 +148,16 @@ export default function AdminAchievements() {
   const fetchAchievements = async () => {
     try {
       const activities = [
-        'Awards', 
-        'Publications', 
+        'Awards',
+        'Publications',
         'Innovations',
         'Courses',
-        '1st Place (Out)', 
-        '2nd Place (Out)', 
+        '1st Place (Out)',
+        '2nd Place (Out)',
         '3rd Place (Out)',
         'Participation (Out)',
-        '1st Place (In)', 
-        '2nd Place (In)', 
+        '1st Place (In)',
+        '2nd Place (In)',
         '3rd Place (In)',
         'Participation (In)',
         'Paper presentation (State)',
@@ -268,7 +268,7 @@ export default function AdminAchievements() {
     const uniqueStudents = new Set(approvedItems.map(p => p.studentId?._id).filter(Boolean)).size;
     const totalCompetitions = approvedItems.filter(p => ['1st Place (Out)', '2nd Place (Out)', '3rd Place (Out)'].includes(p.activity)).length;
     const totalWritings = approvedItems.filter(p => ['Essay', 'Poem', 'Story', 'Full paper', 'Abstract'].includes(p.activity)).length;
-    
+
     return {
       totalApprovedPoints,
       uniqueStudents,
@@ -320,8 +320,8 @@ export default function AdminAchievements() {
 
     const approved = pointsData.filter(p => p.status === 'approved');
     if (approved.length === 0) {
-       alert("No approved data available to generate report.");
-       return;
+      alert("No approved data available to generate report.");
+      return;
     }
 
     setIsGeneratingPdf(true);
@@ -336,12 +336,12 @@ export default function AdminAchievements() {
       const drawPageHeader = (title, subtitle) => {
         doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
         doc.rect(0, 0, 210, 30, 'F');
-        
+
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(22);
         doc.setFont("helvetica", "bold");
         doc.text(title, 14, 18);
-        
+
         doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
         doc.text(subtitle || `Generated: ${new Date().toLocaleString()}`, 14, 25);
@@ -349,66 +349,66 @@ export default function AdminAchievements() {
 
       const drawBarChart = (doc, title, data, x, y, width, height, color = primaryColor) => {
         if (!data || data.length === 0) return;
-        
+
         const maxVal = Math.max(...data.map(d => d.value));
         const chartTitleY = y;
-        
+
         doc.setFontSize(14);
         doc.setTextColor(textColor[0], textColor[1], textColor[2]);
         doc.setFont("helvetica", "bold");
         doc.text(title, x, chartTitleY);
-        
+
         const chartTop = chartTitleY + 10;
         const chartBottom = chartTop + height;
-        const chartLeft = x + 25; 
+        const chartLeft = x + 25;
         const chartRight = chartLeft + width;
         const chartHeight = height;
         const chartWidth = width;
-        
+
         // Draw axes
         doc.setDrawColor(226, 232, 240);
         doc.setLineWidth(0.5);
         doc.line(chartLeft, chartBottom, chartRight, chartBottom);
         doc.line(chartLeft, chartBottom, chartLeft, chartTop);
-        
+
         // Draw Y-axis labels and grid lines
         doc.setFontSize(8);
         doc.setTextColor(lightText[0], lightText[1], lightText[2]);
         doc.setFont("helvetica", "normal");
-        
+
         const numTicks = 5;
         for (let i = 0; i <= numTicks; i++) {
           const tickVal = maxVal === 0 ? 0 : (maxVal / numTicks) * i;
           const tickY = chartBottom - (chartHeight / numTicks) * i;
-          
+
           doc.text(Math.round(tickVal).toString(), chartLeft - 5, tickY + 3, { align: "right" });
           if (i > 0) {
             doc.setDrawColor(241, 245, 249);
             doc.line(chartLeft, tickY, chartRight, tickY);
           }
         }
-        
+
         // Draw bars
         const barPadding = 8;
         const totalBarSpace = chartWidth / data.length;
         const barWidth = Math.min(totalBarSpace - barPadding, 25);
-        
+
         data.forEach((d, i) => {
           const barHeight = maxVal === 0 ? 0 : (d.value / maxVal) * chartHeight;
           const barX = chartLeft + (totalBarSpace * i) + (totalBarSpace - barWidth) / 2;
           const barY = chartBottom - barHeight;
-          
+
           doc.setFillColor(226, 232, 240);
           doc.rect(barX + 1, barY + 1, barWidth, barHeight, 'F');
-          
+
           doc.setFillColor(color[0], color[1], color[2]);
           doc.rect(barX, barY, barWidth, barHeight, 'F');
-          
+
           doc.setFontSize(8);
           doc.setTextColor(textColor[0], textColor[1], textColor[2]);
           doc.setFont("helvetica", "bold");
           doc.text(d.value.toString() + (d.suffix || ""), barX + barWidth / 2, barY - 2, { align: "center" });
-          
+
           doc.setFontSize(7);
           doc.setTextColor(lightText[0], lightText[1], lightText[2]);
           doc.setFont("helvetica", "bold");
@@ -416,10 +416,10 @@ export default function AdminAchievements() {
           doc.text(splitLabel, barX + barWidth / 2, chartBottom + 5, { align: "center" });
         });
       };
-      
+
       // --- PAGE 1: Class Participation ---
       drawPageHeader("ZEHNUTH Analytical Report", `Comprehensive Analysis | ${new Date().toLocaleDateString()}`);
-      
+
       const classStats = {};
       let totalSubmissions = 0;
       approved.forEach(item => {
@@ -429,17 +429,17 @@ export default function AdminAchievements() {
         classStats[cls].points += (item.points || 0);
         totalSubmissions++;
       });
-      
+
       const classData = Object.keys(classStats).map(cls => ({
         label: `Class ${cls}`,
         value: Number(((classStats[cls].count / totalSubmissions) * 100).toFixed(1)),
         suffix: '%'
       })).sort((a, b) => b.value - a.value).slice(0, 8);
-      
+
       drawBarChart(doc, "Class Participation", classData, 14, 45, 150, 60, [14, 165, 233]);
 
       const classTableData = Object.keys(classStats)
-        .sort((a,b) => classStats[b].points - classStats[a].points)
+        .sort((a, b) => classStats[b].points - classStats[a].points)
         .map(cls => [
           `Class ${cls}`,
           classStats[cls].count,
@@ -465,42 +465,42 @@ export default function AdminAchievements() {
       // --- PAGE 2: Category & Sub-Category ---
       doc.addPage();
       drawPageHeader("Activity Categories Analysis", "Distribution across domains");
-      
+
       const getCategory = (activity) => {
         if (['Awards', 'Publications', 'Innovations', 'Courses'].includes(activity)) return 'Achievements';
         if (['Essay', 'Poem', 'Story', 'Full paper', 'Abstract'].includes(activity)) return 'Writings';
         if (['Paper presentation (State)', 'Paper presentation (National)', 'Paper presentation (International)', 'Keynote address', 'Khutba', 'Other presentations (Out)', 'Speech', 'Other presentations (In)'].includes(activity)) return 'Presentations';
         return 'Competitions';
       };
-      
+
       const categoryCounts = {};
       const subCategoryCounts = {};
-      
+
       approved.forEach(item => {
         const act = item.activity || 'Unknown';
         const cat = getCategory(act);
         categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
         subCategoryCounts[act] = (subCategoryCounts[act] || 0) + 1;
       });
-      
+
       const catData = Object.keys(categoryCounts).map(cat => ({
         label: cat,
         value: categoryCounts[cat]
       })).sort((a, b) => b.value - a.value);
-      
-      drawBarChart(doc, "Top Broad Categories", catData, 14, 45, 150, 60, [16, 185, 129]); 
-      
+
+      drawBarChart(doc, "Top Broad Categories", catData, 14, 45, 150, 60, [16, 185, 129]);
+
       const subCatData = Object.keys(subCategoryCounts).map(sub => ({
         label: sub,
         value: subCategoryCounts[sub]
-      })).sort((a, b) => b.value - a.value).slice(0, 6); 
-      
-      drawBarChart(doc, "Top Sub-Categories (Activities)", subCatData, 14, 145, 150, 60, [245, 158, 11]); 
+      })).sort((a, b) => b.value - a.value).slice(0, 6);
+
+      drawBarChart(doc, "Top Sub-Categories (Activities)", subCatData, 14, 145, 150, 60, [245, 158, 11]);
 
       // --- PAGE 3: All-Time Top Students ---
       doc.addPage();
       drawPageHeader("Top Performing Students (All-Time)", "Leaderboard & Overall Rankings");
-      
+
       let fullLeaderboard = [];
       try {
         const lbRes = await axios.get('/api/zehnuth/points?leaderboard=true');
@@ -522,16 +522,16 @@ export default function AdminAchievements() {
           totalPoints: studentPoints[sId]
         })).sort((a, b) => b.totalPoints - a.totalPoints);
       }
-      
+
       const top5ForChart = fullLeaderboard.slice(0, 5).map(s => ({
-        label: s.student["SHORT NAME"]?.split(' ')[0] || s.student["FULL NAME"]?.split(' ')[0] || 'Unknown', 
+        label: s.student["SHORT NAME"]?.split(' ')[0] || s.student["FULL NAME"]?.split(' ')[0] || 'Unknown',
         value: s.totalPoints
       }));
-      
+
       if (top5ForChart.length > 0) {
-        drawBarChart(doc, "Top 5 Students by Total Points", top5ForChart, 14, 45, 150, 60, [236, 72, 153]); 
+        drawBarChart(doc, "Top 5 Students by Total Points", top5ForChart, 14, 45, 150, 60, [236, 72, 153]);
       }
-      
+
       doc.setFontSize(14);
       doc.setTextColor(textColor[0], textColor[1], textColor[2]);
       doc.setFont("helvetica", "bold");
@@ -725,7 +725,7 @@ export default function AdminAchievements() {
 
           {/* Action Buttons Toolbar */}
           <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
-           
+
 
             <button
               onClick={() => setIsPdfModalOpen(true)}
@@ -735,7 +735,7 @@ export default function AdminAchievements() {
               <span>PDF Report</span>
             </button>
 
-           
+
           </div>
         </div>
 
@@ -845,10 +845,10 @@ export default function AdminAchievements() {
                 placeholder="Search Student Name or AD No..."
                 className="w-full bg-slate-50 border border-slate-100 hover:border-slate-200 focus:border-indigo-500 focus:bg-white rounded-xl sm:rounded-2xl p-3.5 sm:p-4 text-xs font-bold text-slate-700 outline-none transition-all pl-11"
               />
-             
-              {searchTerm && ( 
-                <button 
-                  onClick={() => setSearchTerm('')} 
+
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
                   className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                 >
                   <X size={14} />
@@ -1287,7 +1287,7 @@ export default function AdminAchievements() {
               const balanceInfo = getStudentBalanceInfo(selectedStudentForHistory._id);
               const league = balanceInfo.league;
               const nextLeague = getNextLeague(balanceInfo.totalPoints);
-              const progressPct = nextLeague 
+              const progressPct = nextLeague
                 ? Math.min(100, Math.round(((balanceInfo.totalPoints - league.min) / (nextLeague.min - league.min)) * 100))
                 : 100;
 
@@ -1386,12 +1386,12 @@ export default function AdminAchievements() {
       {/* PDF Report Date Selector Popup Modal */}
       {isPdfModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4">
-          <div 
-            className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-300" 
+          <div
+            className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-300"
             onClick={() => !isGeneratingPdf && setIsPdfModalOpen(false)}
           ></div>
           <div className="relative bg-white max-w-md w-full rounded-2xl sm:rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in slide-in-from-bottom-6 duration-300">
-            
+
             {/* Modal Header */}
             <div className="p-5 sm:p-6 border-b border-slate-100 bg-white flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -1418,7 +1418,7 @@ export default function AdminAchievements() {
 
             {/* Modal Body */}
             <div className="p-5 sm:p-6 space-y-4 bg-slate-50/50">
-              
+
               {/* Quick Presets */}
               <div>
                 <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-2">
