@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
-import { CalendarCheck, CalendarDays, Send, Loader2 } from 'lucide-react';
+import { CalendarCheck, CalendarDays, Send, Loader2, Filter, RotateCcw } from 'lucide-react';
 import { API_PORT } from '@/Constants';
 import PortalSkeleton from '@/components/StudentPortal/PortalSkeleton';
 
@@ -28,6 +28,9 @@ export default function AttendancePage() {
 
     const [absentMonth, setAbsentMonth] = useState('All');
     const [logMonth, setLogMonth] = useState('All');
+    const [fromDate, setFromDate] = useState('');
+    const [toDate, setToDate] = useState('');
+    const [timeFilter, setTimeFilter] = useState('All');
 
     // Breakdown Popup State
     const [breakdownType, setBreakdownType] = useState(null); // 'presents' or 'absents'
@@ -286,6 +289,57 @@ export default function AttendancePage() {
         });
     }, [attendanceData, absentMonth]);
 
+    const getLogDateStr = (log) => {
+        const dateVal = log.createdAt || log.attendanceDate;
+        if (!dateVal) return '';
+        const d = new Date(dateVal);
+        if (isNaN(d.getTime())) return '';
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    const matchesTime = (logTime, filter) => {
+        if (!filter || filter === 'All') return true;
+        const t = String(logTime || '').trim().toLowerCase();
+        const f = filter.toLowerCase();
+        if (f === 'morning') return t === 'morning';
+        if (f === 'afternoon') return t === 'afternoon' || t === 'noon';
+        if (f === 'night') return t === 'night';
+        if (f === 'period') return t === 'period';
+        if (f === 'jamath') return t === 'jamath';
+        if (f === 'qirath') return t === 'qirath' || t === 'quiraath' || t.startsWith('qir') || t.startsWith('quir');
+        return t === f;
+    };
+
+    const handleFromDateChange = (val) => {
+        setFromDate(val);
+        if (val && logMonth !== 'All') setLogMonth('All');
+    };
+
+    const handleToDateChange = (val) => {
+        setToDate(val);
+        if (val && logMonth !== 'All') setLogMonth('All');
+    };
+
+    const handleMonthChange = (val) => {
+        setLogMonth(val);
+        if (val !== 'All') {
+            setFromDate('');
+            setToDate('');
+        }
+    };
+
+    const resetFilters = () => {
+        setFromDate('');
+        setToDate('');
+        setTimeFilter('All');
+        setLogMonth('All');
+    };
+
+    const isLogFiltered = Boolean(fromDate || toDate || timeFilter !== 'All' || logMonth !== 'All');
+
     const filteredLogData = useMemo(() => {
         return attendanceData.filter(log => {
             if (logMonth !== 'All') {
@@ -293,9 +347,19 @@ export default function AttendancePage() {
                 const itemMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
                 if (itemMonth !== logMonth) return false;
             }
+
+            if (fromDate || toDate) {
+                const dateStr = getLogDateStr(log);
+                if (!dateStr) return false;
+                if (fromDate && dateStr < fromDate) return false;
+                if (toDate && dateStr > toDate) return false;
+            }
+
+            if (!matchesTime(log.attendanceTime, timeFilter)) return false;
+
             return true;
         });
-    }, [attendanceData, logMonth]);
+    }, [attendanceData, logMonth, fromDate, toDate, timeFilter]);
 
     // 1 week time limit removed for now
     const isWithin1Week = () => true;
@@ -429,42 +493,142 @@ export default function AttendancePage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Attendance Log */}
                 <div className="lg:col-span-2">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-2xl font-black text-slate-800">Attendance log</h2>
-                        <select
-                            value={logMonth}
-                            onChange={(e) => setLogMonth(e.target.value)}
-                            className="bg-transparent text-sm font-bold text-slate-500 outline-none cursor-pointer border-none"
-                        >
-                            <option value="All">All Months</option>
-                            {availableMonths.map(m => (
-                                <option key={m} value={m}>{formatMonth(m)}</option>
-                            ))}
-                        </select>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                        <div className="flex items-center gap-3">
+                            <h2 className="text-2xl font-black text-slate-800">Attendance log</h2>
+                            <span className="px-3 py-1 bg-blue-50 text-blue-600 border border-blue-100 rounded-full text-xs font-black shadow-xs">
+                                {filteredLogData.length} {filteredLogData.length === 1 ? 'record' : 'records'}
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <select
+                                value={logMonth}
+                                onChange={(e) => handleMonthChange(e.target.value)}
+                                className="bg-white border border-slate-200 text-xs font-bold text-slate-600 rounded-xl px-3 py-2 outline-none cursor-pointer shadow-sm hover:border-slate-300 transition-colors"
+                            >
+                                <option value="All">All Months</option>
+                                {availableMonths.map(m => (
+                                    <option key={m} value={m}>{formatMonth(m)}</option>
+                                ))}
+                            </select>
+                            {isLogFiltered && (
+                                <button
+                                    onClick={resetFilters}
+                                    title="Reset All Filters"
+                                    className="flex items-center gap-1.5 px-3 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm active:scale-95"
+                                >
+                                    <RotateCcw size={12} />
+                                    <span>Reset</span>
+                                </button>
+                            )}
+                        </div>
                     </div>
-                    <div className="bg-slate-50 rounded-[2rem] p-4 space-y-3 border border-slate-100 max-h-[600px] overflow-y-auto custom-scrollbar">
-                        {filteredLogData.map(item => (
-                            <div key={item._id} className="flex flex-col md:flex-row md:items-center md:justify-between p-4 bg-slate-100/50 rounded-2xl border border-slate-200/50 gap-4">
-                                <div className="flex items-center gap-4">
-                                    <span className={`w-20 text-center px-4 py-2 rounded-xl text-[12px] font-black text-white shrink-0 ${item.status === 'Present' ? 'bg-emerald-500' : 'bg-rose-500'}`}>
-                                        {item.status}
-                                    </span>
-                                    <span className="px-4 py-2 rounded-xl border border-slate-800 text-[12px] font-black text-slate-800 shrink-0">
-                                        {item.attendanceTime === 'Period' && item.period ? `Period ${item.period}` : (item.attendanceTime || 'General')}
-                                    </span>
-                                    {item.status === 'Absent' && <span className={`px-4 py-2 rounded-xl border text-[10px] font-black shrink-0 ${item.onLeave ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
-                                        OnLeave: {item.onLeave ? 'Yes' : 'No'}
-                                    </span>}
-                                </div>
-                                <div className={`text-left text-sm ${item.teacherId ? 'md:text-center' : 'md:text-right'}`}>
-                                    <div className="font-black text-slate-800">{new Date(item.createdAt || item.attendanceDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                                    <div className="font-bold text-slate-500">{new Date(item.createdAt || item.attendanceDate).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
-                                </div>
-                                {item.teacherId && <div className="text-left md:text-right text-xs font-bold text-slate-600 md:max-w-[150px]">
-                                    USTHAD {item.teacherId?.name || 'Teacher'}
-                                </div>}
+
+                    {/* Filter Card */}
+                    <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm mb-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-xs font-black text-slate-600 uppercase tracking-wider">
+                                <Filter size={14} className="text-blue-500" />
+                                <span>Filter by Date & Time</span>
                             </div>
-                        ))}
+                            {isLogFiltered && (
+                                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100">
+                                    Filtered
+                                </span>
+                            )}
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            {/* From Date */}
+                            <div className="space-y-1">
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                                    From Date
+                                </label>
+                                <input
+                                    type="date"
+                                    value={fromDate}
+                                    onChange={(e) => handleFromDateChange(e.target.value)}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
+                                />
+                            </div>
+
+                            {/* To Date */}
+                            <div className="space-y-1">
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                                    To Date
+                                </label>
+                                <input
+                                    type="date"
+                                    value={toDate}
+                                    min={fromDate || undefined}
+                                    onChange={(e) => handleToDateChange(e.target.value)}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
+                                />
+                            </div>
+
+                            {/* Time Filter */}
+                            <div className="space-y-1">
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                                    Time
+                                </label>
+                                <select
+                                    value={timeFilter}
+                                    onChange={(e) => setTimeFilter(e.target.value)}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
+                                >
+                                    <option value="All">All Times</option>
+                                    <option value="Morning">Morning</option>
+                                    <option value="Afternoon">Afternoon</option>
+                                    <option value="Night">Night</option>
+                                    <option value="Period">Period</option>
+                                    <option value="Jamath">Jamath</option>
+                                    <option value="qirath">Qirath</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-50 rounded-[2rem] p-4 space-y-3 border border-slate-100 max-h-[600px] overflow-y-auto custom-scrollbar">
+                        {filteredLogData.length > 0 ? (
+                            filteredLogData.map(item => (
+                                <div key={item._id} className="flex flex-col md:flex-row md:items-center md:justify-between p-4 bg-slate-100/50 rounded-2xl border border-slate-200/50 gap-4">
+                                    <div className="flex items-center gap-4">
+                                        <span className={`w-20 text-center px-4 py-2 rounded-xl text-[12px] font-black text-white shrink-0 ${item.status === 'Present' ? 'bg-emerald-500' : 'bg-rose-500'}`}>
+                                            {item.status}
+                                        </span>
+                                        <span className="px-4 py-2 rounded-xl border border-slate-800 text-[12px] font-black text-slate-800 shrink-0">
+                                            {item.attendanceTime === 'Period' && item.period ? `Period ${item.period}` : (item.attendanceTime || 'General')}
+                                        </span>
+                                        {item.status === 'Absent' && <span className={`px-4 py-2 rounded-xl border text-[10px] font-black shrink-0 ${item.onLeave ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                                            OnLeave: {item.onLeave ? 'Yes' : 'No'}
+                                        </span>}
+                                    </div>
+                                    <div className={`text-left text-sm ${item.teacherId ? 'md:text-center' : 'md:text-right'}`}>
+                                        <div className="font-black text-slate-800">{new Date(item.createdAt || item.attendanceDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                        <div className="font-bold text-slate-500">{new Date(item.createdAt || item.attendanceDate).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                                    </div>
+                                    {item.teacherId && <div className="text-left md:text-right text-xs font-bold text-slate-600 md:max-w-[150px]">
+                                        USTHAD {item.teacherId?.name || 'Teacher'}
+                                    </div>}
+                                </div>
+                            ))
+                        ) : (
+                            <div className="py-12 flex flex-col items-center justify-center text-center">
+                                <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-center text-slate-400 mb-3">
+                                    <Filter size={20} />
+                                </div>
+                                <p className="text-sm font-black text-slate-700">No attendance logs found</p>
+                                <p className="text-xs font-bold text-slate-400 mt-1">Try clearing or adjusting your date and time filters</p>
+                                {isLogFiltered && (
+                                    <button
+                                        onClick={resetFilters}
+                                        className="mt-4 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-black rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer"
+                                    >
+                                        Reset Filters
+                                    </button>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 
