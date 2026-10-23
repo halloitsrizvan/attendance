@@ -9,6 +9,7 @@ import StudentsLoad from "../load-UI/StudentsLoad";
 import { Import } from "lucide-react";
 import { API_PORT } from "../../Constants";
 import CustomAlert from "../common/CustomAlert";
+import { canTeacherReturnLeave } from "@/utils/leaveReturnUtils";
 
 const getSafeLocalStorage = () => typeof window !== 'undefined' ? localStorage : { getItem: () => null, setItem: () => {}, removeItem: () => {} };
 
@@ -954,8 +955,11 @@ function Hajar() {
 
                       let leaveType = "";
                       let isStudentLate = false;
+                      const activeLeave = isOnLeave
+                        ? (getStudentActiveLeave(student.ADNO, student._id) || (isOnShortLeave ? getStudentActiveShortLeave(student.ADNO, student._id) : null))
+                        : null;
+
                       if (displayOnLeave) {
-                        const activeLeave = getStudentActiveLeave(student.ADNO, student._id);
                         isStudentLate = isLeaveLate(activeLeave);
                         if (isStudentLate) {
                           leaveType = "Late";
@@ -966,13 +970,17 @@ function Hajar() {
                           const isMed = reason === 'Medical' || reason === 'Medical (Home)' || reason === 'Medical (Room)' || reason === 'Room' || reason === 'Hospital';
                           leaveType = isMed ? "Medical" : "On Leave";
                         }
+                      } else if (isOnLeave) {
+                        isStudentLate = isLeaveLate(activeLeave);
                       }
 
-                      const isClassTeacher = Boolean(
-                        teacher &&
-                        (teacher.classNum || teacher.class) &&
-                        String(teacher.classNum || teacher.class).trim() === String(student.CLASS || student.class || id).trim()
-                      );
+                      const canReturn = isOnLeave && canTeacherReturnLeave({
+                        teacher,
+                        leave: activeLeave,
+                        student,
+                        isLate: isStudentLate,
+                        studentClass: student.CLASS || student.class || id
+                      });
 
                       return (
                         <tr
@@ -1017,7 +1025,7 @@ function Hajar() {
                               >
                                 {displayOnLeave ? leaveType : currentStatus}
                               </button>
-                              {isOnLeave && isClassTeacher && (
+                              {isOnLeave && canReturn && (
                                 <button 
                                   className={`w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg sm:rounded-xl text-white transition-all hover:scale-110 shadow-sm ${isReturned ? "bg-emerald-600" : "bg-sky-500"}`}
                                   type="button"

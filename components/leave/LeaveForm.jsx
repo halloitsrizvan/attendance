@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from "next/navigation";
 import axios from 'axios';
 import { API_PORT } from '../../Constants';
+import { isFridayReturnWithinDeadline } from '@/utils/leaveReturnUtils';
 import BulkStudents from './BulkStudents';
 import CustomAlert from '../common/CustomAlert';
 import DatePicker from './DatePicker';
@@ -621,6 +622,12 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
 
   const canReturnLateLeave = (leave) => {
     if (!teacher) return false;
+
+    // If student return from leave is on Friday, then all teachers can return until that Friday night 12
+    if (isFridayReturnWithinDeadline(leave)) {
+      return true;
+    }
+
     const teacherRoles = (Array.isArray(teacher.role) ? teacher.role : (teacher.role ? [teacher.role] : [])).map(r => String(r).toLowerCase());
 
     if (teacherRoles.some(r => ['principal', 'vice_principal', 'vice-principal', 'viceprincipal', 'super_admin', 'superadmin'].includes(r))) {

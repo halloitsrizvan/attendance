@@ -4,6 +4,7 @@ import { Clock, ChevronRight, FileSignature, CheckCircle, XCircle, Calendar } fr
 import axios from 'axios';
 import { API_PORT } from '../../Constants';
 import ConfirmationModal from '../common/ConfirmationModal';
+import { isFridayReturnWithinDeadline } from '@/utils/leaveReturnUtils';
 
 const StatusBadge = ({ status }) => {
   const getStatusConfig = (status) => {
@@ -139,6 +140,12 @@ function ShortLeave({ statusData: initialStatusData, type, onDataUpdate }) {
 
   const canReturnLateLeave = (leave) => {
     if (!teacher) return false;
+
+    // If student return from leave is on Friday, then all teachers can return until that Friday night 12
+    if (isFridayReturnWithinDeadline(leave)) {
+      return true;
+    }
+
     const teacherRoles = (Array.isArray(teacher.role) ? teacher.role : (teacher.role ? [teacher.role] : [])).map(r => String(r).toLowerCase());
     if (teacherRoles.some(r => ['principal', 'vice_principal', 'vice-principal', 'viceprincipal', 'super_admin', 'superadmin'].includes(r))) {
       return true;

@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { Clock, Calendar, User, ArrowUpRight, CheckCircle, PlayCircle, RotateCcw, Edit, ChevronRight, X, Trash2, Clipboard, RefreshCw } from 'lucide-react'; import { API_PORT } from '../../Constants';
+import { isFridayReturnWithinDeadline } from '@/utils/leaveReturnUtils';
 
 const StatusPill = ({ status }) => {
   const getStatusConfig = (status) => {
@@ -509,6 +510,12 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
 
   const canReturnLateLeave = () => {
     if (!teacher) return false;
+
+    // If student return from leave is on Friday, then all teachers can return until that Friday night 12
+    if (isFridayReturnWithinDeadline(classInfo)) {
+      return true;
+    }
+
     const teacherRoles = (Array.isArray(teacher.role) ? teacher.role : (teacher.role ? [teacher.role] : [])).map(r => String(r).toLowerCase());
 
     // Check if Principal, Vice Principal, or Super Admin
@@ -1219,6 +1226,9 @@ function LeaveStatusTable({ classData: initialClassData1, onDataUpdate, getLeave
         const itemStatus = getLeaveStatus ? getLeaveStatus(l) : l.status;
         const isItemLate = itemStatus === 'Late' || l.status === 'Late' || (l.toDate && l.toTime && new Date() > new Date(`${l.toDate}T${l.toTime}`));
         if (isItemLate) {
+          if (isFridayReturnWithinDeadline(l)) {
+            return false;
+          }
           const teacherRoles = (Array.isArray(teacher?.role) ? teacher.role : (teacher?.role ? [teacher.role] : [])).map(r => String(r).toLowerCase());
           if (teacherRoles.some(r => ['principal', 'vice_principal', 'vice-principal', 'viceprincipal', 'super_admin', 'superadmin'].includes(r))) {
             return false;

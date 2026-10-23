@@ -7,6 +7,7 @@ import { TfiLayoutGrid3,TfiLayoutGrid2  } from "react-icons/tfi";
 import { FaHome, FaArrowLeft } from "react-icons/fa";
 import StudentsLoad from '../load-UI/StudentsLoad';
 import { API_PORT } from '../../Constants';
+import { canTeacherReturnLeave } from '@/utils/leaveReturnUtils';
 
 function EditAtt() {
     const [students,setStudents] = useState([])
@@ -537,8 +538,11 @@ function EditAtt() {
 
                       let leaveType = "";
                       let isStudentLate = false;
+                      const activeLeave = isOnLeave
+                        ? (getStudentActiveLeave(ad, student.studentId?._id || student._id) || (isOnShortLeave ? getStudentActiveShortLeave(ad) : null))
+                        : null;
+
                       if (displayOnLeave) {
-                        const activeLeave = getStudentActiveLeave(ad, student.studentId?._id || student._id);
                         isStudentLate = isLeaveLate(activeLeave);
                         if (isStudentLate) {
                           leaveType = "Late";
@@ -550,7 +554,17 @@ function EditAtt() {
                           leaveType = isMed ? "Medical" : "On Leave";
                         }
                         else leaveType = "On Leave";
+                      } else if (isOnLeave) {
+                        isStudentLate = isLeaveLate(activeLeave);
                       }
+
+                      const canReturn = isOnLeave && canTeacherReturnLeave({
+                        teacher,
+                        leave: activeLeave,
+                        student,
+                        isLate: isStudentLate,
+                        studentClass: student.CLASS || student.class || student.studentId?.CLASS || id
+                      });
 
                       return (
                         <tr
@@ -603,7 +617,7 @@ function EditAtt() {
                               >
                                 {displayOnLeave ? leaveType : currentStatus}
                               </button>
-                              {isOnLeave && isClassTeacher && (
+                              {isOnLeave && canReturn && (
                                 <button 
                                   className={`w-8 h-8 flex items-center justify-center rounded-xl text-white transition-all hover:scale-110 shadow-sm ${isReturned ? "bg-emerald-600" : "bg-sky-500"}`}
                                   type="button"
