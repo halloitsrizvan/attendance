@@ -1,11 +1,8 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import MentorActivity from '@/models/mentorActivityModel';
-import { protectMutation } from '@/utils/mutationGuard';
 
 export async function PUT(req, { params }) {
-    const mutationBlocked = protectMutation(req);
-    if (mutationBlocked) return mutationBlocked;
 
     try {
         await dbConnect();

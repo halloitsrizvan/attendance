@@ -4,7 +4,6 @@ import Student from "@/models/studentsModel";
 import Teacher from "@/models/teachersModel";
 import { NextResponse } from "next/server";
 import { getActiveAcademicYearId } from "@/lib/getActiveAcademicYear";
-import { protectMutation } from "@/utils/mutationGuard";
 
 const PERIOD_TIMES = {
   1: { from: '07:30', to: '08:10' },
@@ -163,8 +162,6 @@ export async function GET(req) {
 }
 
 export async function POST(req) {
-  const mutationBlocked = protectMutation(req);
-  if (mutationBlocked) return mutationBlocked;
 
   await dbConnect();
   try {

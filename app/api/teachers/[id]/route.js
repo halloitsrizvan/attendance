@@ -4,7 +4,6 @@ import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
-import { protectMutation } from "@/utils/mutationGuard";
 
 export async function GET(req, { params }) {
   await dbConnect();
@@ -19,8 +18,6 @@ export async function GET(req, { params }) {
 }
 
 export async function DELETE(req, { params }) {
-  const mutationBlocked = protectMutation(req);
-  if (mutationBlocked) return mutationBlocked;
 
   await dbConnect();
   if (!mongoose.Types.ObjectId.isValid(params.id)) {
@@ -34,8 +31,6 @@ export async function DELETE(req, { params }) {
 }
 
 export async function PATCH(req, { params }) {
-  const mutationBlocked = protectMutation(req);
-  if (mutationBlocked) return mutationBlocked;
 
   await dbConnect();
   if (!mongoose.Types.ObjectId.isValid(params.id)) {

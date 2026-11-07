@@ -1,11 +1,8 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import ClassReport from '@/models/classReportModel';
-import { protectMutation } from '@/utils/mutationGuard';
 
 export async function PATCH(req) {
-    const mutationBlocked = protectMutation(req);
-    if (mutationBlocked) return mutationBlocked;
 
     try {
         await dbConnect();

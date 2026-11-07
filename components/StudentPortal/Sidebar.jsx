@@ -60,7 +60,6 @@ export default function Sidebar({ isOpen, onClose }) {
         { name: 'Daily Viva', path: '/students-portal/daily-viva', icon: Award },
         { name: 'CEP', path: '/students-portal/cep', icon: Award },
         { name: 'Zehnuth', path: '/students-portal/zehnuth', icon: Star },
-        { name: 'Best Class', path: '/students-portal/best-class', icon: Trophy },
         { name: 'Lisan', path: '/students-portal/lisan', icon: BookOpen },
         { name: 'Controls', path: '/students-portal/controls', icon: Sliders },
         { name: 'Profile', path: '/students-portal/profile', icon: User },
@@ -70,9 +69,6 @@ export default function Sidebar({ isOpen, onClose }) {
         const roles = Array.isArray(role) ? role : [role];
         const normalizedRoles = roles.map(r => String(r || '').toLowerCase());
 
-        if (item.name === 'Best Class') {
-            return normalizedRoles.includes('class');
-        }
         if (item.name === 'Lisan') {
             return normalizedRoles.includes('lisan');
         }

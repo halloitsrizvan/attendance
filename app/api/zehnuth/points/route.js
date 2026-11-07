@@ -6,11 +6,8 @@ import MentorMentee from "@/models/mentorMenteeModel";
 import { NextResponse } from "next/server";
 import { getActiveAcademicYearId } from "@/lib/getActiveAcademicYear";
 
-import { protectMutation } from "@/utils/mutationGuard";
 
 export async function POST(req) {
-    const mutationBlocked = protectMutation(req);
-    if (mutationBlocked) return mutationBlocked;
 
     await dbConnect();
     try {
@@ -199,8 +196,6 @@ export async function GET(req) {
     }
 }
 export async function PUT(req) {
-    const mutationBlocked = protectMutation(req);
-    if (mutationBlocked) return mutationBlocked;
 
     await dbConnect();
     try {
@@ -240,8 +235,6 @@ export async function PUT(req) {
 }
 
 export async function DELETE(req) {
-    const mutationBlocked = protectMutation(req);
-    if (mutationBlocked) return mutationBlocked;
 
     await dbConnect();
     const { searchParams } = new URL(req.url);

@@ -77,13 +77,12 @@ function Header() {
   };
 
   const displayRoles = () => {
-    if (isTestUser) return "Test Account (View Only)";
+    if (isTestUser) return "Test Account (Super Admin)";
     if (!teacher?.role) return "";
     const roles = Array.isArray(teacher.role) ? teacher.role : [teacher.role];
     return roles.map(r => r.replace('_', ' ')).join(', ');
   };
 
-  const isClassProgramsAllowed = isTestUser || teacher?.classNum || ['shahinpandikkad4@gmail.com', 'dkp17713@gmail.com', 'unaisnellikkuth@gmail.com', 'kthaseeb11@gmail.com', 'saheedchunku@gmail.com'].includes((teacher?.email || teacher?.EMAIL)?.toLowerCase()) || hasRole('best_class_admin');
 
   return (
     <>
@@ -205,40 +204,6 @@ function Header() {
                 </div>
               </div>
 
-              {/* Class Programs Dropdown */}
-              {isClassProgramsAllowed && (
-                <div className="relative group">
-                  <button
-                    className="text-white hover:text-sky-100 transition-colors duration-200 font-semibold text-lg flex items-center gap-1 px-2 py-1"
-                  >
-                    Class Programs
-                    <svg className="w-5 h-5 transition-transform duration-200 group-hover:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  <div className="absolute top-full left-0 mt-0 pt-3 w-60 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-200 z-50">
-                    <div className="bg-white shadow-2xl py-3 border border-slate-100 rounded-xl">
-                      <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/class-reports/submit') }}>Submit Report</a>
-                      {(teacher?.classNum || isTestUser) && (
-                        <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base relative" onClick={() => { navigate.push('/class-reports/approve') }}>
-                          Approve Reports
-                          <span className="ml-2 bg-amber-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-black">NEW</span>
-                        </a>
-                      )}
-                      {(['shahinpandikkad4@gmail.com', 'dkp17713@gmail.com', 'unaisnellikkuth@gmail.com', 'kthaseeb11@gmail.com', 'saheedchunku@gmail.com'].includes((teacher?.email || teacher?.EMAIL)?.toLowerCase()) || hasRole('best_class_admin') || isTestUser) && (
-                        <>
-                          <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/class-reports/leaderboard') }}>Leaderboard</a>
-                          <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base relative" onClick={() => { navigate.push('/class-reports/admin-review') }}>
-                            Evaluate Reports
-                            <span className="ml-2 bg-amber-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-black">NEW</span>
-                          </a>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* Admin Dropdown */}
               {hasRole("super_admin") && (
                 <div className="relative group">
@@ -319,7 +284,7 @@ function Header() {
                     {isTestUser && (
                       <div className="px-5 py-2.5 bg-amber-50 border-b border-amber-100 flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                        <span className="text-[10px] font-black uppercase text-amber-800 tracking-wider">Test Account (View Only)</span>
+                        <span className="text-[10px] font-black uppercase text-amber-800 tracking-wider">Test Account (Super Admin)</span>
                       </div>
                     )}
 
@@ -454,39 +419,6 @@ function Header() {
                 </div>
               )}
             </div>
-
-            {/* Class Programs Group */}
-            {isClassProgramsAllowed && (
-              <div className="border-t border-slate-100">
-                <button
-                  className="w-full flex items-center justify-between px-4 py-5 font-bold text-slate-800 hover:bg-sky-50 transition-colors"
-                  onClick={() => toggleDropdown('mb-class-programs')}
-                >
-                  <span className="text-lg">Class Programs</span>
-                  <svg className={`w-6 h-6 transition-transform duration-200 text-slate-400 ${openDropdown === 'mb-class-programs' ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {openDropdown === 'mb-class-programs' && (
-                  <div className="bg-slate-50/50 pb-3">
-                    <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/class-reports/submit'); setIsMenuOpen(false) }}>Submit Report</a>
-                    {(teacher?.classNum || isTestUser) && (
-                      <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100 flex items-center justify-between" onClick={() => { navigate.push('/class-reports/approve'); setIsMenuOpen(false) }}>
-                        <span>Approve Reports</span>
-                      </a>
-                    )}
-                    {(['shahinpandikkad4@gmail.com', 'dkp17713@gmail.com', 'unaisnellikkuth@gmail.com', 'kthaseeb11@gmail.com', 'saheedchunku@gmail.com'].includes((teacher?.email || teacher?.EMAIL)?.toLowerCase()) || hasRole('best_class_admin') || isTestUser) && (
-                      <>
-                        <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/class-reports/leaderboard'); setIsMenuOpen(false) }}>Leaderboard</a>
-                        <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100 flex items-center justify-between" onClick={() => { navigate.push('/class-reports/admin-review'); setIsMenuOpen(false) }}>
-                          <span>Evaluate Reports</span>
-                        </a>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* Admin Panel Group */}
             {hasRole("super_admin") && (

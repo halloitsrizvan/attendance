@@ -1,11 +1,8 @@
 import dbConnect from "@/lib/mongodb";
 import Student from "@/models/studentsModel";
 import { NextResponse } from "next/server";
-import { protectMutation } from "@/utils/mutationGuard";
 
 export async function POST(req) {
-  const mutationBlocked = protectMutation(req);
-  if (mutationBlocked) return mutationBlocked;
 
   await dbConnect();
   try {

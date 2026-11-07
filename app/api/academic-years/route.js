@@ -13,11 +13,8 @@ export async function GET() {
     }
 }
 
-import { protectMutation } from '@/utils/mutationGuard';
 
 export async function POST(request) {
-    const mutationBlocked = protectMutation(request);
-    if (mutationBlocked) return mutationBlocked;
 
     await dbConnect();
     try {
@@ -31,8 +28,6 @@ export async function POST(request) {
 
 // Global activate logic (use PATCH)
 export async function PATCH(request) {
-    const mutationBlocked = protectMutation(request);
-    if (mutationBlocked) return mutationBlocked;
 
     await dbConnect();
     try {

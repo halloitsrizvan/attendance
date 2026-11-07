@@ -104,11 +104,8 @@ export async function GET(req) {
   }
 }
 
-import { protectMutation } from "@/utils/mutationGuard";
 
 export async function POST(req) {
-  const mutationBlocked = protectMutation(req);
-  if (mutationBlocked) return mutationBlocked;
 
   await dbConnect();
   try {
