@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import AllClassLoad from '../load-UI/AllClassLoad';
 import { API_PORT } from '../../Constants';
 import App from './App';
-function AllClass({ edit, id }) {
+import AttendanceHome from './AttendanceHome';
+function AllClass({ edit, id, mobileHome = false }) {
 
   const navigate = useRouter()
   const [classes, setClass] = useState([])
@@ -221,6 +222,8 @@ function AllClass({ edit, id }) {
     }
   }, [id]);
 
+
+  if (mobileHome) return <AttendanceHome {...{ classes, teacher, date, setDate, time, setTime, period, setPeriod, more, setMore, err, setErr, preAttendance, isSuperAdmin, students }} loading={load || preAttendanceLoad} />;
 
   return (
     <div className="container mx-auto px-4 py-8 mt-12">

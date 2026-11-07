@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { FaArrowLeft } from "react-icons/fa";
 import axios from 'axios';
 import { API_PORT } from '@/Constants';
+import AttendanceHeader from './AttendanceHeader';
 
 const getSafeLocalStorage = () => typeof window !== 'undefined' ? localStorage : { getItem: () => null, setItem: () => { }, removeItem: () => { } };
 
-function Header() {
+function Header({ appearance } = {}) {
   const [mounted, setMounted] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -83,6 +84,10 @@ function Header() {
     return roles.map(r => r.replace('_', ' ')).join(', ');
   };
 
+
+  if (appearance === 'attendance') {
+    return <AttendanceHeader teacher={teacher} hasRole={hasRole} isTestUser={isTestUser} onLogout={handleLogout} />;
+  }
 
   return (
     <>
