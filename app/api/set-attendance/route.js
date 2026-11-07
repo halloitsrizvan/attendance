@@ -2,6 +2,8 @@ import dbConnect from "@/lib/mongodb";
 import Attendance from "@/models/attendanceModel";
 import Student from "@/models/studentsModel";
 import Teacher from "@/models/teachersModel";
+import Leave from "@/models/leaveModel";
+import { activeLeaveForAttendance } from "@/lib/attendanceLeave.mjs";
 import { NextResponse } from "next/server";
 import { getActiveAcademicYearId } from "@/lib/getActiveAcademicYear";
 
@@ -85,7 +87,18 @@ export async function POST(req) {
       }
     }
 
-    const attendance = await Attendance.create(body);
+    // Never rely solely on a potentially stale browser leave flag.
+    const records = Array.isArray(body) ? body : [body];
+    const studentIds = records.map(record => record.studentId).filter(Boolean);
+    const leaves = await Leave.find({
+      studentId: { $in: studentIds },
+      status: { $in: ['active', 'late', 'pending', 'on leave'] },
+    }).select('studentId academicYearId status fromDate fromTime').sort({ createdAt: -1 }).lean();
+    const verifiedRecords = records.map(record => {
+      const leave = activeLeaveForAttendance(record, leaves);
+      return leave ? { ...record, onLeave: true, status: 'Absent', leaveId: leave._id } : record;
+    });
+    const attendance = await Attendance.create(Array.isArray(body) ? verifiedRecords : verifiedRecords[0]);
     return NextResponse.json(attendance);
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
