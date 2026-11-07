@@ -1,0 +1,111 @@
+/* Shared mobile theme. Every rule is scoped so admin pages retain their UI. */
+.college-theme {
+  --primary: #7650ba;
+  --primary-dark: #5c3996;
+  --primary-light: #f0e8fc;
+  --background: #fff;
+  --surface: #f8f7f5;
+  --border: #e5deeb;
+  --text-primary: #241d33;
+  --text-secondary: #675d75;
+  --text-muted: #82788e;
+  min-height: 100dvh;
+  background: var(--surface);
+  color: var(--text-primary);
+  font-family: Inter, Arial, sans-serif;
+}
+.college-with-dock { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
+.college-theme :where(button, a, input, select, textarea) { -webkit-tap-highlight-color: transparent; }
+.college-theme :where(button, a, input, select, textarea):focus-visible { outline: 3px solid #9268da; outline-offset: 3px; }
+.college-theme :where(button, input, select, textarea) { accent-color: #7650ba; }
+.college-theme :where(input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=hidden]), select, textarea) {
+  border-color: var(--border);
+  border-radius: 12px;
+}
+.college-theme :where(input, select, textarea):focus { --tw-ring-color: #cbb3f1; border-color: #a385d0; }
+.college-theme :is(.bg-slate-50, .bg-gray-50, .bg-slate-100, .bg-gray-100) { background-color: var(--surface) !important; }
+.college-theme :is(.border-slate-100, .border-slate-200, .border-gray-100, .border-gray-200, .border-sky-100, .border-blue-100) { border-color: var(--border) !important; }
+.college-theme :is(.text-slate-900, .text-slate-800, .text-gray-900, .text-gray-800) { color: var(--text-primary) !important; }
+.college-theme :is(.text-slate-600, .text-slate-500, .text-gray-600, .text-gray-500) { color: var(--text-secondary) !important; }
+.college-theme :is(.text-sky-500, .text-sky-600, .text-sky-700, .text-blue-500, .text-blue-600, .text-blue-700, .text-indigo-600) { color: #7650ba !important; }
+.college-theme :is(.bg-sky-50, .bg-blue-50, .bg-indigo-50) { background-color: #f5f0fc !important; }
+.college-theme :is(.bg-sky-100, .bg-blue-100, .bg-indigo-100) { background-color: #ebe0fb !important; }
+.college-theme :is(.bg-sky-500, .bg-sky-600, .bg-blue-500, .bg-blue-600, .bg-indigo-500, .bg-indigo-600, .btn-primary) {
+  background-color: #292135 !important;
+  border-color: #292135 !important;
+  color: #fff !important;
+  box-shadow: none;
+}
+.college-theme :is(.hover\:bg-sky-600, .hover\:bg-blue-700, .hover\:bg-indigo-700):hover { background-color: #46345e !important; }
+.college-theme :is(.hover\:bg-sky-50, .hover\:bg-blue-50):hover { background-color: #eee5fa !important; }
+.college-theme :is(.border-sky-500, .border-blue-500, .border-indigo-500) { border-color: #9873d2 !important; }
+.college-theme :is(.from-sky-500, .from-sky-600, .from-blue-500, .from-blue-600, .from-indigo-500, .from-indigo-600) {
+  background: #ceb7ff !important;
+  color: #241d33 !important;
+  box-shadow: none !important;
+}
+.college-theme :is(.from-sky-500, .from-sky-600, .from-blue-500, .from-blue-600, .from-indigo-500, .from-indigo-600) :is(.text-white, .text-sky-100, .text-blue-100, .text-indigo-100) { color: #493563 !important; }
+.college-theme :is(.shadow-xl, .shadow-2xl) { box-shadow: 0 5px 20px #35224409; }
+.college-theme .card { border-radius: 20px; box-shadow: none; }
+.college-theme .table-container { border-radius: 18px; overflow-x: auto; }
+.college-theme table th { background-color: #f3eef9; color: #675d75 !important; }
+.college-theme :is(.bg-white.rounded-2xl, .bg-white.rounded-3xl) { border-color: var(--border); }
+.college-theme:not([data-page=home]) h1 { letter-spacing: -.04em; font-weight: 750; }
+
+/* Persistent navigation shared by teacher and student screens. */
+.college-dock {
+  position: fixed;
+  bottom: calc(15px + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 728px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 4px;
+  background: #241d32;
+  border-radius: 32px;
+  box-shadow: 0 3px 10px #211c3026;
+  z-index: 35;
+}
+.college-dock a { min-height: 48px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 5px 2px; color: #fff; border-radius: 28px; text-decoration: none; font-size: 10px; font-weight: 600; }
+.college-dock a[aria-current=page] { background: #fff; color: #241d32; }
+
+/* Student navigation shares the palette without changing its destinations. */
+.college-theme .student-sidebar { background: #f8f7f5 !important; color: #241d33 !important; border-right: 1px solid var(--border); }
+.college-theme .student-sidebar nav a { color: #675d75; opacity: 1; font-size: 14px; min-height: 48px; }
+.college-theme .student-sidebar nav a[aria-current=page] { background: #e9dcfb; color: #58378c; box-shadow: none; }
+.college-theme .student-sidebar nav a:hover { background: #eee7f7; }
+.college-theme .student-sidebar .student-logout { background: #f6e8ee !important; color: #a13f5b; font-size: 14px; }
+.college-theme .student-topbar { background: #f8f7f5 !important; border-bottom-color: var(--border); box-shadow: none; }
+.college-theme .student-topbar button[aria-label="Open student navigation"] { border-radius: 50%; width: 38px; height: 38px; display: grid; place-items: center; padding: 0; }
+.college-theme .student-welcome { background: #ceb7ff !important; color: #241d33; border-radius: 25px; box-shadow: none; }
+.college-theme .student-welcome h1 { max-width: 75%; }
+.college-theme .student-welcome p { max-width: 70%; color: #493563; }
+.college-theme .student-metric { border: 0; color: #241d33 !important; border-radius: 20px; box-shadow: none; }
+.college-theme .student-metric[data-metric-color=blue], .college-theme .student-metric[data-metric-color=sky] { background: #bfd9ff !important; }
+.college-theme .student-metric[data-metric-color=emerald] { background: #c7efdf !important; }
+.college-theme .student-metric[data-metric-color=rose] { background: #f4c6f0 !important; }
+.college-theme .student-metric[data-metric-color=amber] { background: #ffd078 !important; }
+.college-theme .student-metric[data-metric-color=indigo] { background: #e1d2fc !important; }
+.college-theme .student-portal-content { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
+.college-with-dock .college-form-actions { bottom: calc(82px + env(safe-area-inset-bottom)); background: #f8f7f5 !important; }
+.college-with-dock:has(.college-form-actions) { padding-bottom: calc(185px + env(safe-area-inset-bottom)); }
+.college-theme .bg-\[\#f8fafc\] { background-color: var(--surface) !important; }
+
+@media (max-width: 639px) {
+  .college-theme:not([data-page=home]) :where(input:not([type=checkbox]):not([type=radio]):not([type=hidden]), select, textarea) { font-size: 16px !important; }
+  .college-theme :where(button[type=submit], .btn-primary) { min-height: 44px; }
+  .college-theme:not([data-page=home]) h1 { font-size: clamp(1.6rem, 6vw, 2.1rem); line-height: 1.15; }
+  .college-theme .student-welcome { padding: 24px 20px; }
+  .college-theme .student-welcome h1 { font-size: 26px; }
+  .college-theme .student-topbar { min-height: 64px; padding: 12px 16px; }
+  .college-theme .student-portal-content { padding-left: 16px; padding-right: 16px; padding-top: 84px; }
+}
+@media (min-width: 768px) {
+  .college-theme .student-dock { display: none; }
+  .college-theme .student-portal-content { padding-bottom: 32px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .college-theme *, .college-theme *::before, .college-theme *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}

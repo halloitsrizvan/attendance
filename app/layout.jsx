@@ -1,4 +1,6 @@
 import './globals.css';
+import './college-theme.css';
+import CollegeTheme from '@/components/common/CollegeTheme';
 import AuthGuard from '@/components/auth/AuthGuard';
 import TestUserBanner from '@/components/common/TestUserBanner';
 
@@ -42,7 +44,7 @@ export default function RootLayout({ children }) {
       <body>
         <div className="App">
           <AuthGuard>
-            {children}
+            <CollegeTheme>{children}</CollegeTheme>
           </AuthGuard>
           <TestUserBanner />
         </div>

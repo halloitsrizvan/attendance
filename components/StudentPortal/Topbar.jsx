@@ -51,11 +51,12 @@ export default function Topbar({ onMenuClick }) {
     };
 
     return (
-        <div className="flex items-center justify-between p-4 bg-white/80 backdrop-blur-md fixed top-0 left-0 md:left-64 right-0 z-40 border-b border-slate-100 shrink-0">
+        <div className="student-topbar flex items-center justify-between p-4 bg-white/80 backdrop-blur-md fixed top-0 left-0 md:left-64 right-0 z-40 border-b border-slate-100 shrink-0">
             <div className="flex items-center">
                 {/* Mobile Menu Button */}
                 <button
                     onClick={onMenuClick}
+                    aria-label="Open student navigation"
                     className="md:hidden p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 transition-all active:scale-95 shrink-0"
                 >
                     <Menu className="w-5 h-5" />

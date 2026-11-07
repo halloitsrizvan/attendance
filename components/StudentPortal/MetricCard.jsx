@@ -14,7 +14,8 @@ export default function MetricCard({ title, value, subText, color, icon: Icon, i
 
     return (
         <div
-            className={`flex flex-col items-center justify-center p-3 sm:p-6 rounded-2xl sm:rounded-[2rem] shadow-sm transition-all duration-300 border 
+            data-metric-color={color || 'blue'}
+            className={`student-metric flex flex-col items-center justify-center p-3 sm:p-6 rounded-2xl sm:rounded-[2rem] shadow-sm transition-all duration-300 border
             ${onClick ? 'cursor-pointer hover:shadow-xl' : 'cursor-default'}
             ${currentClass} group`}
             onClick={onClick}

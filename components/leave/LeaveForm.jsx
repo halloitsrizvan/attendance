@@ -2484,7 +2484,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
           )}
 
           {/* Submit Button */}
-          <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-slate-100 z-40">
+          <div className="college-form-actions fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-slate-100 z-40">
             <div className="max-w-xl mx-auto flex items-center gap-3">
               <button
                 type="button"
@@ -2703,7 +2703,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
             />
           </div>
 
-          <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-slate-100 z-40">
+          <div className="college-form-actions fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-slate-100 z-40">
             <button
               type="button"
               onClick={handleShortLeaveSubmit}

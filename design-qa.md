@@ -12,4 +12,12 @@ Artwork: currently uses a generated calendar approximation optimized to a 360px 
 
 Remaining verification: compare at the reference mobile viewport, verify menu/period/session/date/class interactions, and inspect 320px and desktop layouts. No claim of a passed visual review.
 
+## Shared website theme
+
+Extended the reference palette to teacher and student routes through a scoped theme wrapper, with lavender banners, warm neutral surfaces, purple accents, charcoal actions, pastel student metrics and shared mobile navigation. Existing attendance/leave status colours retain their meaning. Teacher pages reuse the grouped menu; student pages retain their own navigation destinations. Leave form submit bars sit above the dock.
+
+Admin exclusions are centralized in lib/uiTheme.mjs. The wrapper and teacher dock are omitted for management, reporting, settings, documentation/admin tools and student controls. No data or permission rules were changed.
+
+Validation: JSX compilation and CSS parsing passed. Four automated route-boundary tests passed. HTTP 200 confirmed for home, attendance, leave dashboard, student dashboard, student leave and settings. Browser inventory was checked again and remains empty, so mobile screenshot comparison and interactive visual QA remain blocked.
+
 final result: blocked

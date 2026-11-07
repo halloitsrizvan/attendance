@@ -1,15 +1,17 @@
 "use client";
 
 import React, { useEffect, useState } from 'react'
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { FaArrowLeft } from "react-icons/fa";
 import axios from 'axios';
 import { API_PORT } from '@/Constants';
 import AttendanceHeader from './AttendanceHeader';
+import { usesCollegeTheme } from '@/lib/uiTheme.mjs';
 
 const getSafeLocalStorage = () => typeof window !== 'undefined' ? localStorage : { getItem: () => null, setItem: () => { }, removeItem: () => { } };
 
 function Header({ appearance } = {}) {
+  const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -85,7 +87,7 @@ function Header({ appearance } = {}) {
   };
 
 
-  if (appearance === 'attendance') {
+  if (appearance === 'attendance' || usesCollegeTheme(pathname || '/')) {
     return <AttendanceHeader teacher={teacher} hasRole={hasRole} isTestUser={isTestUser} onLogout={handleLogout} />;
   }
 

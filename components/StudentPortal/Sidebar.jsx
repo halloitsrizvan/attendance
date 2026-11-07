@@ -85,7 +85,7 @@ export default function Sidebar({ isOpen, onClose }) {
     };
 
     return (
-        <div className={`w-64 bg-[#0A84C6] h-[100dvh] text-white flex flex-col fixed left-0 top-0 z-50 transition-transform duration-300 transform md:translate-x-0 ${
+        <div className={`student-sidebar w-64 bg-[#0A84C6] h-[100dvh] text-white flex flex-col fixed left-0 top-0 z-50 transition-transform duration-300 transform md:translate-x-0 ${
             isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}>
             <div className="p-6 flex items-center gap-3">
@@ -109,6 +109,7 @@ export default function Sidebar({ isOpen, onClose }) {
                         <Link 
                             key={item.name} 
                             href={item.path}
+                            aria-current={isActive ? 'page' : undefined}
                             className={`flex items-center px-4 py-3 rounded-2xl transition-all font-semibold text-lg flex-shrink-0 ${
                                 isActive 
                                 ? 'bg-white/20 shadow-inner' 
@@ -124,7 +125,7 @@ export default function Sidebar({ isOpen, onClose }) {
             <div className="p-4 mt-auto mb-4 md:mb-0">
                 <button 
                     onClick={handleLogout}
-                    className="flex items-center justify-center w-full gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 rounded-2xl transition-all font-semibold text-lg opacity-90 hover:opacity-100 flex-shrink-0"
+                    className="student-logout flex items-center justify-center w-full gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 rounded-2xl transition-all font-semibold text-lg opacity-90 hover:opacity-100 flex-shrink-0"
                 >
                     Logout
                 </button>
