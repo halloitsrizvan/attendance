@@ -131,8 +131,8 @@ function Header({ appearance } = {}) {
                 <div className="absolute top-full left-0 mt-0 pt-3 w-56 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-200 z-50">
                   <div className="bg-white shadow-2xl py-3 border border-slate-100 rounded-xl">
                     <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/') }}>Take Attendance</a>
+                    {(hasRole('class_teacher') || hasRole('super_admin')) && (<a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/complaints') }}>Complaints</a>)}
                     <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/class-wise') }}>Attendance Status</a>
-                    <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/complaints') }}>Complaints</a>
                   </div>
                 </div>
               </div>
@@ -350,8 +350,8 @@ function Header({ appearance } = {}) {
               {openDropdown === 'mb-attendance' && (
                 <div className="bg-slate-50/50 pb-3">
                   <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/'); setIsMenuOpen(false) }}>Take Attendance</a>
+                  {(hasRole('class_teacher') || hasRole('super_admin')) && (<a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/complaints'); setIsMenuOpen(false) }}>Complaints</a>)}
                   <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/class-wise'); setIsMenuOpen(false) }}>Attendance Status</a>
-                  <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/complaints'); setIsMenuOpen(false) }}>Complaints</a>
                 </div>
               )}
             </div>

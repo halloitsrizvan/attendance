@@ -23,8 +23,6 @@ export default function AttendancePage() {
     const [message, setMessage] = useState('');
     const [complaints, setComplaints] = useState([]);
     const [isMedicalLeave, setIsMedicalLeave] = useState(false);
-    const [selectedTeacherId, setSelectedTeacherId] = useState('');
-    const [teachers, setTeachers] = useState([]);
 
     const [absentMonth, setAbsentMonth] = useState('All');
     const [logMonth, setLogMonth] = useState('All');
@@ -44,7 +42,6 @@ export default function AttendancePage() {
         if (att?.onLeave) {
             setActualStatus('Present');
             setIsMedicalLeave(false);
-            setSelectedTeacherId('');
         }
 
         // Scroll to form smoothly
@@ -62,15 +59,11 @@ export default function AttendancePage() {
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
-                const [settingsRes, teachersRes] = await Promise.all([
-                    axios.get(`${API_PORT}/settings`),
-                    axios.get(`${API_PORT}/teachers`)
-                ]);
+                const settingsRes = await axios.get(`${API_PORT}/settings`);
                 if (settingsRes.data.academicYear) setAcademicYear(settingsRes.data.academicYear);
                 if (settingsRes.data.academicYearId) setAcademicYearId(settingsRes.data.academicYearId);
-                setTeachers(teachersRes.data || []);
             } catch (err) {
-                console.error("Error fetching settings/teachers:", err);
+                console.error("Error fetching settings:", err);
             }
         };
         fetchInitialData();
@@ -99,7 +92,7 @@ export default function AttendancePage() {
             if (profileData.ADNO) {
                 const [attRes, complaintsRes] = await Promise.all([
                     axios.get(`${API_PORT}/set-attendance?ad=${profileData.ADNO}`),
-                    axios.get(`${API_PORT}/complaints?studentId=${sid}`)
+                    axios.get(`${API_PORT}/complaints?studentId=${sid}`, { headers: { Authorization: `Bearer ${token}` } })
                 ]);
                 const rawAtt = attRes.data || [];
                 const filteredAtt = rawAtt.filter(item => {
@@ -145,15 +138,7 @@ export default function AttendancePage() {
         return { presents, absents, presentsBreakdown, absentsBreakdown };
     }, [attendanceData]);
 
-    const sortedCepTeachers = useMemo(() => {
-        return teachers
-            .filter(t => {
-                if ((t.name || '').trim().toUpperCase() === 'TEST' || (t.email || '').trim().toLowerCase() === 'test@gmail.com') return false;
-                const roles = Array.isArray(t.role) ? t.role : (t.role ? [t.role] : []);
-                return roles.includes('CEPApproval');
-            })
-            .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-    }, [teachers]);
+
 
     const handleComplaintSubmit = async (e) => {
         e.preventDefault();
@@ -162,59 +147,6 @@ export default function AttendancePage() {
             const currentAttendance = attendanceData.find(r => r._id === selectedId);
             if (!currentAttendance) {
                 alert("Please select a record to dispute.");
-                setComplaintLoading(false);
-                return;
-            }
-
-            let currentTeachers = teachers;
-            if (!currentTeachers || currentTeachers.length === 0) {
-                try {
-                    const tRes = await axios.get(`${API_PORT}/teachers`);
-                    currentTeachers = tRes.data || [];
-                    setTeachers(currentTeachers);
-                } catch (e) {
-                    console.error("Failed to load teachers on demand:", e);
-                }
-            }
-
-            let targetTeacherId = null;
-
-            if (actualStatus === 'Present') {
-                targetTeacherId = currentAttendance.teacherId?._id || currentAttendance.teacherId;
-            } else if (actualStatus === 'Leave') {
-                const studentClass = Number(student?.CLASS || currentAttendance?.classNumber || currentAttendance?.studentId?.CLASS);
-                const classTeacher = currentTeachers.find(t => Number(t.classNum) === studentClass);
-                const hosTeacher = currentTeachers.find(t => Array.isArray(t.role) ? t.role.includes('HOS') : String(t.role || '').includes('HOS'));
-                const hodTeacher = currentTeachers.find(t => Array.isArray(t.role) ? t.role.includes('HOD') : String(t.role || '').includes('HOD'));
-
-                if (isMedicalLeave) {
-                    targetTeacherId = classTeacher?._id || null;
-                } else if (studentClass >= 1 && studentClass <= 4) {
-                    targetTeacherId = classTeacher?._id || null;
-                } else if (studentClass >= 5 && studentClass <= 7) {
-                    targetTeacherId = hosTeacher?._id || null;
-                } else if (studentClass >= 8 && studentClass <= 10) {
-                    targetTeacherId = hodTeacher?._id || null;
-                } else {
-                    targetTeacherId = classTeacher?._id || hosTeacher?._id || hodTeacher?._id || null;
-                }
-
-                if (!targetTeacherId) {
-                    alert("Responsible teacher could not be determined for your class. Please contact the administrator.");
-                    setComplaintLoading(false);
-                    return;
-                }
-            } else if (actualStatus === 'CEP') {
-                if (!selectedTeacherId) {
-                    alert("Please select a teacher for CEP.");
-                    setComplaintLoading(false);
-                    return;
-                }
-                targetTeacherId = selectedTeacherId;
-            }
-
-            if (!targetTeacherId) {
-                alert("Could not identify the teacher for this complaint.");
                 setComplaintLoading(false);
                 return;
             }
@@ -233,21 +165,19 @@ export default function AttendancePage() {
             await axios.post(`${API_PORT}/complaints`, {
                 studentId: finalStudentId,
                 attendanceId: currentAttendance._id,
-                teacherId: targetTeacherId,
                 actualStatus,
                 message: formattedMessage,
                 isMedical: actualStatus === 'Leave' ? isMedicalLeave : false
-            });
+            }, { headers: { Authorization: `Bearer ${localStorage.getItem('studentToken')}` } });
             alert("Complaint submitted successfully.");
             setSelectedId('');
             setMessage('');
             setActualStatus('Present');
             setIsMedicalLeave(false);
-            setSelectedTeacherId('');
 
             // Refetch complaints list
             if (finalStudentId) {
-                const compRes = await axios.get(`${API_PORT}/complaints?studentId=${finalStudentId}`);
+                const compRes = await axios.get(`${API_PORT}/complaints?studentId=${finalStudentId}`, { headers: { Authorization: `Bearer ${localStorage.getItem('studentToken')}` } });
                 setComplaints(compRes.data || []);
             }
         } catch (err) {
@@ -379,7 +309,6 @@ export default function AttendancePage() {
         if (isSelectedOnLeave && actualStatus !== 'Present') {
             setActualStatus('Present');
             setIsMedicalLeave(false);
-            setSelectedTeacherId('');
         }
     }, [isSelectedOnLeave]);
 
@@ -651,7 +580,6 @@ export default function AttendancePage() {
                                 if (att?.onLeave) {
                                     setActualStatus('Present');
                                     setIsMedicalLeave(false);
-                                    setSelectedTeacherId('');
                                 }
                             }}
                             className="w-full border border-slate-800 rounded-xl p-3 text-sm font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-500"
@@ -674,7 +602,6 @@ export default function AttendancePage() {
                                         onClick={() => {
                                             setActualStatus(s);
                                             if (s !== 'Leave') setIsMedicalLeave(false);
-                                            if (s !== 'CEP') setSelectedTeacherId('');
                                         }}
                                         className={`flex-1 py-2 rounded-xl border border-slate-800 text-xs font-black uppercase transition-all
                                         ${actualStatus === s ? 'bg-slate-800 text-white' : 'bg-white text-slate-800 hover:bg-slate-100'}`}
@@ -684,31 +611,6 @@ export default function AttendancePage() {
                                 ))}
                             </div>
                         </div>
-
-                        {actualStatus === 'CEP' && (
-                            <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
-                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Select Teacher</label>
-                                <select
-                                    value={selectedTeacherId}
-                                    onChange={e => setSelectedTeacherId(e.target.value)}
-                                    className="w-full border border-slate-800 rounded-xl p-3 text-sm font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="">Select Teacher...</option>
-                                    {sortedCepTeachers.map(t => (
-                                        <option key={t._id} value={t._id}>
-                                            {t.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        )}
-
-                        <textarea
-                            placeholder="Description..."
-                            value={message}
-                            onChange={e => setMessage(e.target.value)}
-                            className="w-full border border-slate-800 rounded-xl p-3 text-sm font-bold text-slate-600 outline-none h-32 resize-none focus:ring-2 focus:ring-blue-500"
-                        ></textarea>
 
                         {actualStatus === 'Leave' && (
                             <label className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors animate-in fade-in slide-in-from-top-1 duration-200">
@@ -745,7 +647,7 @@ export default function AttendancePage() {
                                     Rejected: 'bg-rose-50 text-rose-600 border-rose-100'
                                 };
                                 const currentStatusColor = statusColors[item.status] || 'bg-slate-50 text-slate-600 border-slate-100';
-                                const teacherName = item.teacherId?.name || teachers.find(t => t._id === (item.teacherId?._id || item.teacherId))?.name;
+                                const teacherName = item.teacherId?.name;
 
                                 return (
                                     <div key={item._id} className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm space-y-2">

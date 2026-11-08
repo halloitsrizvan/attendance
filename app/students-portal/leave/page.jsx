@@ -265,11 +265,10 @@ export default function LeavePage() {
             }
             await axios.post(`${API_PORT}/complaints`, {
                 studentId: student._id || student.id,
-                teacherId: currentLeave.teacherId?._id || currentLeave.teacherId || null,
                 message: title.trim() ? `[Leave Issue: ${title.trim()}] ${message.trim()}` : message.trim(),
                 actualStatus: 'Leave',
                 leaveId: currentLeave._id
-            });
+            }, { headers: { Authorization: `Bearer ${localStorage.getItem('studentToken')}` } });
             alert("Issue submitted successfully.");
             setSelectedId('');
             setTitle('');

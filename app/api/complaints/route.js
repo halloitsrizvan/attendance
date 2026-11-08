@@ -1,128 +1,94 @@
-import dbConnect from "@/lib/mongodb";
-import Complaint from "@/models/complaintModel";
-import Attendance from "@/models/attendanceModel";
-import Student from "@/models/studentsModel";
-import Teacher from "@/models/teachersModel";
-import AcademicYear from "@/models/academicYearModel";
-import { NextResponse } from "next/server";
-import mongoose from "mongoose";
-import { getActiveAcademicYearId } from "@/lib/getActiveAcademicYear";
+import dbConnect from '@/lib/mongodb';
+import Complaint from '@/models/complaintModel';
+import Attendance from '@/models/attendanceModel';
+import Student from '@/models/studentsModel';
+import Teacher from '@/models/teachersModel';
+import { NextResponse } from 'next/server';
+import mongoose from 'mongoose';
+import { getActiveAcademicYearId } from '@/lib/getActiveAcademicYear';
+import { complaintError, complaintScope, complaintViewer } from '@/utils/complaintAuth';
+import { complaintMatchesClass } from '@/lib/complaintRouting.mjs';
+import { attendanceEditFields } from '@/lib/attendanceSession.mjs';
+
+const failure = (error, fallback = 500) => NextResponse.json({ error: error.message }, { status: error.status || fallback });
+const populate = query => query.populate('studentId', { ADNO: 1, CLASS: 1, SL: 1, 'FULL NAME': 1, 'SHORT NAME': 1 }).populate('attendanceId').populate('teacherId', 'name classNum role');
 
 export async function GET(req) {
+  try {
     await dbConnect();
+    const viewer = await complaintViewer(req);
     const { searchParams } = new URL(req.url);
+    const scope = await complaintScope(viewer);
+    const filters = {};
     const studentId = searchParams.get('studentId');
-    const teacherId = searchParams.get('teacherId');
-    const ad = searchParams.get('ad');
-
-    try {
-        let query = {};
-        
-        if (studentId) {
-            if (mongoose.Types.ObjectId.isValid(studentId)) {
-                query.studentId = studentId;
-            } else {
-                return NextResponse.json({ error: "Invalid studentId format" }, { status: 400 });
-            }
-        }
-        
-        if (teacherId) {
-            if (mongoose.Types.ObjectId.isValid(teacherId)) {
-                query.teacherId = teacherId;
-            } else {
-                return NextResponse.json({ error: "Invalid teacherId format" }, { status: 400 });
-            }
-        }
-        
-        const activeYearId = await getActiveAcademicYearId();
-        if (activeYearId && searchParams.get('all') !== 'true') {
-            query.academicYearId = activeYearId;
-        }
-
-        const complaints = await Complaint.find(query)
-            .populate('studentId')
-            .populate('attendanceId')
-            .populate('teacherId')
-            .sort({ createdAt: -1 });
-            
-        return NextResponse.json(complaints);
-    } catch (error) {
-        console.error("Complaints GET Error:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    if (studentId) {
+      if (!mongoose.Types.ObjectId.isValid(studentId)) throw complaintError('Invalid student ID', 400);
+      filters.studentId = studentId;
     }
+    const year = await getActiveAcademicYearId();
+    if (year && searchParams.get('all') !== 'true') filters.academicYearId = year;
+    // Scope is always enforced independently of caller-supplied filters.
+    const complaints = await populate(Complaint.find({ $and: [scope, filters] })).sort({ createdAt: -1 }).lean();
+    return NextResponse.json(complaints);
+  } catch (error) { return failure(error); }
 }
 
-
 export async function POST(req) {
-
+  try {
     await dbConnect();
-    try {
-        const body = await req.json();
-        const activeYearId = await getActiveAcademicYearId();
-        if (!body.academicYearId && activeYearId) {
-            body.academicYearId = activeYearId;
-        }
-        const complaint = await Complaint.create(body);
-        return NextResponse.json(complaint);
-    } catch (error) {
-        console.error("Complaints POST Error:", error);
-        return NextResponse.json({ error: error.message }, { status: 400 });
+    const viewer = await complaintViewer(req);
+    const body = await req.json();
+    const studentId = viewer.isStudent ? viewer.account._id : body.studentId;
+    if (!mongoose.Types.ObjectId.isValid(studentId)) throw complaintError('Invalid student ID', 400);
+    const student = await Student.findById(studentId).select('CLASS');
+    if (!student) throw complaintError('Student not found', 404);
+    if (!viewer.isStudent && !viewer.isAdmin && !complaintMatchesClass({ studentId: student }, viewer.account)) throw complaintError('This student is outside your assigned class', 403);
+    if (body.attendanceId) {
+      const attendance = await Attendance.findById(body.attendanceId).select('studentId');
+      if (!attendance || String(attendance.studentId) !== String(student._id)) throw complaintError('Attendance record does not belong to this student', 400);
     }
+    const classTeacher = await Teacher.findOne({ classNum: student.CLASS, active: { $ne: false } }).sort({ _id: 1 }).select('_id');
+    const year = await getActiveAcademicYearId();
+    const complaint = await Complaint.create({
+      studentId: student._id, attendanceId: body.attendanceId || undefined,
+      teacherId: classTeacher?._id || null,
+      actualStatus: body.actualStatus, isMedical: Boolean(body.isMedical),
+      message: body.message, status: 'Pending', academicYearId: year || undefined,
+    });
+    // If a class teacher has not been assigned, super admins still receive it.
+    return NextResponse.json(complaint, { status: 201 });
+  } catch (error) { return failure(error, 400); }
 }
 
 export async function PATCH(req) {
-
+  try {
     await dbConnect();
-    try {
-        const { id, ...updates } = await req.json();
-        
-        // Find current complaint state
-        const complaint = await Complaint.findById(id);
-        if (!complaint) {
-            return NextResponse.json({ error: "Complaint not found" }, { status: 404 });
-        }
-
-        // Update complaint
-        const updatedComplaint = await Complaint.findByIdAndUpdate(id, updates, { new: true })
-            .populate('studentId')
-            .populate('attendanceId')
-            .populate('teacherId');
-
-        // Automated Correction: If status is set to 'Resolved', update the actual attendance record
-        if (updates.status === 'Resolved' && complaint.attendanceId) {
-            if (complaint.actualStatus === 'Present') {
-                await Attendance.findByIdAndUpdate(complaint.attendanceId, { 
-                    status: 'Present',
-                    onLeave: false 
-                });
-            } else if (complaint.actualStatus === 'Leave' || complaint.actualStatus === 'CEP') {
-                // If resolving as leave or CEP, we mark onLeave as true and keep status as 'Absent'
-                await Attendance.findByIdAndUpdate(complaint.attendanceId, { 
-                    onLeave: true,
-                    status: 'Absent' 
-                });
-            }
-        }
-
-        return NextResponse.json(updatedComplaint);
-    } catch (error) {
-        return NextResponse.json({ error: error.message }, { status: 400 });
+    const viewer = await complaintViewer(req);
+    if (viewer.isStudent) throw complaintError('Only class teachers and super admins can review complaints', 403);
+    const { id, status, adminRemark } = await req.json();
+    if (!mongoose.Types.ObjectId.isValid(id)) throw complaintError('Invalid complaint ID', 400);
+    if (!['Pending', 'Resolved', 'Rejected'].includes(status)) throw complaintError('Invalid complaint status', 400);
+    const scope = await complaintScope(viewer);
+    const complaint = await Complaint.findOne({ $and: [{ _id: id }, scope] });
+    if (!complaint) throw complaintError('Complaint not found in your assigned class', 404);
+    if (status === 'Resolved' && complaint.attendanceId) {
+      const fields = complaint.actualStatus === 'Present' ? attendanceEditFields('Present')
+        : ['Leave', 'CEP'].includes(complaint.actualStatus) ? { status: 'Absent', onLeave: true } : null;
+      if (fields) await Attendance.findByIdAndUpdate(complaint.attendanceId, { $set: fields });
     }
+    const updated = await populate(Complaint.findByIdAndUpdate(id, { $set: { status, adminRemark } }, { new: true, runValidators: true }));
+    return NextResponse.json(updated);
+  } catch (error) { return failure(error, 400); }
 }
 
 export async function DELETE(req) {
-
+  try {
     await dbConnect();
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get('id');
-
-    try {
-        if (!id) {
-            return NextResponse.json({ error: "Complaint ID is required" }, { status: 400 });
-        }
-        await Complaint.findByIdAndDelete(id);
-        return NextResponse.json({ success: true, message: "Complaint removed" });
-    } catch (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    const viewer = await complaintViewer(req);
+    if (!viewer.isAdmin) throw complaintError('Only super admins can delete complaints', 403);
+    const id = new URL(req.url).searchParams.get('id');
+    if (!mongoose.Types.ObjectId.isValid(id)) throw complaintError('Invalid complaint ID', 400);
+    await Complaint.findByIdAndDelete(id);
+    return NextResponse.json({ success: true });
+  } catch (error) { return failure(error); }
 }

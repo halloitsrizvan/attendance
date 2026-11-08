@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
 import Image from 'next/image';
 import axios from 'axios';
 import { Mail, Lock, User, ArrowRight, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { API_PORT } from '../../Constants';
 import Link from '@/components/navigation/NavigationLink';
+import { teacherReturnPath } from '@/lib/teacherSession.mjs';
 
 const getSafeLocalStorage = () => typeof window !== 'undefined' ? localStorage : { getItem: () => null, setItem: () => {}, removeItem: () => {} };
 
@@ -17,6 +18,10 @@ function LoginP() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [sessionNotice, setSessionNotice] = useState(false);
+    useEffect(() => {
+        setSessionNotice(new URLSearchParams(window.location.search).get('reason')?.startsWith('session-') || false);
+    }, []);
 
     const handleSumbit = async (e) => {
         e.preventDefault();
@@ -30,7 +35,8 @@ function LoginP() {
                 getSafeLocalStorage().setItem('token', token);
                 getSafeLocalStorage().setItem('teacher', JSON.stringify(teacher));
                 window.dispatchEvent(new Event('storage'));
-                navigate.push('/');
+                const returnTo = teacherReturnPath(new URLSearchParams(window.location.search).get('next'));
+                navigate.replace(returnTo);
             } else {
                 setLoginerr('Authentication failed. No data received.');
             }
@@ -57,6 +63,7 @@ function LoginP() {
                 {/* Login Card */}
                 <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 p-8 sm:p-10 transition-all">
                     <form className="space-y-6" onSubmit={handleSumbit}>
+                        {sessionNotice && <p role="status" className="rounded-2xl bg-amber-50 p-4 text-xs text-amber-800">Your session expired or is no longer valid. Sign in again to continue.</p>}
                         {loginErr && (
                             <div className="flex items-center gap-2 p-4 bg-rose-50 border border-rose-100 text-rose-600 rounded-2xl text-xs font-bold uppercase tracking-wider animate-in fade-in slide-in-from-top-1">
                                 <AlertCircle size={16} />

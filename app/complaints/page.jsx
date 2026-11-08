@@ -4,6 +4,12 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Header from '../../components/Header/Header';
 import axios from 'axios';
 import { API_PORT } from '../../Constants';
+import { complaintMatchesClass } from '@/lib/complaintRouting.mjs';
+import { useNavigationRouter } from '@/components/navigation/NavigationProvider';
+import { teacherSignInPath } from '@/lib/teacherSession.mjs';
+import styles from './ComplaintsFeedback.module.css';
+
+const complaintAuth = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
 import { 
   MessageSquare, 
   Clock, 
@@ -19,10 +25,13 @@ import {
   XCircle,
   CornerDownRight,
   Send,
-  HeartPulse
+  HeartPulse,
+  Loader2,
+  X
 } from 'lucide-react';
 
 const ComplaintsPage = () => {
+  const router = useNavigationRouter();
   const [teacher, setTeacher] = useState(null);
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,8 +39,18 @@ const ComplaintsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [adminViewFilter, setAdminViewFilter] = useState('All');
   const [selectedComplaint, setSelectedComplaint] = useState(null);
-  const [remark, setRemark] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const [notice, setNotice] = useState(null);
+  const [decisionError, setDecisionError] = useState('');
+  const [decision, setDecision] = useState(null);
+  const [reviewedId, setReviewedId] = useState(null);
+
+  useEffect(() => {
+    if (!reviewedId) return;
+    const timer = setTimeout(() => setReviewedId(null), 3500);
+    return () => clearTimeout(timer);
+  }, [reviewedId]);
 
   useEffect(() => {
     const storedTeacher = localStorage.getItem('teacher');
@@ -40,7 +59,7 @@ const ComplaintsPage = () => {
       setTeacher(parsedTeacher);
       const tid = parsedTeacher._id || parsedTeacher.id;
       if (tid) {
-        fetchComplaints(parsedTeacher);
+        fetchComplaints();
       } else {
         setLoading(false);
       }
@@ -57,57 +76,65 @@ const ComplaintsPage = () => {
       email === 'test@gmail.com';
   }, [teacher]);
 
-  const fetchComplaints = async (teacherObj) => {
+  const fetchComplaints = async () => {
     try {
       setLoading(true);
-      const tid = teacherObj._id || teacherObj.id;
-      const email = (teacherObj.email || teacherObj.EMAIL || '').trim().toLowerCase();
-      const superAdmin = teacherObj.role === 'super_admin' || 
-        (Array.isArray(teacherObj.role) && teacherObj.role.includes('super_admin')) ||
-        email === 'test@gmail.com';
+      setLoadError('');
+
       
-      const res = await axios.get(`${API_PORT}/complaints${superAdmin ? '' : `?teacherId=${tid}`}`);
+      const res = await axios.get(`${API_PORT}/complaints`, complaintAuth());
       setComplaints(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Error fetching complaints:", err);
+      if (err.response?.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('teacher');
+        router.replace(teacherSignInPath('/complaints', 'session-invalid'));
+        return;
+      }
+      setLoadError(err.response?.data?.error || 'Could not load complaints. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleResolve = async (id, status) => {
+    if (submitting) return;
     try {
       setSubmitting(true);
-      await axios.patch(`${API_PORT}/complaints`, {
+      setDecision(status);
+      setDecisionError('');
+      setNotice(null);
+      const response = await axios.patch(`${API_PORT}/complaints`, {
         id,
-        status,
-        adminRemark: remark
-      });
+        status
+      }, complaintAuth());
       
       // Update local state
       setComplaints(prev => prev.map(c => 
-        c._id === id ? { ...c, status, adminRemark: remark } : c
+        c._id === id ? { ...c, ...response.data } : c
       ));
       
       setSelectedComplaint(null);
-      setRemark('');
-      alert(`Complaint ${status} successfully.`);
+      setReviewedId(id);
+      setNotice({ id, approved: status === 'Resolved', name: response.data.studentId?.['FULL NAME'] || response.data.studentId?.['SHORT NAME'] || 'Student', attendanceUpdated: Boolean(response.data.attendanceId && ['Present', 'Leave', 'CEP'].includes(response.data.actualStatus)) });
     } catch (err) {
       console.error("Error updating complaint:", err);
-      alert("Failed to update complaint.");
+      setDecisionError(err.response?.data?.error || 'Could not save your decision. Please try again.');
     } finally {
       setSubmitting(false);
+      setDecision(null);
     }
   };
 
   // Base list of complaints visible to the current user
   const teacherComplaints = useMemo(() => {
     if (!teacher) return [];
-    const currentTeacherId = (teacher._id || teacher.id || '').toString();
+
 
     return complaints.filter(c => {
-      const assignedTeacherId = (c.teacherId?._id || c.teacherId || '').toString();
-      const isAssignedToMe = Boolean(currentTeacherId && assignedTeacherId && currentTeacherId === assignedTeacherId);
+
+      const isAssignedToMe = complaintMatchesClass(c, teacher);
 
       if (isSuperAdmin) {
         if (adminViewFilter === 'Mine') {
@@ -116,8 +143,8 @@ const ComplaintsPage = () => {
         return true;
       }
 
-      // Normal faculty: strictly only complaints assigned to me
-      return isAssignedToMe;
+      // The API has already restricted this list to the authenticated class.
+      return true;
     });
   }, [complaints, teacher, isSuperAdmin, adminViewFilter]);
 
@@ -126,7 +153,6 @@ const ComplaintsPage = () => {
       All: teacherComplaints.length,
       Pending: teacherComplaints.filter(c => c.status === 'Pending').length,
       Resolved: teacherComplaints.filter(c => c.status === 'Resolved').length,
-      Rejected: teacherComplaints.filter(c => c.status === 'Rejected').length,
     };
   }, [teacherComplaints]);
 
@@ -152,11 +178,21 @@ const ComplaintsPage = () => {
       return d.toLocaleDateString('en-GB', {
         day: 'numeric',
         month: 'short',
-        year: 'numeric'
+        year: 'numeric',
+        timeZone: 'Asia/Kolkata'
       });
     } catch (e) {
       return '—';
     }
+  };
+
+  const attendanceSession = (complaint) => {
+    const attendance = complaint.attendanceId;
+    if (!attendance) return '';
+    const session = attendance.attendanceTime || attendance.attentenceTime || '';
+    if (session === 'Period' && attendance.period) return `Period ${attendance.period}`;
+    const detail = attendance.custom || attendance.more;
+    return detail ? `${session} - ${detail}` : session;
   };
 
   const isMedicalComplaint = (complaint) => {
@@ -179,22 +215,23 @@ const ComplaintsPage = () => {
     <div className="min-h-screen bg-[#f8fafc]">
       <Header />
       
-      <main className="container mx-auto px-4 pt-24 pb-12 sm:px-6 lg:px-8">
+      <main className="container mx-auto px-4 pt-20 pb-12 sm:px-6 lg:px-8">
+        {loadError && <p role="alert" className="mb-4 rounded-xl bg-rose-50 p-4 text-sm text-rose-700">{loadError}</p>}
         {/* Page Header */}
-        <div className="mb-6 md:mb-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div className="mb-4 md:mb-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
             <h1 className="text-3xl md:text-4xl font-black text-slate-800 tracking-tighter uppercase italic flex items-center gap-3">
               <MessageSquare size={32} className="text-rose-500 shrink-0" />
-              Disputes
+              Comaplaints
             </h1>
             <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.2em] mt-2 flex items-center gap-2">
               <Clock size={14} className="text-sky-500" /> 
-              {isSuperAdmin ? 'Review student complaints & disputes' : 'Review student complaints assigned to you'}
+              {isSuperAdmin ? 'Review student complaints & disputes' : 'Review all complaints from your class'}
             </p>
           </div>
           
           <div className="flex bg-white p-1 rounded-2xl shadow-sm border border-slate-100 overflow-x-auto no-scrollbar">
-            {['All', 'Pending', 'Resolved', 'Rejected'].map(tab => (
+            {['All', 'Pending', 'Resolved'].map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -216,7 +253,7 @@ const ComplaintsPage = () => {
         </div>
 
         {/* Search & Filters */}
-        <div className="mb-8 flex gap-3 items-center w-full max-w-3xl">
+        <div className="mb-4 flex gap-3 items-center w-full max-w-3xl">
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-4 md:left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input
@@ -248,7 +285,7 @@ const ComplaintsPage = () => {
                     : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
                 }`}
               >
-                To Me
+                My Class
               </button>
             </div>
           )}
@@ -271,12 +308,12 @@ const ComplaintsPage = () => {
                 return (
                   <div 
                     key={complaint._id}
-                    className={`bg-white rounded-[1.5rem] md:rounded-[2rem] shadow-sm border p-4 md:p-6 transition-all cursor-pointer group hover:border-rose-200 hover:shadow-md ${
+                    className={`${reviewedId === complaint._id ? styles.reviewed : ''} bg-white rounded-[1.5rem] md:rounded-[2rem] shadow-sm border p-4 md:p-6 transition-all cursor-pointer group hover:border-rose-200 hover:shadow-md ${
                       selectedComplaint?._id === complaint._id 
                       ? 'border-rose-400 ring-2 md:ring-4 ring-rose-50 shadow-xl' 
                       : 'border-slate-50'
                     }`}
-                    onClick={() => setSelectedComplaint(complaint)}
+                    onClick={() => { setSelectedComplaint(complaint); setDecisionError(''); }}
                   >
                     <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4 md:mb-6">
                       <div className="flex items-center gap-3 md:gap-4">
@@ -311,18 +348,11 @@ const ComplaintsPage = () => {
                         <div className="flex items-center gap-1.5 bg-slate-50 px-2 md:px-3 py-1.5 rounded-lg border border-slate-100 text-slate-400">
                           <Calendar size={12} />
                           {formatDate(complaint.attendanceId?.attendanceDate)}
-                        </div>
-                        <div className="flex items-center gap-1.5 bg-slate-50 px-2 md:px-3 py-1.5 rounded-lg border border-slate-100 text-slate-400">
                           <Clock3 size={12} />
-                          {complaint.attendanceId?.attendanceTime}
-                          {complaint.attendanceId?.period && (
-                            <span className="ml-1 bg-sky-100 text-sky-600 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter">
-                              P{complaint.attendanceId.period}
-                            </span>
-                          )}
+                          {attendanceSession(complaint)}
                         </div>
                         <div className="flex items-center gap-1.5 text-rose-500 bg-rose-50 px-2 md:px-3 py-1.5 rounded-lg border border-rose-100">
-                          Was: {complaint.attendanceId?.status}
+                          Was: {complaint.actualStatus === 'Leave' ? 'Absent, not on leave' : complaint.attendanceId?.status}
                         </div>
                         <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-2 md:px-3 py-1.5 rounded-lg border border-emerald-100">
                           Claimed: {complaint.actualStatus}
@@ -339,6 +369,7 @@ const ComplaintsPage = () => {
                         <div className="flex items-center gap-1.5 text-purple-600 bg-purple-50 px-2 md:px-3 py-1.5 rounded-lg border border-purple-100">
                           Type: Leave Recovery / Issue
                         </div>
+                        {complaint.actualStatus === 'Leave' && <div className="flex items-center gap-1.5 text-rose-500 bg-rose-50 px-2 md:px-3 py-1.5 rounded-lg border border-rose-100">Was: Absent, not on leave</div>}
                         <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-2 md:px-3 py-1.5 rounded-lg border border-emerald-100">
                           Claimed: {complaint.actualStatus}
                         </div>
@@ -382,7 +413,7 @@ const ComplaintsPage = () => {
                 </div>
                 <h3 className="text-lg md:text-xl font-black text-slate-800 uppercase italic mb-2">No complaints found</h3>
                 <p className="text-slate-400 font-bold uppercase text-[9px] md:text-[10px] tracking-widest">
-                  {isSuperAdmin ? 'Adjust your filters or search' : 'No disputes currently assigned to you'}
+                  {isSuperAdmin ? 'Adjust your filters or search' : 'No complaints from your class match these filters'}
                 </p>
               </div>
             )}
@@ -391,9 +422,8 @@ const ComplaintsPage = () => {
 
       {/* Resolution Popup Modal */}
       {selectedComplaint && (() => {
-        const currentTeacherId = (teacher?._id || teacher?.id || '').toString();
-        const assignedTeacherId = (selectedComplaint.teacherId?._id || selectedComplaint.teacherId || '').toString();
-        const isAssignedToMe = Boolean(currentTeacherId && assignedTeacherId && currentTeacherId === assignedTeacherId);
+
+        const isAssignedToMe = !isSuperAdmin || complaintMatchesClass(selectedComplaint, teacher);
         const isMedical = isMedicalComplaint(selectedComplaint);
         const cleanMsg = getCleanMessage(selectedComplaint.message);
 
@@ -428,7 +458,12 @@ const ComplaintsPage = () => {
                     </p>
                   </div>
                   
+                  {selectedComplaint.attendanceId && <div className="flex items-center gap-2 pt-2 border-t border-slate-200/60 text-xs text-slate-500 flex-wrap">
+                    <Calendar size={13} /><span>{formatDate(selectedComplaint.attendanceId.attendanceDate)}</span>
+                    <Clock3 size={13} /><span>{attendanceSession(selectedComplaint)}</span>
+                  </div>}
                   <div className="flex items-center gap-2 pt-2 border-t border-slate-200/60 flex-wrap">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Was: {selectedComplaint.actualStatus === 'Leave' ? 'Absent, not on leave' : selectedComplaint.attendanceId?.status || 'Absent'}</span>
                     <span className="text-[10px] font-bold text-slate-400 uppercase">Claims:</span>
                     <span className="text-[10px] font-black text-rose-500 uppercase">{selectedComplaint.actualStatus}</span>
                     {isMedical && (
@@ -446,17 +481,7 @@ const ComplaintsPage = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">My Response (Optional)</label>
-                  <textarea
-                    placeholder="Explain your decision..."
-                    value={remark}
-                    onChange={(e) => setRemark(e.target.value)}
-                    disabled={selectedComplaint.status !== 'Pending' || submitting || (!isAssignedToMe && !isSuperAdmin)}
-                    className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-rose-400 outline-none transition-all h-32 resize-none disabled:opacity-50"
-                  />
-                </div>
-
+                {decisionError && <p role="alert" className={styles.error}>{decisionError}</p>}
                 {selectedComplaint.status === 'Pending' ? (
                   (isAssignedToMe || isSuperAdmin) ? (
                     <div className="grid grid-cols-2 gap-4">
@@ -465,25 +490,26 @@ const ComplaintsPage = () => {
                         disabled={submitting}
                         className="py-4 bg-slate-100 text-slate-600 rounded-2xl text-[10px] md:text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-rose-50 transition-all disabled:opacity-50"
                       >
-                        <XCircle size={16} /> Reject
+                        {submitting && decision === 'Rejected' ? <Loader2 size={16} className={styles.spinner} /> : <XCircle size={16} />}
+                        {submitting && decision === 'Rejected' ? 'Rejecting...' : 'Reject'}
                       </button>
                       <button
                         onClick={() => handleResolve(selectedComplaint._id, 'Resolved')}
                         disabled={submitting}
                         className="py-4 bg-rose-500 text-white rounded-2xl text-[10px] md:text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-rose-600 shadow-lg shadow-rose-200 transition-all disabled:opacity-50"
                       >
-                        {submitting ? (
-                          <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                        {submitting && decision === 'Resolved' ? (
+                          <Loader2 size={16} className={styles.spinner} />
                         ) : (
                           <CheckCircle size={16} />
                         )} 
-                        Approve
+                        {submitting && decision === 'Resolved' ? 'Approving...' : 'Approve'}
                       </button>
                     </div>
                   ) : (
                     <div className="p-4 rounded-2xl text-center border-2 border-dashed bg-slate-50 border-slate-200 text-slate-500">
                       <p className="text-[10px] font-black uppercase tracking-widest">Teacher View</p>
-                      <p className="text-xs font-bold mt-1">Only the assigned teacher or Super Admin can resolve this.</p>
+                      <p className="text-xs font-bold mt-1">Only the class teacher or Super Admin can resolve this.</p>
                     </div>
                   )
                 ) : (
@@ -500,6 +526,14 @@ const ComplaintsPage = () => {
         );
       })()}
       </main>
+      {notice && <div className={styles.toast}>
+        <span className={styles.successIcon}>{notice.approved ? <CheckCircle2 size={25} /> : <CheckCircle size={25} />}</span>
+        <div className={styles.toastContent}>
+          <div role="status" aria-live="polite"><strong>{notice.approved ? 'Complaint approved' : 'Complaint rejected'}</strong><p>{notice.name}</p><span>{notice.approved ? notice.attendanceUpdated ? 'Attendance corrected. Moved to Resolved.' : 'Moved to Resolved.' : 'Your decision has been saved.'}</span></div>
+          {notice.approved && <button type="button" className={styles.viewResolved} onClick={() => { setActiveTab('Resolved'); setSearchQuery(''); setReviewedId(notice.id); setNotice(null); window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); }}>View resolved <ChevronRight size={14} /></button>}
+        </div>
+        <button className={styles.dismiss} type="button" aria-label="Dismiss confirmation" onClick={() => setNotice(null)}><X size={17} /></button>
+      </div>}
     </div>
   );
 };

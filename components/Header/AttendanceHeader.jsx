@@ -33,7 +33,7 @@ export default function AttendanceHeader({ teacher, hasRole, isTestUser, onLogou
   const canApply = ['class_teacher', 'super_admin', 'HOD', 'HOS', 'Principal', 'vice_principal', 'medical_teacher'].some(hasRole);
   const canReview = isTestUser || hasRole('zehnuth_admin') || (teacher?.email || teacher?.EMAIL) === 'krehmankoolivayal13889@gmail.com';
   const groups = [
-    { name: 'Attendance', icon: ClipboardCheck, links: [['/', 'Take Attendance'], ['/class-wise', 'Attendance Status'], ['/complaints', 'Complaints']] },
+    { name: 'Attendance', icon: ClipboardCheck, links: [['/', 'Take Attendance'], ...(hasRole('class_teacher') || hasRole('super_admin') ? [['/complaints', 'Complaints']] : []), ['/class-wise', 'Attendance Status']] },
     { name: 'Leave', icon: CalendarDays, links: [
       ...(canApply ? [['/leave-form', 'Apply Leave']] : []), ['/leave-dashboard', 'Leave Dashboard'],
       ...(hasRole('class_teacher') ? [['/my-class-leave', 'My Class']] : []),

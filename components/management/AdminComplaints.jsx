@@ -29,6 +29,8 @@ import {
   Users
 } from 'lucide-react';
 
+const complaintAuth = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+
 const AdminComplaints = () => {
   const [viewMode, setViewMode] = useState('disputes'); // 'disputes' | 'common'
   const [complaints, setComplaints] = useState([]);
@@ -55,7 +57,7 @@ const AdminComplaints = () => {
     setLoading(true);
     try {
       const url = `${API_PORT}/complaints${allSessions ? '?all=true' : ''}`;
-      const res = await axios.get(url);
+      const res = await axios.get(url, complaintAuth());
       setComplaints(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Failed to load complaints:", err);
@@ -96,7 +98,7 @@ const AdminComplaints = () => {
         adminRemark: adminRemark.trim()
       };
 
-      const res = await axios.patch(`${API_PORT}/complaints`, payload);
+      const res = await axios.patch(`${API_PORT}/complaints`, payload, complaintAuth());
       const updated = res.data;
 
       // Update state in place
@@ -118,7 +120,7 @@ const AdminComplaints = () => {
     if (!window.confirm("Are you sure you want to permanently delete this complaint log?")) return;
 
     try {
-      await axios.delete(`${API_PORT}/complaints?id=${id}`);
+      await axios.delete(`${API_PORT}/complaints?id=${id}`, complaintAuth());
       setComplaints(prev => prev.filter(c => c._id !== id));
     } catch (err) {
       console.error("Failed to delete complaint:", err);
