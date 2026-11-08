@@ -519,6 +519,7 @@ export default function LeavePage() {
                                             <Clock size={14} className="text-amber-500 animate-pulse" />
                                             <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Medical Doc Waiting for Approval</span>
                                         </div>
+                                        <button type="button" onClick={() => { setSelectedLeave(item); setIsDocumentOpen(true); }} className="min-h-[44px] px-4 py-3 bg-white border border-purple-200 rounded-2xl text-sm font-medium text-purple-700 hover:bg-purple-50 transition-colors">Edit document</button>
                                         {item.documentUrl && (
                                             <a
                                                 href={item.documentUrl}
@@ -539,6 +540,7 @@ export default function LeavePage() {
                                                 {item.reason?.toLowerCase().includes('external edu') ? 'External Edu' : item.reason?.toLowerCase().includes('official') ? 'Official' : 'Program'} Doc Waiting for Approval
                                             </span>
                                         </div>
+                                        <button type="button" onClick={() => { setSelectedLeave(item); setIsProgramDocumentOpen(true); }} className="min-h-[44px] px-4 py-3 bg-white border border-purple-200 rounded-2xl text-sm font-medium text-purple-700 hover:bg-purple-50 transition-colors">Edit document</button>
                                         {item.programDocumentUrl && (
                                             <a
                                                 href={item.programDocumentUrl}
@@ -654,6 +656,10 @@ const DocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
     const [uploading, setUploading] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
 
+    useEffect(() => {
+        if (isOpen) { setFileUrl(leave?.documentUrl || ''); setIsDragging(false); }
+    }, [isOpen, leave?._id, leave?.documentUrl]);
+
     if (!isOpen || !leave) return null;
 
     const handleDragOver = (e) => {
@@ -723,7 +729,7 @@ const DocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
             <div className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
                 <div className="p-6 bg-blue-600 text-white flex items-center justify-between">
                     <div>
-                        <h2 className="text-xl font-black uppercase italic">Document Leave</h2>
+                        <h2 className="text-xl font-black uppercase italic">{leave.isMedicalSubmitted || leave.documentUrl ? 'Edit medical document' : 'Document Leave'}</h2>
                         <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest">Attach medical documents (Optional)</p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-xl transition-all"><X size={20} /></button>
@@ -791,7 +797,7 @@ const DocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
                                         <LayoutGrid size={18} /> View
                                     </a>
                                     <button onClick={() => setFileUrl('')} className="p-4 bg-white rounded-2xl text-rose-600 hover:scale-110 transition-all shadow-2xl flex items-center gap-2 font-black text-[10px] uppercase tracking-widest">
-                                        <X size={18} /> Remove
+                                        <X size={18} /> Replace document
                                     </button>
                                 </div>
                             </div>
@@ -840,6 +846,10 @@ const ProgramDocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
         if (r.includes('official')) return 'Official';
         return 'Program';
     }, [leave?.reason]);
+
+    useEffect(() => {
+        if (isOpen) { setFileUrl(leave?.programDocumentUrl || ''); setIsDragging(false); }
+    }, [isOpen, leave?._id, leave?.programDocumentUrl]);
 
     if (!isOpen || !leave) return null;
 
@@ -978,7 +988,7 @@ const ProgramDocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
                                         <LayoutGrid size={18} /> View
                                     </a>
                                     <button onClick={() => setFileUrl('')} className="p-4 bg-white rounded-2xl text-rose-600 hover:scale-110 transition-all shadow-2xl flex items-center gap-2 font-black text-[10px] uppercase tracking-widest">
-                                        <X size={18} /> Remove
+                                        <X size={18} /> Replace document
                                     </button>
                                 </div>
                             </div>
