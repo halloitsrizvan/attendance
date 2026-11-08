@@ -4,13 +4,19 @@ import CollegeTheme from '@/components/common/CollegeTheme';
 import NavigationProvider from '@/components/navigation/NavigationProvider';
 import AuthGuard from '@/components/auth/AuthGuard';
 import TestUserBanner from '@/components/common/TestUserBanner';
+import PwaProvider from '@/components/pwa/PwaProvider';
+
+export const viewport = { width: 'device-width', initialScale: 1, themeColor: '#ceb8ff', viewportFit: 'cover' };
 
 export const metadata = {
+  applicationName: 'Darul Irfan',
+  manifest: '/manifest.json',
+  appleWebApp: { capable: true, title: 'Darul Irfan', statusBarStyle: 'default' },
   title: 'Attendance App',
   description: 'Full-stack web application designed for managing attendance',
   icons: {
     icon: '/cirlced-logo.png', // Circular favicon
-    apple: '/cirlced-logo.png', // Apple touch icon
+    apple: '/icons/apple-touch-icon.png', // Apple touch icon
   },
   openGraph: {
     title: 'Attendance App',
@@ -48,6 +54,7 @@ export default function RootLayout({ children }) {
             <CollegeTheme>{children}</CollegeTheme>
           </AuthGuard></NavigationProvider>
           <TestUserBanner />
+          <PwaProvider />
         </div>
       </body>
     </html>
