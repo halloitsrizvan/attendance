@@ -7,6 +7,7 @@ import { FaArrowLeft } from "react-icons/fa";
 import axios from 'axios';
 import { API_PORT } from '@/Constants';
 import AttendanceHeader from './AttendanceHeader';
+import { hasAssignedTeacherRole } from '@/lib/teacherPermissions.mjs';
 import { usesCollegeTheme } from '@/lib/uiTheme.mjs';
 
 const getSafeLocalStorage = () => typeof window !== 'undefined' ? localStorage : { getItem: () => null, setItem: () => { }, removeItem: () => { } };
@@ -153,16 +154,10 @@ function Header({ appearance } = {}) {
                       <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/leave-form') }}>Apply Leave</a>
                     )}
                     <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/leave-dashboard') }}>Leave Dashboard</a>
-                    {hasRole("class_teacher") && (
-                      <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/my-class-leave') }}>My Class</a>
-                    )}
-                    {(hasRole("HOD") || hasRole("HOS") || (hasRole("class_teacher") && teacher?.classNum <= 4)) && (
-                      <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/leave-applications') }}>Leave Applications</a>
-                    )}
-                    {(hasRole("class_teacher") || teacher?.classNum) && (
+                    {hasAssignedTeacherRole(teacher, "class_teacher") && (
                       <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/leave-recovery') }}>Recovery</a>
                     )}
-                    {hasRole("CEPApproval") && (
+                    {hasAssignedTeacherRole(teacher, "CEPApproval") && (
                       <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/cep-applications') }}>CEP Applications</a>
                     )}
                   </div>
@@ -373,16 +368,10 @@ function Header({ appearance } = {}) {
                     <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/leave-form'); setIsMenuOpen(false) }}>Apply Leave</a>
                   )}
                   <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/leave-dashboard'); setIsMenuOpen(false) }}>Leave Dashboard</a>
-                  {hasRole("class_teacher") && (
-                    <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/my-class-leave'); setIsMenuOpen(false) }}>My Class</a>
-                  )}
-                  {(hasRole("HOD") || hasRole("HOS") || (hasRole("class_teacher") && teacher?.classNum <= 4)) && (
-                    <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/leave-applications'); setIsMenuOpen(false) }}>Leave Applications</a>
-                  )}
-                  {(hasRole("class_teacher") || teacher?.classNum) && (
+                  {hasAssignedTeacherRole(teacher, "class_teacher") && (
                     <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/leave-recovery'); setIsMenuOpen(false) }}>Recovery</a>
                   )}
-                  {hasRole("CEPApproval") && (
+                  {hasAssignedTeacherRole(teacher, "CEPApproval") && (
                     <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/cep-applications'); setIsMenuOpen(false) }}>CEP Applications</a>
                   )}
                 </div>

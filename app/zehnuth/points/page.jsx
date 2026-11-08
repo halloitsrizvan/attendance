@@ -120,9 +120,9 @@ export default function MentorPoints() {
     if (loading) return (
         <div className="min-h-screen bg-white">
             <Header />
-            <main className="max-w-xl mx-auto px-4 pt-20 pb-12">
+            <main className="max-w-xl mx-auto px-4 pt-20 pb-8">
                 <div className="animate-pulse">
-                    <div className="mb-8 px-2 flex justify-between items-center">
+                    <div className="mb-5 flex justify-between items-center">
                         <div className="space-y-2">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 bg-slate-100 rounded-xl"></div>
@@ -133,14 +133,14 @@ export default function MentorPoints() {
                         <div className="h-10 bg-slate-50 rounded-xl w-24"></div>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-3 mb-10 px-2">
+                    <div className="grid grid-cols-2 gap-3 mb-5">
                         <div className="h-20 bg-slate-50/50 rounded-2xl border border-slate-100"></div>
                         <div className="h-20 bg-slate-50/50 rounded-2xl border border-slate-100"></div>
                     </div>
 
                     <div className="space-y-4">
                         {[1, 2, 3].map(i => (
-                            <div key={i} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                            <div key={i} className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 bg-slate-100 rounded-xl"></div>
@@ -167,9 +167,9 @@ export default function MentorPoints() {
     return (
         <div className="min-h-screen bg-white">
             <Header />
-            <main className="max-w-xl mx-auto px-4 pt-20 pb-12">
+            <main className="max-w-xl mx-auto px-4 pt-20 pb-8">
                 {/* Header */}
-                <div className="mb-8 px-2 flex items-center justify-between">
+                <div className="mb-5 flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
                             <span className="p-2 bg-indigo-600 text-white rounded-xl"><History size={20} /></span>
@@ -195,7 +195,7 @@ export default function MentorPoints() {
                 </div>
 
                 {/* Compact Stats */}
-                <div className="grid grid-cols-2 gap-3 mb-10 px-2">
+                <div className="grid grid-cols-2 gap-3 mb-5">
                     <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100">
                         <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-1">Total Points</p>
                         <p className="text-2xl font-black text-blue-700">{stats.totalPoints}</p>
@@ -206,7 +206,7 @@ export default function MentorPoints() {
                     </div>
                 </div>
 
-                <div className="px-2 mb-10">
+                <div className="mb-5 sm:mb-6">
                     <button 
                         onClick={() => router.push('/zehnuth/mentees-summary')}
                         className="w-full bg-slate-900 text-white p-4 rounded-2xl flex items-center justify-between group hover:bg-slate-800 transition-all active:scale-[0.98]"
@@ -233,8 +233,8 @@ export default function MentorPoints() {
                         const pointVal = Number(p.points) || 0;
 
                         return (
-                            <div key={p._id} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all group">
-                                <div className="flex items-center justify-between mb-4">
+                            <div key={p._id} className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all group">
+                                <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 font-bold group-hover:bg-indigo-600 group-hover:text-white transition-all">
                                             {initials}
@@ -274,7 +274,7 @@ export default function MentorPoints() {
                                     </div>
                                 </div>
                                 
-                                <div className="bg-slate-50/50 rounded-2xl p-4 mb-4">
+                                <div className="bg-slate-50/50 rounded-2xl p-3 sm:p-4 mb-3">
                                     <p className="text-sm font-bold text-slate-600 leading-relaxed">{p.activity}</p>
                                 </div>
 
@@ -293,7 +293,7 @@ export default function MentorPoints() {
                     })}
 
                     {filteredPoints.length === 0 && (
-                        <div className="py-20 text-center">
+                        <div className="py-12 text-center">
                             <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-200">
                                 <History size={32} />
                             </div>

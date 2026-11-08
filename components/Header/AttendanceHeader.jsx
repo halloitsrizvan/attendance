@@ -5,6 +5,7 @@ import Link from '@/components/navigation/NavigationLink';
 import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
 import { Menu, X, ArrowLeft, ChevronDown, ClipboardCheck, CalendarDays, Trophy, Settings, LogOut } from 'lucide-react';
 import styles from './AttendanceHeader.module.css';
+import { hasAssignedTeacherRole } from '@/lib/teacherPermissions.mjs';
 
 export default function AttendanceHeader({ teacher, hasRole, isTestUser, onLogout }) {
   const [open, setOpen] = useState(false);
@@ -36,10 +37,8 @@ export default function AttendanceHeader({ teacher, hasRole, isTestUser, onLogou
     { name: 'Attendance', icon: ClipboardCheck, links: [['/', 'Take Attendance'], ...(hasRole('class_teacher') || hasRole('super_admin') ? [['/complaints', 'Complaints']] : []), ['/class-wise', 'Attendance Status']] },
     { name: 'Leave', icon: CalendarDays, links: [
       ...(canApply ? [['/leave-form', 'Apply Leave']] : []), ['/leave-dashboard', 'Leave Dashboard'],
-      ...(hasRole('class_teacher') ? [['/my-class-leave', 'My Class']] : []),
-      ...(hasRole('HOD') || hasRole('HOS') || (hasRole('class_teacher') && teacher?.classNum <= 4) ? [['/leave-applications', 'Leave Applications']] : []),
-      ...(hasRole('class_teacher') || teacher?.classNum ? [['/leave-recovery', 'Recovery']] : []),
-      ...(hasRole('CEPApproval') ? [['/cep-applications', 'CEP Applications']] : []),
+      ...(hasAssignedTeacherRole(teacher, 'class_teacher') ? [['/leave-recovery', 'Recovery']] : []),
+      ...(hasAssignedTeacherRole(teacher, 'CEPApproval') ? [['/cep-applications', 'CEP Applications']] : []),
     ] },
     { name: 'Zehnuth', icon: Trophy, links: [['/zehnuth/submit-point', 'Submit Point'],
       ...(canReview ? [['/zehnuth/requests', 'Pending Requests'], ['/zehnuth/mentor-approvals', 'Mentor Approvals'], ['/zehnuth/admin-achievements', 'Manage Achievements']] : []),

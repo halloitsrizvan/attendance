@@ -5,6 +5,7 @@ import Header from '@/components/Header/Header';
 import axios from 'axios';
 import { Trophy, User, Loader2, ChevronLeft, Star, TrendingUp } from 'lucide-react';
 import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
+import { buildMenteeStandings } from '@/lib/menteeStandings.mjs';
 
 const LEAGUES = [
     { name: 'Diamond', min: 750, color: 'text-sky-400', bg: 'bg-sky-50' },
@@ -18,37 +19,36 @@ export default function MenteesSummary() {
     const router = useRouter();
     const [mentees, setMentees] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [unavailableCount, setUnavailableCount] = useState(0);
 
     useEffect(() => {
-        const storedTeacher = localStorage.getItem('teacher');
-        if (storedTeacher) {
+        try {
+          const storedTeacher = localStorage.getItem('teacher');
+          if (!storedTeacher) throw new Error('Please sign in again to view your mentees.');
             const teacherData = JSON.parse(storedTeacher);
             const mentorId = teacherData.id || teacherData._id;
-            if (mentorId) fetchMenteesData(mentorId);
+            if (!mentorId) throw new Error('Your teacher account could not be identified. Please sign in again.');
+            fetchMenteesData(mentorId);
+        } catch (err) {
+            setError(err.message);
+            setLoading(false);
         }
     }, []);
 
     const fetchMenteesData = async (mentorId) => {
         try {
-            // Get mentor-mentee relations
-            const relRes = await axios.get(`/api/zehnuth/mentor-mentee?mentorId=${mentorId}`);
-            const menteeIds = relRes.data.map(rel => rel.menteeId._id);
-
-            // Get points for all students (global leaderboard)
-            const pointsRes = await axios.get('/api/zehnuth/points?leaderboard=true');
-            const globalLeaderboard = pointsRes.data;
-            
-            // Filter only mentees but preserve their global rank
-            const menteesWithGlobalRank = globalLeaderboard
-                .map((item, index) => ({
-                    ...item,
-                    globalRank: index + 1
-                }))
-                .filter(item => menteeIds.includes(item.student._id));
-
-            setMentees(menteesWithGlobalRank);
+            setError('');
+            const [relRes, pointsRes] = await Promise.all([
+                axios.get(`/api/zehnuth/mentor-mentee?mentorId=${mentorId}`),
+                axios.get('/api/zehnuth/points?leaderboard=true'),
+            ]);
+            if (!Array.isArray(relRes.data) || !Array.isArray(pointsRes.data)) throw new Error('Could not load mentee standings. Please try again.');
+            setUnavailableCount(relRes.data.filter(relation => !relation?.menteeId?._id).length);
+            setMentees(buildMenteeStandings(relRes.data, pointsRes.data));
         } catch (err) {
             console.error("Error fetching mentees data:", err);
+            setError(err.response?.data?.error || 'Could not load mentee standings. Please refresh and try again.');
         } finally {
             setLoading(false);
         }
@@ -93,6 +93,8 @@ export default function MenteesSummary() {
                 </div>
 
                 {/* Mentee List */}
+                {error && <p role="alert" className="mb-4 rounded-xl bg-rose-50 p-4 text-sm text-rose-700">{error}</p>}
+                {!error && unavailableCount > 0 && <p className="mb-4 rounded-xl bg-amber-50 p-3 text-xs text-amber-800">{unavailableCount} assignment{unavailableCount === 1 ? '' : 's'} linked to an unavailable student record. Please ask an admin to review it.</p>}
                 <div className="space-y-4">
                     {mentees.map((item, index) => {
                         const league = getLeague(item.totalPoints);
@@ -125,14 +127,14 @@ export default function MenteesSummary() {
                                     </div>
                                     <div className="flex items-center gap-1.5 text-slate-400 font-bold text-xs">
                                         <TrendingUp size={14} />
-                                        Rank #{item.globalRank}
+                                        {item.globalRank ? `Rank #${item.globalRank}` : 'Not ranked yet'}
                                     </div>
                                 </div>
                             </div>
                         );
                     })}
 
-                    {mentees.length === 0 && (
+                    {!error && mentees.length === 0 && (
                         <div className="py-20 text-center">
                             <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-6 text-slate-200">
                                 <User size={40} />

@@ -330,12 +330,12 @@ export default function SubmitPoint() {
     const PageSkeleton = () => (
         <div className="min-h-screen bg-white">
             <Header />
-            <main className="max-w-xl mx-auto px-4 pt-20 pb-12">
-                <div className="mb-8 px-2 space-y-3">
+            <main className="max-w-xl mx-auto px-4 pt-20 pb-8">
+                <div className="mb-5 px-1 space-y-3">
                     <div className="h-8 w-64 bg-slate-100 rounded-lg animate-pulse"></div>
                     <div className="h-4 w-48 bg-slate-50 rounded animate-pulse"></div>
                 </div>
-                <div className="space-y-8">
+                <div className="space-y-5 sm:space-y-6">
                     <div className="space-y-3">
                         <div className="h-3 w-32 bg-slate-100 rounded animate-pulse"></div>
                         <div className="h-14 w-full bg-slate-50 rounded-2xl animate-pulse"></div>
@@ -347,7 +347,7 @@ export default function SubmitPoint() {
                         </div>
                     </div>
                     <div className="bg-slate-50/50 rounded-3xl p-5 border border-slate-100 min-h-[300px]">
-                        <div className="grid grid-cols-3 gap-3 mb-6">
+                        <div className="grid grid-cols-3 gap-3 mb-4">
                             {[1, 2, 3].map(i => <div key={i} className="h-16 w-full bg-slate-100 rounded-2xl animate-pulse"></div>)}
                         </div>
                         <div className="space-y-4">
@@ -364,7 +364,7 @@ export default function SubmitPoint() {
     return (
         <div className="min-h-screen bg-white">
             <Header />
-            <main className="max-w-xl mx-auto px-4 pt-20 pb-12">
+            <main className="max-w-xl mx-auto px-4 pt-20 pb-8">
                 <SuccessModal
                     isOpen={showSuccess}
                     onClose={() => setShowSuccess(false)}
@@ -372,7 +372,7 @@ export default function SubmitPoint() {
                     teacherMail={teacherMail}
                     isAdmin={isAdmin}
                 />
-                <div className="mb-8 px-2">
+                <div className="mb-5 px-1">
                     <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
                         <span className="p-2 bg-blue-600 text-white rounded-xl"><Trophy size={20} /></span>
                         {isAdmin ? 'Award' : 'Request'} <span className="bg-gradient-to-r from-amber-400 via-amber-600 to-amber-500 bg-clip-text text-transparent">Zehnuth</span>
@@ -382,7 +382,7 @@ export default function SubmitPoint() {
                     </p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-8">
+                <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
                     {/* Student Selection */}
                     <div className="space-y-3 relative">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Search Student</label>
@@ -466,7 +466,7 @@ export default function SubmitPoint() {
                     <div className="bg-slate-50/50 rounded-3xl p-5 border border-slate-100 min-h-[300px]">
                         {selectedCategory === 'Exam' && (
                             <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                                <div className="grid grid-cols-3 gap-3 mb-6">
+                                <div className="grid grid-cols-3 gap-3 mb-4">
                                     <Card label="1st Rank" />
                                     <Card label="2nd Rank" />
                                     <Card label="3rd Rank" />
@@ -483,7 +483,7 @@ export default function SubmitPoint() {
                         )}
 
                         {selectedCategory === 'Writings' && (
-                            <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-6">
+                            <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-4 sm:space-y-5">
                                 <div>
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Full-length works</p>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -517,7 +517,7 @@ export default function SubmitPoint() {
                         )}
 
                         {selectedCategory === 'Presentation' && (
-                            <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-8">
+                            <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-5 sm:space-y-6">
                                 <div>
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Out of campus</p>
                                     <table className="w-full text-[13px]">
@@ -546,7 +546,7 @@ export default function SubmitPoint() {
 
                         {selectedCategory === 'Achievements' && (
                             <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                                <div className="grid grid-cols-2 gap-3 mb-6">
+                                <div className="grid grid-cols-2 gap-3 mb-4">
                                     <Card label="Courses" />
                                     <Card label="Innovations" />
                                     <Card label="Awards" />
@@ -556,7 +556,7 @@ export default function SubmitPoint() {
                         )}
 
                         {selectedCategory === 'Competitions' && (
-                            <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-8">
+                            <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-5 sm:space-y-6">
                                 <div>
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Out of campus</p>
                                     <table className="w-full text-[13px]">
@@ -629,7 +629,7 @@ export default function SubmitPoint() {
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 flex items-center gap-2">
                                 <Star size={12} className="text-amber-500" /> Award Points (Admin Only)
                             </label>
-                            <div className="flex items-center justify-center gap-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                            <div className="flex items-center justify-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                                 <button
                                     type="button"
                                     onClick={() => setPoints(prev => Math.max(0, prev - 1))}
@@ -686,7 +686,7 @@ export default function SubmitPoint() {
                                         onDragOver={handleDragOver}
                                         onDragLeave={handleDragLeave}
                                         onDrop={handleDrop}
-                                        className={`border-2 border-dashed rounded-3xl p-6 flex flex-col items-center justify-center transition-all duration-300 cursor-pointer
+                                        className={`border-2 border-dashed rounded-3xl p-4 sm:p-5 flex flex-col items-center justify-center transition-all duration-300 cursor-pointer
                                             ${isDragging
                                                 ? 'border-indigo-500 bg-indigo-50/70 scale-[1.02] shadow-inner'
                                                 : 'border-slate-200 bg-slate-50/50 hover:bg-indigo-50 hover:border-indigo-300'}`}
