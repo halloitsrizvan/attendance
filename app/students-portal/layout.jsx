@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import Sidebar from '@/components/StudentPortal/Sidebar';
 import Topbar from '@/components/StudentPortal/Topbar';
-import Link from '@/components/navigation/NavigationLink';
+import SlidingDock from '@/components/navigation/SlidingDock';
 import { usePathname } from 'next/navigation';
 import { Home, CalendarCheck, CalendarDays, Star } from 'lucide-react';
 import { usesCollegeTheme } from '@/lib/uiTheme.mjs';
@@ -11,6 +11,12 @@ export default function StudentPortalLayout({ children }) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const pathname = usePathname() || '/students-portal';
     const themed = usesCollegeTheme(pathname);
+    const dockItems = [
+        { href: '/students-portal', icon: Home, label: 'Dashboard' },
+        { href: '/students-portal/attendance', icon: CalendarCheck, label: 'Attendance' },
+        { href: '/students-portal/leave', icon: CalendarDays, label: 'Leave' },
+        { href: '/students-portal/zehnuth', icon: Star, label: 'Zehnuth' },
+    ];
 
     return (
         <div className="flex min-h-screen bg-slate-50 relative">
@@ -30,14 +36,7 @@ export default function StudentPortalLayout({ children }) {
                     {children}
                 </main>
             </div>
-            {themed && <nav className="college-dock student-dock" aria-label="Student quick navigation">
-                {[
-                    ['/students-portal', Home, 'Dashboard'],
-                    ['/students-portal/attendance', CalendarCheck, 'Attendance'],
-                    ['/students-portal/leave', CalendarDays, 'Leave'],
-                    ['/students-portal/zehnuth', Star, 'Zehnuth'],
-                ].map(([href, Icon, label]) => <Link key={href} href={href} prefetch={false} aria-current={(href === '/students-portal' ? pathname === href : pathname.startsWith(href)) ? 'page' : undefined}><Icon size={18} strokeWidth={1.7} /><span>{label}</span></Link>)}
-            </nav>}
+            {themed && <SlidingDock mobileOnly label="Student quick navigation" items={dockItems} activeIndex={dockItems.findIndex(item => item.href === '/students-portal' ? pathname === item.href : pathname.startsWith(item.href))} />}
         </div>
     );
 }

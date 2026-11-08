@@ -1,6 +1,6 @@
 "use client";
 
-import Link from '@/components/navigation/NavigationLink';
+import SlidingDock from '@/components/navigation/SlidingDock';
 import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
 import { ArrowUpRight, CalendarDays, Home, LayoutGrid, Plus, Trophy, Check, Pencil } from 'lucide-react';
 import App from './App';
@@ -63,8 +63,6 @@ export default function AttendanceHome({ classes, date, setDate, time, setTime, 
         }) : <p className={styles.empty}>No classes available. Refresh to try again.</p>}
       </section>}
     </main>
-    {!editMode && <nav className={styles.bottomNav} aria-label="Quick navigation">
-      {[[ '/', Home, 'Attendance'], ['/leave-dashboard', LayoutGrid, 'Leave dash'], ['/leave-form', Plus, 'Apply leave'], ['/zehnuth/submit-point', Trophy, 'Achievements']].map(([href, Icon, label]) => <Link key={href} href={href} prefetch={false} className={href === '/' ? styles.activeNav : ''} aria-current={href === '/' ? 'page' : undefined}><Icon size={18} strokeWidth={1.7} /><span>{label}</span></Link>)}
-    </nav>}
+    {!editMode && <SlidingDock activeIndex={0} items={[[ '/', Home, 'Attendance'], ['/leave-dashboard', LayoutGrid, 'Leave dash'], ['/leave-form', Plus, 'Apply leave'], ['/zehnuth/submit-point', Trophy, 'Achievements']].map(([href, icon, label]) => ({ href, icon, label }))} />}
   </div>;
 }

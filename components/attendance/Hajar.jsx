@@ -881,7 +881,7 @@ function Hajar() {
 
   return (
     <div className="p-4 sm:p-8 mt-12 max-w-7xl mx-auto">
-      <div className="mb-8 space-y-4">
+      <div className="mb-2 space-y-4">
         {/* Progress & Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-2 bg-white p-6 rounded-3xl shadow-sm border border-sky-100">
           <div className="space-y-1">
