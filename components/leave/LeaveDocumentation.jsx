@@ -142,7 +142,7 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
     const fetchStandardLeaves = async () => {
         setLoading(true);
         try {
-            const res = await axios.get(`${API_PORT}/leave`);
+            const res = await axios.get(`${API_PORT}/leave`, { cache: false });
             setAllLeaves(res.data || []);
         } catch (err) {
             console.error("Error fetching leaves:", err);
@@ -273,7 +273,7 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
                 params.academicYearId = academicYearId;
             }
 
-            const res = await axios.get(`${API_PORT}/leave`, { params });
+            const res = await axios.get(`${API_PORT}/leave`, { params, cache: false });
             const data = (Array.isArray(res.data) ? res.data : []).filter(leave => Boolean(leave.returnedAt));
             setCommonLeaves(data);
             setCommonHasFetched(true);

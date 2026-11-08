@@ -6,6 +6,7 @@ import { useNavigationRouter as useRouter } from '@/components/navigation/Naviga
 import axios from 'axios';
 import { API_PORT } from '@/Constants';
 import AttendanceHeader from './AttendanceHeader';
+import { clearApiCache } from '@/utils/apiCache';
 import { usesCollegeTheme } from '@/lib/uiTheme.mjs';
 
 const getSafeLocalStorage = () => typeof window !== 'undefined' ? localStorage : { getItem: () => null, setItem: () => { }, removeItem: () => { } };
@@ -50,6 +51,7 @@ function Header({ appearance } = {}) {
   if (!mounted) return null;
 
   const handleLogout = () => {
+    clearApiCache();
     getSafeLocalStorage().removeItem('token')
     getSafeLocalStorage().removeItem('teacher')
     navigate.push('/login')

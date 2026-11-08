@@ -34,49 +34,16 @@ function AllClass({ edit, id, mobileHome = false }) {
     (teacher?.email || teacher?.EMAIL || '').trim().toLowerCase() === 'test@gmail.com';
 
   useEffect(() => {
-    const classesCache = sessionStorage.getItem('classes_cache');
-    if (classesCache) {
-      setClass(JSON.parse(classesCache));
-      setLoad(false);
-    } else {
-      setLoad(true);
-    }
-
-    axios.get(`${API_PORT}/classes`)
-      .then((res) => {
-        const filter = res.data.sort((a, b) => a.class - b.class);
-        const freshData = JSON.stringify(filter);
-        if (classesCache !== freshData) {
-          setClass(filter);
-          sessionStorage.setItem('classes_cache', freshData);
-        }
-        setLoad(false);
-      })
-      .catch((err) => {
-        console.error(err);
-        setLoad(false);
-      });
-
-    if (edit) return;
-
-    const studentsCache = sessionStorage.getItem('students_cache');
-    if (studentsCache) {
-      setStudents(JSON.parse(studentsCache));
-    }
-
-    axios.get(`${API_PORT}/students`)
-      .then((res) => {
-        const freshData = JSON.stringify(res.data);
-        if (studentsCache !== freshData) {
-          setStudents(res.data);
-          sessionStorage.setItem('students_cache', freshData);
-        }
-      })
-      .catch((err) => {
-        console.log(err);
-      });
+    let active = true;
+    setLoad(true);
+    axios.get(API_PORT + '/classes').then(res => {
+      if (active) setClass([...res.data].sort((a, b) => a.class - b.class));
+    }).catch(console.error).finally(() => { if (active) setLoad(false); });
+    if (!edit) axios.get(API_PORT + '/students').then(res => {
+      if (active) setStudents(res.data);
+    }).catch(console.error);
+    return () => { active = false; };
   }, [edit]);
-
 
   const today = attendanceDateKey(new Date());
   const [date, setDate] = useState(today);
@@ -99,29 +66,13 @@ function AllClass({ edit, id, mobileHome = false }) {
     if (time === "Period" && period) queryParams.period = period;
     if ((time === "Jamath" || time === "More") && more) queryParams.custom = more;
 
-    const cacheKey = `attendance_${JSON.stringify(queryParams)}`;
-    const cachedData = sessionStorage.getItem(cacheKey);
-
-    if (cachedData) {
-      setPreAttendance(JSON.parse(cachedData));
-      setPreAttendanceLoad(false);
-    } else {
-      setPreAttendanceLoad(true);
-    }
-
-    axios.get(`${API_PORT}/set-attendance`, { params: queryParams })
-      .then((res) => {
-        const freshData = JSON.stringify(res.data);
-        if (cachedData !== freshData) {
-          setPreAttendance(res.data);
-          sessionStorage.setItem(cacheKey, freshData);
-        }
-        setPreAttendanceLoad(false);
-      })
-      .catch((err) => {
-        console.error(err);
-        setPreAttendanceLoad(false);
-      });
+    let active = true;
+    setPreAttendanceLoad(true);
+    axios.get(API_PORT + '/set-attendance', { params: queryParams })
+      .then(res => { if (active) setPreAttendance(res.data); })
+      .catch(console.error)
+      .finally(() => { if (active) setPreAttendanceLoad(false); });
+    return () => { active = false; };
   }, [edit, date, time, period, more]);
 
   useEffect(() => {

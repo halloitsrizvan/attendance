@@ -57,7 +57,7 @@ const AdminComplaints = () => {
     setLoading(true);
     try {
       const url = `${API_PORT}/complaints${allSessions ? '?all=true' : ''}`;
-      const res = await axios.get(url, complaintAuth());
+      const res = await axios.get(url, { ...complaintAuth(), cache: false });
       setComplaints(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Failed to load complaints:", err);

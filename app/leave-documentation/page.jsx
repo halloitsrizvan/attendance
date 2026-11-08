@@ -32,7 +32,7 @@ export default function ClassLeaveDocumentation() {
     useEffect(() => { setSelected(new Set()); }, [tab, search, fromDate, toDate, selectedStudents]);
     async function load() {
         setLoading(true); setError('');
-        try { const { data } = await axios.get('/api/class-leave-docs', auth()); setLeaves(data.leaves); setClassNumber(data.classNumber); setStudents(data.students || []); setSelectedStudents(new Set((data.students || []).map(student => student._id))); }
+        try { const { data } = await axios.get('/api/class-leave-docs', { ...auth(), cache: false }); setLeaves(data.leaves); setClassNumber(data.classNumber); setStudents(data.students || []); setSelectedStudents(new Set((data.students || []).map(student => student._id))); }
         catch (error) { setError(error.response?.data?.error || 'Unable to load documentation. Please try again.'); }
         finally { setLoading(false); }
     }
