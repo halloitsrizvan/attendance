@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import VerifyingAccess from './VerifyingAccess';
 import { teacherSessionIsCurrent, teacherSignInPath, teacherReturnPath } from '@/lib/teacherSession.mjs';
+import { canApplyLeave } from '@/lib/teacherPermissions.mjs';
 
 const EMPTY_ROLES = [];
 
@@ -85,8 +86,7 @@ export default function AuthGuard({ children, roles = EMPTY_ROLES }) {
 
             // 4. Role-based access for leave-form
             const isLeaveForm = pathname === '/leave-form' || pathname.startsWith('/leave-form/');
-            const allowedLeaveRoles = ["class_teacher", "super_admin", "HOD", "HOS", "Principal", "vice_principal", "medical_teacher"];
-            if (token && isLeaveForm && !teacherRoles.some(r => allowedLeaveRoles.includes(r))) {
+            if (token && isLeaveForm && !canApplyLeave(teacher)) {
                 router.replace('/');
                 return;
             }

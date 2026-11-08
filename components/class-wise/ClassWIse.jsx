@@ -19,12 +19,12 @@ function ClassWIse({ initialClasses = null, initialAbseties = null, initialAllSt
 
 
     useEffect(() => {
-        // We always fetch to ensure real-time accuracy, 
+        // We always fetch to ensure real-time accuracy,
         // even if initial server data is provided.
         setLoad(true)
         setClassesLoad(true)
         setAbsenteesLoad(true)
-        
+
         const fetchStudents = axios.get(`${API_PORT}/students`);
         const fetchClasses = axios.get(`${API_PORT}/classes`);
         const fetchAttendance = axios.get(`${API_PORT}/set-attendance`);
@@ -41,7 +41,7 @@ function ClassWIse({ initialClasses = null, initialAbseties = null, initialAllSt
 
           const latestByStudent = {};
           const todayStr = new Date().toISOString().split('T')[0];
-          
+
           // 1. Process manual attendance
           attRes.data.forEach((s) => {
             const studentId = typeof s.studentId === 'object' ? s.studentId?._id : s.studentId;
@@ -60,14 +60,14 @@ function ClassWIse({ initialClasses = null, initialAbseties = null, initialAllSt
               };
             }
           });
-          
+
           // 2. Process Leave data
           leaveRes.data.forEach((l) => {
             // Check if student is currently on leave (active or not yet returned)
             // and the leave has started
             const isCurrentlyOnLeave = l.status !== 'returned' && l.status !== 'Returned' && l.fromDate <= todayStr;
             const studentId = typeof l.studentId === 'object' ? l.studentId?._id : l.studentId;
-            
+
             if (isCurrentlyOnLeave && studentId) {
               const existing = latestByStudent[studentId];
               const leaveDate = new Date(l.updatedAt || l.createdAt);
@@ -87,11 +87,11 @@ function ClassWIse({ initialClasses = null, initialAbseties = null, initialAllSt
               }
             }
           });
-          
+
           const latestAbsentStudents = Object.values(latestByStudent)
             .filter(s => s.status === "Absent" || s.displayStatus === "active" || s.displayStatus === "Scheduled" || s.displayStatus === "late")
             .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-            
+
           setAbseties(latestAbsentStudents);
           setAbsenteesLoad(false);
         })
@@ -117,7 +117,7 @@ function ClassWIse({ initialClasses = null, initialAbseties = null, initialAllSt
                 <h2 className="text-3xl font-black text-slate-800 tracking-tight">Status Overview</h2>
                 <div className="flex items-center justify-center gap-2 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">
                     <div className="w-8 h-px bg-slate-200"></div>
-                    Real-time Attendance 
+                    Real-time Attendance
                     <div className="w-8 h-px bg-slate-200"></div>
                 </div>
             </div>
@@ -138,6 +138,63 @@ function ClassWIse({ initialClasses = null, initialAbseties = null, initialAllSt
             </div>
         </div>
 
+
+            {/* Individual Classes Section */}
+            <div className="mb-12">
+                <div className="mb-6 px-2">
+                    <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Class-wise Analysis</h3>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                    {classes.map((cls, index) => (
+                        <div
+                            key={index}
+                            className="bg-white rounded-3xl shadow-sm border border-slate-100 p-5 group hover:border-sky-400 hover:shadow-xl hover:shadow-sky-500/5 transition-all"
+                        >
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="w-10 h-10 bg-slate-900 text-white flex items-center justify-center rounded-xl text-lg font-black italic">
+                                    {cls.class}
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Percent</p>
+                                    <p className={`text-sm font-black ${cls.percentage >= 75 ? "text-emerald-500" : "text-amber-500"}`}>
+                                        {cls.percentage}%
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                                    <span>Strength</span>
+                                    <span className="text-slate-900">{cls.totalStudents}</span>
+                                </div>
+                                <div className="w-full h-1.5 bg-slate-50 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                                        style={{ width: `${(cls.presentStudents / cls.totalStudents) * 100}%` }}
+                                    ></div>
+                                </div>
+                                <div className="flex justify-between items-center pt-1">
+                                    <div className="flex flex-col">
+                                        <span className="text-[8px] font-black text-slate-300 uppercase">Present</span>
+                                        <span className="text-xs font-black text-emerald-500">{cls.presentStudents}</span>
+                                    </div>
+                                    <div className="flex flex-col items-end">
+                                        <span className="text-[8px] font-black text-slate-300 uppercase">Absent</span>
+                                        <span className="text-xs font-black text-rose-500">{cls.absentStudents}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-4 pt-4 border-t border-slate-50 text-center">
+                                <p className="text-[8px] font-black text-slate-300 uppercase tracking-[0.2em]">
+                                    {cls.updatedAt ? new Date(cls.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "N/A"}
+                                </p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
 
             {/* Absentees Section */}
             <div className="mb-12">
@@ -209,62 +266,6 @@ function ClassWIse({ initialClasses = null, initialAbseties = null, initialAllSt
                 )}
             </div>
 
-            {/* Individual Classes Section */}
-            <div>
-                <div className="mb-6 px-2">
-                    <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Class-wise Analysis</h3>
-                </div>
-                
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                    {classes.map((cls, index) => (
-                        <div
-                            key={index}
-                            className="bg-white rounded-3xl shadow-sm border border-slate-100 p-5 group hover:border-sky-400 hover:shadow-xl hover:shadow-sky-500/5 transition-all"
-                        >
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="w-10 h-10 bg-slate-900 text-white flex items-center justify-center rounded-xl text-lg font-black italic">
-                                    {cls.class}
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Percent</p>
-                                    <p className={`text-sm font-black ${cls.percentage >= 75 ? "text-emerald-500" : "text-amber-500"}`}>
-                                        {cls.percentage}%
-                                    </p>
-                                </div>
-                            </div>
-                            
-                            <div className="space-y-2">
-                                <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                                    <span>Strength</span>
-                                    <span className="text-slate-900">{cls.totalStudents}</span>
-                                </div>
-                                <div className="w-full h-1.5 bg-slate-50 rounded-full overflow-hidden">
-                                    <div 
-                                        className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                                        style={{ width: `${(cls.presentStudents / cls.totalStudents) * 100}%` }}
-                                    ></div>
-                                </div>
-                                <div className="flex justify-between items-center pt-1">
-                                    <div className="flex flex-col">
-                                        <span className="text-[8px] font-black text-slate-300 uppercase">Present</span>
-                                        <span className="text-xs font-black text-emerald-500">{cls.presentStudents}</span>
-                                    </div>
-                                    <div className="flex flex-col items-end">
-                                        <span className="text-[8px] font-black text-slate-300 uppercase">Absent</span>
-                                        <span className="text-xs font-black text-rose-500">{cls.absentStudents}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="mt-4 pt-4 border-t border-slate-50 text-center">
-                                <p className="text-[8px] font-black text-slate-300 uppercase tracking-[0.2em]">
-                                    {cls.updatedAt ? new Date(cls.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "N/A"}
-                                </p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
         </div>
     )
 }

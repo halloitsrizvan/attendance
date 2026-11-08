@@ -2006,7 +2006,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
   // }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-800 p-4 sm:p-8 mt-16">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-800 px-4 py-3 sm:p-6 mt-16">
 
       {/* Loading Overlay */}
       {loading && (
@@ -2019,8 +2019,9 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
       )}
 
       {/* Top Navigation Bar */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between gap-3 mb-4">
         <button
+          type="button"
           className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-white border border-slate-200 text-slate-600 text-sm font-bold shadow-sm hover:bg-slate-50 hover:border-sky-200 transition-all"
           onClick={() => navigate.push('/leave-dashboard')}
         >
@@ -2047,7 +2048,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
       </div>
 
       {leaveType === "leave" ? (
-        <div className="max-w-xl mx-auto space-y-8 pb-16">
+        <div className="max-w-xl mx-auto space-y-4 sm:space-y-5 pb-16">
           {/* History Modal */}
           {showHistoryModal && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -2147,7 +2148,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
 
           {/* Regular Leave Form */}
           {!showBulkModal && (
-            <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50 space-y-6">
+            <div className="bg-white p-4 sm:p-5 rounded-[2rem] shadow-sm border border-sky-50 space-y-4 sm:space-y-5">
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2 relative">
                   <label htmlFor="ad" className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 px-1">
@@ -2177,7 +2178,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
                       }
                       setSuggestions(filtered.slice(0, 5));
                     }}
-                    className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all"
+                    className="leave-student-search w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all"
                     placeholder="AD No or Name..."
                   />
 
@@ -2284,7 +2285,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
             </div>
           )}
           {showBulkModal && (
-            <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50 space-y-6">
+            <div className="bg-white p-4 sm:p-5 rounded-[2rem] shadow-sm border border-sky-50 space-y-4 sm:space-y-5">
               <div className="flex justify-between items-center px-1">
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Class</span>
@@ -2381,7 +2382,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
             </div>
           )}
           {/* Reason */}
-          <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50">
+          <div className="bg-white p-4 sm:p-5 rounded-[2rem] shadow-sm border border-sky-50">
             <ReasonPicker
               selectedReason={reason}
               setSelectedReason={setReason}
@@ -2399,7 +2400,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
 
           {/* templates */}
           {formMode !== 'extend' && formMode !== 'add' && (
-            <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50">
+            <div className="bg-white p-4 sm:p-5 rounded-[2rem] shadow-sm border border-sky-50">
               <TemplatePicker
                 selectedTemplate={selectedTemplate}
                 setSelectedTemplate={setSelectedTemplate}
@@ -2409,12 +2410,12 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
             </div>
           )}
 
-          <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50 space-y-6">
+          <div className="bg-white p-4 sm:p-5 rounded-[2rem] shadow-sm border border-sky-50 space-y-4 sm:space-y-5">
             <div className="flex items-center gap-2 px-1">
               <CalendarClock size={16} className="text-sky-500" />
               <h2 className="text-[10px] font-black text-slate-600 uppercase tracking-widest">From Date & Time</h2>
             </div>
-            <div className="space-y-6"> {/* Stacked for clarity on mobile */}
+            <div className="space-y-4 sm:space-y-5"> {/* Stacked for clarity on mobile */}
               <DatePicker
                 label="Date"
                 selectedDate={fromDate}
@@ -2438,12 +2439,12 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
           </div>
 
           {(reason !== 'Medical' && reason !== 'Medical (Home)' && reason !== 'Room') || showEndDateForMedical ? (
-            <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50 space-y-6">
+            <div className="bg-white p-4 sm:p-5 rounded-[2rem] shadow-sm border border-sky-50 space-y-4 sm:space-y-5">
               <div className="flex items-center gap-2 px-1">
                 <CalendarClock size={16} className="text-amber-500" />
                 <h2 className="text-[10px] font-black text-slate-600 uppercase tracking-widest">To Date & Time</h2>
               </div>
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-5">
                 <DatePicker
                   label="Date"
                   selectedDate={toDate}
@@ -2465,7 +2466,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
             </div>
           ) : (
             (reason === 'Medical' || reason === 'Medical (Home)' || reason === 'Room') && (
-              <div className="bg-white p-8 rounded-[2rem] shadow-sm border-2 border-dashed border-slate-100 text-center space-y-4">
+              <div className="bg-white p-5 rounded-[2rem] shadow-sm border-2 border-dashed border-slate-100 text-center space-y-4">
                 <div className="w-12 h-12 bg-sky-50 rounded-full flex items-center justify-center mx-auto">
                   <span className="text-sky-500 font-black italic text-xl">m</span>
                 </div>
@@ -2524,11 +2525,11 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
       ) : (
         <div className="max-w-xl mx-auto space-y-4 pb-16">
           {/* Short Leave Pass Section */}
-          <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50 space-y-6">
+          <div className="bg-white p-4 sm:p-5 rounded-[2rem] shadow-sm border border-sky-50 space-y-4 sm:space-y-5">
             <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">Class Excused Pass</h3>
 
             {/* Added Students Chips */}
-            <div className="space-y-3">
+            {shortLeaveStudents.some(student => student.student) && <div className="space-y-3">
               {shortLeaveStudents.filter(s => s.student).map((studentData, index) => (
                 <div key={studentData.ad} className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl group animate-in zoom-in-95 duration-200">
                   <div className="flex flex-col">
@@ -2546,7 +2547,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
                   </button>
                 </div>
               ))}
-            </div>
+            </div>}
 
             {/* Search Input for adding new students */}
             <div className="space-y-4">
@@ -2624,7 +2625,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50 space-y-6">
+          <div className="bg-white p-4 sm:p-5 rounded-[2rem] shadow-sm border border-sky-50 space-y-4 sm:space-y-5">
             <div className="flex items-center justify-between px-1">
               <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Select Time</h3>
               <div className="flex bg-slate-100 p-1 rounded-xl">
@@ -2679,7 +2680,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
                 </div>
               </div>
             ) : (
-              <div className="bg-emerald-50/50 p-6 rounded-2xl border-2 border-dashed border-emerald-100 text-center space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="bg-emerald-50/50 p-4 sm:p-5 rounded-2xl border-2 border-dashed border-emerald-100 text-center space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
                 <div className="flex items-center justify-center gap-3 text-emerald-600">
                   <Clock size={20} strokeWidth={2.5} />
                   <span className="text-sm font-black uppercase tracking-widest">7:00 pm - 8:30 pm</span>
@@ -2689,7 +2690,7 @@ function LeaveForm({ initialStudents = null, initialLeaves = null, initialAcadem
             )}
           </div>
 
-          <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-sky-50">
+          <div className="bg-white p-4 sm:p-5 rounded-[2rem] shadow-sm border border-sky-50">
             <ReasonPicker
               selectedReason={shortLeaveReason}
               setSelectedReason={setShortLeaveReason}

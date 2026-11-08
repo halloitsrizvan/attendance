@@ -23,6 +23,12 @@
   border-radius: 12px;
 }
 .college-theme :where(input, select, textarea):focus { --tw-ring-color: #cbb3f1; border-color: #a385d0; }
+.college-theme .leave-student-search:focus,
+.college-theme .leave-student-search:focus-visible {
+  outline: none;
+  box-shadow: none;
+  border-color: #a385d0 !important;
+}
 .college-theme :is(.bg-slate-50, .bg-gray-50, .bg-slate-100, .bg-gray-100) { background-color: var(--surface) !important; }
 .college-theme :is(.border-slate-100, .border-slate-200, .border-gray-100, .border-gray-200, .border-sky-100, .border-blue-100) { border-color: var(--border) !important; }
 .college-theme :is(.text-slate-900, .text-slate-800, .text-gray-900, .text-gray-800) { color: var(--text-primary) !important; }

@@ -1002,7 +1002,7 @@ function LeaveStatus({ myClassOnly = false }) {
               <Calendar size={20} />
             </div> */}
             <div className="flex items-center gap-2 ml-2">
-              <h1 className="text-lg sm:text-xl font-black text-slate-800 tracking-tight">Leave Status</h1>
+              <h1 className="!text-base sm:!text-lg font-black text-slate-800 tracking-tight">Leave Status</h1>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden sm:block">Dashboard</p>
             </div>
           </div>
