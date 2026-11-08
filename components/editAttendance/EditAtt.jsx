@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
 import axios from 'axios';
-import { ArrowLeft, Check, Copy, LayoutGrid, List, Loader2, X } from 'lucide-react';
+import { Home, Check, Copy, Loader2, X } from 'lucide-react';
+import StudentsLoad from '@/components/load-UI/StudentsLoad';
 import { API_PORT } from '@/Constants';
 import { attendanceDateKey, editableAttendanceStatus, selectAttendanceSession } from '@/lib/attendanceSession.mjs';
 import styles from './EditAtt.module.css';
@@ -25,10 +26,10 @@ export default function EditAtt() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [cards, setCards] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [quickAction, setQuickAction] = useState('All Absent');
 
   useEffect(() => {
     const controller = new AbortController();
@@ -65,6 +66,10 @@ export default function EditAtt() {
     setStatuses(Object.fromEntries(records.map(record => [record._id, action === 'Reset' ? editableAttendanceStatus(record) : action])));
     setSaved(false);
   };
+  const handleQuickAction = () => {
+    setAll(quickAction === 'Previous' ? 'Reset' : quickAction === 'All Present' ? 'Present' : 'Absent');
+    setQuickAction(quickAction === 'Previous' ? 'All Present' : quickAction === 'All Present' ? 'All Absent' : 'Previous');
+  };
   const copyAbsentees = async () => {
     try {
       await navigator.clipboard.writeText(`Class ${id} - Absentees\n${sessionDate} | ${sessionLabel}\n\n${absent.length ? absent.map(record => `${studentName(record)} (AD: ${admissionNumber(record)})`).join('\n') : 'All students are present.'}`);
@@ -95,30 +100,47 @@ export default function EditAtt() {
     } finally { setSaving(false); }
   };
 
-  return <main className={styles.page}>
-    <section className={styles.heading}>
-      <button type="button" className={styles.back} aria-label="Back to attendance classes" onClick={() => router.push('/')}><ArrowLeft size={19} /></button>
-      <div><span className={styles.classTag}>Class {id}</span><h1>Edit attendance</h1><p>{sessionDate || 'Latest session'}{sessionLabel && ` | ${sessionLabel}`}</p></div>
-      <button type="button" className={styles.view} aria-label={cards ? 'Switch to list view' : 'Switch to cards view'} onClick={() => setCards(!cards)}>{cards ? <List size={20} /> : <LayoutGrid size={20} />}</button>
-    </section>
+  return <main className="p-4 sm:p-8 mt-12 max-w-7xl mx-auto">
+    <div className="mb-2 space-y-4">
+      <section className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-2 bg-white p-6 rounded-3xl shadow-sm border border-sky-100">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="px-3 py-1 bg-sky-100 text-sky-700 text-[10px] font-black rounded-full uppercase tracking-wider">Class {id}</span>
+            <span className="text-slate-900 font-black text-sm uppercase tracking-tight">{sessionLabel || 'Latest session'}</span>
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Editing</span>
+          </div>
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest pl-1">{sessionDate ? new Date(`${sessionDate}T12:00:00+05:30`).toLocaleDateString('en-US', { dateStyle: 'long', timeZone: 'Asia/Kolkata' }) : 'Loading session...'}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={() => router.push('/')} className="p-3 bg-slate-50 text-slate-400 rounded-2xl hover:bg-slate-100 hover:text-slate-600 transition-colors" aria-label="Back to attendance classes"><Home size={18} /></button>
+          <button type="button" disabled={loading || saving || !records.length} onClick={handleQuickAction} className={`flex-1 md:flex-none px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 disabled:opacity-50 ${quickAction === 'All Present' ? 'bg-emerald-500 text-white shadow-emerald-500/10' : quickAction === 'All Absent' ? 'bg-rose-500 text-white shadow-rose-500/10' : 'bg-sky-500 text-white shadow-sky-500/10'}`}>Mark {quickAction}</button>
+        </div>
+      </section>
+    </div>
     {error && <p role="alert" className={styles.error}>{error}</p>}
     {saved && <div role="status" className={styles.success}><Check size={18} />Attendance changes saved.</div>}
-    {loading ? <div className={styles.loading} role="status"><Loader2 size={24} />Loading attendance...</div> : !records.length ? <section className={styles.empty}><h2>No attendance found</h2><p>No records were found for this class and session.</p><button onClick={() => router.push('/')}>Back to classes</button></section> : <>
-      <div className={styles.totals}><span><strong>{records.length}</strong> students</span><span><strong>{present}</strong> present</span><span><strong>{absent.length}</strong> absent</span></div>
-      <div className={styles.actions} aria-label="Set attendance for all students">{['Present', 'Absent', 'Reset'].map(action => <button key={action} type="button" disabled={saving} onClick={() => setAll(action)}>{action === 'Reset' ? 'Reset changes' : `All ${action.toLowerCase()}`}</button>)}</div>
-      <p className={styles.hint}>Tap a status to change it. Leave, late and medical entries are shown as Absent.</p>
-      <div className={cards ? styles.cards : styles.list} aria-label="Student attendance">
-        {records.map((record, index) => {
-          const isPresent = statuses[record._id] === 'Present';
-          return <div key={record._id} className={`${styles.student} ${isPresent ? styles.present : styles.absent}`}>
-            <span className={styles.number}>{record.studentId?.SL || record.SL || index + 1}</span>
-            <div className={styles.studentInfo}><strong>{studentName(record)}</strong><span>AD {admissionNumber(record)}</span></div>
-            <button type="button" disabled={saving} className={styles.status} aria-label={`${studentName(record)}: ${isPresent ? 'Present' : 'Absent'}. Tap to change.`} aria-pressed={isPresent} onClick={() => toggle(record)}>{isPresent ? 'Present' : 'Absent'}</button>
-          </div>;
-        })}
+    {loading ? <StudentsLoad /> : !records.length ? <section className={styles.empty}><h2>No attendance found</h2><p>No records were found for this class and session.</p><button onClick={() => router.push('/')}>Back to classes</button></section> : <form onSubmit={event => { event.preventDefault(); setConfirm(true); setCopied(false); }}>
+      <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+        <div className="overflow-x-auto"><table className="w-full border-collapse" aria-label="Student attendance">
+          <thead><tr className="bg-slate-50 border-b border-slate-100">
+            <th className="hidden sm:table-cell px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest w-16">Sl</th>
+            <th className="hidden sm:table-cell px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest w-24">Ad</th>
+            <th className="px-4 sm:px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest">Student Info</th>
+            <th className="px-4 sm:px-6 py-4 text-center text-xs font-bold text-slate-400 uppercase tracking-widest w-28 sm:w-40">Status</th>
+          </tr></thead>
+          <tbody className="divide-y divide-slate-50">{records.map((record, index) => {
+            const isPresent = statuses[record._id] === 'Present';
+            return <tr key={record._id} onClick={() => { if (!saving) toggle(record); }} className="group transition-colors hover:bg-sky-50/50 cursor-pointer">
+              <td className="hidden sm:table-cell px-6 py-4 text-sm font-medium text-slate-400">{index + 1}</td>
+              <td className="hidden sm:table-cell px-6 py-4 text-sm font-mono text-slate-500">{admissionNumber(record)}</td>
+              <td className="px-4 sm:px-6 py-4"><div className="flex flex-col"><span className="font-bold transition-colors leading-tight text-slate-900 group-hover:text-sky-700">{studentName(record)}</span><span className="text-[10px] sm:hidden font-mono text-slate-400 mt-0.5">AD: {admissionNumber(record)} &bull; SL: {index + 1}</span></div></td>
+              <td className="px-4 sm:px-6 py-4 text-center"><button type="button" disabled={saving} aria-pressed={isPresent} aria-label={`${studentName(record)}: ${isPresent ? 'Present' : 'Absent'}. Tap to change.`} onClick={event => { event.stopPropagation(); toggle(record); }} className={`min-w-[80px] sm:min-w-[100px] px-3 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-tighter shadow-sm transition-all duration-200 ${isPresent ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-emerald-500/20' : 'bg-rose-500 text-white hover:bg-rose-600 shadow-rose-500/20'}`}>{isPresent ? 'Present' : 'Absent'}</button></td>
+            </tr>;
+          })}</tbody>
+        </table></div>
+        <div className="bg-slate-50 p-8 border-t border-slate-100 flex justify-center"><button type="submit" disabled={saving} className="btn-primary flex items-center gap-3 px-10 py-4 rounded-2xl shadow-2xl shadow-sky-500/30 text-base"><Check size={20} />Save Changes</button></div>
       </div>
-      <button type="button" className={styles.save} disabled={saving} onClick={() => { setConfirm(true); setCopied(false); }}><Check size={18} />Review changes</button>
-    </>}
+    </form>}
     {confirm && <div className={styles.overlay}>
       <section role="dialog" aria-modal="true" aria-labelledby="confirm-edit-title" className={styles.modal}>
         <div className={styles.modalTitle}><h2 id="confirm-edit-title">Confirm attendance</h2><button type="button" disabled={saving} aria-label="Close confirmation" onClick={() => setConfirm(false)}><X size={21} /></button></div>

@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useParams, useSearchParams } from 'next/navigation';
 import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
-import { TfiLayoutGrid3, TfiLayoutGrid2 } from "react-icons/tfi";
 import { FaHome } from "react-icons/fa";
 import StudentsLoad from "../load-UI/StudentsLoad";
 import { Import } from "lucide-react";
@@ -18,7 +17,6 @@ function Hajar() {
   const [students, setStudents] = useState([]);
   const [attendance, setAttendance] = useState({});
   const [showSummary, setShowSummary] = useState(false);
-  const [cards, setCards] = useState('No');
   const [summary, setSummary] = useState({});
   const { id } = useParams();
   const searchParams = useSearchParams();
@@ -931,7 +929,7 @@ function Hajar() {
 
       {dataLoad && <StudentsLoad />}
 
-      {cards === "No" && !dataLoad && (
+      {!dataLoad && (
         <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
           <form onSubmit={(e) => { e.preventDefault(); preSumbit(); }}>
             <div className="overflow-x-auto">
@@ -1077,103 +1075,6 @@ function Hajar() {
                   </svg>
                 )}
                 <span>{load ? "Processing..." : "Submit Attendance"}</span>
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {cards === "Cards" && !dataLoad && (
-        <div className="space-y-8">
-          <form onSubmit={(e) => { e.preventDefault(); preSumbit(); }}>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
-              {students.map((student, index) => {
-                const isOnShortLeave = isStudentOnShortLeave(student.ADNO, student._id);
-                const isOnActiveLeave = isStudentOnActiveLeave(student.ADNO, student._id);
-                const isReturned = returnedStudents.includes(student.ADNO);
-                const isOnLeave = (isOnShortLeave || isOnActiveLeave);
-                const displayOnLeave = isOnLeave && !isReturned;
-                const isPresent = attendance[student.ADNO] === "Present" && !displayOnLeave;
-
-                let leaveType = "";
-                let isStudentLate = false;
-                if (displayOnLeave) {
-                  const activeLeave = getStudentActiveLeave(student.ADNO, student._id);
-                  isStudentLate = isLeaveLate(activeLeave);
-                  if (isStudentLate) {
-                    leaveType = "Late";
-                  } else if (isOnShortLeave) {
-                    leaveType = "CEP";
-                  } else {
-                    const reason = activeLeave?.reason || "";
-                    const isMed = reason === 'Medical' || reason === 'Medical (Home)' || reason === 'Medical (Room)' || reason === 'Room' || reason === 'Hospital';
-                    leaveType = isMed ? "Medical" : "On Leave";
-                  }
-                }
-
-                return (
-                  <div
-                    key={index}
-                    onClick={() => {
-                      if (!displayOnLeave) {
-                        handleCheckboxChange(student.ADNO, student._id, !isPresent);
-                      }
-                    }}
-                    className={`relative p-5 rounded-3xl border-2 transition-all duration-300 transform active:scale-95 cursor-pointer ${
-                      displayOnLeave 
-                        ? isStudentLate
-                          ? 'bg-rose-50/70 border-rose-200'
-                          : 'bg-amber-50 border-amber-200 grayscale-[0.3]' 
-                        : isPresent 
-                          ? 'bg-emerald-50 border-emerald-200 shadow-lg shadow-emerald-500/5' 
-                          : 'bg-rose-50 border-rose-200 shadow-lg shadow-rose-500/5'
-                    }`}
-                  >
-                    <div className="flex justify-center mb-3">
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg transition-colors shadow-lg ${
-                        displayOnLeave 
-                          ? isStudentLate ? 'bg-rose-500 text-white shadow-rose-500/20' : 'bg-amber-400 text-white' 
-                          : isPresent ? 'bg-emerald-500 text-white shadow-emerald-500/20' : 
-                          'bg-rose-500 text-white shadow-rose-500/20'
-                      }`}>
-                        {index + 1}
-                      </div>
-                    </div>
-
-                    <h3 className={`text-sm font-bold truncate mb-1 ${
-                      displayOnLeave 
-                        ? isStudentLate ? 'text-rose-800' : 'text-amber-800' 
-                        : isPresent ? 'text-emerald-900' : 'text-rose-900'
-                    }`}>
-                      {student["SHORT NAME"] || student["FULL NAME"] || student.name || "Unknown"}
-                    </h3>
-                    <p className={`text-[10px] uppercase font-black tracking-widest opacity-60 mb-4 ${
-                      displayOnLeave 
-                        ? isStudentLate ? 'text-rose-700' : 'text-amber-700' 
-                        : isPresent ? 'text-emerald-700' : 'text-rose-700'
-                    }`}>
-                      Ad: {student.ADNO}
-                    </p>
-
-                    <div className={`py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
-                      displayOnLeave 
-                        ? isStudentLate ? 'bg-rose-200/50 text-rose-700' : 'bg-amber-200/50 text-amber-700' 
-                        : isPresent ? 'bg-emerald-200/50 text-emerald-700' : 
-                        'bg-rose-200/50 text-rose-700'
-                    }`}>
-                      {displayOnLeave ? leaveType : isPresent ? "Present" : "Absent"}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="mt-12 flex justify-center pb-20">
-              <button 
-                type="submit"
-                className="btn-primary px-12 py-4 rounded-2xl shadow-2xl shadow-sky-500/30 text-xl font-bold transition-all"
-              >
-                Complete Recording
               </button>
             </div>
           </form>
