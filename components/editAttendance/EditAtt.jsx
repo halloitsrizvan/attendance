@@ -1,985 +1,134 @@
 "use client";
 
-import React, { useEffect, useState } from 'react'
-import axios from 'axios'
-import { useRouter, useParams } from "next/navigation";
-import { TfiLayoutGrid3,TfiLayoutGrid2  } from "react-icons/tfi";
-import { FaHome, FaArrowLeft } from "react-icons/fa";
-import StudentsLoad from '../load-UI/StudentsLoad';
-import { API_PORT } from '../../Constants';
-import { canTeacherReturnLeave } from '@/utils/leaveReturnUtils';
+import { useEffect, useState } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
+import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
+import axios from 'axios';
+import { ArrowLeft, Check, Copy, LayoutGrid, List, Loader2, X } from 'lucide-react';
+import { API_PORT } from '@/Constants';
+import { attendanceDateKey, editableAttendanceStatus, selectAttendanceSession } from '@/lib/attendanceSession.mjs';
+import styles from './EditAtt.module.css';
 
-function EditAtt() {
-    const [students,setStudents] = useState([])
-    const [err,setErr]= useState('')
-    const {id} = useParams()
-    const [status,setStatus] = useState({})
-    const [summary, setSummary] = useState({});
-    const [showSummary, setShowSummary] = useState(false);
-    const navigate=useRouter()
-    const [summaryLoad,setSummaryLoad] = useState(false)
-    const [load,setLoad] = useState(false)
-    const [cards,setCards] = useState('No') 
-  const [confirmAttendance, setConfirmAttendance] = useState(false)
-  const [absentees, setAbsentees] = useState([])
-  const [copy, setCopy] = useState(false)
-    const latestDate=students[0]?.attendanceDate
-    const latestTime=students[0]?.attentenceTime
-    const [academicYear, setAcademicYear] = useState('');
-    const [shortLeaveData, setShortLeaveData] = useState([]);
-    const [leaveData, setLeaveData] = useState([]);
-    const [returnedStudents, setReturnedStudents] = useState([]);
-    const [showReturnModal, setShowReturnModal] = useState(false);
-    const [selectedReturnStudent, setSelectedReturnStudent] = useState(null);
-    const [teacher, setTeacher] = useState(null);
+const studentName = record => record.studentId?.['SHORT NAME'] || record.studentId?.['FULL NAME'] || record.nameOfStd || record.name || 'Unknown student';
+const admissionNumber = record => record.studentId?.ADNO || record.ad;
 
-    useEffect(() => {
-        const storedTeacher = localStorage.getItem("teacher");
-        if (storedTeacher) {
-          try {
-            setTeacher(JSON.parse(storedTeacher));
-          } catch (e) {
-            console.error("Failed to parse teacher");
-          }
-        }
-    }, []);
+export default function EditAtt() {
+  const { id } = useParams();
+  const router = useRouter();
+  const search = useSearchParams();
+  const date = search.get('date') || '';
+  const time = search.get('time') || '';
+  const period = search.get('period') || '';
+  const custom = search.get('custom') || search.get('more') || '';
+  const [records, setRecords] = useState([]);
+  const [statuses, setStatuses] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [cards, setCards] = useState(false);
+  const [confirm, setConfirm] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-    const convertTimeToMinutes = (timeString) => {
-      if (!timeString) return 0;
-      const [hours, minutes] = timeString.split(':').map(Number);
-      return hours * 60 + minutes;
-    };
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true); setError(''); setRecords([]); setStatuses({}); setSaved(false); setConfirm(false);
+    const params = { classNumber: id };
+    if (date) params.date = date;
+    if (time) params.time = time;
+    if (time === 'Period' && period) params.period = period;
+    if (['Jamath', 'More'].includes(time) && custom) params.custom = custom;
+    axios.get(`${API_PORT}/set-attendance`, { params, signal: controller.signal })
+      .then(response => {
+        if (controller.signal.aborted) return;
+        const session = selectAttendanceSession(response.data, { date, time, period, custom });
+        setRecords(session);
+        setStatuses(Object.fromEntries(session.map(record => [record._id, editableAttendanceStatus(record)])));
+      })
+      .catch(err => { if (!controller.signal.aborted) setError(err.response?.data?.error || 'Could not load attendance. Please refresh and try again.'); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [id, date, time, period, custom]);
 
-    const getCurrentTimeString = () => {
-      const now = new Date();
-      return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    };
-
-    const getStudentActiveShortLeave = (studentAdno, studentInternalId) => {
-      const today = students[0]?.attendanceDate ? new Date(students[0].attendanceDate) : new Date();
-      // For Edit mode, we don't have a specific 'period' in context easily, 
-      // so we use a flexible window around the record's time.
-      const recordTime = students[0]?.attendanceTime || students[0]?.attentenceTime || getCurrentTimeString();
-      const ctxTime = convertTimeToMinutes(recordTime);
-
-      return shortLeaveData.find(leave => {
-        // if (leave.ApproveCEP === false) return false;
-        const leaveAdno = leave.ad || leave.studentId?.ADNO;
-        const leaveStudentId = leave.studentId?._id || leave.studentId;
-        const isMatch = (leaveAdno && Number(leaveAdno) === Number(studentAdno)) || 
-                        (leaveStudentId && studentInternalId && String(leaveStudentId) === String(studentInternalId));
-        if (!isMatch) return false;
-
-        const leaveDate = new Date(leave.date);
-        const isSameDate =
-          leaveDate.getDate() === today.getDate() &&
-          leaveDate.getMonth() === today.getMonth() &&
-          leaveDate.getFullYear() === today.getFullYear();
-
-        if (!isSameDate) return false;
-        if (['returned', 'scheduled'].includes(leave.status?.toLowerCase())) return false;
-
-        const fromTime = convertTimeToMinutes(leave.fromTime);
-        const toTime = convertTimeToMinutes(leave.toTime);
-        
-        // Check if the attendance record time falls within the leave window
-        const withinWindow = ctxTime >= (fromTime - 10) && ctxTime <= (toTime + 10);
-        
-        // If it's past the window but status is active or late, they are still on leave
-        if (!withinWindow && ctxTime > toTime) {
-          return ['active', 'late', 'pending', 'on leave'].includes(leave.status?.toLowerCase());
-        }
-        return withinWindow;
-      });
-    };
-
-    const isClassTeacher = Boolean(
-      teacher &&
-      (teacher.classNum || teacher.class) &&
-      String(teacher.classNum || teacher.class).trim() === String(id).trim()
-    );
-
-    const isStudentOnShortLeave = (studentAdno, studentInternalId) => !!getStudentActiveShortLeave(studentAdno, studentInternalId);
-
-    const getStudentActiveLeave = (studentAdno, studentInternalId) => {
-      const today = students[0]?.attendanceDate ? new Date(students[0].attendanceDate) : new Date();
-      today.setHours(0, 0, 0, 0);
-
-      return leaveData.find(leave => {
-        const leaveAdno = leave.ad || leave.studentId?.ADNO;
-        const leaveStudentId = leave.studentId?._id || leave.studentId;
-        const isMatch = (leaveAdno && Number(leaveAdno) === Number(studentAdno)) || 
-                        (leaveStudentId && studentInternalId && String(leaveStudentId) === String(studentInternalId));
-        if (!isMatch) return false;
-        if (['returned', 'scheduled'].includes(leave.status?.toLowerCase())) return false;
-
-        const fromDate = new Date(leave.fromDate);
-        fromDate.setHours(0, 0, 0, 0);
-        const toDate = leave.toDate ? new Date(leave.toDate) : null;
-        if (toDate) toDate.setHours(0, 0, 0, 0);
-
-        // Date range check
-        if (today.getTime() < fromDate.getTime()) return false;
-        if (toDate && today.getTime() > toDate.getTime()) {
-            return ['active', 'late', 'pending', 'on leave'].includes(leave.status?.toLowerCase());
-        }
-        return true;
-      });
-    };
-
-    const isStudentOnMedicalLeave = (studentAdno, studentInternalId) => !!getStudentActiveLeave(studentAdno, studentInternalId);
-    const isStudentOnActiveLeave = isStudentOnMedicalLeave;
-
-    const isLeaveLate = (leave) => {
-      if (!leave) return false;
-      const dbStatus = (leave.status || '').toLowerCase();
-      if (dbStatus === 'late') return true;
-
-      const targetDate = leave.toDate || leave.date;
-      if (!targetDate || !leave.toTime) return false;
-
-      try {
-        const toDateStr = typeof targetDate === 'string' 
-          ? targetDate.split('T')[0] 
-          : new Date(targetDate).toISOString().split('T')[0];
-
-        let toTimeStr = (leave.toTime || '').trim();
-        if (toTimeStr.toLowerCase().includes('pm') || toTimeStr.toLowerCase().includes('am')) {
-          const isPM = toTimeStr.toLowerCase().includes('pm');
-          const clean = toTimeStr.replace(/am|pm/i, '').trim();
-          const [h, m] = clean.split(':').map(Number);
-          const hours = isPM && h < 12 ? h + 12 : (!isPM && h === 12 ? 0 : h);
-          toTimeStr = `${String(hours).padStart(2, '0')}:${String(m || 0).padStart(2, '0')}`;
-        } else if (toTimeStr.length <= 5) {
-          const [h, m] = toTimeStr.split(':').map(Number);
-          toTimeStr = `${String(h || 0).padStart(2, '0')}:${String(m || 0).padStart(2, '0')}`;
-        }
-
-        const endDateTime = new Date(`${toDateStr}T${toTimeStr}:00`);
-        if (isNaN(endDateTime.getTime())) return false;
-
-        const now = new Date();
-        if (now > endDateTime) return true;
-
-        const today = students[0]?.attendanceDate ? new Date(students[0].attendanceDate) : new Date();
-        const targetDateObj = new Date(toDateStr);
-        targetDateObj.setHours(0, 0, 0, 0);
-        today.setHours(0, 0, 0, 0);
-
-        if (today.getTime() > targetDateObj.getTime()) return true;
-        if (today.getTime() === targetDateObj.getTime()) {
-          const recordTime = students[0]?.attendanceTime || students[0]?.attentenceTime || getCurrentTimeString();
-          const ctxTime = convertTimeToMinutes(recordTime);
-          const leaveToMinutes = convertTimeToMinutes(toTimeStr);
-          if (ctxTime >= leaveToMinutes) return true;
-        }
-
-        return false;
-      } catch (e) {
-        return false;
-      }
-    };
-
-    const openReturnModal = (student) => {
-      setSelectedReturnStudent(student);
-      setShowReturnModal(true);
-    };
-
-    const confirmReturn = () => {
-      if (!selectedReturnStudent) return;
-      const ad = selectedReturnStudent.studentId?.ADNO || selectedReturnStudent.ad;
-      setReturnedStudents(prev => [...prev, ad]);
-      setStatus(prev => ({ ...prev, [ad]: "Present" }));
-      setShowReturnModal(false);
-      setSelectedReturnStudent(null);
-    };
-
-    useEffect(() => {
-        axios.get(`${API_PORT}/settings`)
-            .then(res => {
-                if (res.data.academicYear) {
-                    setAcademicYear(res.data.academicYear);
-                }
-            })
-            .catch(err => console.error("Error fetching academic year:", err));
-    }, []);
-    useEffect(() => {
-      setLoad(true);
-      Promise.all([
-        axios.get(`${API_PORT}/class-excused-pass`),
-        axios.get(`${API_PORT}/leave`),
-        axios.get(`${API_PORT}/set-attendance`)
-      ]).then(([shortLeaveRes, leaveRes, attendanceRes]) => {
-        setShortLeaveData(shortLeaveRes.data);
-        setLeaveData(leaveRes.data);
-        
-        const filteredData = attendanceRes.data.filter(
-          (student) => String(student.classNumber || student.class) === String(id)
-        );
-    
-        if (filteredData.length > 0) {
-          const latestByStudent = {};
-          filteredData.forEach((s) => {
-            const studentAd = s.studentId?.ADNO || s.ad;
-            if (!studentAd) return;
-            const existing = latestByStudent[studentAd];
-            const existingDate = existing?.attendanceDate ? new Date(existing.attendanceDate) : null;
-            const currentDate = s.attendanceDate ? new Date(s.attendanceDate) : null;
-            if (!existing || (currentDate && existingDate && currentDate > existingDate)) {
-              latestByStudent[studentAd] = s;
-            }
-          });
-    
-          const latestData = Object.values(latestByStudent).sort(
-            (a, b) => (a.studentId?.SL || a.SL) - (b.studentId?.SL || b.SL)
-          );
-          
-          setStudents(latestData);
-          const initialStatus = {};
-          latestData.forEach((s) => {
-            const ad = s.studentId?.ADNO || s.ad;
-            initialStatus[ad] = s.status;
-          });
-          setStatus(initialStatus);
-        } else {
-          setStudents([]);
-        }
-        setLoad(false);
-      }).catch((err) => {
-        setErr(err.message);
-        setLoad(false);
-      });
-    }, [id]);
-    
-    
-
-    const handleCheckboxChange = (ad, isChecked) => {
-      setStatus((prev) => ({
-        ...prev,
-        [ad]: isChecked ? "Present" : "Absent",
+  const absent = records.filter(record => statuses[record._id] !== 'Present');
+  const present = records.length - absent.length;
+  const sessionDate = records[0] ? attendanceDateKey(records[0].attendanceDate) : date;
+  const sessionTime = records[0]?.attendanceTime || time;
+  const sessionPeriod = records[0]?.period || period;
+  const sessionCustom = records[0]?.custom || records[0]?.more || custom;
+  const sessionLabel = [sessionTime, sessionTime === 'Period' ? sessionPeriod : sessionCustom].filter(Boolean).join(' - ');
+  const toggle = record => {
+    setStatuses(previous => ({ ...previous, [record._id]: previous[record._id] === 'Present' ? 'Absent' : 'Present' }));
+    setSaved(false);
+  };
+  const setAll = action => {
+    setStatuses(Object.fromEntries(records.map(record => [record._id, action === 'Reset' ? editableAttendanceStatus(record) : action])));
+    setSaved(false);
+  };
+  const copyAbsentees = async () => {
+    try {
+      await navigator.clipboard.writeText(`Class ${id} - Absentees\n${sessionDate} | ${sessionLabel}\n\n${absent.length ? absent.map(record => `${studentName(record)} (AD: ${admissionNumber(record)})`).join('\n') : 'All students are present.'}`);
+      setCopied(true);
+    } catch { setError('Could not copy the list. Please check clipboard permission.'); }
+  };
+  const save = async () => {
+    if (saving || !records.length) return;
+    setSaving(true); setError('');
+    try {
+      const updates = records.map(record => ({ _id: record._id, status: statuses[record._id] }));
+      await axios.patch(`${API_PORT}/set-attendance`, { updates });
+      // A historical correction must not change today's student/leave state.
+      setRecords(previous => previous.map(record => {
+        const status = statuses[record._id];
+        return status === 'Present'
+          ? { ...record, status, onLeave: false, isLate: false, leaveId: null, shortLeaveId: null }
+          : { ...record, status };
       }));
-    };
-
-  const preSubmit = (e) => {
-    if (e) e.preventDefault();
-    const absentList = students.filter((s) => {
-      const ad = s.studentId?.ADNO || s.ad;
-      const internalId = s.studentId?._id || s._id;
-      const isReturned = returnedStudents.includes(ad);
-      const isOnLeave = (isStudentOnShortLeave(ad, internalId) || isStudentOnMedicalLeave(ad, internalId)) && !isReturned;
-      return (status[ad] ?? s.status) !== "Present" || isOnLeave;
-    });
-    setAbsentees(absentList);
-    setConfirmAttendance(true);
-  };
-  
-  const handleCopyAbsentees = () => {
-    const attendanceDate = students[0]?.attendanceDate ? new Date(students[0].attendanceDate).toLocaleDateString("en-US", { dateStyle: "long" }) : new Date().toLocaleDateString("en-US", { dateStyle: "long" });
-    const attendanceTime = students[0]?.attendanceTime || students[0]?.attentenceTime || "N/A";
-    const headText = `Class ${id} Absentiees\n${attendanceDate} | ${attendanceTime}\n\n`;
-
-    if (absentees.length > 0) {
-      // Categorize absentees into mutually exclusive groups
-      const shortLeaveStudents = [];
-      const medicalLeaveStudents = [];
-      const lateStudents = [];
-      const onLeaveStudents = [];
-      const regularAbsentees = [];
-
-      absentees.forEach(s => {
-        const ad = s.studentId?.ADNO || s.ad;
-        const internalId = s.studentId?._id || s._id;
-        const isOnShortLeave = isStudentOnShortLeave(ad, internalId);
-        const activeLeave = getStudentActiveLeave(ad, internalId); 
-        const isStudentLate = isLeaveLate(activeLeave);
-        
-        // Detailed reason check for Medical Leave
-        const isMedical = activeLeave && (
-          activeLeave.reason?.toLowerCase().includes('medical') || 
-          activeLeave.reason?.toLowerCase().includes('hospital') ||
-          activeLeave.reason?.toLowerCase().includes('room')
-        );
-
-        if (isStudentLate) {
-          lateStudents.push(s);
-        } else if (isOnShortLeave) {
-          shortLeaveStudents.push(s);
-        } else if (activeLeave && isMedical) {
-          medicalLeaveStudents.push(s);
-        } else if (activeLeave) {
-          onLeaveStudents.push(s);
-        } else {
-          regularAbsentees.push(s);
+      try {
+        for (const key of Object.keys(sessionStorage)) {
+          if (key.startsWith('attendance_')) sessionStorage.removeItem(key);
         }
-      });
-
-      let text = "";
-
-      // Add regular absentees
-      if (regularAbsentees.length > 0) {
-        text += "Absent:\n" + regularAbsentees
-          .map((s) => `${s.studentId?.['SHORT NAME'] || s.studentId?.['FULL NAME'] || s.nameOfStd || s.name} (AdNo: ${s.studentId?.ADNO || s.ad})`)
-          .join("\n");
-      }
-
-      // Add short leave students
-      if (shortLeaveStudents.length > 0) {
-        if (text) text += "\n\n";
-        text += "Class excused pass:\n" + shortLeaveStudents
-          .map((s) => `${s.studentId?.['SHORT NAME'] || s.studentId?.['FULL NAME'] || s.nameOfStd || s.name} (AdNo: ${s.studentId?.ADNO || s.ad})`)
-          .join("\n");
-      }
-
-      // Add medical leave students
-      if (medicalLeaveStudents.length > 0) {
-        if (text) text += "\n\n";
-        text += "Medical Leave:\n" + medicalLeaveStudents
-          .map((s) => `${s.studentId?.['SHORT NAME'] || s.studentId?.['FULL NAME'] || s.nameOfStd || s.name} (AdNo: ${s.studentId?.ADNO || s.ad})`)
-          .join("\n");
-      }
-
-      // Add on-leave students
-      if (onLeaveStudents.length > 0) {
-        if (text) text += "\n\n";
-        text += "On Leave:\n" + onLeaveStudents
-          .map((s) => `${s.studentId?.['SHORT NAME'] || s.studentId?.['FULL NAME'] || s.nameOfStd || s.name} (AdNo: ${s.studentId?.ADNO || s.ad})`)
-          .join("\n");
-      }
-
-      // Add late students
-      if (lateStudents.length > 0) {
-        if (text) text += "\n\n";
-        text += "Late:\n" + lateStudents
-          .map((s) => `${s.studentId?.['SHORT NAME'] || s.studentId?.['FULL NAME'] || s.nameOfStd || s.name} (AdNo: ${s.studentId?.ADNO || s.ad})`)
-          .join("\n");
-      }
-
-      navigator.clipboard.writeText(headText + text)
-        .then(() => {
-          setCopy(true);
-        })
-        .catch((err) => {
-          console.error("Failed to copy: ", err);
-        });
-    } else {
-      navigator.clipboard.writeText(headText + "All students are present 🎉");
-      setCopy(true);
-    }
-    setTimeout(() => {
-      setCopy(false);
-    }, 4000);
+      } catch { /* Storage restrictions must not turn a successful save into an error. */ }
+      setConfirm(false); setSaved(true);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Could not save changes. Please try again.');
+    } finally { setSaving(false); }
   };
-  
-    const handleSubmit=async(e)=>{
-      if (e) e.preventDefault();
-      try{
-        setSummaryLoad(true);
-        
-        // Save Return Data for Medical Leaves and CEPs
-        if (returnedStudents.length > 0) {
-          await Promise.all(returnedStudents.map(async (ad) => {
-            // 1. Clear Global Flag
-            try {
-              await axios.patch(`${API_PORT}/students/on-leave/${ad}`, { onLeave: false });
-            } catch (err) {
-              console.error(`Failed to clear flag for student ${ad}:`, err);
-            }
 
-            // 2. Clear medical leave record
-            const medLeave = getStudentActiveLeave(ad);
-            if (medLeave) {
-              await axios.patch(`${API_PORT}/leave/${medLeave._id}`, { 
-                status: 'returned', 
-                markReturnedTeacher: teacher?.name || 'Unknown' 
-              });
-            }
-
-            // 3. Clear short leave record
-            const shortPass = getStudentActiveShortLeave(ad);
-            if (shortPass) {
-              await axios.patch(`${API_PORT}/class-excused-pass/${shortPass._id}`, { 
-                status: 'returned' 
-              });
-            }
-          }));
-        }
-
-        const updatedData = students.map((student) => {
-          const ad = student.studentId?.ADNO || student.ad;
-          const isReturned = returnedStudents.includes(ad);
-          const isOnLeave = (isStudentOnShortLeave(ad) || isStudentOnMedicalLeave(ad)) && !isReturned;
-          const finalStatus = isOnLeave ? "Absent" : (status[ad] || student.status);
-
-          return {
-            _id: student._id,
-            nameOfStd: student.studentId?.['SHORT NAME'] || student.name || student.nameOfStd, 
-            ad: ad,
-            class: student.class,
-            status: finalStatus, 
-            SL: student.studentId?.SL || student.SL,
-            attendanceTime: student.attentenceTime || student.attendanceTime,
-            onLeave: isOnLeave
-          };
-        });
-
-        await axios.patch(`${API_PORT}/set-attendance`,{updates:updatedData})
-
-        const strength = students.length;
-        const present = updatedData.filter((s) => s.status === "Present").length;
-        const absent = strength - present;
-        const percent = ((present / strength) * 100).toFixed(1);
-
-        setSummary({ strength, present, absent, percent });
-        setShowSummary(true);
-
-        await axios.patch(`${API_PORT}/classes/by-number/${id}`, {
-          totalStudents: strength,
-          presentStudents: present,
-          absentStudents: absent,
-          percentage: percent,
-        });
-
-        const payload2 = updatedData.map((s) => ({
-          _id: s._id,
-          Status: s.status,
-          Time: s.attendanceTime,
-          Date: students[0]?.attendanceDate ? (typeof students[0].attendanceDate === 'string' ? students[0].attendanceDate.split('T')[0] : new Date(students[0].attendanceDate).toISOString().split('T')[0]) : new Date().toISOString().split("T")[0]
-        }));
-  
-        await axios.patch(`${API_PORT}/students/bulk-update/students`,{updates:payload2})
-        setSummaryLoad(false)
-      }catch(err){
-        console.log(err)
-        setSummaryLoad(false)
-      }
-    }
-    
-  const handleOk = () => {
-    setShowSummary(false);
-    navigate.push("/edit-attendance-classes");
-  };
-  const [quickAction,setQuickAction] = useState("All Present")
-  
-    const handleQuickAction = () => {
-      setQuickAction(prev => prev === "Previous" ? "All Present" : prev === "All Present" ? "All Absent" : "Previous");
-      const updated = {};
-      students.forEach((s) => (updated[s.ad] = quickAction === "Previous" ? s.status : quickAction === "All Present" ? "Present" : "Absent"));
-      setStatus(updated);
-    }
-
-  return (
-    <div className="p-4 sm:p-8 max-w-7xl mx-auto" style={{ marginTop: "4.5rem" }}>
-      
-      {/* Header Card */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-3xl shadow-sm border border-sky-100 mb-6">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1 bg-sky-100 text-sky-700 text-[10px] font-black rounded-full uppercase tracking-wider">
-              Class {id}
-            </span>
-            <span className="text-slate-900 font-black text-sm uppercase tracking-tight">
-              {students[0]?.attendanceTime || "N/A"}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest pl-1">
-            {students[0]?.attendanceDate
-              ? new Date(students[0].attendanceDate).toLocaleDateString("en-US", { dateStyle: "long" })
-              : "N/A"}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate.push(`/edit-attendance-classes`)}
-            className="p-3 bg-slate-50 text-slate-400 rounded-2xl hover:bg-slate-100 hover:text-slate-600 transition-colors"
-            title="Back"
-          >
-            <FaArrowLeft size={18} />
-          </button>
-          <button
-            onClick={handleQuickAction}
-            className={`flex-1 md:flex-none px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 ${
-              quickAction === "All Present" ? "bg-emerald-500 text-white shadow-emerald-500/10"
-                : quickAction === "All Absent" ? "bg-rose-500 text-white shadow-rose-500/10"
-                : "bg-sky-500 text-white shadow-sky-500/10"
-            }`}
-          >
-            Mark {quickAction}
-          </button>
-        </div>
+  return <main className={styles.page}>
+    <section className={styles.heading}>
+      <button type="button" className={styles.back} aria-label="Back to attendance classes" onClick={() => router.push('/')}><ArrowLeft size={19} /></button>
+      <div><span className={styles.classTag}>Class {id}</span><h1>Edit attendance</h1><p>{sessionDate || 'Latest session'}{sessionLabel && ` | ${sessionLabel}`}</p></div>
+      <button type="button" className={styles.view} aria-label={cards ? 'Switch to list view' : 'Switch to cards view'} onClick={() => setCards(!cards)}>{cards ? <List size={20} /> : <LayoutGrid size={20} />}</button>
+    </section>
+    {error && <p role="alert" className={styles.error}>{error}</p>}
+    {saved && <div role="status" className={styles.success}><Check size={18} />Attendance changes saved.</div>}
+    {loading ? <div className={styles.loading} role="status"><Loader2 size={24} />Loading attendance...</div> : !records.length ? <section className={styles.empty}><h2>No attendance found</h2><p>No records were found for this class and session.</p><button onClick={() => router.push('/')}>Back to classes</button></section> : <>
+      <div className={styles.totals}><span><strong>{records.length}</strong> students</span><span><strong>{present}</strong> present</span><span><strong>{absent.length}</strong> absent</span></div>
+      <div className={styles.actions} aria-label="Set attendance for all students">{['Present', 'Absent', 'Reset'].map(action => <button key={action} type="button" disabled={saving} onClick={() => setAll(action)}>{action === 'Reset' ? 'Reset changes' : `All ${action.toLowerCase()}`}</button>)}</div>
+      <p className={styles.hint}>Tap a status to change it. Leave, late and medical entries are shown as Absent.</p>
+      <div className={cards ? styles.cards : styles.list} aria-label="Student attendance">
+        {records.map((record, index) => {
+          const isPresent = statuses[record._id] === 'Present';
+          return <div key={record._id} className={`${styles.student} ${isPresent ? styles.present : styles.absent}`}>
+            <span className={styles.number}>{record.studentId?.SL || record.SL || index + 1}</span>
+            <div className={styles.studentInfo}><strong>{studentName(record)}</strong><span>AD {admissionNumber(record)}</span></div>
+            <button type="button" disabled={saving} className={styles.status} aria-label={`${studentName(record)}: ${isPresent ? 'Present' : 'Absent'}. Tap to change.`} aria-pressed={isPresent} onClick={() => toggle(record)}>{isPresent ? 'Present' : 'Absent'}</button>
+          </div>;
+        })}
       </div>
-
-      {load && <StudentsLoad />}
-
-      {/* Table View */}
-      {cards === "No" && !load && (
-        <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
-          <form onSubmit={preSubmit}>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-100">
-                    <th className="hidden sm:table-cell px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest w-16">Sl</th>
-                    <th className="hidden sm:table-cell px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest w-24">Ad</th>
-                    <th className="px-4 sm:px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Student Info</th>
-                    <th className="px-4 sm:px-6 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest w-28 sm:w-40">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {students.length > 0 ? (
-                    students.map((student, index) => {
-                      const ad = student.studentId?.ADNO || student.ad;
-                      const currentStatus = status[ad] !== undefined ? status[ad] : student.status;
-                      const isOnShortLeave = isStudentOnShortLeave(ad);
-                      const isOnMedicalLeave = isStudentOnMedicalLeave(ad, student.studentId?._id || student._id);
-                      const isReturned = returnedStudents.includes(ad);
-                      const isOnLeave = (isOnShortLeave || isOnMedicalLeave);
-                      const displayOnLeave = isOnLeave && !isReturned;
-
-                      let leaveType = "";
-                      let isStudentLate = false;
-                      const activeLeave = isOnLeave
-                        ? (getStudentActiveLeave(ad, student.studentId?._id || student._id) || (isOnShortLeave ? getStudentActiveShortLeave(ad) : null))
-                        : null;
-
-                      if (displayOnLeave) {
-                        isStudentLate = isLeaveLate(activeLeave);
-                        if (isStudentLate) {
-                          leaveType = "Late";
-                        } else if (isOnShortLeave) {
-                          leaveType = "CEP";
-                        } else if (isOnMedicalLeave) {
-                          const reason = activeLeave?.reason || "";
-                          const isMed = reason === 'Medical' || reason === 'Medical (Home)' || reason === 'Medical (Room)' || reason === 'Room' || reason === 'Hospital';
-                          leaveType = isMed ? "Medical" : "On Leave";
-                        }
-                        else leaveType = "On Leave";
-                      } else if (isOnLeave) {
-                        isStudentLate = isLeaveLate(activeLeave);
-                      }
-
-                      const canReturn = isOnLeave && canTeacherReturnLeave({
-                        teacher,
-                        leave: activeLeave,
-                        student,
-                        isLate: isStudentLate,
-                        studentClass: student.CLASS || student.class || student.studentId?.CLASS || id
-                      });
-
-                      return (
-                        <tr
-                          key={index}
-                          onClick={() => {
-                            if (!displayOnLeave) {
-                              handleCheckboxChange(ad, currentStatus !== 'Present');
-                            }
-                          }}
-                          className={`group transition-colors ${
-                            displayOnLeave 
-                              ? isStudentLate ? "bg-rose-50/40 cursor-not-allowed" : "bg-amber-50/30 cursor-not-allowed" 
-                              : "hover:bg-sky-50/50 cursor-pointer"
-                          }`}
-                        >
-                          <td className="hidden sm:table-cell px-6 py-4 text-sm font-medium text-slate-400">{student.studentId?.SL || student.SL}</td>
-                          <td className="hidden sm:table-cell px-6 py-4 text-sm font-mono text-slate-500">{ad}</td>
-                          <td className="px-4 sm:px-6 py-4">
-                            <div className="flex flex-col">
-                              <span className={`font-bold transition-colors leading-tight ${
-                                displayOnLeave 
-                                  ? isStudentLate ? "text-rose-700" : "text-slate-400" 
-                                  : "text-slate-900 group-hover:text-sky-700"
-                              }`}>
-                                {student.studentId?.['SHORT NAME'] || student.studentId?.['FULL NAME'] || student.name || student.nameOfStd || "Unknown"}
-                              </span>
-                              <span className="text-[10px] sm:hidden font-mono text-slate-400 mt-0.5">
-                                AD: {ad} {(student.studentId?.SL || student.SL) > 0 && `• SL: ${student.studentId?.SL || student.SL}`}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-4 sm:px-6 py-4 text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              <button
-                                type="button"
-                                disabled={displayOnLeave}
-                                onClick={(e) => { 
-                                  e.stopPropagation(); 
-                                  if (!displayOnLeave) handleCheckboxChange(ad, currentStatus !== 'Present'); 
-                                }}
-                                className={`min-w-[80px] sm:min-w-[100px] px-3 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-tighter shadow-sm transition-all duration-200 ${
-                                  displayOnLeave 
-                                    ? isStudentLate 
-                                      ? "bg-rose-100 text-rose-700 border border-rose-200"
-                                      : "bg-amber-100 text-amber-600 border border-amber-200"
-                                    : currentStatus === 'Present'
-                                      ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-emerald-500/20'
-                                      : 'bg-rose-500 text-white hover:bg-rose-600 shadow-rose-500/20'
-                                }`}
-                              >
-                                {displayOnLeave ? leaveType : currentStatus}
-                              </button>
-                              {isOnLeave && canReturn && (
-                                <button 
-                                  className={`w-8 h-8 flex items-center justify-center rounded-xl text-white transition-all hover:scale-110 shadow-sm ${isReturned ? "bg-emerald-600" : "bg-sky-500"}`}
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (isReturned) {
-                                      setReturnedStudents(prev => prev.filter(id => id !== ad));
-                                      setStatus(prev => ({ ...prev, [ad]: "Absent" }));
-                                    } else {
-                                      openReturnModal(student);
-                                    }
-                                  }}
-                                >
-                                  <span className="text-[10px] font-bold">{isReturned ? "↩" : "R"}</span>
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td colSpan="4" className="text-center py-20 bg-slate-50">
-                        <div className="flex flex-col items-center opacity-40">
-                          <span className="text-4xl mb-4">🔍</span>
-                          <p className="text-slate-500 font-black uppercase tracking-widest text-xs">No students found in Class {id}</p>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-            <div className="bg-slate-50 p-6 border-t border-slate-100 flex justify-center">
-              <button
-                type="submit"
-                className="btn-primary flex items-center gap-3 px-10 py-4 rounded-2xl shadow-2xl shadow-sky-500/30 text-base group"
-              >
-                <svg className="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                </svg>
-                Save Changes
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Cards View */}
-      {cards === "Cards" && !load && (
-        <form onSubmit={preSubmit}>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">
-            {students.length > 0 ? (
-              students.map((student, index) => {
-                const ad = student.studentId?.ADNO || student.ad;
-                const isOnShortLeave = isStudentOnShortLeave(ad);
-                const isOnMedicalLeave = isStudentOnMedicalLeave(ad, student.studentId?._id || student._id);
-                const isReturned = returnedStudents.includes(ad);
-                const isOnLeave = (isOnShortLeave || isOnMedicalLeave);
-                const displayOnLeave = isOnLeave && !isReturned;
-                const currentStatus = status[ad] || student.status;
-                const isPresent = currentStatus === "Present" && !displayOnLeave;
-                
-                let leaveType = "";
-                let isStudentLate = false;
-                if (displayOnLeave) {
-                  const activeLeave = getStudentActiveLeave(ad, student.studentId?._id || student._id);
-                  isStudentLate = isLeaveLate(activeLeave);
-                  if (isStudentLate) {
-                    leaveType = "Late";
-                  } else if (isOnShortLeave) {
-                    leaveType = "CEP";
-                  } else if (isOnMedicalLeave) {
-                    const reason = activeLeave?.reason || "";
-                    const isMed = reason === 'Medical' || reason === 'Medical (Home)' || reason === 'Medical (Room)' || reason === 'Room' || reason === 'Hospital';
-                    leaveType = isMed ? "Medical" : "On Leave";
-                  }
-                  else leaveType = "On Leave";
-                }
-
-                return (
-                   <div
-                    key={index}
-                    onClick={() => {
-                      if (!displayOnLeave) {
-                        handleCheckboxChange(ad, !isPresent);
-                      }
-                    }}
-                    className={`relative p-5 rounded-3xl border-2 transition-all duration-300 active:scale-95 cursor-pointer ${
-                      displayOnLeave 
-                        ? isStudentLate 
-                          ? 'bg-rose-50/70 border-rose-200' 
-                          : 'bg-amber-50 border-amber-200 shadow-lg shadow-amber-500/5' 
-                        : isPresent
-                          ? 'bg-emerald-50 border-emerald-200 shadow-lg shadow-emerald-500/5'
-                          : 'bg-rose-50 border-rose-200 shadow-lg shadow-rose-500/5'
-                    }`}
-                  >
-                    <div className="flex justify-center mb-3">
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg shadow-lg ${
-                        displayOnLeave 
-                          ? isStudentLate ? 'bg-rose-500 text-white shadow-rose-500/20' : 'bg-amber-400 text-white' 
-                          : isPresent ? 'bg-emerald-500 text-white shadow-emerald-500/20' : 'bg-rose-500 text-white shadow-rose-500/20'
-                      }`}>
-                        {student.studentId?.SL || student.SL}
-                      </div>
-                    </div>
-                    <h3 className={`text-sm font-bold truncate mb-1 ${displayOnLeave ? 'text-amber-800' : isPresent ? 'text-emerald-900' : 'text-rose-900'}`}>
-                      {student.studentId?.['SHORT NAME'] || student.studentId?.['FULL NAME'] || student.name || student.nameOfStd || "Unknown"}
-                    </h3>
-                    <p className={`text-[10px] font-black uppercase tracking-widest opacity-60 mb-3 ${displayOnLeave ? 'text-amber-700' : isPresent ? 'text-emerald-700' : 'text-rose-700'}`}>
-                      Ad: {ad}
-                    </p>
-                    <div className={`py-1 rounded-lg text-[10px] font-black uppercase tracking-widest text-center ${
-                      displayOnLeave ? 'bg-amber-200/50 text-amber-700' : 
-                      isPresent ? 'bg-emerald-200/50 text-emerald-700' : 'bg-rose-200/50 text-rose-700'
-                    }`}>
-                      {displayOnLeave ? leaveType : isPresent ? "Present" : "Absent"}
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <p className="col-span-6 text-center py-20 text-slate-400 font-bold uppercase tracking-widest text-xs">
-                No students found in Class {id}
-              </p>
-            )}
-          </div>
-          <div className="mt-10 flex justify-center pb-20">
-            <button type="submit" className="btn-primary px-12 py-4 rounded-2xl shadow-2xl shadow-sky-500/30 text-base font-bold">
-              Save Changes
-            </button>
-          </div>
-        </form>
-      )}
-
-      {/* Return Confirmation Modal */}
-      {showReturnModal && selectedReturnStudent && (
-        <div className="fixed inset-0 flex items-center justify-center p-4 z-[70] animate-in fade-in duration-300">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"></div>
-          
-          <div className="relative bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl border border-white p-8">
-            <button 
-              onClick={() => setShowReturnModal(false)}
-              className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:text-slate-600 transition-colors"
-            >
-              ✕
-            </button>
-
-            <div className="text-center mb-6">
-              <h3 className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1">Status Update</h3>
-              <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">Confirm Return</h2>
-              <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase px-4 leading-relaxed">
-                Mark <span className="text-sky-600">
-                  {selectedReturnStudent.studentId?.['SHORT NAME'] || selectedReturnStudent.name || selectedReturnStudent.nameOfStd}
-                </span> as returned?
-              </p>
-            </div>
-
-            <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 mb-8 space-y-4 text-left">
-              {(() => {
-                const ad = selectedReturnStudent.studentId?.ADNO || selectedReturnStudent.ad;
-                const medical = getStudentActiveLeave(ad);
-                const cep = getStudentActiveShortLeave(ad);
-
-                if (medical) {
-                  const isMed = medical.reason === 'Medical' || medical.reason === 'Medical (Home)' || medical.reason === 'Medical (Room)' || medical.reason === 'Room' || medical.reason === 'Hospital';
-                  return (
-                    <>
-                      <div className="flex justify-between items-center border-b border-slate-200/50 pb-3">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Type</span>
-                        <span className="text-[9px] font-black text-sky-500 bg-sky-50 px-2 py-0.5 rounded border border-sky-100 uppercase tracking-widest">{isMed ? "Medical Leave" : "On Leave"}</span>
-                      </div>
-                      <div className="flex justify-between items-center border-b border-slate-200/50 pb-3">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Reason</span>
-                        <span className="text-[10px] font-bold text-slate-700 uppercase">{medical.reason || "N/A"}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">From</span>
-                        <span className="text-[10px] font-bold text-slate-700 font-mono italic">{medical.fromDate || "N/A"}</span>
-                      </div>
-                    </>
-                  );
-                } else if (cep) {
-                  return (
-                    <>
-                      <div className="flex justify-between items-center border-b border-slate-200/50 pb-3">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Type</span>
-                        <span className="text-[9px] font-black text-amber-500 bg-amber-50 px-2 py-0.5 rounded border border-amber-100 uppercase tracking-widest">CEP (Short Pass)</span>
-                      </div>
-                      <div className="flex justify-between items-center border-b border-slate-200/50 pb-3">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Reason</span>
-                        <span className="text-[10px] font-bold text-slate-700 uppercase">{cep.reason || "N/A"}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Duration</span>
-                        <span className="text-[10px] font-bold text-emerald-600 font-mono">{cep.fromTime} — {cep.toTime}</span>
-                      </div>
-                    </>
-                  );
-                } else {
-                  return <div className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest py-2">Restoring global status</div>;
-                }
-              })()}
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setShowReturnModal(false)}
-                className="col-span-1 py-4 bg-slate-100 text-slate-400 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-slate-200 transition-all font-mono"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmReturn}
-                className="col-span-1 py-4 bg-sky-500 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-sky-500/20 hover:bg-sky-600 transition-all"
-              >
-                Confirm Return
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Confirm Modal */}
-      {confirmAttendance && (
-        <div className="fixed inset-0 flex items-center justify-center p-4 z-[60] animate-in fade-in duration-300">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"></div>
-          
-          <div className="relative bg-white w-full max-w-sm sm:max-w-md rounded-[2.5rem] shadow-2xl border border-white p-8 overflow-hidden">
-            <div className="text-center mb-6">
-              <h3 className="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-1">Attention Required</h3>
-              <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">Confirm Submission</h2>
-              <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase">The following {absentees.length} students are absent</p>
-            </div>
-
-            {absentees.length > 0 ? (
-              <div className="max-h-60 overflow-y-auto mb-6 no-scrollbar rounded-3xl bg-rose-50 border border-rose-100 p-4">
-                <div className="space-y-3">
-                  {absentees.map((s) => {
-                    const ad = s.studentId?.ADNO || s.ad;
-                    const internalId = s.studentId?._id || s._id;
-                    const isReturned = returnedStudents.includes(ad);
-                    const isOnShortLeave = isStudentOnShortLeave(ad, internalId);
-                    const isOnMedicalLeave = isStudentOnMedicalLeave(ad, internalId);
-                    const isOnLeave = (isOnShortLeave || isOnMedicalLeave) && !isReturned;
-                    const activeLeave = isOnLeave ? getStudentActiveLeave(ad, internalId) : null;
-                    const isStudentLate = isLeaveLate(activeLeave);
-
-                    return (
-                      <div key={ad} className="flex items-center justify-between border-b border-rose-100 last:border-0 pb-2 last:pb-0">
-                        <div className="flex flex-col">
-                          <span className="text-sm font-black text-rose-600">
-                            {s.studentId?.['SHORT NAME'] || s.studentId?.['FULL NAME'] || s.nameOfStd || s.name}
-                          </span>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[9px] font-bold text-rose-400 uppercase tracking-wider">AD: {ad}</span>
-                            {(s.studentId?.SL || s.SL) > 0 && <span className="text-[9px] font-bold text-rose-400 uppercase tracking-wider">• SL: {s.studentId?.SL || s.SL}</span>}
-                          </div>
-                        </div>
-                        {isOnLeave && (
-                          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${
-                            isStudentLate
-                              ? "bg-rose-100 text-rose-700 border-rose-200"
-                              : "bg-amber-100 text-amber-700 border-amber-200"
-                          }`}>
-                            {isStudentLate ? "Late" : "On Leave"}
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : (
-              <div className="py-8 text-center bg-emerald-50 rounded-3xl border border-emerald-100 mb-6">
-                <span className="text-4xl block mb-2">🎉</span>
-                <p className="text-sm font-black text-emerald-600 uppercase tracking-widest">No absentees found</p>
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setConfirmAttendance(false)}
-                className="col-span-1 py-4 bg-slate-100 text-slate-400 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-slate-200 transition-all font-mono"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleCopyAbsentees}
-                className="col-span-1 py-4 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-all"
-              >
-                {copy ? "Copied" : "Copy List"}
-              </button>
-              <button
-                onClick={handleSubmit}
-                className="col-span-2 py-4 bg-sky-500 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-sky-500/20 hover:bg-sky-600 transition-all active:scale-[0.98]"
-              >
-                Confirm Recording
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Summary Modal */}
-      {showSummary && (
-        <div className="fixed inset-0 flex items-center justify-center p-4 z-[60] animate-in fade-in duration-300">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"></div>
-          
-          <div className="relative bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl border border-white p-8 overflow-hidden">
-            {summaryLoad ? (
-              <div className="py-10 flex flex-col items-center justify-center space-y-6">
-                <div className="relative w-16 h-16">
-                  <div className="absolute inset-0 border-4 border-sky-100 rounded-full"></div>
-                  <div className="absolute inset-0 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
-                </div>
-                <div className="text-center">
-                  <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Saving Attendance</h3>
-                  <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase">Please wait a moment...</p>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-8">
-                <div className="text-center space-y-1">
-                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Attendance Summary</h3>
-                  <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">Changes Saved</h2>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-slate-50 p-4 rounded-3xl border border-slate-100 flex flex-col items-center text-center">
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Total</span>
-                    <span className="text-xl font-black text-slate-800">{summary.strength}</span>
-                  </div>
-                  <div className="bg-emerald-50 p-4 rounded-3xl border border-emerald-100 flex flex-col items-center text-center">
-                    <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest mb-1">Present</span>
-                    <span className="text-xl font-black text-emerald-600">{summary.present}</span>
-                  </div>
-                  <div className="bg-rose-50 p-4 rounded-3xl border border-rose-100 flex flex-col items-center text-center">
-                    <span className="text-[8px] font-black text-rose-500 uppercase tracking-widest mb-1">Absent</span>
-                    <span className="text-xl font-black text-rose-600">{summary.absent}</span>
-                  </div>
-                  <div className="bg-sky-50 p-4 rounded-3xl border border-sky-100 flex flex-col items-center text-center">
-                    <span className="text-[8px] font-black text-sky-500 uppercase tracking-widest mb-1">Ratio</span>
-                    <span className="text-xl font-black text-sky-600 font-mono tracking-tighter">{summary.percent}%</span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleOk}
-                  className="w-full py-4 bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all active:scale-[0.98]"
-                >
-                  Confirm & Dashboard
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  )
+      <button type="button" className={styles.save} disabled={saving} onClick={() => { setConfirm(true); setCopied(false); }}><Check size={18} />Review changes</button>
+    </>}
+    {confirm && <div className={styles.overlay}>
+      <section role="dialog" aria-modal="true" aria-labelledby="confirm-edit-title" className={styles.modal}>
+        <div className={styles.modalTitle}><h2 id="confirm-edit-title">Confirm attendance</h2><button type="button" disabled={saving} aria-label="Close confirmation" onClick={() => setConfirm(false)}><X size={21} /></button></div>
+        <p>Class {id} | {sessionDate} | {sessionLabel}</p>
+        <div className={styles.totals}><span><strong>{present}</strong> present</span><span><strong>{absent.length}</strong> absent</span></div>
+        <div className={styles.absentees}>{absent.length ? absent.map(record => <div key={record._id}><strong>{studentName(record)}</strong><span>AD {admissionNumber(record)} - Absent</span></div>) : <p>All students are present.</p>}</div>
+        {error && <p role="alert" className={styles.error}>{error}</p>}
+        <button className={styles.copy} type="button" onClick={copyAbsentees}><Copy size={16} />{copied ? 'Copied' : 'Copy absent list'}</button>
+        <button className={styles.save} type="button" disabled={saving} onClick={save}>{saving ? <Loader2 size={18} /> : <Check size={18} />}{saving ? 'Saving...' : 'Save changes'}</button>
+      </section>
+    </div>}
+  </main>;
 }
-
-export default EditAtt

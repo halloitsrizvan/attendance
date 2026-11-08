@@ -9,7 +9,7 @@ import {
   ExternalLink, Calendar, User, ShieldAlert, Clock, RefreshCw, X, Download,
   Wallet, Award, ChevronRight, TrendingUp, Sparkles, Layers, Info
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 

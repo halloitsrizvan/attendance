@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import axios from 'axios';
-import { useRouter } from "next/navigation";
+import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
 import ClassWiseLoad from '../load-UI/ClassWiseLoad';
 import { API_PORT } from '@/Constants';
 

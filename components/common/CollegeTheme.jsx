@@ -1,6 +1,6 @@
 "use client";
 
-import Link from 'next/link';
+import Link from '@/components/navigation/NavigationLink';
 import { usePathname } from 'next/navigation';
 import { Home, LayoutGrid, Plus, Trophy } from 'lucide-react';
 import { showsTeacherDock, usesCollegeTheme } from '@/lib/uiTheme.mjs';

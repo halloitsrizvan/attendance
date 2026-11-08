@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { useRouter } from 'next/navigation';
+import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
 import { CalendarCheck, CalendarDays, MinusSquare, Star, Loader2, AlertTriangle } from 'lucide-react';
 import { API_PORT } from '@/Constants';
 import WelcomeBanner from '@/components/StudentPortal/WelcomeBanner';

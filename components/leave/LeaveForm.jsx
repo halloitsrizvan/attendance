@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
-import { useRouter } from "next/navigation";
+import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
 import axios from 'axios';
 import { API_PORT } from '../../Constants';
 import { isFridayReturnWithinDeadline } from '@/utils/leaveReturnUtils';

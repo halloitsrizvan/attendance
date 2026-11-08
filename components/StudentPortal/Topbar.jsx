@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Menu } from 'lucide-react';
 import axios from 'axios';
 import { API_PORT } from '@/Constants';
-import Link from 'next/link';
+import Link from '@/components/navigation/NavigationLink';
 
 export default function Topbar({ onMenuClick }) {
     const [student, setStudent] = useState(null);

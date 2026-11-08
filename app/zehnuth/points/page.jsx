@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header/Header';
 import axios from 'axios';
 import { History, Star, User, Calendar, Loader2, Trophy, Filter, ChevronRight } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
 
 const CATEGORY_COLORS = {
     Exam: 'bg-blue-50 text-blue-600 border-blue-100',

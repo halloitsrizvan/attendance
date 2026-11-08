@@ -6,7 +6,7 @@ import axios from 'axios'
 import MetricCard from './MetricCard'
 import { API_PORT } from '../../Constants'
 import BreakdownModal from './BreakdownModal';
-import { useRouter } from "next/navigation";
+import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
 import StudentDashboardLoad from './StudentDashboardLoad';
 import MinusBreakdown from './MinusBreakdown';
 

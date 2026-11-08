@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useRouter } from "next/navigation";
+import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
 import Image from 'next/image';
 import axios from 'axios';
 import { Mail, Lock, User, ArrowRight, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { API_PORT } from '../../Constants';
-import Link from 'next/link';
+import Link from '@/components/navigation/NavigationLink';
 
 const getSafeLocalStorage = () => typeof window !== 'undefined' ? localStorage : { getItem: () => null, setItem: () => {}, removeItem: () => {} };
 

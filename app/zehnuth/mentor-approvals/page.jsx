@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header/Header';
 import axios from 'axios';
 import { Trophy, CheckCircle, X, Search, Loader2, AlertTriangle, ShieldCheck, Filter, Clock, LayoutGrid, Award, Plus, Minus } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
 
 const ADMIN_EMAIL = 'krehmankoolivayal13889@gmail.com';
 

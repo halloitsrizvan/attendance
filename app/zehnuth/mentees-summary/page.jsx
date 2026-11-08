@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header/Header';
 import axios from 'axios';
 import { Trophy, User, Loader2, ChevronLeft, Star, TrendingUp } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
 
 const LEAGUES = [
     { name: 'Diamond', min: 750, color: 'text-sky-400', bg: 'bg-sky-50' },

@@ -2,11 +2,12 @@
 
 import React, { useEffect, useState } from 'react'
 import axios from 'axios';
-import { useRouter } from "next/navigation";
+import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
 import AllClassLoad from '../load-UI/AllClassLoad';
 import { API_PORT } from '../../Constants';
 import App from './App';
 import AttendanceHome from './AttendanceHome';
+import { attendanceDateKey } from '@/lib/attendanceSession.mjs';
 function AllClass({ edit, id, mobileHome = false }) {
 
   const navigate = useRouter()
@@ -56,6 +57,8 @@ function AllClass({ edit, id, mobileHome = false }) {
         setLoad(false);
       });
 
+    if (edit) return;
+
     const studentsCache = sessionStorage.getItem('students_cache');
     if (studentsCache) {
       setStudents(JSON.parse(studentsCache));
@@ -72,10 +75,10 @@ function AllClass({ edit, id, mobileHome = false }) {
       .catch((err) => {
         console.log(err);
       });
-  }, []);
+  }, [edit]);
 
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = attendanceDateKey(new Date());
   const [date, setDate] = useState(today);
 
   const [err, setErr] = useState('')
@@ -85,6 +88,10 @@ function AllClass({ edit, id, mobileHome = false }) {
   const [time, setTime] = useState('Period');
 
   useEffect(() => {
+    if (edit) {
+      setPreAttendanceLoad(false);
+      return;
+    }
     const queryParams = {
       date: date,
       time: time,
@@ -115,7 +122,7 @@ function AllClass({ edit, id, mobileHome = false }) {
         console.error(err);
         setPreAttendanceLoad(false);
       });
-  }, [date, time, period, more]);
+  }, [edit, date, time, period, more]);
 
   useEffect(() => {
     const now = new Date();
@@ -223,7 +230,7 @@ function AllClass({ edit, id, mobileHome = false }) {
   }, [id]);
 
 
-  if (mobileHome) return <AttendanceHome {...{ classes, teacher, date, setDate, time, setTime, period, setPeriod, more, setMore, err, setErr, preAttendance, isSuperAdmin, students }} loading={load || preAttendanceLoad} />;
+  if (mobileHome || edit) return <AttendanceHome {...{ classes, teacher, date, setDate, time, setTime, period, setPeriod, more, setMore, err, setErr, preAttendance, isSuperAdmin, students }} editMode={edit} loading={load || (!edit && preAttendanceLoad)} />;
 
   return (
     <div className="container mx-auto px-4 py-8 mt-12">

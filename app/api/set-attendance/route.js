@@ -4,6 +4,7 @@ import Student from "@/models/studentsModel";
 import Teacher from "@/models/teachersModel";
 import Leave from "@/models/leaveModel";
 import { activeLeaveForAttendance } from "@/lib/attendanceLeave.mjs";
+import { attendanceDayBounds, attendanceEditFields } from "@/lib/attendanceSession.mjs";
 import { NextResponse } from "next/server";
 import { getActiveAcademicYearId } from "@/lib/getActiveAcademicYear";
 
@@ -30,11 +31,8 @@ export async function GET(req) {
     }
     if (classNumber) query.classNumber = Number(classNumber);
     if (date) {
-      const startDate = new Date(date);
-      startDate.setHours(0,0,0,0);
-      const endDate = new Date(date);
-      endDate.setHours(23,59,59,999);
-      query.attendanceDate = { $gte: startDate, $lte: endDate };
+      const { start, end } = attendanceDayBounds(date);
+      query.attendanceDate = { $gte: start, $lt: end };
     }
     if (time) query.attendanceTime = time;
     if (period) query.period = Number(period);
@@ -111,11 +109,14 @@ export async function PATCH(req) {
     if (!Array.isArray(updates)) {
       return NextResponse.json({ error: "Updates should be an array" }, { status: 400 });
     }
+    if (!updates.length || updates.some(update => !update?._id || !['Present', 'Absent'].includes(update.status))) {
+      return NextResponse.json({ error: "Each update needs an attendance ID and a Present or Absent status" }, { status: 400 });
+    }
     
     const bulkOps = updates.map((student) => ({
       updateOne: {
         filter: { _id: student._id },
-        update: { $set: { status: student.status } },
+        update: { $set: attendanceEditFields(student.status) },
       },
     }));
     

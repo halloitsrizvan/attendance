@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { useParams, useSearchParams, useRouter } from "next/navigation";
+import { useParams, useSearchParams } from 'next/navigation';
+import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
 import { TfiLayoutGrid3, TfiLayoutGrid2 } from "react-icons/tfi";
 import { FaHome } from "react-icons/fa";
 import StudentsLoad from "../load-UI/StudentsLoad";

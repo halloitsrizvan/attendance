@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
 import { 
     BookOpen, Calendar, Image as ImageIcon, Search, 
     AlertCircle, ChevronDown, Award, Trophy, Loader2, 

@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { useRouter } from 'next/navigation';
+import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
 import { Star, Loader2, PlusCircle, CheckCircle, Clock, XCircle, Trophy, Edit2, Trash2, FileSpreadsheet } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { API_PORT } from '@/Constants';

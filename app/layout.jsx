@@ -1,6 +1,7 @@
 import './globals.css';
 import './college-theme.css';
 import CollegeTheme from '@/components/common/CollegeTheme';
+import NavigationProvider from '@/components/navigation/NavigationProvider';
 import AuthGuard from '@/components/auth/AuthGuard';
 import TestUserBanner from '@/components/common/TestUserBanner';
 
@@ -43,9 +44,9 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <div className="App">
-          <AuthGuard>
+          <NavigationProvider><AuthGuard>
             <CollegeTheme>{children}</CollegeTheme>
-          </AuthGuard>
+          </AuthGuard></NavigationProvider>
           <TestUserBanner />
         </div>
       </body>

@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from 'react'
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from 'next/navigation';
+import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
 import { FaArrowLeft } from "react-icons/fa";
 import axios from 'axios';
 import { API_PORT } from '@/Constants';
@@ -114,11 +115,6 @@ function Header({ appearance } = {}) {
                 </button>
               </div>
 
-              <div className="flex-shrink-0 hidden md:block">
-                <a href="#" className="text-2xl font-bold text-white tracking-tight">
-                  Darul Irfan
-                </a>
-              </div>
             </div>
 
             <nav className="hidden md:flex md:items-center md:space-x-8">
@@ -136,8 +132,6 @@ function Header({ appearance } = {}) {
                   <div className="bg-white shadow-2xl py-3 border border-slate-100 rounded-xl">
                     <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/') }}>Take Attendance</a>
                     <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/class-wise') }}>Attendance Status</a>
-                    <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/edit-attendance-classes') }}>Edit Attendance</a>
-                    <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/student-search') }}>Search Student</a>
                     <a href="#" className="block px-5 py-3 text-slate-700 hover:bg-sky-50 hover:text-sky-600 font-medium text-base" onClick={() => { navigate.push('/complaints') }}>Complaints</a>
                   </div>
                 </div>
@@ -357,8 +351,6 @@ function Header({ appearance } = {}) {
                 <div className="bg-slate-50/50 pb-3">
                   <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/'); setIsMenuOpen(false) }}>Take Attendance</a>
                   <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/class-wise'); setIsMenuOpen(false) }}>Attendance Status</a>
-                  <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/edit-attendance-classes'); setIsMenuOpen(false) }}>Edit Attendance</a>
-                  <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/student-search'); setIsMenuOpen(false) }}>Search Student</a>
                   <a href="#" className="block px-8 py-3 text-lg font-medium text-slate-600 hover:text-sky-600 hover:bg-sky-100/50 transition-colors border-t border-slate-100" onClick={() => { navigate.push('/complaints'); setIsMenuOpen(false) }}>Complaints</a>
                 </div>
               )}

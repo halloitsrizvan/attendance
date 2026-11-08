@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import Link from '@/components/navigation/NavigationLink';
+import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
 import { Menu, X, ArrowLeft, ChevronDown, ClipboardCheck, CalendarDays, Trophy, Settings, LogOut } from 'lucide-react';
 import styles from './AttendanceHeader.module.css';
 
@@ -33,7 +33,7 @@ export default function AttendanceHeader({ teacher, hasRole, isTestUser, onLogou
   const canApply = ['class_teacher', 'super_admin', 'HOD', 'HOS', 'Principal', 'vice_principal', 'medical_teacher'].some(hasRole);
   const canReview = isTestUser || hasRole('zehnuth_admin') || (teacher?.email || teacher?.EMAIL) === 'krehmankoolivayal13889@gmail.com';
   const groups = [
-    { name: 'Attendance', icon: ClipboardCheck, links: [['/', 'Take Attendance'], ['/class-wise', 'Attendance Status'], ['/edit-attendance-classes', 'Edit Attendance'], ['/student-search', 'Search Student'], ['/complaints', 'Complaints']] },
+    { name: 'Attendance', icon: ClipboardCheck, links: [['/', 'Take Attendance'], ['/class-wise', 'Attendance Status'], ['/complaints', 'Complaints']] },
     { name: 'Leave', icon: CalendarDays, links: [
       ...(canApply ? [['/leave-form', 'Apply Leave']] : []), ['/leave-dashboard', 'Leave Dashboard'],
       ...(hasRole('class_teacher') ? [['/my-class-leave', 'My Class']] : []),
@@ -53,7 +53,7 @@ export default function AttendanceHeader({ teacher, hasRole, isTestUser, onLogou
     <header className={styles.header}>
       <div className={styles.bar}>
         <button ref={trigger} className={styles.menu} aria-label="Open navigation" aria-expanded={open} aria-controls="attendance-navigation" onClick={() => setOpen(true)}><Menu size={19} /></button>
-        <Link className={styles.brand} href="/">Darul Irfan</Link>
+        <span className={styles.brand} aria-hidden="true" />
         <button className={styles.back} aria-label="Go back" onClick={() => router.back()}><ArrowLeft size={17} /></button>
         <button className={styles.avatar} aria-label="Open account and navigation" onClick={() => setOpen(true)}>{initials}</button>
       </div>

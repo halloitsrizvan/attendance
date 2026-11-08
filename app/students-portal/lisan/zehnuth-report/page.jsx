@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
 import { 
     Trophy, Award, Calendar, Search, Filter, 
     ArrowLeft, Download, RefreshCw, ExternalLink,

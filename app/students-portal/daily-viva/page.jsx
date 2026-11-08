@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useRouter } from 'next/navigation';
+import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
 import { Award, BookOpen, Clock, AlertCircle, RefreshCw, BarChart2, Star, CheckCircle, XCircle } from 'lucide-react';
 import PortalSkeleton from '@/components/StudentPortal/PortalSkeleton';
 

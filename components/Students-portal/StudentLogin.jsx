@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react'
-import { useRouter } from "next/navigation";
+import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
 import axios from 'axios'
 import { EmailIcon, LockIcon } from '../../public/Icons';
 import { API_PORT } from '../../Constants';

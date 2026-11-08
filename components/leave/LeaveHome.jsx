@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { Menu, User, ArrowUpRight, X, Home, LayoutDashboard, Calendar, Users, Settings } from 'lucide-react';
-import { useRouter } from "next/navigation";
+import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
 import axios from 'axios';
 import { API_PORT } from '../../Constants';
 import LeaveStatusTable from './LeaveStatusTable';

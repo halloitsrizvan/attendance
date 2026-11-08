@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import Sidebar from '@/components/StudentPortal/Sidebar';
 import Topbar from '@/components/StudentPortal/Topbar';
-import Link from 'next/link';
+import Link from '@/components/navigation/NavigationLink';
 import { usePathname } from 'next/navigation';
 import { Home, CalendarCheck, CalendarDays, Star } from 'lucide-react';
 import { usesCollegeTheme } from '@/lib/uiTheme.mjs';

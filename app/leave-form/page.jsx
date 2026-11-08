@@ -13,7 +13,8 @@ export default async function LeaveFormMain() {
   await dbConnect();
   
   // Pre-fetch all students with strict projection to keep the payload tiny
-  const studentsRaw = await StudentModel.find({})
+  const [studentsRaw, activeYearId] = await Promise.all([
+    StudentModel.find({})
     .select({
       ADNO: 1,
       SL: 1,
@@ -21,12 +22,13 @@ export default async function LeaveFormMain() {
       "SHORT NAME": 1,
       "FULL NAME": 1
     })
-    .lean();
+    .lean(),
+    getActiveAcademicYearId(),
+  ]);
   
   const students = JSON.parse(JSON.stringify(studentsRaw));
 
   // Pre-fetch all current leaves safely for the active session
-  const activeYearId = await getActiveAcademicYearId();
   const leaveQuery = activeYearId ? { academicYearId: activeYearId } : {};
   const leavesRaw = await LeaveModel.find(leaveQuery).sort({ createdAt: -1 }).lean();
   const leaves = JSON.parse(JSON.stringify(leavesRaw));

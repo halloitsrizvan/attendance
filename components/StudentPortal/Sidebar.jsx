@@ -1,7 +1,8 @@
 "use client";
 import React from 'react';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import Link from '@/components/navigation/NavigationLink';
+import { usePathname } from 'next/navigation';
+import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
 import { LogOut, CalendarCheck, CalendarDays, Award, Star, Trophy, LayoutDashboard, User, BookOpen, Sliders } from 'lucide-react';
 import axios from 'axios';
 import { API_PORT } from '@/Constants';

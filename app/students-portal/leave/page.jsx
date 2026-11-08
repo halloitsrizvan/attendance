@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
-import { useRouter } from 'next/navigation';
+import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
 import { CalendarDays, AlertTriangle, Send, Loader2, Upload, X, Clock, FileText, CheckCircle, LayoutGrid } from 'lucide-react';
 import { API_PORT } from '@/Constants';
 import { uploadToCloudinary } from '@/utils/cloudinaryUtils';

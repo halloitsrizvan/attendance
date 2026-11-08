@@ -1,11 +1,11 @@
 "use client";
 
 import React,{useState} from 'react'
-import { useRouter } from "next/navigation";
+import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
 import {EmailIcon,UserIcon,LockIcon} from '@/components/Icons'
 import axios from 'axios'
 import { API_PORT } from '@/Constants'
-import Link from 'next/link'
+import Link from '@/components/navigation/NavigationLink'
   
 function SignupP() {
     const [name, setName] = useState('');
