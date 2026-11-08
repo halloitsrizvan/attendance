@@ -9,7 +9,7 @@ const generateTeacherToken = (teacher) => {
         role: teacher.role || 'teacher',
         subjectsTaught: teacher.subjectsTaught
     }
-    return jwt.sign(payload, secretKey, { expiresIn: '1h' })
+    return jwt.sign(payload, secretKey)
 }
 
 const verifyTeacherToken = (token) => {
