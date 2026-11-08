@@ -62,7 +62,7 @@ export default function AttendanceHeader({ teacher, hasRole, isTestUser, onLogou
     { name: 'Attendance', icon: ClipboardCheck, links: [['/', 'Take Attendance'], ...(hasRole('class_teacher') || hasRole('super_admin') ? [['/complaints', 'Complaints']] : []), ['/class-wise', 'Attendance Status']] },
     { name: 'Leave', icon: CalendarDays, links: [
       ...(canApply ? [['/leave-form', 'Apply Leave']] : []), ['/leave-dashboard', 'Leave Dashboard'],
-      ...(hasAssignedTeacherRole(teacher, 'class_teacher') ? [['/leave-recovery', 'Recovery']] : []),
+      ...(hasAssignedTeacherRole(teacher, 'class_teacher') ? [['/leave-recovery', 'Recovery'], ['/leave-documentation', 'Documentation']] : []),
       ...(hasAssignedTeacherRole(teacher, 'CEPApproval') ? [['/cep-applications', 'CEP Applications']] : []),
     ] },
     { name: 'Zehnuth', icon: Trophy, links: [['/zehnuth/submit-point', 'Submit Point'],
