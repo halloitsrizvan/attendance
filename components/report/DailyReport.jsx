@@ -152,14 +152,14 @@ function DailyReport() {
       if (values.length === 0) return 'bg-slate-50 text-slate-400';
       const hasAbsent = values.some(v => v === 'A');
       const hasPresent = values.some(v => v === 'P');
-      if (hasAbsent) return 'bg-rose-50 text-rose-600 font-bold';
-      if (hasPresent) return 'bg-emerald-50 text-emerald-600 font-bold';
+      if (hasAbsent) return 'bg-rose-50 text-rose-600 font-normal';
+      if (hasPresent) return 'bg-emerald-50 text-emerald-600 font-normal';
       return 'bg-slate-50 text-slate-400';
     }
     const v = day?.[timeSlot];
     if (!v) return 'bg-slate-50 text-slate-400';
-    if (v === 'P') return 'bg-emerald-50 text-emerald-600 font-bold';
-    if (v === 'A') return 'bg-rose-50 text-rose-600 font-bold';
+    if (v === 'P') return 'bg-emerald-50 text-emerald-600 font-normal';
+    if (v === 'A') return 'bg-rose-50 text-rose-600 font-normal';
     return 'bg-slate-50 text-slate-400';
   };
 
@@ -375,8 +375,8 @@ function DailyReport() {
             <FileText size={24} />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Attendance Report</h1>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Generate comprehensive daily records</p>
+            <h1 className="text-2xl font-semibold text-slate-800 tracking-tight">Attendance Report</h1>
+            <p className="text-xs font-normal text-slate-400 uppercase tracking-widest mt-1">Generate comprehensive daily records</p>
           </div>
         </div>
 
@@ -386,33 +386,33 @@ function DailyReport() {
 
             {/* From Date */}
             <div className="col-span-2 sm:col-span-1">
-              <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2">
+              <label className="flex items-center gap-2 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-1 mb-2">
                 <Calendar size={14} className="text-sky-500" /> From Date
               </label>
               <input
                 type="date"
                 value={fromDate}
                 onChange={e => setFromDate(e.target.value)}
-                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all"
+                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-normal text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all"
               />
             </div>
 
             {/* To Date */}
             <div className="col-span-2 sm:col-span-1">
-              <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2">
+              <label className="flex items-center gap-2 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-1 mb-2">
                 <Calendar size={14} className="text-sky-500" /> To Date
               </label>
               <input
                 type="date"
                 value={toDate}
                 onChange={e => setToDate(e.target.value)}
-                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all"
+                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-normal text-slate-700 focus:border-sky-400 focus:bg-white outline-none transition-all"
               />
             </div>
 
             {/* Class (Optional) */}
             <div className="col-span-1">
-              <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2">
+              <label className="flex items-center gap-2 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-1 mb-2">
                 <Users size={14} className="text-emerald-500" /> Class <span className="text-slate-300 font-normal lowercase tracking-normal">(Optional)</span>
               </label>
               <input
@@ -420,19 +420,19 @@ function DailyReport() {
                 placeholder="All Classes"
                 value={classNumber}
                 onChange={e => setClassNumber(e.target.value)}
-                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-emerald-400 focus:bg-white outline-none transition-all placeholder:text-slate-300 placeholder:font-medium"
+                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-normal text-slate-700 focus:border-emerald-400 focus:bg-white outline-none transition-all placeholder:text-slate-300 placeholder:font-medium"
               />
             </div>
 
             {/* Attendance Time (Optional, select multiple) */}
             <div className="col-span-1 relative" ref={timeDropdownRef}>
-              <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2">
+              <label className="flex items-center gap-2 text-[10px] font-medium text-slate-400 uppercase tracking-widest px-1 mb-2">
                 <Clock size={14} className="text-amber-500" /> Time <span className="text-slate-300 font-normal lowercase tracking-normal">(Select Multiple)</span>
               </label>
               <button
                 type="button"
                 onClick={() => setIsTimeDropdownOpen(!isTimeDropdownOpen)}
-                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-bold text-slate-700 focus:border-amber-400 focus:bg-white outline-none transition-all cursor-pointer flex justify-between items-center text-left"
+                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-sm font-normal text-slate-700 focus:border-amber-400 focus:bg-white outline-none transition-all cursor-pointer flex justify-between items-center text-left"
               >
                 <span className="truncate">
                   {attendanceTimes.length === 0
@@ -455,14 +455,14 @@ function DailyReport() {
                     <button
                       type="button"
                       onClick={() => setAttendanceTimes([])}
-                      className="text-[10px] font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-wider px-2 py-1 hover:bg-slate-50 rounded-lg"
+                      className="text-[10px] font-normal text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-wider px-2 py-1 hover:bg-slate-50 rounded-lg"
                     >
                       Clear All
                     </button>
                     <button
                       type="button"
                       onClick={() => setAttendanceTimes(['Morning', 'Afternoon', 'Night', 'Period', 'Jamath', 'Quiraath'])}
-                      className="text-[10px] font-bold text-slate-500 hover:text-slate-700 transition-colors uppercase tracking-wider px-2 py-1 hover:bg-slate-50 rounded-lg"
+                      className="text-[10px] font-normal text-slate-500 hover:text-slate-700 transition-colors uppercase tracking-wider px-2 py-1 hover:bg-slate-50 rounded-lg"
                     >
                       Select All
                     </button>
@@ -486,7 +486,7 @@ function DailyReport() {
                           }}
                           className="w-4 h-4 rounded border-slate-300 text-amber-500 focus:ring-amber-500 cursor-pointer"
                         />
-                        <span className={`text-sm font-bold transition-colors ${isChecked ? 'text-amber-600 font-extrabold' : 'text-slate-600'}`}>
+                        <span className={`text-sm font-normal transition-colors ${isChecked ? 'text-amber-600 font-medium' : 'text-slate-600'}`}>
                           {time}
                         </span>
                       </label>
@@ -498,7 +498,7 @@ function DailyReport() {
           </div>
 
           {error && (
-            <div className="mt-6 flex items-center gap-2 text-rose-600 bg-rose-50 px-4 py-3 rounded-xl text-sm font-bold">
+            <div className="mt-6 flex items-center gap-2 text-rose-600 bg-rose-50 px-4 py-3 rounded-xl text-sm font-normal">
               <AlertCircle size={16} /> {error}
             </div>
           )}
@@ -508,7 +508,7 @@ function DailyReport() {
             <button
               onClick={handleFetch}
               disabled={loading || !fromDate || !toDate}
-              className="w-full sm:w-auto flex-1 bg-sky-500 hover:bg-sky-400 text-white font-black text-sm uppercase tracking-widest py-4 px-8 rounded-2xl shadow-lg shadow-sky-500/30 transition-all hover:shadow-sky-500/50 active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3"
+              className="w-full sm:w-auto flex-1 bg-sky-500 hover:bg-sky-400 text-white font-medium text-sm uppercase tracking-widest py-4 px-8 rounded-2xl shadow-lg shadow-sky-500/30 transition-all hover:shadow-sky-500/50 active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3"
             >
               <Search size={18} /> Generate Report
             </button>
@@ -518,13 +518,13 @@ function DailyReport() {
                 <>
                   <button
                     onClick={handleDownloadExcel}
-                    className="flex-1 sm:flex-none bg-emerald-500 hover:bg-emerald-400 text-white font-black text-sm uppercase tracking-widest py-4 px-6 rounded-2xl shadow-lg shadow-emerald-500/30 transition-all hover:shadow-emerald-500/50 active:scale-[0.98] flex items-center justify-center gap-2"
+                    className="flex-1 sm:flex-none bg-emerald-500 hover:bg-emerald-400 text-white font-medium text-sm uppercase tracking-widest py-4 px-6 rounded-2xl shadow-lg shadow-emerald-500/30 transition-all hover:shadow-emerald-500/50 active:scale-[0.98] flex items-center justify-center gap-2"
                   >
                     <FileSpreadsheet size={18} /> Excel
                   </button>
                   <button
                     onClick={handleDownloadPDF}
-                    className="flex-1 sm:flex-none bg-rose-500 hover:bg-rose-400 text-white font-black text-sm uppercase tracking-widest py-4 px-6 rounded-2xl shadow-lg shadow-rose-500/30 transition-all hover:shadow-rose-500/50 active:scale-[0.98] flex items-center justify-center gap-2"
+                    className="flex-1 sm:flex-none bg-rose-500 hover:bg-rose-400 text-white font-medium text-sm uppercase tracking-widest py-4 px-6 rounded-2xl shadow-lg shadow-rose-500/30 transition-all hover:shadow-rose-500/50 active:scale-[0.98] flex items-center justify-center gap-2"
                   >
                     <Download size={18} /> PDF
                   </button>
@@ -556,11 +556,11 @@ function DailyReport() {
             <div className="overflow-x-auto p-1">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                    <th className="p-2 border-b-2 border-r-2 border-white rounded-tl-xl text-center w-8">SL</th>
-                    <th className="p-2 border-b-2 border-r-2 border-white w-12">AD</th>
-                    <th className="p-2 border-b-2 border-r-2 border-white min-w-[120px]">Name</th>
-                    <th className="p-2 border-b-2 border-r-2 border-white text-center w-12">Class</th>
+                  <tr className="bg-slate-50 text-[10px] font-medium uppercase tracking-widest text-slate-500">
+                    <th className="font-medium p-2 border-b-2 border-r-2 border-white rounded-tl-xl text-center w-8">SL</th>
+                    <th className="font-medium p-2 border-b-2 border-r-2 border-white w-12">AD</th>
+                    <th className="font-medium p-2 border-b-2 border-r-2 border-white min-w-[120px]">Name</th>
+                    <th className="font-medium p-2 border-b-2 border-r-2 border-white text-center w-12">Class</th>
 
                     {usedDates.map(date => {
                       const slots = timeSlotsByDate[date] || [];
@@ -572,9 +572,9 @@ function DailyReport() {
                       const displayDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
                       return (
-                        <th key={date} className="p-0 border-b-2 border-r-2 border-white text-center text-sky-600 bg-sky-50" colSpan={totalCols}>
+                        <th key={date} className="font-medium p-0 border-b-2 border-r-2 border-white text-center text-sky-600 bg-sky-50" colSpan={totalCols}>
                           <div className="flex items-center justify-center h-32 py-2">
-                            <span className="[writing-mode:vertical-rl] rotate-180 whitespace-nowrap text-[10px] font-black uppercase tracking-widest">
+                            <span className="[writing-mode:vertical-rl] rotate-180 whitespace-nowrap text-[10px] font-medium uppercase tracking-widest">
                               {displayDate}
                             </span>
                           </div>
@@ -582,13 +582,13 @@ function DailyReport() {
                       );
                     })}
 
-                    <th className="p-2 border-b-2 border-r-2 border-white text-center text-emerald-600 bg-emerald-50 w-12">Tot P</th>
-                    <th className="p-2 border-b-2 border-white rounded-tr-xl text-center text-rose-600 bg-rose-50 w-12">Tot A</th>
+                    <th className="font-medium p-2 border-b-2 border-r-2 border-white text-center text-emerald-600 bg-emerald-50 w-12">Tot P</th>
+                    <th className="font-medium p-2 border-b-2 border-white rounded-tr-xl text-center text-rose-600 bg-rose-50 w-12">Tot A</th>
                   </tr>
 
                   {usedDates.length > 0 && (
-                    <tr className="bg-slate-50/50 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
-                      <th colSpan={4} className="border-r-2 border-white bg-slate-50"></th>
+                    <tr className="bg-slate-50/50 text-[10px] font-medium uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                      <th colSpan={4} className="font-medium border-r-2 border-white bg-slate-50"></th>
                       {usedDates.map(date => {
                         const slots = timeSlotsByDate[date] || [];
                         const periodNumbers = getPeriodNumbersForDate(date);
@@ -601,7 +601,7 @@ function DailyReport() {
                                 return (
                                   <React.Fragment key={timeSlot}>
                                     {periodNumbers.map(periodNum => (
-                                      <th key={`${timeSlot}-${periodNum}`} className="px-1 py-2 border-r-2 border-white text-center min-w-[24px]">
+                                      <th key={`${timeSlot}-${periodNum}`} className="font-medium px-1 py-2 border-r-2 border-white text-center min-w-[24px]">
                                         P{periodNum}
                                       </th>
                                     ))}
@@ -609,7 +609,7 @@ function DailyReport() {
                                 );
                               } else {
                                 return (
-                                  <th key={timeSlot} className="px-1 py-2 border-r-2 border-white text-center min-w-[24px]">
+                                  <th key={timeSlot} className="font-medium px-1 py-2 border-r-2 border-white text-center min-w-[24px]">
                                     {timeSlot.substring(0, 3)}
                                   </th>
                                 );
@@ -618,17 +618,17 @@ function DailyReport() {
                           </React.Fragment>
                         );
                       })}
-                      <th colSpan={2} className="bg-slate-50"></th>
+                      <th colSpan={2} className="font-medium bg-slate-50"></th>
                     </tr>
                   )}
                 </thead>
                 <tbody className="text-sm font-medium">
                   {data.map((r, i) => (
                     <tr key={`${r.ad}-${r.class}`} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
-                      <td className="p-2 border-r-2 border-white text-center text-slate-400 font-bold text-[10px]">{i + 1}</td>
-                      <td className="p-2 border-r-2 border-white text-slate-600 font-bold text-xs">{r.ad}</td>
-                      <td className="p-2 border-r-2 border-white text-slate-800 font-bold text-xs truncate max-w-[150px]">{r.nameOfStd}</td>
-                      <td className="p-2 border-r-2 border-white text-center text-slate-600 font-bold bg-slate-50/50 rounded-lg text-xs">{r.class}</td>
+                      <td className="p-2 border-r-2 border-white text-center text-slate-400 font-normal text-[10px]">{i + 1}</td>
+                      <td className="p-2 border-r-2 border-white text-slate-600 font-normal text-xs">{r.ad}</td>
+                      <td className="p-2 border-r-2 border-white text-slate-800 font-normal text-xs truncate max-w-[150px]">{r.nameOfStd}</td>
+                      <td className="p-2 border-r-2 border-white text-center text-slate-600 font-normal bg-slate-50/50 rounded-lg text-xs">{r.class}</td>
 
                       {usedDates.map(date => {
                         const day = r.dailyAttendance?.find(d => d.date === date);
@@ -654,8 +654,8 @@ function DailyReport() {
                                     {periodNumbers.map(periodNum => {
                                       const periodValue = day?.Period?.[periodNum] || '-';
                                       let bg = 'bg-slate-50 text-slate-400';
-                                      if (periodValue === 'P') bg = 'bg-emerald-50 text-emerald-600 font-bold';
-                                      if (periodValue === 'A') bg = 'bg-rose-50 text-rose-600 font-bold';
+                                      if (periodValue === 'P') bg = 'bg-emerald-50 text-emerald-600 font-normal';
+                                      if (periodValue === 'A') bg = 'bg-rose-50 text-rose-600 font-normal';
 
                                       return (
                                         <td
@@ -686,8 +686,8 @@ function DailyReport() {
                         );
                       })}
 
-                      <td className="p-2 border-r-2 border-white text-center font-black text-emerald-600 bg-emerald-50/50 rounded-lg text-xs">{r.present}</td>
-                      <td className="p-2 text-center font-black text-rose-600 bg-rose-50/50 rounded-lg text-xs">{r.absent}</td>
+                      <td className="p-2 border-r-2 border-white text-center font-semibold text-emerald-600 bg-emerald-50/50 rounded-lg text-xs">{r.present}</td>
+                      <td className="p-2 text-center font-semibold text-rose-600 bg-rose-50/50 rounded-lg text-xs">{r.absent}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -699,7 +699,7 @@ function DailyReport() {
             <div className="w-20 h-20 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-4">
               <FileText size={32} />
             </div>
-            <p className="text-slate-400 font-bold tracking-wide">No records found for selected criteria.</p>
+            <p className="text-slate-400 font-normal tracking-wide">No records found for selected criteria.</p>
             <p className="text-sm text-slate-400 mt-2">Try adjusting dates or removing class filters.</p>
           </div>
         )}
@@ -722,9 +722,9 @@ function DailyReport() {
                   {selectedEntry.status === 'Present' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-slate-800 tracking-tight">Attendance Detail</h3>
+                  <h3 className="text-lg font-semibold text-slate-800 tracking-tight">Attendance Detail</h3>
                   <div className="flex items-center gap-2">
-                    <span className={`text-[10px] font-black uppercase tracking-widest ${selectedEntry.status === 'Present' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    <span className={`text-[10px] font-medium uppercase tracking-widest ${selectedEntry.status === 'Present' ? 'text-emerald-600' : 'text-rose-600'}`}>
                       Currently {selectedEntry.status}
                     </span>
                   </div>
@@ -767,7 +767,7 @@ function DailyReport() {
                 {selectedEntry.status === 'Absent' && (
                   <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100/50">
                     <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest block mb-1">On Leave</label>
-                    <p className={`font-bold ${selectedEntry.onLeave ? 'text-amber-600' : 'text-slate-500'}`}>
+                    <p className={`font-normal ${selectedEntry.onLeave ? 'text-amber-600' : 'text-slate-500'}`}>
                       {selectedEntry.onLeave ? 'true' : 'false'}
                     </p>
                   </div>
@@ -775,7 +775,7 @@ function DailyReport() {
               </div>
 
               <div className="space-y-3 pt-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block px-1 text-center">Change Attendance Status To</label>
+                <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest block px-1 text-center">Change Attendance Status To</label>
                 <div className="grid grid-cols-2 gap-4">
                   <button
                     disabled={updating || selectedEntry.status === 'Present'}
@@ -785,7 +785,7 @@ function DailyReport() {
                         handleStatusUpdate('Present')
                       }
                     }}
-                    className={`p-4 rounded-2xl font-black text-xs uppercase tracking-widest border-2 transition-all flex flex-col items-center gap-2 ${selectedEntry.status === 'Present'
+                    className={`p-4 rounded-2xl font-medium text-xs uppercase tracking-widest border-2 transition-all flex flex-col items-center gap-2 ${selectedEntry.status === 'Present'
                       ? 'border-emerald-500 bg-emerald-50 text-emerald-600'
                       : 'border-slate-100 bg-white text-slate-400 hover:border-emerald-400 hover:text-emerald-500'
                       }`}
@@ -803,7 +803,7 @@ function DailyReport() {
                         handleStatusUpdate('Absent')
                       }
                     }}
-                    className={`p-4 rounded-2xl font-black text-xs uppercase tracking-widest border-2 transition-all flex flex-col items-center gap-2 ${selectedEntry.status === 'Absent'
+                    className={`p-4 rounded-2xl font-medium text-xs uppercase tracking-widest border-2 transition-all flex flex-col items-center gap-2 ${selectedEntry.status === 'Absent'
                       ? 'border-rose-500 bg-rose-50 text-rose-600'
                       : 'border-slate-100 bg-white text-slate-400 hover:border-rose-400 hover:text-rose-500'
                       }`}
@@ -822,7 +822,7 @@ function DailyReport() {
               <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex items-center justify-center z-10">
                 <div className="flex flex-col items-center gap-3">
                   <div className="w-10 h-10 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
-                  <p className="text-xs font-black text-sky-600 uppercase tracking-widest">Updating...</p>
+                  <p className="text-xs font-medium text-sky-600 uppercase tracking-widest">Updating...</p>
                 </div>
               </div>
             )}

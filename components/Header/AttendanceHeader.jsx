@@ -1,19 +1,44 @@
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import Link from '@/components/navigation/NavigationLink';
 import { useNavigationRouter as useRouter } from '@/components/navigation/NavigationProvider';
 import { Menu, X, ArrowLeft, ChevronDown, ClipboardCheck, CalendarDays, Trophy, Settings, LogOut } from 'lucide-react';
 import styles from './AttendanceHeader.module.css';
 import { hasAssignedTeacherRole } from '@/lib/teacherPermissions.mjs';
 
-export default function AttendanceHeader({ teacher, hasRole, isTestUser, onLogout }) {
+export default function AttendanceHeader({ teacher, hasRole, isTestUser, onLogout, admin = false }) {
+  const pathname = usePathname();
+  const desktopNav = useRef(null);
+  const [desktopGroup, setDesktopGroup] = useState(null);
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState('Attendance');
   const trigger = useRef(null);
   const panel = useRef(null);
   const router = useRouter();
   const close = () => { setOpen(false); trigger.current?.focus(); };
+  useEffect(() => {
+    setDesktopGroup(null);
+  }, [pathname]);
+  useEffect(() => {
+    if (!desktopGroup) return;
+    const dismiss = event => {
+      if (!desktopNav.current?.contains(event.target)) setDesktopGroup(null);
+    };
+    const escape = event => {
+      if (event.key === 'Escape') {
+        desktopNav.current?.querySelector('[aria-expanded="true"]')?.focus();
+        setDesktopGroup(null);
+      }
+    };
+    document.addEventListener('pointerdown', dismiss);
+    document.addEventListener('keydown', escape);
+    return () => {
+      document.removeEventListener('pointerdown', dismiss);
+      document.removeEventListener('keydown', escape);
+    };
+  }, [desktopGroup]);
   useEffect(() => {
     if (!open) return;
     const previous = document.body.style.overflow;
@@ -45,14 +70,22 @@ export default function AttendanceHeader({ teacher, hasRole, isTestUser, onLogou
       ['/zehnuth/leaderboard', 'Student Leaderboard'],
       ['/zehnuth/mentees-requests', "Mentees' Requests"], ['/zehnuth/points', "My Mentees' Points"],
     ] },
-    ...(hasRole('super_admin') ? [{ name: 'Admin', icon: Settings, links: [['/students-management', 'Students'], ['/teachers-management', 'Teachers'], ['/attendance-report', 'Attendance Report'], ['/admin-complaints', 'Attendance Complaints'], ['/report', 'Deduction Report'], ['/minus-report', 'Minus Report'], ['/medical-report', 'Medical Report'], ['/leave-docs', 'Leave Documentation'], ['/settings', 'Settings']] }] : []),
+    ...(hasRole('super_admin') ? [{ name: 'Admin', icon: Settings, links: [['/students-management', 'Students'], ['/teachers-management', 'Teachers'], ['/attendance-report', 'Attendance Report'], ['/admin-complaints', 'Attendance Complaints'], ['/report', 'Deduction Report'], ['/leave-docs', 'Leave Documentation'], ['/settings', 'Settings'], ['/medical-report', 'Medical Report'], ['/minus-report', 'Minus Report']] }] : []),
   ];
   const initials = (teacher?.name || 'Teacher').slice(0, 2).toUpperCase();
   return <>
-    <header className={styles.header}>
+    <header className={`${styles.header} ${admin ? styles.adminHeader : ''}`}>
       <div className={styles.bar}>
         <button ref={trigger} className={styles.menu} aria-label="Open navigation" aria-expanded={open} aria-controls="attendance-navigation" onClick={() => setOpen(true)}><Menu size={19} /></button>
         <span className={styles.brand} aria-hidden="true" />
+        {admin && <nav ref={desktopNav} className={styles.desktopNav} aria-label="Admin navigation" onBlur={event => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setDesktopGroup(null);
+        }}>{groups.map(({ name, icon: Icon, links }) => <div className={styles.desktopGroup} key={name} onMouseEnter={() => setDesktopGroup(name)} onMouseLeave={event => {
+          if (!event.currentTarget.contains(document.activeElement)) setDesktopGroup(null);
+        }}>
+          <button className={`${styles.desktopButton} ${links.some(([href]) => href === pathname) ? styles.currentGroup : ''}`} aria-expanded={desktopGroup === name} aria-controls={`desktop-navigation-${name}`} onClick={() => setDesktopGroup(desktopGroup === name ? null : name)}><Icon size={17} />{name}<ChevronDown size={15} className={desktopGroup === name ? styles.rotated : ''} /></button>
+          {desktopGroup === name && <div id={`desktop-navigation-${name}`} className={styles.desktopLinks}>{links.map(([href, label]) => <Link key={href} href={href} prefetch={false} aria-current={pathname === href ? 'page' : undefined} onClick={() => setDesktopGroup(null)}>{label}</Link>)}</div>}
+        </div>)}</nav>}
         <button className={styles.back} aria-label="Go back" onClick={() => router.back()}><ArrowLeft size={17} /></button>
         <button className={styles.avatar} aria-label="Open account and navigation" onClick={() => setOpen(true)}>{initials}</button>
       </div>

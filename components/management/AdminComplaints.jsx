@@ -204,26 +204,26 @@ const AdminComplaints = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-800 p-4 sm:p-8 mt-16 font-sans">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-800 p-4 sm:p-5 mt-16 font-sans">
+      <div className="max-w-7xl mx-auto space-y-4">
 
         {/* Page Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 sm:p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-100">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-rose-50 text-rose-600 flex items-center justify-center rounded-2xl shadow-inner font-black">
+            <div className="w-10 h-10 bg-rose-50 text-rose-600 flex items-center justify-center rounded-2xl shadow-inner font-semibold">
               <ShieldAlert size={28} />
             </div>
             <div>
               <div className="flex items-center gap-2.5">
-                <h1 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">
+                <h1 className="text-xl sm:text-2xl font-semibold text-slate-800 tracking-tight">
                   Attendance Complaints
                 </h1>
-                <span className="bg-rose-100 text-rose-600 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full">
+                <span className="bg-rose-100 text-rose-600 text-[10px] font-semibold uppercase tracking-widest px-2.5 py-1 rounded-full">
                   Admin Panel
                 </span>
               </div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
-                Institutional attendance dispute review & one-click corrections
+              <p className="text-xs font-medium text-slate-400 uppercase tracking-widest mt-1">
+                Institutional attendance complaints
               </p>
             </div>
           </div>
@@ -232,7 +232,7 @@ const AdminComplaints = () => {
             {/* Session Scope Toggle */}
             <button
               onClick={() => setAllSessions(prev => !prev)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all border ${allSessions
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-semibold uppercase tracking-wider transition-all border ${allSessions
                   ? 'bg-purple-50 text-purple-600 border-purple-200 shadow-sm'
                   : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                 }`}
@@ -246,7 +246,7 @@ const AdminComplaints = () => {
             <button
               onClick={handleRefresh}
               disabled={loading || refreshing}
-              className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-900 text-white font-black text-xs uppercase tracking-widest py-2.5 px-5 rounded-2xl shadow-sm transition-all active:scale-95 disabled:opacity-50"
+              className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-900 text-white font-semibold text-xs uppercase tracking-widest py-2.5 px-5 rounded-2xl shadow-sm transition-all active:scale-95 disabled:opacity-50"
             >
               <RefreshCw size={14} className={refreshing || loading ? "animate-spin" : ""} />
               Refresh
@@ -258,7 +258,7 @@ const AdminComplaints = () => {
         <div className="flex items-center p-1.5 bg-white rounded-2xl border border-slate-100 shadow-sm w-full sm:w-auto self-start gap-1">
           <button
             onClick={() => setViewMode('disputes')}
-            className={`flex-1 sm:flex-none px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 ${
+            className={`flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 ${
               viewMode === 'disputes'
                 ? 'bg-slate-900 text-white shadow-md'
                 : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
@@ -267,7 +267,7 @@ const AdminComplaints = () => {
             <ShieldAlert size={16} className={viewMode === 'disputes' ? 'text-rose-400' : 'text-slate-400'} />
             <span>Individual Complaints</span>
             {stats.pending > 0 && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500 text-white">
                 {stats.pending}
               </span>
             )}
@@ -275,7 +275,7 @@ const AdminComplaints = () => {
 
           <button
             onClick={() => setViewMode('common')}
-            className={`flex-1 sm:flex-none px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 ${
+            className={`flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 ${
               viewMode === 'common'
                 ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
                 : 'text-slate-500 hover:text-amber-600 hover:bg-slate-50'
@@ -283,11 +283,7 @@ const AdminComplaints = () => {
           >
             <Users size={16} />
             <span>Common Attendance Complaints</span>
-            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${
-              viewMode === 'common' ? 'bg-white/20 text-white' : 'bg-amber-50 text-amber-700'
-            }`}>
-              Batch Mode
-            </span>
+            
           </button>
         </div>
 
@@ -297,7 +293,7 @@ const AdminComplaints = () => {
         ) : (
           <>
             {/* Filter & Controls Panel */}
-            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 space-y-4">
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-4">
           <div className="flex flex-col md:flex-row gap-4 justify-between items-stretch md:items-center">
 
             {/* Search Input */}
@@ -308,7 +304,7 @@ const AdminComplaints = () => {
                 placeholder="Search student, ADNO, teacher, or complaint message..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3.5 pl-12 text-sm font-bold text-slate-700 focus:border-rose-400 focus:bg-white outline-none transition-all placeholder:text-slate-300"
+                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-3.5 pl-12 text-sm font-medium text-slate-700 focus:border-rose-400 focus:bg-white outline-none transition-all placeholder:text-slate-300"
               />
               {searchQuery && (
                 <button
@@ -327,7 +323,7 @@ const AdminComplaints = () => {
                 <select
                   value={selectedClass}
                   onChange={(e) => setSelectedClass(e.target.value)}
-                  className="w-full appearance-none bg-slate-50 border-2 border-slate-50 rounded-2xl py-3 px-4 pr-9 text-xs font-bold text-slate-700 focus:border-rose-400 outline-none transition-all cursor-pointer"
+                  className="w-full appearance-none bg-slate-50 border-2 border-slate-50 rounded-2xl py-3 px-4 pr-9 text-xs font-medium text-slate-700 focus:border-rose-400 outline-none transition-all cursor-pointer"
                 >
                   <option value="All">All Classes</option>
                   {availableClasses.map(c => (
@@ -342,7 +338,7 @@ const AdminComplaints = () => {
                 <select
                   value={selectedClaim}
                   onChange={(e) => setSelectedClaim(e.target.value)}
-                  className="w-full appearance-none bg-slate-50 border-2 border-slate-50 rounded-2xl py-3 px-4 pr-9 text-xs font-bold text-slate-700 focus:border-rose-400 outline-none transition-all cursor-pointer"
+                  className="w-full appearance-none bg-slate-50 border-2 border-slate-50 rounded-2xl py-3 px-4 pr-9 text-xs font-medium text-slate-700 focus:border-rose-400 outline-none transition-all cursor-pointer"
                 >
                   <option value="All">All Claims</option>
                   <option value="Present">Claimed Present</option>
@@ -368,13 +364,13 @@ const AdminComplaints = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${isSelected
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all ${isSelected
                       ? 'bg-slate-800 text-white shadow-md shadow-slate-900/10 scale-[1.02]'
                       : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
                     }`}
                 >
                   <span>{tab.label}</span>
-                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-black ${isSelected ? 'bg-white/20 text-white' : tab.color
+                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold ${isSelected ? 'bg-white/20 text-white' : tab.color
                     }`}>
                     {tab.count}
                   </span>
@@ -386,17 +382,17 @@ const AdminComplaints = () => {
 
         {/* Complaints Listing */}
         {loading ? (
-          <div className="bg-white rounded-[2.5rem] p-16 text-center border border-slate-100 shadow-sm space-y-4">
+          <div className="bg-white rounded-2xl p-8 text-center border border-slate-100 shadow-sm space-y-4">
             <div className="w-12 h-12 border-4 border-rose-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">Loading attendance complaints...</p>
+            <p className="text-slate-400 font-normal uppercase text-xs tracking-widest">Loading attendance complaints...</p>
           </div>
         ) : filteredComplaints.length === 0 ? (
-          <div className="bg-white rounded-[2.5rem] p-16 text-center border border-slate-100 shadow-sm space-y-3">
+          <div className="bg-white rounded-2xl p-8 text-center border border-slate-100 shadow-sm space-y-3">
             <div className="w-16 h-16 bg-slate-50 flex items-center justify-center rounded-3xl mx-auto text-slate-300">
               <Filter size={32} />
             </div>
-            <h3 className="text-lg font-black text-slate-800 tracking-tight">No Complaints Found</h3>
-            <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">
+            <h3 className="text-lg font-semibold text-slate-800 tracking-tight">No Complaints Found</h3>
+            <p className="text-slate-400 font-normal uppercase text-[10px] tracking-widest">
               There are no dispute records matching the current filters.
             </p>
           </div>
@@ -413,7 +409,7 @@ const AdminComplaints = () => {
               return (
                 <div
                   key={complaint._id}
-                  className={`bg-white rounded-[2rem] p-6 shadow-sm border transition-all hover:shadow-md ${isPending
+                  className={`bg-white rounded-2xl p-4 shadow-sm border transition-all hover:shadow-md ${isPending
                       ? 'border-amber-200/80 bg-gradient-to-r from-amber-500/[0.02] to-white'
                       : 'border-slate-100'
                     }`}
@@ -421,19 +417,19 @@ const AdminComplaints = () => {
                   <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 pb-4 border-b border-slate-50">
                     {/* Student Info */}
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 font-black text-lg flex items-center justify-center shrink-0 shadow-inner">
+                      <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 font-semibold text-lg flex items-center justify-center shrink-0 shadow-inner">
                         {(student["FULL NAME"] || 'S').slice(0, 2).toUpperCase()}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="text-base font-black text-slate-800 tracking-tight">
+                          <h3 className="text-base font-semibold text-slate-800 tracking-tight">
                             {student["FULL NAME"] || 'Unknown Student'}
                           </h3>
-                          <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md text-[10px] font-black">
+                          <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md text-[10px] font-semibold">
                             Class {student.CLASS || attendance?.class || '—'}
                           </span>
                         </div>
-                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                        <p className="text-[11px] font-medium text-slate-400 uppercase tracking-widest mt-0.5">
                           ADNO: {student.ADNO || '—'} • Filed {formatDate(complaint.createdAt)}
                         </p>
                       </div>
@@ -441,7 +437,7 @@ const AdminComplaints = () => {
 
                     {/* Status Badge & Super Admin Action Buttons */}
                     <div className="flex flex-wrap items-center gap-2 self-end lg:self-auto">
-                      {/* <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${isPending
+                      {/* <span className={`px-3 py-1.5 rounded-xl text-[10px] font-semibold uppercase tracking-widest border ${isPending
                           ? 'bg-amber-50 text-amber-700 border-amber-200'
                           : isResolved
                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
@@ -454,13 +450,13 @@ const AdminComplaints = () => {
                         <>
                           <button
                             onClick={() => openDecisionModal(complaint, 'Resolved')}
-                            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-sm shadow-emerald-500/30 active:scale-95"
+                            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-semibold uppercase tracking-wider transition-all shadow-sm shadow-emerald-500/30 active:scale-95"
                           >
                             <CheckCircle size={14} /> Approve & Correct
                           </button>
                           <button
                             onClick={() => openDecisionModal(complaint, 'Rejected')}
-                            className="flex items-center gap-1.5 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95"
+                            className="flex items-center gap-1.5 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all active:scale-95"
                           >
                             <XCircle size={14} /> Reject
                           </button>
@@ -468,7 +464,7 @@ const AdminComplaints = () => {
                       ) : (
                         <button
                           onClick={() => openDecisionModal(complaint, isResolved ? 'Rejected' : 'Resolved')}
-                          className="flex items-center gap-1 px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
+                          className="flex items-center gap-1 px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all"
                         >
                           Change to {isResolved ? 'Rejected' : 'Resolved'}
                         </button>
@@ -487,20 +483,20 @@ const AdminComplaints = () => {
                   {/* Disputed Attendance Context Banner */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 my-4 bg-slate-50/80 p-4 rounded-2xl border border-slate-100 text-xs">
                     <div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-0.5">Session Date</span>
-                      <div className="flex items-center gap-1.5 font-bold text-slate-700">
+                      <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 block mb-0.5">Session Date</span>
+                      <div className="flex items-center gap-1.5 font-medium text-slate-700">
                         <Calendar size={14} className="text-sky-500" />
                         {formatDate(attendance?.attendanceDate || complaint.createdAt)}
                       </div>
                     </div>
 
                     <div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-0.5">Time / Period</span>
-                      <div className="flex items-center gap-1.5 font-bold text-slate-700">
+                      <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 block mb-0.5">Time / Period</span>
+                      <div className="flex items-center gap-1.5 font-medium text-slate-700">
                         <Clock3 size={14} className="text-amber-500" />
                         {attendance?.attendanceTime || 'Period'}
                         {attendance?.period && (
-                          <span className="bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded text-[10px] font-black">
+                          <span className="bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded text-[10px] font-semibold">
                             P{attendance.period}
                           </span>
                         )}
@@ -508,17 +504,17 @@ const AdminComplaints = () => {
                     </div>
 
                     <div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-0.5">Marked Status</span>
-                      <div className="flex items-center gap-2 font-bold flex-wrap">
-                        <span className="px-2 py-0.5 rounded bg-rose-100 text-rose-700 font-black text-[10px] uppercase">
+                      <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 block mb-0.5">Marked Status</span>
+                      <div className="flex items-center gap-2 font-medium flex-wrap">
+                        <span className="px-2 py-0.5 rounded bg-rose-100 text-rose-700 font-semibold text-[10px] uppercase">
                           {attendance?.status || 'Absent'}
                         </span>
                         <ArrowRight size={12} className="text-slate-400" />
-                        <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 font-black text-[10px] uppercase">
+                        <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 font-semibold text-[10px] uppercase">
                           Claims: {complaint.actualStatus}
                         </span>
                         {(complaint.isMedical || complaint.message?.toLowerCase().includes('[medical leave]')) && (
-                          <span className="px-2 py-0.5 rounded bg-rose-50 text-rose-600 border border-rose-200 font-black text-[10px] uppercase flex items-center gap-1">
+                          <span className="px-2 py-0.5 rounded bg-rose-50 text-rose-600 border border-rose-200 font-semibold text-[10px] uppercase flex items-center gap-1">
                             <HeartPulse size={10} /> [Medical Leave]
                           </span>
                         )}
@@ -526,8 +522,8 @@ const AdminComplaints = () => {
                     </div>
 
                     <div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-0.5">Recorded By Faculty</span>
-                      <div className="flex items-center gap-1.5 font-bold text-slate-700 truncate">
+                      <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 block mb-0.5">Recorded By Faculty</span>
+                      <div className="flex items-center gap-1.5 font-medium text-slate-700 truncate">
                         <User size={14} className="text-slate-400" />
                         <span className="truncate">{teacher?.name || 'General Faculty'}</span>
                       </div>
@@ -537,15 +533,15 @@ const AdminComplaints = () => {
                   {/* Student Complaint Message */}
                   <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-1.5">
                     {(complaint.isMedical || complaint.message?.toLowerCase().includes('[medical leave]')) && (
-                      <div className="inline-flex items-center gap-1 bg-rose-100 text-rose-700 px-2 py-0.5 rounded text-[9px] font-black uppercase">
+                      <div className="inline-flex items-center gap-1 bg-rose-100 text-rose-700 px-2 py-0.5 rounded text-[9px] font-semibold uppercase">
                         <HeartPulse size={10} /> Medical Leave Claim
                       </div>
                     )}
                     <div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1">
+                      <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 block mb-1">
                         Student's Reason / Explanation:
                       </span>
-                      <p className="text-sm font-bold text-slate-700 italic">
+                      <p className="text-sm font-medium text-slate-700 italic">
                         "{(complaint.message || 'No detailed explanation provided.').replace(/^\[Medical Leave\]\s*/i, '').replace(/^\[Medical\]\s*/i, '')}"
                       </p>
                     </div>
@@ -556,10 +552,10 @@ const AdminComplaints = () => {
                     <div className="mt-3 p-3.5 bg-emerald-50/70 rounded-2xl border border-emerald-100 flex items-start gap-2">
                       <CheckCircle2 size={16} className="text-emerald-500 mt-0.5 shrink-0" />
                       <div>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 block">
+                        <span className="text-[10px] font-semibold uppercase tracking-widest text-emerald-600 block">
                           Admin Resolution Note:
                         </span>
-                        <p className="text-xs font-bold text-emerald-800 italic mt-0.5">
+                        <p className="text-xs font-medium text-emerald-800 italic mt-0.5">
                           "{complaint.adminRemark}"
                         </p>
                       </div>
@@ -581,20 +577,20 @@ const AdminComplaints = () => {
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
             onClick={closeDecisionModal}
           />
-          <div className="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden transform transition-all animate-in fade-in zoom-in-95 duration-200">
+          <div className="relative bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-100 overflow-hidden transform transition-all animate-in fade-in zoom-in-95 duration-200">
 
             {/* Modal Header */}
-            <div className={`p-6 sm:p-8 text-white relative ${decisionStatus === 'Resolved' ? 'bg-emerald-600' : 'bg-rose-600'
+            <div className={`p-4 sm:p-5 text-white relative ${decisionStatus === 'Resolved' ? 'bg-emerald-600' : 'bg-rose-600'
               }`}>
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
                   {decisionStatus === 'Resolved' ? <CheckCircle size={24} /> : <XCircle size={24} />}
                 </div>
                 <div>
-                  <h2 className="text-xl font-black tracking-tight">
+                  <h2 className="text-xl font-semibold tracking-tight">
                     {decisionStatus === 'Resolved' ? 'Approve & Correct Attendance' : 'Reject Attendance Complaint'}
                   </h2>
-                  <p className="text-white/80 text-xs font-bold uppercase tracking-widest mt-0.5">
+                  <p className="text-white/80 text-xs font-normal uppercase tracking-widest mt-0.5">
                     Super Admin Resolution
                   </p>
                 </div>
@@ -609,29 +605,29 @@ const AdminComplaints = () => {
             </div>
 
             {/* Modal Body */}
-            <form onSubmit={handleDecisionSubmit} className="p-6 sm:p-8 space-y-5">
+            <form onSubmit={handleDecisionSubmit} className="p-4 sm:p-5 space-y-5">
               {/* Summary Card */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2">
-                <div className="flex justify-between items-center text-xs font-bold text-slate-600">
+                <div className="flex justify-between items-center text-xs font-medium text-slate-600">
                   <span>Student:</span>
-                  <span className="font-black text-slate-800 uppercase">
+                  <span className="font-semibold text-slate-800 uppercase">
                     {activeComplaint.studentId?.["FULL NAME"]} (AD: {activeComplaint.studentId?.ADNO})
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-xs font-bold text-slate-600">
+                <div className="flex justify-between items-center text-xs font-medium text-slate-600">
                   <span>Claimed Status:</span>
                   <div className="flex items-center gap-1.5">
-                    <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 font-black uppercase text-[10px]">
+                    <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 font-semibold uppercase text-[10px]">
                       {activeComplaint.actualStatus}
                     </span>
                     {(activeComplaint.isMedical || activeComplaint.message?.toLowerCase().includes('[medical leave]')) && (
-                      <span className="px-2 py-0.5 rounded bg-rose-50 text-rose-600 border border-rose-200 font-black uppercase text-[10px] flex items-center gap-1">
+                      <span className="px-2 py-0.5 rounded bg-rose-50 text-rose-600 border border-rose-200 font-semibold uppercase text-[10px] flex items-center gap-1">
                         <HeartPulse size={10} /> [Medical Leave]
                       </span>
                     )}
                   </div>
                 </div>
-                {/* <div className="flex justify-between items-center text-xs font-bold text-slate-600">
+                {/* <div className="flex justify-between items-center text-xs font-medium text-slate-600">
                   <span>Recorded Attendance ID:</span>
                   <span className="font-mono text-[10px] text-slate-400">
                     {activeComplaint.attendanceId?._id || activeComplaint.attendanceId || 'N/A'}
@@ -639,11 +635,11 @@ const AdminComplaints = () => {
                 </div> */}
 
                 {/* {decisionStatus === 'Resolved' ? (
-                  <div className="mt-3 p-3 bg-emerald-100/60 rounded-xl text-[11px] font-bold text-emerald-800">
+                  <div className="mt-3 p-3 bg-emerald-100/60 rounded-xl text-[11px] font-medium text-emerald-800">
                     💡 <strong>Automated Database Correction:</strong> Submitting will immediately update the student's attendance record in the database to <strong>{activeComplaint.actualStatus}</strong>.
                   </div>
                 ) : (
-                  <div className="mt-3 p-3 bg-rose-100/60 rounded-xl text-[11px] font-bold text-rose-800">
+                  <div className="mt-3 p-3 bg-rose-100/60 rounded-xl text-[11px] font-medium text-rose-800">
                     ⚠️ <strong>Dispute Dismissal:</strong> The complaint will be marked as Rejected. The attendance record will remain unchanged.
                   </div>
                 )} */}
@@ -651,14 +647,14 @@ const AdminComplaints = () => {
 
               {/* Status Switcher in Modal */}
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2 px-1">
+                <label className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 block mb-2 px-1">
                   Decision Outcome
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setDecisionStatus('Resolved')}
-                    className={`py-3 rounded-2xl text-xs font-black uppercase tracking-wider border-2 transition-all ${decisionStatus === 'Resolved'
+                    className={`py-3 rounded-2xl text-xs font-semibold uppercase tracking-wider border-2 transition-all ${decisionStatus === 'Resolved'
                         ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm'
                         : 'border-slate-100 bg-white text-slate-400 hover:border-slate-200'
                       }`}
@@ -668,7 +664,7 @@ const AdminComplaints = () => {
                   <button
                     type="button"
                     onClick={() => setDecisionStatus('Rejected')}
-                    className={`py-3 rounded-2xl text-xs font-black uppercase tracking-wider border-2 transition-all ${decisionStatus === 'Rejected'
+                    className={`py-3 rounded-2xl text-xs font-semibold uppercase tracking-wider border-2 transition-all ${decisionStatus === 'Rejected'
                         ? 'border-rose-500 bg-rose-50 text-rose-700 shadow-sm'
                         : 'border-slate-100 bg-white text-slate-400 hover:border-slate-200'
                       }`}
@@ -680,7 +676,7 @@ const AdminComplaints = () => {
 
               {/* Remark Field */}
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2 px-1">
+                <label className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 block mb-2 px-1">
                   Administrative Note / Reason (Visible to Student)
                 </label>
                 <textarea
@@ -688,7 +684,7 @@ const AdminComplaints = () => {
                   placeholder={decisionStatus === 'Resolved' ? 'e.g. Verified by attendance register. Marked present.' : 'e.g. Discrepancy could not be verified.'}
                   value={adminRemark}
                   onChange={(e) => setAdminRemark(e.target.value)}
-                  className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-xs font-bold text-slate-700 focus:border-slate-400 focus:bg-white outline-none transition-all resize-none"
+                  className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-4 text-xs font-medium text-slate-700 focus:border-slate-400 focus:bg-white outline-none transition-all resize-none"
                 />
               </div>
 
@@ -698,14 +694,14 @@ const AdminComplaints = () => {
                   type="button"
                   onClick={closeDecisionModal}
                   disabled={submitting}
-                  className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl text-xs font-black uppercase tracking-widest transition-all disabled:opacity-50"
+                  className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl text-xs font-semibold uppercase tracking-widest transition-all disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className={`flex-[2] py-4 rounded-2xl text-white text-xs font-black uppercase tracking-widest shadow-lg transition-all active:scale-95 disabled:opacity-50 ${decisionStatus === 'Resolved'
+                  className={`flex-[2] py-4 rounded-2xl text-white text-xs font-semibold uppercase tracking-widest shadow-lg transition-all active:scale-95 disabled:opacity-50 ${decisionStatus === 'Resolved'
                       ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30'
                       : 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/30'
                     }`}

@@ -94,6 +94,10 @@ export async function GET(req) {
     const fromTime = searchParams.get('fromTime');
     const toTime = searchParams.get('toTime');
     const studentIds = searchParams.get('studentIds');
+    const attendanceTimes = (searchParams.get('attendanceTime') || '').split(',').map(value => value.trim()).filter(Boolean);
+    if (attendanceTimes.some(value => !['Morning', 'Afternoon', 'Night', 'Period', 'Jamath', 'Quiraath'].includes(value))) {
+      return NextResponse.json({ error: 'Invalid attendance time' }, { status: 400 });
+    }
 
     if (!classNumber) {
       return NextResponse.json({ error: "classNumber is required" }, { status: 400 });
@@ -107,6 +111,10 @@ export async function GET(req) {
         { status: false }
       ]
     };
+
+    if (attendanceTimes.length > 0) {
+      query.attendanceTime = { $in: attendanceTimes };
+    }
 
     if (fromDate && toDate) {
       const start = new Date(fromDate);

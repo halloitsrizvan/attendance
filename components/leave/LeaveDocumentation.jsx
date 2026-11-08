@@ -86,7 +86,6 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
     const [allLeaves, setAllLeaves] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [codeSearch, setCodeSearch] = useState('');
     const [activeTab, setActiveTab] = useState(defaultTab); // 'all', 'medical', 'program', 'common'
     const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'pending', 'approved'
     const [filterClass, setFilterClass] = useState('');
@@ -434,15 +433,11 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
         return standardBaseList.filter(leave => {
             const studentName = (leave.studentId?.["FULL NAME"] || leave.studentId?.name || "").toLowerCase();
             const adNo = String(leave.studentId?.ADNO || "");
-            const medCode = (leave.medicalCode || "").toLowerCase();
-            const progCode = (leave.programCode || "").toLowerCase();
             const reason = (leave.reason || "").toLowerCase();
 
             const query = searchTerm.toLowerCase();
             const matchesSearch = !searchTerm || studentName.includes(query) || adNo.includes(query) || reason.includes(query);
 
-            const codeQuery = codeSearch.toLowerCase();
-            const matchesCode = !codeSearch || medCode.includes(codeQuery) || progCode.includes(codeQuery);
 
             const matchesClass = !filterClass || String(leave.studentId?.CLASS) === String(filterClass);
 
@@ -463,9 +458,9 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
                                  (filterStatus === 'approved' && isItemApproved) || 
                                  (filterStatus === 'pending' && !isItemApproved);
 
-            return matchesSearch && matchesCode && matchesClass && matchesFilter;
+            return matchesSearch && matchesClass && matchesFilter;
         });
-    }, [standardBaseList, activeTab, searchTerm, codeSearch, filterClass, filterStatus]);
+    }, [standardBaseList, activeTab, searchTerm, filterClass, filterStatus]);
 
     // Common leaves filtered list
     const filteredCommonLeaves = useMemo(() => {
@@ -474,11 +469,9 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
         return commonLeaves.filter(leave => {
             const studentName = (leave.studentId?.["FULL NAME"] || leave.studentId?.name || "").toLowerCase();
             const adNo = String(leave.studentId?.ADNO || "");
-            const medCode = (leave.medicalCode || "").toLowerCase();
-            const progCode = (leave.programCode || "").toLowerCase();
             const reason = (leave.reason || "").toLowerCase();
             const cls = String(leave.studentId?.CLASS || "");
-            return studentName.includes(q) || adNo.includes(q) || medCode.includes(q) || progCode.includes(q) || reason.includes(q) || cls.includes(q);
+            return studentName.includes(q) || adNo.includes(q) || reason.includes(q) || cls.includes(q);
         });
     }, [commonLeaves, commonSearchTerm]);
 
@@ -621,16 +614,6 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
                                     value={searchTerm}
                                     onChange={e => setSearchTerm(e.target.value)}
                                     className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-sky-500 focus:bg-white transition-all"
-                                />
-                            </div>
-                            <div className="relative">
-                                <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
-                                <input
-                                    type="text"
-                                    placeholder="Search Medical Code / Program Code..."
-                                    value={codeSearch}
-                                    onChange={e => setCodeSearch(e.target.value)}
-                                    className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs font-bold text-slate-800 uppercase placeholder:text-slate-400 placeholder:normal-case placeholder:font-normal focus:outline-none focus:border-sky-500 focus:bg-white transition-all"
                                 />
                             </div>
                         </div>
@@ -884,7 +867,7 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
                                                     </th>
                                                     <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Student</th>
                                                     <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Leave Details</th>
-                                                    <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Type & Code</th>
+                                                    <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Type</th>
                                                     <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Document</th>
                                                     <th className="px-6 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
                                                     <th className="px-6 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Single Action</th>
@@ -973,7 +956,7 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
                                                                 </div>
                                                             </td>
 
-                                                            {/* Type & Code */}
+                                                            {/* Type */}
                                                             <td className="px-6 py-4">
                                                                 <div className="flex flex-col gap-1">
                                                                     {hasMedical && (
@@ -981,11 +964,7 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
                                                                             <span className="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-100 rounded text-[9px] font-black uppercase">
                                                                                 Medical
                                                                             </span>
-                                                                            {leave.medicalCode && (
-                                                                                <span className="text-[10px] font-mono font-black text-blue-800">
-                                                                                    {leave.medicalCode}
-                                                                                </span>
-                                                                            )}
+                                                                            
                                                                         </div>
                                                                     )}
                                                                     {hasProgram && (
@@ -993,11 +972,7 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
                                                                             <span className="px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-100 rounded text-[9px] font-black uppercase">
                                                                                 {progTypeLabel}
                                                                             </span>
-                                                                            {leave.programCode && (
-                                                                                <span className="text-[10px] font-mono font-black text-purple-800">
-                                                                                    {leave.programCode}
-                                                                                </span>
-                                                                            )}
+                                                                            
                                                                         </div>
                                                                     )}
                                                                     {!hasMedical && !hasProgram && (
@@ -1129,7 +1104,7 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
                                         <tr className="bg-slate-50/70 border-b border-slate-100">
                                             <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Student</th>
                                             <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Leave Details</th>
-                                            <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Type & Code</th>
+                                            <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Type</th>
                                             <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Document</th>
                                             <th className="px-6 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
                                             <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Action</th>
@@ -1203,7 +1178,7 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
                                                         </div>
                                                     </td>
 
-                                                    {/* Type & Code */}
+                                                    {/* Type */}
                                                     <td className="px-6 py-5">
                                                         <div className="flex flex-col gap-1.5">
                                                             {hasMedical && (
@@ -1211,11 +1186,7 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
                                                                     <span className="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-100 rounded-md text-[9px] font-black uppercase">
                                                                         Medical
                                                                     </span>
-                                                                    {leave.medicalCode && (
-                                                                        <span className="text-[10px] font-mono font-black text-blue-800">
-                                                                            {leave.medicalCode}
-                                                                        </span>
-                                                                    )}
+                                                                    
                                                                 </div>
                                                             )}
                                                             {hasProgram && (
@@ -1223,11 +1194,7 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
                                                                     <span className="px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-100 rounded-md text-[9px] font-black uppercase">
                                                                         {progTypeLabel}
                                                                     </span>
-                                                                    {leave.programCode && (
-                                                                        <span className="text-[10px] font-mono font-black text-purple-800">
-                                                                            {leave.programCode}
-                                                                        </span>
-                                                                    )}
+                                                                    
                                                                 </div>
                                                             )}
                                                         </div>

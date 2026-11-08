@@ -987,7 +987,6 @@ const DocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">
                                             Drag & Drop or Click to select <br /> medical documents
                                         </p>
-                                        <p className="text-[8px] font-bold text-slate-300 uppercase mt-2">(Optional)</p>
                                     </div>
                                 )}
                             </label>
@@ -1170,7 +1169,6 @@ const ProgramDocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">
                                             Drag & Drop or Click to select <br /> program documents
                                         </p>
-                                        <p className="text-[8px] font-bold text-slate-300 uppercase mt-2">(Optional)</p>
                                     </div>
                                 )}
                             </label>

@@ -33,11 +33,11 @@ export default function LeavePage() {
     const [selectedLeave, setSelectedLeave] = useState(null);
     const [isDocumentOpen, setIsDocumentOpen] = useState(false);
     const [isProgramDocumentOpen, setIsProgramDocumentOpen] = useState(false);
-    const [showSuccessCode, setShowSuccessCode] = useState(null);
+    const [showDocumentSuccess, setShowDocumentSuccess] = useState(false);
 
-    const handleDocumentUpdate = (code) => {
+    const handleDocumentUpdate = () => {
         fetchLeaveData();
-        setShowSuccessCode(code);
+        setShowDocumentSuccess(true);
     };
 
     const handleComplaintClick = (id) => {
@@ -497,7 +497,7 @@ export default function LeavePage() {
                                 </div>
                                 
                                 {/* UPLOAD & DOCUMENT STATUS BUTTONS */}
-                                {!item.documented && !item.isMedicalSubmitted && !item.documentUrl && ['room', 'medical', 'hospital'].some(r => item.reason?.toLowerCase().includes(r)) && (
+                                {!item.documented && !item.programDocumented && !item.isMedicalSubmitted && !item.documentUrl && ['room', 'medical', 'hospital'].some(r => item.reason?.toLowerCase().includes(r)) && (
                                     <button
                                         onClick={() => { setSelectedLeave(item); setIsDocumentOpen(true); }}
                                         className="mt-6 w-full py-3 bg-blue-50 border border-blue-100 rounded-2xl text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-blue-600 hover:text-white transition-all shadow-sm cursor-pointer"
@@ -505,7 +505,7 @@ export default function LeavePage() {
                                         <Upload size={14} /> Upload Medical Documents
                                     </button>
                                 )}
-                                {!item.programDocumented && !item.isProgramSubmitted && !item.programDocumentUrl && ['ogea', 'official', 'external edu'].some(r => item.reason?.toLowerCase().includes(r)) && (
+                                {!item.documented && !item.programDocumented && !item.isProgramSubmitted && !item.programDocumentUrl && ['ogea', 'official', 'external edu'].some(r => item.reason?.toLowerCase().includes(r)) && (
                                     <button
                                         onClick={() => { setSelectedLeave(item); setIsProgramDocumentOpen(true); }}
                                         className="mt-6 w-full py-3 bg-purple-50 border border-purple-100 rounded-2xl text-[10px] font-black text-purple-600 uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-purple-600 hover:text-white transition-all shadow-sm cursor-pointer"
@@ -513,7 +513,7 @@ export default function LeavePage() {
                                         <Upload size={14} /> Upload {item.reason?.toLowerCase().includes('external edu') ? 'External Edu' : item.reason?.toLowerCase().includes('official') ? 'Official' : 'Program'} Documents
                                     </button>
                                 )}
-                                {!item.documented && (item.isMedicalSubmitted || item.documentUrl) && (
+                                {!item.documented && !item.programDocumented && (item.isMedicalSubmitted || item.documentUrl) && (
                                     <div className="mt-6 flex flex-col sm:flex-row gap-2">
                                         <div className="flex-1 p-3 bg-amber-50 rounded-2xl flex items-center justify-center gap-2 border border-amber-100">
                                             <Clock size={14} className="text-amber-500 animate-pulse" />
@@ -531,7 +531,7 @@ export default function LeavePage() {
                                         )}
                                     </div>
                                 )}
-                                {!item.programDocumented && (item.isProgramSubmitted || item.programDocumentUrl) && (
+                                {!item.documented && !item.programDocumented && (item.isProgramSubmitted || item.programDocumentUrl) && (
                                     <div className="mt-6 flex flex-col sm:flex-row gap-2">
                                         <div className="flex-1 p-3 bg-amber-50 rounded-2xl flex items-center justify-center gap-2 border border-amber-100">
                                             <Clock size={14} className="text-amber-500 animate-pulse" />
@@ -638,9 +638,8 @@ export default function LeavePage() {
             />
 
             <SuccessModal
-                isOpen={!!showSuccessCode}
-                onClose={() => setShowSuccessCode(null)}
-                code={showSuccessCode}
+                isOpen={!!showDocumentSuccess}
+                onClose={() => setShowDocumentSuccess(false)}
             />
         </div>
     );
@@ -700,18 +699,15 @@ const DocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Generate a unique 5-letter code
-        const code = Math.random().toString(36).substring(2, 7).toUpperCase();
 
         setLoading(true);
         try {
             await axios.patch(`${API_PORT}/leave/${leave._id}`, {
                 documented: false, // Remains false until admin approves
                 documentUrl: fileUrl || null,
-                medicalCode: code,
                 isMedicalSubmitted: true
             });
-            onUpdate(code);
+            onUpdate();
             onClose();
         } catch (err) {
             console.error(err);
@@ -774,7 +770,7 @@ const DocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">
                                             Drag & Drop or Click to select <br /> medical documents
                                         </p>
-                                        <p className="text-[8px] font-bold text-slate-300 uppercase mt-2">(Optional)</p>
+                                      
                                     </div>
                                 )}
                             </label>
@@ -890,18 +886,15 @@ const ProgramDocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Generate a unique 5-letter code
-        const code = Math.random().toString(36).substring(2, 7).toUpperCase();
 
         setLoading(true);
         try {
             await axios.patch(`${API_PORT}/leave/${leave._id}`, {
                 programDocumented: false, // Remains false until admin approves
                 programDocumentUrl: fileUrl || null,
-                programCode: code,
                 isProgramSubmitted: true
             });
-            onUpdate(code);
+            onUpdate();
             onClose();
         } catch (err) {
             console.error(err);
@@ -964,7 +957,7 @@ const ProgramDocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">
                                             Drag & Drop or Click to select <br /> {docLabel.toLowerCase()} documents
                                         </p>
-                                        <p className="text-[8px] font-bold text-slate-300 uppercase mt-2">(Optional)</p>
+                                        
                                     </div>
                                 )}
                             </label>
@@ -1022,7 +1015,7 @@ const ProgramDocumentModal = ({ isOpen, onClose, leave, onUpdate }) => {
 /**
  * Success Modal
  */
-const SuccessModal = ({ isOpen, onClose, code }) => {
+const SuccessModal = ({ isOpen, onClose }) => {
     if (!isOpen) return null;
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -1034,17 +1027,7 @@ const SuccessModal = ({ isOpen, onClose, code }) => {
                 <h2 className="text-2xl font-black text-slate-800 uppercase italic tracking-tight mb-2">Submitted!</h2>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-8">Documentation processed</p>
 
-                <div className="bg-slate-50 rounded-[2rem] p-6 mb-8 border border-slate-100 relative overflow-hidden group">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500"></div>
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Your Verification Code</p>
-                    <div className="text-4xl font-black text-blue-600 tracking-widest font-mono group-hover:scale-110 transition-transform duration-300">
-                        {code}
-                    </div>
-                </div>
-
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed mb-8 bg-amber-50 p-4 rounded-2xl border border-amber-100">
-                    Please write down this code on your document paper.
-                </p>
+                <p className="text-sm text-slate-500 mb-6">Your document has been submitted for review.</p>
 
                 <button
                     onClick={onClose}
