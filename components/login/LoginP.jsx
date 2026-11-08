@@ -53,8 +53,8 @@ function LoginP() {
             <div className="w-full max-w-[440px]">
                 {/* Branding Section */}
                 <div className="flex flex-col items-center mb-8">
-                    <div className="w-24 h-24 bg-white rounded-full shadow-sm border border-slate-100 flex items-center justify-center p-2 mb-4">
-                        <Image src="/logo.png" alt="Logo" width={80} height={80} className="object-contain" />
+                    <div className="w-24 h-24 bg-white rounded-full overflow-hidden shadow-sm border border-slate-100 flex items-center justify-center p-2 mb-4">
+                        <Image src="/icons/app-192.png" alt="Logo" width={80} height={80} className="object-cover rounded-full" />
                     </div>
                     <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Staff Portal</h1>
                     <p className="text-sm text-slate-400 mt-1">Authorized Personnel Login Only</p>

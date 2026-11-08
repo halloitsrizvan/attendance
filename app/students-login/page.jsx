@@ -47,8 +47,8 @@ function StudentLogin() {
             <div className="w-full max-w-[440px]">
                 {/* Branding Section */}
                 <div className="flex flex-col items-center mb-8">
-                    <div className="w-24 h-24 bg-white rounded-full shadow-sm border border-slate-100 flex items-center justify-center p-2 mb-4">
-                        <Image src="/logo.png" alt="Logo" width={80} height={80} className="object-contain" />
+                    <div className="w-24 h-24 bg-white rounded-full overflow-hidden shadow-sm border border-slate-100 flex items-center justify-center p-2 mb-4">
+                        <Image src="/icons/app-192.png" alt="Logo" width={80} height={80} className="object-cover rounded-full" />
                     </div>
                     <div className="flex items-center gap-2 mb-1">
                         <TrendingUp size={18} className="text-blue-600" />

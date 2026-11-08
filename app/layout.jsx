@@ -15,8 +15,8 @@ export const metadata = {
   title: 'Attendance App',
   description: 'Full-stack web application designed for managing attendance',
   icons: {
-    icon: '/cirlced-logo.png', // Circular favicon
-    apple: '/icons/apple-touch-icon.png', // Apple touch icon
+    icon: [{ url: '/icons/favicon-16.png', sizes: '16x16', type: 'image/png' }, { url: '/icons/favicon-32.png', sizes: '32x32', type: 'image/png' }],
+    apple: '/icons/app-apple-180.png', // Apple touch icon
   },
   openGraph: {
     title: 'Attendance App',
@@ -25,7 +25,7 @@ export const metadata = {
     siteName: 'Attendance App',
     images: [
       {
-        url: '/logo.png',
+        url: '/icons/app-512.png',
         width: 800,
         height: 600,
         alt: 'Attendance App Logo',
@@ -38,7 +38,7 @@ export const metadata = {
     card: 'summary_large_image',
     title: 'Attendance App',
     description: 'Full-stack web application designed for managing attendance',
-    images: ['/logo.png'],
+    images: ['/icons/app-512.png'],
   },
 };
 

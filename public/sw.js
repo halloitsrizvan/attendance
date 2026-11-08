@@ -1,6 +1,6 @@
 /* Only public assets are cached. API responses, HTML and student data are never stored. */
-const CACHE = 'darul-irfan-public-v1';
-const PUBLIC_ASSETS = ['/offline.html', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/icon-maskable-512.png', '/icons/apple-touch-icon.png'];
+const CACHE = 'darul-irfan-public-v2';
+const PUBLIC_ASSETS = ['/offline.html', '/icons/app-192.png', '/icons/app-512.png', '/icons/app-maskable-512.png', '/icons/app-apple-180.png'];
 self.addEventListener('install', event => {
     event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(PUBLIC_ASSETS)));
 });

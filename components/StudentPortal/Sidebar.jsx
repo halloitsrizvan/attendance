@@ -91,7 +91,7 @@ export default function Sidebar({ isOpen, onClose }) {
         }`}>
             <div className="p-6 flex items-center gap-3">
                 <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                    <img src="/logo.png" alt="Darul Irfan" className="w-8 h-8 object-contain" onError={(e) => { e.target.style.display='none'; }} />
+                    <img src="/icons/app-192.png" alt="Darul Irfan" className="w-8 h-8 object-contain" onError={(e) => { e.target.style.display='none'; }} />
                     <CalendarCheck className="w-6 h-6 text-[#0A84C6] absolute" style={{ zIndex: -1 }} /> 
                 </div>
                 <div>
