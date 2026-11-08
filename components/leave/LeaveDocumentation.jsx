@@ -153,6 +153,7 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
 
     // Single approval handlers (used by both standard and common tabs)
     const handleApproveMedical = async (id, currentStatus) => {
+        if (currentStatus && !window.confirm('Revoke medical document verification? This leave will return to pending verification.')) return;
         const nextStatus = !currentStatus;
         setActionLoading(prev => ({ ...prev, [id + '_med']: true }));
         try {
@@ -179,6 +180,7 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
     };
 
     const handleApproveProgram = async (id, currentStatus) => {
+        if (currentStatus && !window.confirm('Revoke program / official document verification? This leave will return to pending verification.')) return;
         const nextStatus = !currentStatus;
         setActionLoading(prev => ({ ...prev, [id + '_prog']: true }));
         try {
@@ -272,7 +274,7 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
             }
 
             const res = await axios.get(`${API_PORT}/leave`, { params });
-            const data = res.data || [];
+            const data = (Array.isArray(res.data) ? res.data : []).filter(leave => Boolean(leave.returnedAt));
             setCommonLeaves(data);
             setCommonHasFetched(true);
             // Default: select all fetched leaves for easy bulk update
@@ -430,17 +432,7 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
 
     // Standard filtered list
     const standardFilteredList = useMemo(() => {
-        return standardBaseList.filter(leave => {
-            const studentName = (leave.studentId?.["FULL NAME"] || leave.studentId?.name || "").toLowerCase();
-            const adNo = String(leave.studentId?.ADNO || "");
-            const reason = (leave.reason || "").toLowerCase();
-
-            const query = searchTerm.toLowerCase();
-            const matchesSearch = !searchTerm || studentName.includes(query) || adNo.includes(query) || reason.includes(query);
-
-
-            const matchesClass = !filterClass || String(leave.studentId?.CLASS) === String(filterClass);
-
+        const isApproved = (leave) => {
             let isItemApproved = false;
             if (activeTab === 'medical') {
                 isItemApproved = Boolean(leave.documented);
@@ -454,12 +446,27 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
                 isItemApproved = medApproved && progApproved;
             }
 
+            return Boolean(isItemApproved);
+        };
+        return standardBaseList.filter(leave => {
+            const studentName = (leave.studentId?.["FULL NAME"] || leave.studentId?.name || "").toLowerCase();
+            const adNo = String(leave.studentId?.ADNO || "");
+            const reason = (leave.reason || "").toLowerCase();
+
+            const query = searchTerm.toLowerCase();
+            const matchesSearch = !searchTerm || studentName.includes(query) || adNo.includes(query) || reason.includes(query);
+
+
+            const matchesClass = !filterClass || String(leave.studentId?.CLASS) === String(filterClass);
+
+            const isItemApproved = isApproved(leave);
+
             const matchesFilter = filterStatus === 'all' || 
                                  (filterStatus === 'approved' && isItemApproved) || 
                                  (filterStatus === 'pending' && !isItemApproved);
 
             return matchesSearch && matchesClass && matchesFilter;
-        });
+        }).sort((a, b) => Number(isApproved(a)) - Number(isApproved(b)));
     }, [standardBaseList, activeTab, searchTerm, filterClass, filterStatus]);
 
     // Common leaves filtered list
@@ -840,14 +847,14 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
                                             <span>Prog Only</span>
                                         </button> */}
 
-                                        <button
+                                        {/* <button
                                             onClick={() => handleBulkMarkDocumented('revoke')}
                                             disabled={bulkUpdating || selectedLeaveIds.size === 0}
                                             className="px-3 py-2.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-all disabled:opacity-50 cursor-pointer"
                                             title="Revoke documentation status"
                                         >
                                             Revoke
-                                        </button>
+                                        </button> */}
                                     </div>
                                 </div>
 
@@ -867,7 +874,6 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
                                                     </th>
                                                     <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Student</th>
                                                     <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Leave Details</th>
-                                                    <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Type</th>
                                                     <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Document</th>
                                                     <th className="px-6 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
                                                     <th className="px-6 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Single Action</th>
@@ -953,33 +959,6 @@ const LeaveDocumentation = ({ defaultTab = 'all' }) => {
                                                                             </div>
                                                                         )}
                                                                     </div>
-                                                                </div>
-                                                            </td>
-
-                                                            {/* Type */}
-                                                            <td className="px-6 py-4">
-                                                                <div className="flex flex-col gap-1">
-                                                                    {hasMedical && (
-                                                                        <div className="flex items-center gap-1.5">
-                                                                            <span className="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-100 rounded text-[9px] font-black uppercase">
-                                                                                Medical
-                                                                            </span>
-                                                                            
-                                                                        </div>
-                                                                    )}
-                                                                    {hasProgram && (
-                                                                        <div className="flex items-center gap-1.5">
-                                                                            <span className="px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-100 rounded text-[9px] font-black uppercase">
-                                                                                {progTypeLabel}
-                                                                            </span>
-                                                                            
-                                                                        </div>
-                                                                    )}
-                                                                    {!hasMedical && !hasProgram && (
-                                                                        <span className="px-2 py-0.5 bg-slate-100 text-slate-600 border border-slate-200 rounded text-[9px] font-black uppercase w-fit">
-                                                                            Leave
-                                                                        </span>
-                                                                    )}
                                                                 </div>
                                                             </td>
 
