@@ -1,0 +1,32 @@
+{
+  "id": "/students-portal",
+  "name": "Darul Irfan Student Portal",
+  "short_name": "Student Portal",
+  "description": "Attendance, leave and services for Darul Irfan students.",
+  "lang": "en",
+  "start_url": "/students-portal",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8f7f5",
+  "theme_color": "#ceb8ff",
+  "icons": [
+    {
+      "src": "/icons/app-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/app-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/app-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

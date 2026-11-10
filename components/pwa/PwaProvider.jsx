@@ -7,6 +7,13 @@ import styles from './Pwa.module.css';
 export default function PwaProvider() {
     const pathname = usePathname();
     const showInstall = ['/', '/login', '/students-login', '/students-portal'].includes(pathname);
+    const isStudent = pathname === '/students-login' || pathname?.startsWith('/students-portal');
+    useEffect(() => {
+        const href = isStudent ? '/manifest-student.json' : '/manifest.json';
+        let link = document.querySelector('link[rel="manifest"]');
+        if (!link) { link = document.createElement('link'); link.rel = 'manifest'; document.head.appendChild(link); }
+        if (link.getAttribute('href') !== href) link.setAttribute('href', href);
+    }, [isStudent]);
     const [prompt, setPrompt] = useState(null);
     const [ios, setIos] = useState(false);
     const [dismissed, setDismissed] = useState(true);
