@@ -37,6 +37,14 @@ const shortLeaveSchema = new Schema({
     ApproveCEP: {
         type: Boolean
     },
+    status: {
+        type: String,
+        default: 'active'
+    },
+    returnedAt: {
+        type: Date,
+        default: null
+    },
     groupId: {
         type: String,
         default: null

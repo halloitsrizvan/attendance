@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { Clock, Calendar, User, ArrowUpRight, CheckCircle, PlayCircle, RotateCcw, Edit, ChevronRight, X, Trash2, Clipboard, RefreshCw } from 'lucide-react'; import { API_PORT } from '../../Constants';
 import { isFridayReturnWithinDeadline } from '@/utils/leaveReturnUtils';
@@ -329,6 +329,32 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
   const [showLateReturnPermissionModal, setShowLateReturnPermissionModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [actionsBelow, setActionsBelow] = useState(false);
+  const headerRef = useRef(null);
+  const nameMeasureRef = useRef(null);
+  const classBadgeRef = useRef(null);
+
+  useEffect(() => {
+    const updateLayout = () => {
+      const header = headerRef.current;
+      const nameMeasure = nameMeasureRef.current;
+      const classBadge = classBadgeRef.current;
+      if (!header || !nameMeasure || !classBadge) return;
+
+      // Match the space the name gets beside the 120px action column.
+      const availableNameWidth = header.clientWidth - 24 - 40 - 12 - 8 - 120 - 8 - classBadge.offsetWidth;
+      setActionsBelow(window.innerWidth < 640 && nameMeasure.offsetWidth > availableNameWidth);
+    };
+
+    updateLayout();
+    const observer = new ResizeObserver(updateLayout);
+    if (headerRef.current) observer.observe(headerRef.current);
+    window.addEventListener('resize', updateLayout);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateLayout);
+    };
+  }, [name, classNum]);
 
   const getCalculatedStatus = () => {
     if (getLeaveStatus) {
@@ -823,7 +849,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
         {/* Status Indicator Bar */}
         <div className={`h-1 ${statusColor}`}></div>
         {/* Header - Student Info & Action Button */}
-        <div className="p-3 flex items-center justify-between gap-2 relative">
+        <div ref={headerRef} className={`p-3 flex ${actionsBelow ? 'flex-col items-stretch' : 'flex-row items-center'} justify-between gap-2 relative`}>
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className="flex-shrink-0 flex flex-col items-center">
               {canBeSelected && (isSelected || selectedIds.length > 0) && (
@@ -843,12 +869,15 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
               </div>
             </div>
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-semibold text-gray-900 text-sm truncate">{name}</h3>
+              <div className="flex items-start gap-2 mb-1">
+                <h3 className="relative min-w-0 font-semibold text-gray-900 text-sm break-words">
+                  {name}
+                  <span ref={nameMeasureRef} aria-hidden="true" className="absolute invisible whitespace-nowrap">{name}</span>
+                </h3>
                 {/* {type === "MyDashboard" && (
                   <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{ad}</span>
                 )} */}
-                <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">C:{classNum}</span>
+                <span ref={classBadgeRef} className="flex-shrink-0 text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">C:{classNum}</span>
               </div>
               <div className="flex items-center gap-3 text-xs text-gray-500">
                 <span>From: {formatDateTime(fromDate, fromTime)}</span>
@@ -882,7 +911,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
               </div> */}
           {/* Action Buttons */}
           {reason === 'Room' && (status === 'On Leave' || currentStatus === 'On Leave' || currentStatus === 'Late') ? (
-            <div className="flex flex-col gap-1.5 flex-shrink-0">
+            <div className={`flex flex-col gap-1.5 flex-shrink-0 ${actionsBelow ? 'w-full' : 'w-[120px]'}`}>
               {hasAccessToStudent() && (
                 <button
                   className="flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white transition-all shadow-sm shadow-orange-500/20 active:scale-95"
@@ -913,7 +942,7 @@ const ClassCard = ({ classInfo, onReturn, getLeaveStatus, classData, setClassDat
               </button>
             </div>
           ) : (
-            <div className="flex flex-col gap-2 flex-shrink-0 min-w-[120px]">
+            <div className={`flex flex-col gap-2 flex-shrink-0 ${actionsBelow ? 'w-full' : 'w-[120px]'}`}>
               {type !== "Generalactions" && (
                 <div className="flex gap-2 w-full">
                   <button
