@@ -38,6 +38,9 @@ export async function POST(req) {
     await dbConnect();
     const viewer = await complaintViewer(req);
     const body = await req.json();
+    if (viewer.isStudent && body.attendanceId && (typeof body.message !== 'string' || !body.message.replace(/^\s*\[Medical Leave\]\s*/i, '').trim())) {
+      throw complaintError('Please provide a description for your attendance complaint.', 400);
+    }
     const studentId = viewer.isStudent ? viewer.account._id : body.studentId;
     if (!mongoose.Types.ObjectId.isValid(studentId)) throw complaintError('Invalid student ID', 400);
     const student = await Student.findById(studentId).select('CLASS');

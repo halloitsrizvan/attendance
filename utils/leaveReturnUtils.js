@@ -3,51 +3,18 @@
  */
 
 /**
- * Checks if a leave has a return date (toDate or date) on a Friday
- * and current time is before or at that Friday night 12:00 (midnight / end of Friday).
+ * Checks whether the current college-local day is Friday
+ * The exception ends at midnight starting Saturday in Asia/Kolkata.
  *
  * @param {Object} leave - The leave or short leave object
  * @returns {boolean}
  */
-export const isFridayReturnWithinDeadline = (leave) => {
-  if (!leave) return false;
-  const targetDate = leave.toDate || leave.date;
-  if (!targetDate) return false;
-
-  let year, month, day;
-  if (typeof targetDate === 'string') {
-    const datePart = targetDate.split('T')[0];
-    const parts = datePart.split('-').map(Number);
-    if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
-      year = parts[0];
-      month = parts[1] - 1; // 0-indexed month
-      day = parts[2];
-    }
-  } else if (targetDate instanceof Date && !isNaN(targetDate.getTime())) {
-    year = targetDate.getFullYear();
-    month = targetDate.getMonth();
-    day = targetDate.getDate();
-  }
-
-  if (year === undefined) {
-    const parsed = new Date(targetDate);
-    if (isNaN(parsed.getTime())) return false;
-    year = parsed.getFullYear();
-    month = parsed.getMonth();
-    day = parsed.getDate();
-  }
-
-  const returnDate = new Date(year, month, day);
-  // Friday is day 5 in JavaScript (0 = Sun, 1 = Mon, 2 = Tue, 3 = Wed, 4 = Thu, 5 = Fri, 6 = Sat)
-  if (returnDate.getDay() !== 5) {
-    return false;
-  }
-
-  // Deadline: that Friday night 12:00 (23:59:59.999)
-  const fridayDeadline = new Date(year, month, day, 23, 59, 59, 999);
-  const now = new Date();
-
-  return now <= fridayDeadline;
+export const isFridayReturnWithinDeadline = (_leave, now = new Date()) => {
+  const date = new Date(now);
+  if (Number.isNaN(date.getTime())) return false;
+  // The exception lasts for the current Friday in the college's timezone,
+  // including leaves that became late on an earlier day.
+  return new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', weekday: 'long' }).format(date) === 'Friday';
 };
 
 /**
@@ -104,7 +71,7 @@ export const isTeacherAuthorizedForLateReturn = (teacher, studentClassVal) => {
  * @param {string|number} [params.studentClass] - Student's class identifier
  * @returns {boolean}
  */
-export const canTeacherReturnLeave = ({ teacher, leave, student, isLate = false, studentClass = null }) => {
+export const canTeacherReturnLeave = ({ teacher, leave, student, isLate = false, studentClass = null, now = new Date() }) => {
   if (!teacher) return false;
 
   // 1. If not late, all teachers can return
@@ -113,7 +80,7 @@ export const canTeacherReturnLeave = ({ teacher, leave, student, isLate = false,
   }
 
   // 2. If student returns on Friday and deadline (Friday night 12) has not passed, all teachers can return
-  if (isFridayReturnWithinDeadline(leave)) {
+  if (isFridayReturnWithinDeadline(leave, now)) {
     return true;
   }
 

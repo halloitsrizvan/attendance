@@ -617,7 +617,7 @@ function Hajar() {
       const percent = ((present / strength) * 100).toFixed(1);
 
       setSummary({ strength, present, absent, percent });
-      setShowSummary(true);
+      setShowSummary(false);
 
       await axios.patch(`${API_PORT}/classes/by-number/${id}`, {
         totalStudents: strength,
@@ -648,6 +648,7 @@ function Hajar() {
 
       await axios.patch(`${API_PORT}/students/bulk-update/students`, { updates: payload2 });
       setLoad(false);
+      navigate.replace('/');
     } catch (err) {
       console.error(err);
       setLoad(false);
@@ -973,7 +974,7 @@ function Hajar() {
                         isStudentLate = isLeaveLate(activeLeave);
                       }
 
-                      const canReturn = isOnLeave && canTeacherReturnLeave({
+                      const canReturn = displayOnLeave && canTeacherReturnLeave({
                         teacher,
                         leave: activeLeave,
                         student,

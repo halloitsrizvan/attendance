@@ -21,6 +21,7 @@ export default function AttendancePage() {
     const [selectedId, setSelectedId] = useState('');
     const [actualStatus, setActualStatus] = useState('Present');
     const [message, setMessage] = useState('');
+    const [descriptionError, setDescriptionError] = useState('');
     const [complaints, setComplaints] = useState([]);
     const [isMedicalLeave, setIsMedicalLeave] = useState(false);
 
@@ -142,6 +143,11 @@ export default function AttendancePage() {
 
     const handleComplaintSubmit = async (e) => {
         e.preventDefault();
+        if (!message.trim()) {
+            setDescriptionError('Please explain why this attendance record is incorrect.');
+            return;
+        }
+        setDescriptionError('');
         setComplaintLoading(true);
         try {
             const currentAttendance = attendanceData.find(r => r._id === selectedId);
@@ -625,6 +631,12 @@ export default function AttendancePage() {
                                 </span>
                             </label>
                         )}
+
+                        <div>
+                            <label htmlFor="complaint-description" className="block text-sm font-medium text-slate-700 mb-2">Description <span className="text-rose-600">*</span></label>
+                            <textarea id="complaint-description" required rows={3} value={message} onChange={event => { setMessage(event.target.value); setDescriptionError(''); }} aria-invalid={Boolean(descriptionError)} aria-describedby={descriptionError ? 'complaint-description-error' : undefined} placeholder="Explain what happened and why the attendance needs correction." className="w-full p-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-purple-500" />
+                            {descriptionError && <p id="complaint-description-error" role="alert" className="text-sm text-rose-600 mt-1">{descriptionError}</p>}
+                        </div>
 
                         <button
                             onClick={handleComplaintSubmit}

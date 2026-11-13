@@ -9,7 +9,7 @@ import StudentsLoad from '@/components/load-UI/StudentsLoad';
 import { API_PORT } from '@/Constants';
 import { attendanceDateKey, editableAttendanceStatus, selectAttendanceSession } from '@/lib/attendanceSession.mjs';
 import { editAttendanceLeaveInfo, formatEditAbsentees } from '@/lib/attendanceEditLeave.mjs';
-import { isTeacherAuthorizedForLateReturn } from '@/utils/leaveReturnUtils';
+import { canTeacherReturnLeave } from '@/utils/leaveReturnUtils';
 import styles from './EditAtt.module.css';
 
 const studentName = record => record.studentId?.['SHORT NAME'] || record.studentId?.['FULL NAME'] || record.nameOfStd || record.name || 'Unknown student';
@@ -37,6 +37,7 @@ export default function EditAtt() {
   const [teacher, setTeacher] = useState(null);
   const [returnRecord, setReturnRecord] = useState(null);
   const [returning, setReturning] = useState(false);
+  const [pendingReturns, setPendingReturns] = useState({});
 
   useEffect(() => {
     try { setTeacher(JSON.parse(localStorage.getItem('teacher') || 'null')); }
@@ -45,7 +46,7 @@ export default function EditAtt() {
 
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true); setError(''); setRecords([]); setStatuses({}); setSaved(false); setConfirm(false);
+    setLoading(true); setError(''); setRecords([]); setStatuses({}); setPendingReturns({}); setSaved(false); setConfirm(false);
     const params = { classNumber: id };
     if (date) params.date = date;
     if (time) params.time = time;
@@ -71,7 +72,7 @@ export default function EditAtt() {
 
   const absent = records.filter(record => statuses[record._id] !== 'Present');
   const leaveInfo = Object.fromEntries(records.map(record => [record._id, editAttendanceLeaveInfo(record, leaves, passes)]));
-  const leaveTypes = Object.fromEntries(records.map(record => [record._id, leaveInfo[record._id]?.type || null]));
+  const leaveTypes = Object.fromEntries(records.map(record => [record._id, pendingReturns[record._id] ? null : leaveInfo[record._id]?.type || null]));
   const sessionDate = records[0] ? attendanceDateKey(records[0].attendanceDate) : date;
   const sessionTime = records[0]?.attendanceTime || time;
   const sessionPeriod = records[0]?.period || period;
@@ -100,35 +101,25 @@ export default function EditAtt() {
   const confirmReturn = async () => {
     const record = returnRecord;
     const info = record && leaveInfo[record._id];
-    if (!info || !isTeacherAuthorizedForLateReturn(teacher, record.studentId?.CLASS || record.classNumber || id)) return;
-    setReturning(true); setError('');
-    try {
-      const returnedAt = new Date().toISOString();
-      const updates = [];
-      if (info.leave) updates.push(axios.patch(`${API_PORT}/leave/${info.leave._id}`, { status: 'returned', returnedAt, markReturnedTeacher: teacher?.name || 'Unknown' }));
-      if (info.pass) updates.push(axios.patch(`${API_PORT}/class-excused-pass/${info.pass._id}`, { status: 'returned', returnedAt }));
-      updates.push(axios.patch(`${API_PORT}/students/on-leave/${admissionNumber(record)}`, { onLeave: false }));
-      await Promise.all(updates);
-      setLeaves(previous => previous.map(item => item._id === info.leave?._id ? { ...item, status: 'returned', returnedAt } : item));
-      setPasses(previous => previous.map(item => item._id === info.pass?._id ? { ...item, status: 'returned', returnedAt } : item));
-      setRecords(previous => previous.map(item => item.studentId?._id === record.studentId?._id ? { ...item, studentId: { ...item.studentId, onLeave: false } } : item));
-      try { sessionStorage.removeItem('hajar_data'); } catch { /* Ignore storage restrictions. */ }
-      setReturnRecord(null);
-    } catch (err) {
-      setError(err.response?.data?.error || 'Could not return this student from leave. Please try again.');
-      const refreshed = await Promise.allSettled([
-        axios.get(`${API_PORT}/leave`, { params: { classes: id, all: true } }),
-        axios.get(`${API_PORT}/class-excused-pass`),
-      ]);
-      if (refreshed[0].status === 'fulfilled') setLeaves(refreshed[0].value.data);
-      if (refreshed[1].status === 'fulfilled') setPasses(refreshed[1].value.data);
-      setReturnRecord(null);
-    } finally { setReturning(false); }
+    if (!info || !canTeacherReturnLeave({ teacher, leave: info.leave || info.pass, isLate: info.type === 'Late', studentClass: record.studentId?.CLASS || record.classNumber || id })) return;
+    setPendingReturns(previous => ({ ...previous, [record._id]: { record, info } }));
+    setStatuses(previous => ({ ...previous, [record._id]: 'Present' }));
+    setSaved(false);
+    setReturnRecord(null);
   };
   const save = async () => {
     if (saving || !records.length) return;
     setSaving(true); setError('');
     try {
+      for (const { record, info } of Object.values(pendingReturns)) {
+        if (!canTeacherReturnLeave({ teacher, leave: info.leave || info.pass, isLate: info.type === 'Late', studentClass: record.studentId?.CLASS || record.classNumber || id })) {
+          throw new Error('Return permission has changed. Refresh attendance and try again.');
+        }
+        const returnedAt = new Date().toISOString();
+        if (info.leave) await axios.patch(API_PORT + '/leave/' + info.leave._id, { status: 'returned', returnedAt, markReturnedTeacher: teacher?.name || 'Unknown' });
+        if (info.pass) await axios.patch(API_PORT + '/class-excused-pass/' + info.pass._id, { status: 'returned', returnedAt });
+        await axios.patch(API_PORT + '/students/on-leave/' + admissionNumber(record), { onLeave: false });
+      }
       const updates = records.map(record => ({ _id: record._id, status: statuses[record._id] }));
       await axios.patch(`${API_PORT}/set-attendance`, { updates });
       // A historical correction must not change today's student/leave state.
@@ -144,8 +135,9 @@ export default function EditAtt() {
         }
       } catch { /* Storage restrictions must not turn a successful save into an error. */ }
       setConfirm(false); setSaved(true);
+      router.replace('/');
     } catch (err) {
-      setError(err.response?.data?.error || 'Could not save changes. Please try again.');
+      setError(err.response?.data?.error || err.message || 'Could not save changes. Please try again.');
     } finally { setSaving(false); }
   };
 
@@ -180,7 +172,7 @@ export default function EditAtt() {
           <tbody className="divide-y divide-slate-50">{records.map((record, index) => {
             const isPresent = statuses[record._id] === 'Present';
             const leaveType = leaveTypes[record._id];
-            const canReturn = leaveType && isTeacherAuthorizedForLateReturn(teacher, record.studentId?.CLASS || record.classNumber || id);
+            const canReturn = leaveType && canTeacherReturnLeave({ teacher, leave: leaveInfo[record._id]?.leave || leaveInfo[record._id]?.pass, isLate: leaveType === 'Late', studentClass: record.studentId?.CLASS || record.classNumber || id });
             return <tr key={record._id} onClick={() => { if (!saving) toggle(record); }} className={`group transition-colors ${leaveType ? 'bg-amber-50/30 cursor-not-allowed' : 'hover:bg-sky-50/50 cursor-pointer'}`}>
               <td className="hidden sm:table-cell px-6 py-4 text-sm font-medium text-slate-400">{index + 1}</td>
               <td className="hidden sm:table-cell px-6 py-4 text-sm font-mono text-slate-500">{admissionNumber(record)}</td>
@@ -218,7 +210,7 @@ export default function EditAtt() {
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"></div>
       <section role="dialog" aria-modal="true" aria-labelledby="confirm-return-title" className="relative bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl border border-white p-8">
         <button type="button" disabled={returning} onClick={() => setReturnRecord(null)} aria-label="Close return confirmation" className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:text-slate-600 transition-colors"><X size={16} /></button>
-        <div className="text-center mb-6"><h3 className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1">Status Update</h3><h2 id="confirm-return-title" className="text-xl font-black text-slate-800 uppercase tracking-tight">Confirm Return</h2><p className="text-[10px] font-bold text-slate-400 mt-2 uppercase px-4 leading-relaxed">Mark <span className="text-sky-600">{studentName(returnRecord)}</span> as returned from leave?</p></div>
+        <div className="text-center mb-6"><h3 className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-1">Status Update</h3><h2 id="confirm-return-title" className="text-xl font-black text-slate-800 uppercase tracking-tight">Confirm Return</h2><p className="text-[10px] font-bold text-slate-400 mt-2 uppercase px-4 leading-relaxed">Mark <span className="text-sky-600">{studentName(returnRecord)}</span> as Present? The leave return will be saved only when you save attendance.</p></div>
         <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 mb-8 space-y-4">
           <div className="flex justify-between items-center border-b border-slate-200/50 pb-3"><span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Type</span><span className="text-[9px] font-black text-sky-500 bg-sky-50 border border-sky-100 px-2 py-0.5 rounded uppercase tracking-widest">{leaveTypes[returnRecord._id]}</span></div>
           <div className="flex justify-between items-center border-b border-slate-200/50 pb-3"><span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Reason</span><span className="text-[10px] font-bold text-slate-700 uppercase">{leaveInfo[returnRecord._id]?.leave?.reason || leaveInfo[returnRecord._id]?.pass?.reason || 'N/A'}</span></div>
