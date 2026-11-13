@@ -22,6 +22,9 @@ export default function ClassLeaveDocumentation() {
     const [notice, setNotice] = useState('');
     const [busy, setBusy] = useState(null);
     const [search, setSearch] = useState('');
+    const [studentSearch, setStudentSearch] = useState('');
+    const [selectedStudent, setSelectedStudent] = useState('');
+    const studentInput = useRef(null);
     const [preview, setPreview] = useState(null);
     const [tab, setTab] = useState('all');
     const [fromDate, setFromDate] = useState('');
@@ -49,16 +52,16 @@ export default function ClassLeaveDocumentation() {
         } catch (error) { setError(error.response?.data?.error || 'Unable to update documentation.'); }
         finally { setBusy(null); }
     }
-    const scope = leaves.filter(leave => tab === 'common' ? Boolean(leave.returnedAt) : tab === 'medical' ? hasMedical(leave) : tab === 'program' ? hasProgram(leave) : hasMedical(leave) || hasProgram(leave));
+    const scope = leaves.filter(leave => tab === 'student' ? true : tab === 'common' ? Boolean(leave.returnedAt) : tab === 'medical' ? hasMedical(leave) : tab === 'program' ? hasProgram(leave) : hasMedical(leave) || hasProgram(leave));
     const isVerified = leave => tab === 'medical' ? leave.documented : tab === 'program' ? leave.programDocumented : verifiedLeave(leave);
     const validRange = tab !== 'common' || !fromDate || !toDate || fromDate <= toDate;
     const visible = scope.filter(leave => {
         const student = leave.studentId || {};
-        return validRange && (tab !== 'common' || (commonSearched && selectedStudents.has(student._id))) &&
+        return validRange && (tab !== 'student' || (selectedStudent && student._id === selectedStudent)) && (tab !== 'common' || (commonSearched && selectedStudents.has(student._id))) &&
             (tab !== 'all' || [student['FULL NAME'], student['SHORT NAME']].join(' ').toLowerCase().includes(search.trim().toLowerCase())) &&
             (tab !== 'common' || ((!fromDate || (leave.toDate || leave.fromDate) >= fromDate) && (!toDate || leave.fromDate <= toDate)));
     }).sort((a, b) => Number(Boolean(isVerified(a))) - Number(Boolean(isVerified(b))));
-    const tabs = [['all', 'All documents', leaves.filter(leave => hasMedical(leave) || hasProgram(leave)).length], ['common', 'Common leave docs', leaves.filter(leave => leave.returnedAt).length]];
+    const tabs = [['all', 'All documents', leaves.filter(leave => hasMedical(leave) || hasProgram(leave)).length], ['student', 'Std Doc', null], ['common', 'Common', leaves.filter(leave => leave.returnedAt).length]];
     async function bulkDocument(type) {
         const targets = visible.filter(leave => selected.has(leave._id));
         if (busy || !targets.length || !window.confirm('Mark ' + targets.length + ' selected leaves as documented?')) return;
@@ -84,7 +87,14 @@ export default function ClassLeaveDocumentation() {
             <div className={styles.heroBody}><div><h1>Leave<br />documentation</h1><p>Review and verify your class leaves.</p></div><div className={styles.heroIcon}><FileCheck2 size={44} strokeWidth={1.5} /></div></div>
         </section>
         <section className={styles.controls} aria-label="Find leave documents">
-            <div className={styles.tabs} role="group" aria-label="Documentation categories">{tabs.map(([value, label, count]) => <button key={value} onClick={() => setTab(value)} aria-pressed={tab === value} className={tab === value ? styles.activeTab : ''}>{label}<span>{loading ? '-' : count}</span></button>)}</div>
+            <div className={styles.tabs} role="group" aria-label="Documentation categories">{tabs.map(([value, label, count]) => <button key={value} onClick={() => setTab(value)} aria-pressed={tab === value} className={tab === value ? styles.activeTab : ''}>{label}{count !== null && <span>{loading ? '-' : count}</span>}</button>)}</div>
+            {tab === 'student' && <div className={styles.studentLookup}>
+                <label htmlFor="documentation-student-search">Find a student in Class {classNumber || '-'}</label>
+                <div className={styles.search}><Search size={18} /><input ref={studentInput} id="documentation-student-search" autoComplete="off" placeholder="Type a student name or admission number" value={studentSearch} onChange={event => { setStudentSearch(event.target.value); setSelectedStudent(''); }} />{studentSearch && <button type="button" aria-label="Clear selected student and search" onClick={() => { setSelectedStudent(''); setStudentSearch(''); studentInput.current?.focus(); }}><X size={16} /></button>}</div>
+                {!selectedStudent && studentSearch.trim() && <div className={styles.studentMatches}>{students.filter(student => [student['FULL NAME'], student['SHORT NAME'], student.ADNO].join(' ').toLowerCase().includes(studentSearch.trim().toLowerCase())).map(student => <button key={student._id} type="button" onClick={() => { setSelectedStudent(student._id); setStudentSearch(student['FULL NAME'] || student['SHORT NAME'] || 'Student'); }}><span>{student['FULL NAME'] || student['SHORT NAME']}</span><small>AD {student.ADNO}</small></button>)}{!students.some(student => [student['FULL NAME'], student['SHORT NAME'], student.ADNO].join(' ').toLowerCase().includes(studentSearch.trim().toLowerCase())) && <p className={styles.hint}>No matching students in your class.</p>}</div>}
+                {/* {selectedStudent && <p className={styles.hint}>AD {students.find(student => student._id === selectedStudent)?.ADNO} &middot; Showing this student's leaves. Clear the search to choose another student.</p>} */}
+                {/* <p className={styles.hint}>Choose a student to view their leaves and document each returned leave.</p> */}
+            </div>}
             {tab === 'all' && <div className={styles.search}><Search size={18} /><input aria-label="Search leaves" placeholder={tab === 'all' ? 'Search student name' : 'Student name or admission number'} value={search} onChange={event => setSearch(event.target.value)} />{search && <button onClick={() => setSearch('')} aria-label="Clear search"><X size={16} /></button>}</div>}
             {tab === 'common' && <div className={styles.filters}>
                 <label>From date<input type="date" value={fromDate} onChange={event => setFromDate(event.target.value)} /></label>
@@ -115,7 +125,7 @@ export default function ClassLeaveDocumentation() {
             {tab === 'common' && !!visible.length && <label className={styles.selectAll}><input type="checkbox" checked={visible.every(leave => selected.has(leave._id))} disabled={busy !== null} onChange={event => setSelected(event.target.checked ? new Set(visible.map(leave => leave._id)) : new Set())} />Select all visible leaves</label>}
             <div className={styles.cardList}>{visible.map(leave => {
                 const student = leave.studentId || {}, name = student['FULL NAME'] || 'Student';
-                const types = tab === 'medical' ? ['medical'] : tab === 'program' ? ['program'] : tab === 'common' ? [/ogea|official|external edu/i.test(leave.reason || '') || (!hasMedical(leave) && hasProgram(leave)) ? 'program' : 'medical'] : [...(hasMedical(leave) ? ['medical'] : []), ...(hasProgram(leave) ? ['program'] : [])];
+                const types = tab === 'medical' ? ['medical'] : tab === 'program' ? ['program'] : ['common', 'student'].includes(tab) ? [/ogea|official|external edu/i.test(leave.reason || '') || (!hasMedical(leave) && hasProgram(leave)) ? 'program' : 'medical'] : [...(hasMedical(leave) ? ['medical'] : []), ...(hasProgram(leave) ? ['program'] : [])];
                 const files = [[leave.documentUrl, 'Medical document'], [leave.programDocumentUrl, 'Program / Official document']].filter(([url]) => url);
                 return <article key={leave._id} className={styles.leaveCard}>
                     <div className={styles.student}>
@@ -126,11 +136,11 @@ export default function ClassLeaveDocumentation() {
                     <div className={styles.files}>{files.length ? files.map(([url, label]) => <a key={label} href={url} onClick={event => { if (label === 'Medical document') { event.preventDefault(); setPreview({ url, name }); } }} target="_blank" rel="noopener noreferrer"><FileText size={15} /><span>{label}</span><ArrowUpRight size={14} /></a>) : <p>No file uploaded</p>}</div>
                     <div className={styles.cardActions}>{types.map(type => {
                         const verified = type === 'medical' ? leave.documented : leave.programDocumented;
-                        return <div key={type}><span className={verified ? styles.verified : styles.pending}>{type === 'medical' ? 'Medical' : 'Program / Official'}: {verified ? 'Verified' : 'Pending'}</span>{!verified && <button onClick={() => update(leave, type)} disabled={busy !== null || !leave.returnedAt} className={styles.verify}>{busy === leave._id ? 'Saving...' : 'Approve document'}</button>}</div>;
+                        return <div key={type}><span className={verified ? styles.verified : styles.pending}>{type === 'medical' ? 'Medical' : 'Program / Official'}: {verified ? 'Verified' : 'Pending'}</span>{!verified && <button onClick={() => update(leave, type)} disabled={busy !== null || !leave.returnedAt} className={styles.verify}>{busy === leave._id ? 'Saving...' : tab === 'student' ? (type === 'medical' ? leave.documentUrl : leave.programDocumentUrl) ? 'Approve leave' : 'Document leave' : 'Approve document'}</button>}</div>;
                     })}</div>{!leave.returnedAt && <p className={styles.hint}>Approval available after return.</p>}
                 </article>;
             })}</div>
-            {!visible.length && !error && <div className={styles.empty}><FileCheck2 size={32} /><h2>{tab === 'common' && !commonSearched ? 'Find class leaves' : search ? 'No matching leaves' : 'No leaves here yet'}</h2><p>{tab === 'common' && !commonSearched ? 'Select a date range and students, then tap Search leaves.' : search ? 'Try another student name.' : 'No leaves match your selection.'}</p>{search && <button onClick={() => setSearch('')}>Clear search</button>}</div>}
+            {!visible.length && !error && <div className={styles.empty}><FileCheck2 size={32} /><h2>{tab === 'student' && !selectedStudent ? 'Find a student' : tab === 'common' && !commonSearched ? 'Find class leaves' : search ? 'No matching leaves' : 'No leaves here yet'}</h2><p>{tab === 'student' && !selectedStudent ? 'Search by name or admission number and select a student.' : tab === 'common' && !commonSearched ? 'Select a date range and students, then tap Search leaves.' : search ? 'Try another student name.' : 'No leaves match your selection.'}</p>{search && <button onClick={() => setSearch('')}>Clear search</button>}</div>}
         </>}
         {preview && <DocumentPreview key={preview.url} document={preview} onClose={() => setPreview(null)} />}
     </main></AuthGuard>;
