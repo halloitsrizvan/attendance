@@ -84,7 +84,7 @@ function AllClass({ edit, id, mobileHome = false }) {
     const totalMinutes = hours * 60 + minutes;
 
     // Time Table 
-    const period1Start = 450; // 7:30 AM
+    const period1Start = 420; // 7:00 AM
     const period1End = 490;   // 8:10 AM
 
     const period2Start = 490; // 8:10 AM
