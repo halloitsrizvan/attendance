@@ -85,6 +85,7 @@ export default function AdminAchievements() {
     d.setDate(d.getDate() - 30); // Default to 30 days ago
     return d.toISOString().split('T')[0];
   });
+  const [pdfEndDate, setPdfEndDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   useEffect(() => {
@@ -312,7 +313,7 @@ export default function AdminAchievements() {
     };
   };
 
-  const generatePDFReport = async (startDateInput = pdfStartDate) => {
+  const generatePDFReport = async (startDateInput = pdfStartDate, endDateInput = pdfEndDate) => {
     if (!pointsData || pointsData.length === 0) {
       alert("No data available to generate report.");
       return;
@@ -560,13 +561,13 @@ export default function AdminAchievements() {
       doc.addPage();
       const startPeriodDate = startDateInput ? new Date(startDateInput) : new Date(Date.now() - 30 * 86400000);
       startPeriodDate.setHours(0, 0, 0, 0);
-      const endPeriodDate = new Date();
+      const endPeriodDate = endDateInput ? new Date(endDateInput) : new Date();
       endPeriodDate.setHours(23, 59, 59, 999);
 
       const formattedStartStr = startPeriodDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       const formattedEndStr = endPeriodDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-      drawPageHeader("Latest Zehnuth Top 10 Toppers", `Period: ${formattedStartStr} - ${formattedEndStr} (Up to Today)`);
+      drawPageHeader("Latest Zehnuth Top 10 Toppers", `Period: ${formattedStartStr} - ${formattedEndStr}`);
 
       // Fetch all approved points to calculate period toppers accurately across all categories
       let periodPointsList = [];
@@ -659,7 +660,7 @@ export default function AdminAchievements() {
         styles: { fontSize: 9, cellPadding: 4 }
       });
 
-      doc.save(`Zehnuth_Analysis_Report_${startDateInput || 'Period'}_to_${new Date().toISOString().split('T')[0]}.pdf`);
+      doc.save(`Zehnuth_Analysis_Report_${startDateInput || 'Period'}_to_${endDateInput || new Date().toISOString().split('T')[0]}.pdf`);
       setIsPdfModalOpen(false);
     } catch (err) {
       console.error("Error generating PDF:", err);
@@ -1431,6 +1432,7 @@ export default function AdminAchievements() {
                       const d = new Date();
                       d.setDate(d.getDate() - 7);
                       setPdfStartDate(d.toISOString().split('T')[0]);
+                      setPdfEndDate(new Date().toISOString().split('T')[0]);
                     }}
                     className="p-2 bg-white hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200 rounded-xl text-[11px] font-black transition-all active:scale-95 text-slate-700 shadow-sm"
                   >
@@ -1442,6 +1444,7 @@ export default function AdminAchievements() {
                       const d = new Date();
                       d.setDate(d.getDate() - 14);
                       setPdfStartDate(d.toISOString().split('T')[0]);
+                      setPdfEndDate(new Date().toISOString().split('T')[0]);
                     }}
                     className="p-2 bg-white hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200 rounded-xl text-[11px] font-black transition-all active:scale-95 text-slate-700 shadow-sm"
                   >
@@ -1453,6 +1456,7 @@ export default function AdminAchievements() {
                       const d = new Date();
                       d.setDate(d.getDate() - 30);
                       setPdfStartDate(d.toISOString().split('T')[0]);
+                      setPdfEndDate(new Date().toISOString().split('T')[0]);
                     }}
                     className="p-2 bg-white hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200 rounded-xl text-[11px] font-black transition-all active:scale-95 text-slate-700 shadow-sm"
                   >
@@ -1464,6 +1468,7 @@ export default function AdminAchievements() {
                       const d = new Date();
                       d.setDate(1); // 1st of current month
                       setPdfStartDate(d.toISOString().split('T')[0]);
+                      setPdfEndDate(new Date().toISOString().split('T')[0]);
                     }}
                     className="p-2 bg-white hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200 rounded-xl text-[11px] font-black transition-all active:scale-95 text-slate-700 shadow-sm"
                   >
@@ -1480,8 +1485,23 @@ export default function AdminAchievements() {
                 <input
                   type="date"
                   value={pdfStartDate}
-                  max={new Date().toISOString().split('T')[0]}
+                  max={pdfEndDate || new Date().toISOString().split('T')[0]}
                   onChange={(e) => setPdfStartDate(e.target.value)}
+                  className="w-full bg-white border border-slate-200 hover:border-slate-300 focus:border-indigo-500 rounded-xl p-3 text-xs font-bold text-slate-700 outline-none transition-all shadow-sm"
+                />
+              </div>
+
+              {/* End Date Input */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase text-slate-600 tracking-wider block">
+                  Topper Points Ending Date
+                </label>
+                <input
+                  type="date"
+                  value={pdfEndDate}
+                  min={pdfStartDate || undefined}
+                  max={new Date().toISOString().split('T')[0]}
+                  onChange={(e) => setPdfEndDate(e.target.value)}
                   className="w-full bg-white border border-slate-200 hover:border-slate-300 focus:border-indigo-500 rounded-xl p-3 text-xs font-bold text-slate-700 outline-none transition-all shadow-sm"
                 />
               </div>
@@ -1498,7 +1518,7 @@ export default function AdminAchievements() {
                   </span>
                   {' '}→{' '}
                   <span className="font-black text-indigo-700">
-                    Today ({new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})
+                    {pdfEndDate ? new Date(pdfEndDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Today'}
                   </span>
                 </div>
                 <p className="text-[10px] text-indigo-600/80 pt-1 border-t border-indigo-100 font-medium leading-normal">
@@ -1520,8 +1540,8 @@ export default function AdminAchievements() {
               </button>
               <button
                 type="button"
-                disabled={isGeneratingPdf || !pdfStartDate}
-                onClick={() => generatePDFReport(pdfStartDate)}
+                disabled={isGeneratingPdf || !pdfStartDate || !pdfEndDate || pdfEndDate < pdfStartDate}
+                onClick={() => generatePDFReport(pdfStartDate, pdfEndDate)}
                 className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black uppercase text-[10px] tracking-wider transition-all active:scale-95 shadow-md shadow-indigo-100 flex items-center gap-2 disabled:opacity-50"
               >
                 {isGeneratingPdf ? (
