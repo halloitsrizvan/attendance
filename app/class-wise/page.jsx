@@ -23,6 +23,8 @@ export default async function ClassWIsePriv() {
 
   // 3. Fetch latest absentees from manual attendance using a robust pipeline
   const latestAbsenteesPipeline = [
+    // Keep only needed fields so the sort stays under MongoDB's 32MB in-memory limit
+    { $project: { studentId: 1, status: 1, attendanceDate: 1, createdAt: 1 } },
     { $sort: { attendanceDate: -1, createdAt: -1 } },
     {
       $group: {
